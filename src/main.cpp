@@ -9,7 +9,7 @@
 #include <iostream>
 
 // Common constants
-const GLuint WIDTH = 1280, HEIGHT = 720;         // Pixs. Width and height of window
+const GLuint WIDTH = 800, HEIGHT = 600;          // Pixs. Width and height of window
 const GLfloat bg[] = { 0.2f, 0.3f, 0.3f, 1.0f }; // RGBA. Color of background
 
 // Common functions
@@ -21,7 +21,7 @@ int main()
 
     // Version and profile of OpenGL context
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Make screen unresizable
@@ -90,3 +90,4 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
 }
+
