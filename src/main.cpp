@@ -20,21 +20,24 @@ int main()
     glfwInit();
 
     // Version and profile of OpenGL context
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // Make screen unresizable
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
 
     // Monitor
-    GLFWmonitor* monitor = NULL; // use glfwGetPrimaryMonitor() for full screen
+    GLFWmonitor* monitor = nullptr; // use glfwGetPrimaryMonitor() for full screen
 
     //==========================================================================================================================================
     // Create a GLFWwindow object which we can use for GLFW's functions
 
-    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "MyOpenGL", monitor, NULL);
-    if (window == NULL)
+    GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "MyOpenGL", monitor, nullptr);
+    if (window == nullptr)
     {
         printf("Failed to create GLFW window\n");
         glfwTerminate();
@@ -67,7 +70,7 @@ int main()
 
 	//==========================================================================================================================================
     // Game loop
-    
+
     while (!glfwWindowShouldClose(window))
     {
         // Check keyboard and mouse events
