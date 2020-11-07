@@ -1,7 +1,3 @@
-// GLEW (openGL Extension Wrangler)
-#define GLEW_STATIC
-#include <GL/glew.h>
-
 // GLFW (openGL FrameWork)
 #include <GLFW/glfw3.h>
 
@@ -48,14 +44,6 @@ int main()
 
     //==========================================================================================================================================
     // Common options
-
-    // Initialize GLEW to setup the OpenGL Function pointers
-    glewExperimental = GL_TRUE;
-    if (glewInit() != GLEW_OK)
-    {
-        printf("Failed to initialize GLEW\n");
-        return -1;
-    }
 
     // Set the required callback functions
     glfwSetKeyCallback(window, keyCallback);
