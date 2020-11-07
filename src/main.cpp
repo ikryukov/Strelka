@@ -1,4 +1,7 @@
-// GLFW (openGL FrameWork)
+// GLAD (OpenGL Loader)
+#include <glad/glad.h>
+
+// GLFW (OpenGL Framework)
 #include <GLFW/glfw3.h>
 
 // Common includes
@@ -9,60 +12,60 @@ const GLuint WIDTH = 800, HEIGHT = 600;          // Pixs. Width and height of wi
 const GLfloat bg[] = { 0.2f, 0.3f, 0.3f, 1.0f }; // RGBA. Color of background
 
 // Common functions
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void framebufferSizeCallback(GLFWwindow* window, int width, int height);
+void keyCallback(GLFWwindow* window);
 
 int main()
 {
+    // GLFW: Initialize and configure
     glfwInit();
-
-    // Version and profile of OpenGL context
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    // Make screen unresizable
-    glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    // Monitor
-    GLFWmonitor* monitor = nullptr; // use glfwGetPrimaryMonitor() for full screen
-
     //==========================================================================================================================================
     // Create a GLFWwindow object which we can use for GLFW's functions
+
+    // Monitor
+    GLFWmonitor* monitor = nullptr; // use glfwGetPrimaryMonitor() for full screen
 
     GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "MyOpenGL", monitor, nullptr);
     if (window == nullptr)
     {
-        printf("Failed to create GLFW window\n");
+        std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         return -1;
     }
     glfwMakeContextCurrent(window);
-    printf("Starting GLFW context: OpenGL %s\n", glGetString(GL_VERSION));
 
     //==========================================================================================================================================
     // Common options
 
-    // Set the required callback functions
-    glfwSetKeyCallback(window, keyCallback);
+    // Load all OpenGL function pointers using GLAD
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+    {
+        std::cout << "Failed to initialize GLAD" << std::endl;
+        return -1;
+    }
+    std::cout << "Starting GLAD context: OpenGL " << glGetString(GL_VERSION) << std::endl;
 
-    // Define the viewport dimensions
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-    glViewport(0, 0, width, height);
+    // Set the required callback functions
+    glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
 
     // Set background color
     glClearColor(bg[0], bg[1], bg[2], bg[3]);
 
-	//==========================================================================================================================================
+    //==========================================================================================================================================
     // Game loop
-
+    
     while (!glfwWindowShouldClose(window))
     {
         // Check keyboard and mouse events
         glfwPollEvents();
+        keyCallback(window);
 
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT);
@@ -75,10 +78,15 @@ int main()
     return 0;
 }
 
-// Is called whenever a key is pressed/released via GLFW
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode)
+// It's called whenever a key is pressed/released via GLFW
+void keyCallback(GLFWwindow* window)
 {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, GL_TRUE);
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
 }
 
+// It's called whenever the window size changed
+void framebufferSizeCallback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}

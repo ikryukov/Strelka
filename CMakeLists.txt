@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.18)
 project(myopengl)
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+add_executable(${PROJECT_NAME}
+	src/main.cpp
+	external/glad/src/glad.c
+)
 
 # External 3rd-party libraries
     option(GLFW_BUILD_EXAMPLES OFF)
