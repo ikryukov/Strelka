@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.16)
 project(myopengl)
 
 add_executable(${PROJECT_NAME}
@@ -27,7 +27,8 @@ if(WIN32)
     target_link_libraries(${PROJECT_NAME} opengl32 glfw)
 elseif(UNIX AND NOT APPLE)
     find_package(OpenGL REQUIRED)
-    target_link_libraries(${PROJECT_NAME} GL glfw) 
+    target_link_libraries(${PROJECT_NAME} GL glfw)
 elseif(APPLE)
-    #TODO
+    find_package(OpenGL REQUIRED)
+    target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARY} glfw)
 endif(WIN32)
