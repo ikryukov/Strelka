@@ -76,28 +76,44 @@ int main()
 
     // BUFFERS:
     // VAO - Vertex Array Object (VAO memorize VBO/EBO with attributes)
-    // VBO - Vertex Buffer Objects (Array of vertex)
+    // VBO - Vertex Buffer Objects (Array of vertices)
     // EBO - Element Buffer Objects (Array of vertices' indecies in VBO)
 
+    // DRAW TYPES:
+    // GL_STREAM_DRAW  - the data is set only once and used by the GPU at most a few times.
+    // GL_STATIC_DRAW  - the data is set only once and used many times.
+    // GL_DYNAMIC_DRAW - the data is changed a lot and used many times.
+
+    // Vertices position | 0.0 - center of the screen
     GLfloat vertices[] = {
-    -0.5f, -0.5f, 0.0f,
-     0.5f, -0.5f, 0.0f,
-     0.0f,  0.5f, 0.0f
+        -0.5f, -0.5f, 0.0f, // bottom left (0)
+         0.5f, -0.5f, 0.0f, // bottom right (1)
+        -0.5f,  0.5f, 0.0f, // top left (2)
+         0.5f,  0.5f, 0.0f, // top right (3)
+    };
+    
+    // Indecies for EBO
+    GLuint indecies[] = {
+        0, 1, 2, // first triangle
+        1, 2, 3  // second triangle
     };
 
     // Initialization buffers
-    GLuint VAO, VBO;
+    GLuint VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
-    // Configure the buffers
+    // Configure the VAO = [VBO + EBO]
     glBindVertexArray(VAO); // Bind VAO
-
-            // GL_STREAM_DRAW  - the data is set only once and used by the GPU at most a few times.
-            // GL_STATIC_DRAW  - the data is set only once and used many times.
-            // GL_DYNAMIC_DRAW - the data is changed a lot and used many times.
+            
+            // Set VBO - package of vertices
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
             glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+            // Set EBO - sequence of vertices
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indecies), indecies, GL_STATIC_DRAW);
 
             // Attributes -> attribute_pos, dimension, data_type, normalization, the stride, offset
             // Set location as first(0) attribute
@@ -148,7 +164,7 @@ int main()
         // Draw
         glUseProgram(shader_program);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawElements(GL_TRIANGLES, sizeof(indecies) / sizeof(GLuint), GL_UNSIGNED_INT, nullptr);
 
         // Swap the screen buffers
         glfwSwapBuffers(window);
@@ -163,6 +179,15 @@ void keyCallback(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    {
+        GLint status = 0;
+        glGetIntegerv(GL_POLYGON_MODE, &status);
+        if (status == GL_LINE) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        if (status == GL_FILL) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+
 }
 
 // It's called whenever the window size changed
