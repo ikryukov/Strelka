@@ -84,6 +84,14 @@ int main()
     // GL_STATIC_DRAW  - the data is set only once and used many times.
     // GL_DYNAMIC_DRAW - the data is changed a lot and used many times.
 
+    // ATTRIBUTE (arguments):
+    // 1) attribute number (0, 1, 2, ...)
+    // 2) number of figures (for each object)
+    // 3) type of figures (GL_INT, GL_UNSIGNED_INT, GL_FLOAT, ...)
+    // 4) normalization (on/off) ( try to convert figures from integer [-inf, +inf] to float [-1, 1] )
+    // 5) the stride = number_of_figures * size_of_type_of_figures
+    // 6) offset (set for after first attribute, nullptr for first attribute)
+
     // Vertices position | 0.0 - center of the screen
     GLfloat vertices[] = {
         -0.5f, -0.5f, 0.0f, // bottom left (0)
@@ -104,7 +112,7 @@ int main()
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
 
-    // Configure the VAO = [VBO + EBO]
+    // Configure the VAO = [VBO + EBO + attributes]
     glBindVertexArray(VAO); // Bind VAO
             
             // Set VBO - package of vertices
@@ -115,8 +123,7 @@ int main()
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indecies), indecies, GL_STATIC_DRAW);
 
-            // Attributes -> attribute_pos, dimension, data_type, normalization, the stride, offset
-            // Set location as first(0) attribute
+            // Set position attribute as first(0) attribute
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(GLfloat), nullptr);
             glEnableVertexAttribArray(0);
 
