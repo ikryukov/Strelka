@@ -1,4 +1,5 @@
 #!/bin/bash
+rm -f myopengl
 mkdir build
 cd build/
 cmake ..

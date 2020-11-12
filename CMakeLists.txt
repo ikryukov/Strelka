@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 project(myopengl)
 
 add_executable(${PROJECT_NAME}
-	src/main.cpp
-	external/glad/src/glad.c
+    src/main.cpp
+    src/shaders.cpp
+    external/glad/src/glad.c
 )
 
 # External 3rd-party libraries

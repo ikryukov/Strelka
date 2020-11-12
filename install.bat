@@ -1,3 +1,4 @@
+del /q/f myopengl.exe
 mkdir build
 cd build
 cmake ..

@@ -4,25 +4,15 @@
 // GLFW (OpenGL Framework)
 #include <GLFW/glfw3.h>
 
+// GLSL (OpenGL Shader Language)
+#include "shaders.h"
+
 // Common includes
 #include <iostream>
 
 // Common constants
 const GLuint WIDTH = 800, HEIGHT = 600;          // Pixs. Width and height of window
 const GLfloat bg[] = { 0.2f, 0.3f, 0.3f, 1.0f }; // RGBA. Color of background
-
-const char* vertex_shader_source = "#version 330 core\n"
-    "layout (location = 0) in vec3 aPos;\n"
-    "void main()\n"
-    "{\n"
-    "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-    "}\0";
-const char* fragment_shader_source = "#version 330 core\n"
-    "out vec4 FragColor;\n"
-    "void main()\n"
-    "{\n"
-    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-    "}\n\0";
 
 // Common functions
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -95,10 +85,11 @@ int main()
 
     // Vertices position | 0.0 - center of the screen
     GLfloat vertices[] = {
-        -0.5f, -0.5f, 0.0f, // bottom left (0)
-         0.5f, -0.5f, 0.0f, // bottom right (1)
-        -0.5f,  0.5f, 0.0f, // top left (2)
-         0.5f,  0.5f, 0.0f, // top right (3)
+        // Position         // Colors
+        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 0.0f, // bottom left (0)
+         0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom right (1)
+        -0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f, // top left (2)
+         0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f, // top right (3)
     };
     
     // Indecies for EBO
@@ -125,8 +116,12 @@ int main()
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indecies), indecies, GL_STATIC_DRAW);
 
             // Set position attribute as first(0) attribute
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(GLfloat), nullptr);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), nullptr);
             glEnableVertexAttribArray(0);
+
+            // Set color attribute as second(1) attribute
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+            glEnableVertexAttribArray(1);
 
     glBindVertexArray(0); // Unbind VAO
 
@@ -137,25 +132,7 @@ int main()
     // Vertex shader - it is about calculating the shape ouptut of your figure
     // Fragment shader - it is about calculating the color output of your pixels
 
-    // Create vertex shader
-    GLuint vetrex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vetrex_shader, 1, &vertex_shader_source, nullptr);
-    glCompileShader(vetrex_shader);
-
-    // Create fragment shader
-    GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &fragment_shader_source, nullptr);
-    glCompileShader(fragment_shader);
-
-    // Attach shaders
-    GLuint shader_program = glCreateProgram();
-    glAttachShader(shader_program, vetrex_shader);
-    glAttachShader(shader_program, fragment_shader);
-    glLinkProgram(shader_program);
-
-    // Delete unnecessary data
-    glDeleteShader(vetrex_shader);
-    glDeleteShader(fragment_shader);
+    Shader default_shader("misc/shaders/default.vs", "misc/shaders/default.frs");
 
     //==========================================================================================================================================
     // Game loop
@@ -169,7 +146,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Draw
-        glUseProgram(shader_program);
+        default_shader.use();
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, sizeof(indecies) / sizeof(GLuint), GL_UNSIGNED_INT, nullptr);
 
