@@ -26,7 +26,7 @@ const char* fragment_shader_source = "#version 330 core\n"
 
 // Common functions
 void framebufferSizeCallback(GLFWwindow* window, int width, int height);
-void keyCallback(GLFWwindow* window);
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 int main()
 {
@@ -67,6 +67,7 @@ int main()
 
     // Set the required callback functions
     glfwSetFramebufferSizeCallback(window, framebufferSizeCallback);
+    glfwSetKeyCallback(window, keyCallback);
 
     // Set background color
     glClearColor(bg[0], bg[1], bg[2], bg[3]);
@@ -163,7 +164,6 @@ int main()
     {
         // Check keyboard and mouse events
         glfwPollEvents();
-        keyCallback(window);
 
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT);
@@ -182,19 +182,18 @@ int main()
 }
 
 // It's called whenever a key is pressed/released via GLFW
-void keyCallback(GLFWwindow* window)
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
     {
-        GLint status = 0;
-        glGetIntegerv(GL_POLYGON_MODE, &status);
-        if (status == GL_LINE) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        if (status == GL_FILL) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        GLint status[2];
+        glGetIntegerv(GL_POLYGON_MODE, status);
+        if (*status == GL_LINE) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        if (*status == GL_FILL) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
-
 }
 
 // It's called whenever the window size changed
