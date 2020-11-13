@@ -7,5 +7,6 @@ private:
 	GLuint program;
 public:
 	Shader(const GLchar* vertex_shader_src_path, const GLchar* fragment_shader_src_path);
-	void use();
+	void useProgram();
+	GLuint getProgram();
 };

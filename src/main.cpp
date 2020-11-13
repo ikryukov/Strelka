@@ -146,7 +146,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         // Draw
-        default_shader.use();
+        default_shader.useProgram();
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, sizeof(indecies) / sizeof(GLuint), GL_UNSIGNED_INT, nullptr);
 

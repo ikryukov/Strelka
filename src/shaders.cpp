@@ -81,4 +81,5 @@ Shader::Shader(const GLchar* vertex_shader_src_path, const GLchar* fragment_shad
 	glDeleteShader(fragment_shader);
 }
 
-void Shader::use() { glUseProgram(this->program); }
+void Shader::useProgram() { glUseProgram(this->program); }
+GLuint Shader::getProgram() { return this->program; }
