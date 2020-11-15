@@ -4,32 +4,27 @@ project(myopengl)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/shaders.cpp
-    external/glad/src/glad.c
 )
 
+##############################
 # External 3rd-party libraries
-    option(GLFW_BUILD_EXAMPLES OFF)
-    option(GLFW_BUILD_TESTS OFF)
-    option(GLFW_BUILD_DOCS OFF)
+
+# GLFW (OpenGL Framework)
+option(GLFW_BUILD_EXAMPLES OFF)
+option(GLFW_BUILD_TESTS OFF)
+option(GLFW_BUILD_DOCS OFF)
 add_subdirectory(external/glfw)
+
+##############################
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE include
-    PRIVATE external/glad/include
     PRIVATE external/glfw/include
 )
 
 target_link_directories(${PROJECT_NAME}
-    PRIVATE external/glad/src
     PRIVATE external/glfw/src
 )
 
-if(WIN32)
-    target_link_libraries(${PROJECT_NAME} opengl32 glfw)
-elseif(UNIX AND NOT APPLE)
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(${PROJECT_NAME} GL glfw)
-elseif(APPLE)
-    find_package(OpenGL REQUIRED)
-    target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARY} glfw)
-endif(WIN32)
+find_package(Vulkan REQUIRED)
+target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan glfw)
