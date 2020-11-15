@@ -29,8 +29,9 @@ public:
     }
 
 private:
-    VkInstance instance{};
     GLFWwindow* window{};
+    VkInstance instance{};
+    VkPhysicalDevice physicalDevice{VK_NULL_HANDLE};
 
     void initWindow() {
 
@@ -45,8 +46,8 @@ private:
         // Window
         window = glfwCreateWindow(WIDTH, HEIGHT, "MyOpenGL", monitor, nullptr);
         if (window == nullptr) {
-            std::cout << "Failed to create GLFW window" << std::endl;
             glfwTerminate();
+            throw std::runtime_error("Failed to create GLFW window");
         }
     }
 
@@ -93,13 +94,35 @@ private:
         createInfo.enabledLayerCount = 0;
 
         // Create instance
-        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
-            throw std::runtime_error("failed to create instance!");
+        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
+            throw std::runtime_error("Failed to create instance!");
+    }
+
+    void pickPhysicalDevice() {
+
+        // Find the count of GPUs
+        uint32_t deviceCount = 0;
+        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
+        if (deviceCount == 0)
+            throw std::runtime_error("Failed to find GPUs with Vulkan support!");
+
+        // Find all the GPUs with info (properties and features)
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+        std::cout << "GPUs are found: " << std::endl;
+        for (const auto& device: devices) {
+            VkPhysicalDeviceProperties properties;
+            vkGetPhysicalDeviceProperties(device, &properties);
+            std::cout << '\t' << properties.deviceName << std::endl;
         }
+
+        // Choose the GPU
+        physicalDevice = devices[0];
     }
 
     void initVulkan() {
         createInstance();
+        pickPhysicalDevice();
     }
 
     void mainLoop() {
@@ -118,8 +141,8 @@ private:
 
 int main()
 {
-    HelloTriangleApplication app;
     try {
+        HelloTriangleApplication app;
         app.run();
     }
     catch (const std::exception& error) {
