@@ -8,30 +8,77 @@
 // GLSL (OpenGL Shader Language)
     // Vertex shader - it is about calculating the shape of the figure
     // Fragment shader - it is about calculating the color of the figure
-#include "shaders.h"
+//#include "shaders.h"
 
-// Common includes
-#include <iostream>
-#include <stdexcept>
-#include <cstdlib>
-#include <vector>
+#include "common.h"
 
-class HelloTriangleApplication {
+//=====================================================================
+
+#include "core/instance.h"
+#include "core/device.h"
+
+class Engine {
 public:
-    const uint32_t WIDTH = 800;
-    const uint32_t HEIGHT = 600;
 
-    void run() {
-        initWindow();
-        initVulkan();
-        mainLoop();
-        cleanup();
+    Engine() {
+        createInstance();
+        createDevice();
+    }
+
+    ~Engine() {
+        delete this->instance;
+        delete this->device;
     }
 
 private:
-    GLFWwindow* window{};
-    VkInstance instance{};
-    VkPhysicalDevice physicalDevice{VK_NULL_HANDLE};
+    Instance* instance{ nullptr };
+    Device* device{ nullptr };
+
+    void createInstance() {
+
+        // Set required extenstions
+        std::vector<const char*> requiredExtensions;
+
+            // GLFW extensions
+            #ifdef _glfw3_h_
+            uint32_t extensionsCount = 0;
+            const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
+            for (uint32_t i = 0; i < extensionsCount; i++)
+                requiredExtensions.push_back(glfwExtensions[i]);
+            #endif
+
+        // Set required validations
+        // ...
+
+        // Create instance
+        this->instance = new Instance("MyApp", requiredExtensions);
+    }
+
+    void createDevice() {
+        this->device = new Device(this->instance);
+    }
+
+};
+
+//=====================================================================
+
+class Application {
+
+public:
+    static const uint32_t WIDTH = 800;
+    static const uint32_t HEIGHT = 600;
+
+    Application() {
+        initWindow();
+        initEngine();
+        run();
+        destroyEngine();
+        destroyWindow();
+    }
+
+private:
+    GLFWwindow* window{ nullptr };
+    Engine* engine{ nullptr };
 
     void initWindow() {
 
@@ -44,106 +91,39 @@ private:
         GLFWmonitor* monitor = nullptr; // use glfwGetPrimaryMonitor() for full screen
 
         // Window
-        window = glfwCreateWindow(WIDTH, HEIGHT, "MyOpenGL", monitor, nullptr);
-        if (window == nullptr) {
+        this->window = glfwCreateWindow(WIDTH, HEIGHT, "MyOpenGL", monitor, nullptr);
+        if (this->window == nullptr) {
             glfwTerminate();
             throw std::runtime_error("Failed to create GLFW window");
         }
+
+        std::cout << "Window was created successfully" << std::endl;
     }
 
-    void createInstance() {
-
-        //=======================================================
-        // Optional:
-
-        // Set additional info
-        VkApplicationInfo appInfo{};
-        appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-        appInfo.pEngineName = "No Engine";
-        appInfo.pApplicationName = "Hello Triangle";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_0;
-
-        // Check available extensions
-        uint32_t extensionCount = 0;
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-        std::vector<VkExtensionProperties> extensions(extensionCount);
-        vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-        std::cout << extensionCount << " available extensions:\n";
-        for (const auto& extension: extensions)
-            std::cout << '\t' << extension.extensionName << std::endl;;
-
-        //=======================================================
-        // Necessary:
-
-        // GLFW extensions are required for instance
-        uint32_t glfwExtensionCount = 0;
-        const char** glfwExtensions;
-        glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-        std::cout << "GLFW Extenstions are required:" << std::endl;
-        for (uint16_t i = 0; i < glfwExtensionCount; i++)
-            std::cout << '\t' << glfwExtensions[i] << std::endl;
-
-        // Creation info for instance
-        VkInstanceCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-        createInfo.pApplicationInfo = &appInfo;
-        createInfo.enabledExtensionCount = glfwExtensionCount;
-        createInfo.ppEnabledExtensionNames = glfwExtensions;
-        createInfo.enabledLayerCount = 0;
-
-        // Create instance
-        if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create instance!");
+    void initEngine() {
+        this->engine = new Engine();
     }
 
-    void pickPhysicalDevice() {
-
-        // Find the count of GPUs
-        uint32_t deviceCount = 0;
-        vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-        if (deviceCount == 0)
-            throw std::runtime_error("Failed to find GPUs with Vulkan support!");
-
-        // Find all the GPUs with info (properties and features)
-        std::vector<VkPhysicalDevice> devices(deviceCount);
-        vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
-        std::cout << "GPUs are found: " << std::endl;
-        for (const auto& device: devices) {
-            VkPhysicalDeviceProperties properties;
-            vkGetPhysicalDeviceProperties(device, &properties);
-            std::cout << '\t' << properties.deviceName << std::endl;
-        }
-
-        // Choose the GPU
-        physicalDevice = devices[0];
-    }
-
-    void initVulkan() {
-        createInstance();
-        pickPhysicalDevice();
-    }
-
-    void mainLoop() {
-        while (!glfwWindowShouldClose(window)) {
+    void run() {
+        while (!glfwWindowShouldClose(this->window)) {
             glfwPollEvents(); // Check keyboard and mouse events
         }
     }
 
-    void cleanup() {
-        vkDestroyInstance(instance, nullptr);
-        glfwDestroyWindow(window);
-        glfwTerminate();
+    void destroyEngine() {
+        delete this->engine;
     }
 
+    void destroyWindow() {
+        glfwDestroyWindow(this->window);
+        glfwTerminate();
+    }
 };
 
 int main()
 {
     try {
-        HelloTriangleApplication app;
-        app.run();
+        Application app;
     }
     catch (const std::exception& error) {
         std::cerr << error.what() << std::endl;
