@@ -20,19 +20,33 @@
 class Engine {
 public:
 
-    Engine() {
+    Engine(GLFWwindow* window):
+        window{ window },
+        instance{ nullptr },
+        device{ nullptr },
+        surface{ VK_NULL_HANDLE }
+    {
         createInstance();
         createDevice();
+        createSurface();
     }
 
     ~Engine() {
-        delete this->instance;
+        vkDestroySurfaceKHR(this->instance->getHandle(), this->surface, nullptr);
         delete this->device;
+        delete this->instance;
     }
 
 private:
-    Instance* instance{ nullptr };
-    Device* device{ nullptr };
+    // External variables
+    GLFWwindow* window;
+
+    // Internal variables
+    VkSurfaceKHR surface;
+
+    // Interfaces
+    Instance* instance;
+    Device* device;
 
     void createInstance() {
 
@@ -40,24 +54,23 @@ private:
         std::vector<const char*> requiredExtensions;
 
             // GLFW extensions
-            #ifdef _glfw3_h_
             uint32_t extensionsCount = 0;
             const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
             for (uint32_t i = 0; i < extensionsCount; i++)
                 requiredExtensions.push_back(glfwExtensions[i]);
-            #endif
-
-        // Set required validations
-        // ...
 
         // Create instance
-        this->instance = new Instance("MyApp", requiredExtensions);
+        this->instance = new Instance(std::string{ "MyApp" }, requiredExtensions);
     }
 
     void createDevice() {
         this->device = new Device(this->instance);
     }
 
+    void createSurface() { 
+        if (glfwCreateWindowSurface(instance->getHandle(), window, nullptr, &surface) != VK_SUCCESS)
+            throw std::runtime_error("Failed to create window surface!");
+    }
 };
 
 //=====================================================================
@@ -68,7 +81,10 @@ public:
     static const uint32_t WIDTH = 800;
     static const uint32_t HEIGHT = 600;
 
-    Application() {
+    Application():
+        window{ nullptr },
+        engine{ nullptr }
+    {
         initWindow();
         initEngine();
         run();
@@ -77,8 +93,8 @@ public:
     }
 
 private:
-    GLFWwindow* window{ nullptr };
-    Engine* engine{ nullptr };
+    GLFWwindow* window;
+    Engine* engine;
 
     void initWindow() {
 
@@ -101,7 +117,7 @@ private:
     }
 
     void initEngine() {
-        this->engine = new Engine();
+        this->engine = new Engine(this->window);
     }
 
     void run() {
@@ -119,6 +135,8 @@ private:
         glfwTerminate();
     }
 };
+
+#include <windows.h>
 
 int main()
 {

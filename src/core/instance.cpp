@@ -1,8 +1,7 @@
 #include "core/instance.h"
 
-Instance::Instance(const std::string& applicationName,
-                   const std::vector<const char*>& requiredExtensions,
-                   uint32_t apiVersion)
+Instance::Instance(std::string applicationName, std::vector<const char*>& requiredExtensions, uint32_t apiVersion):
+    handle{ VK_NULL_HANDLE }
 {
     //=======================================================
     // Optional:
@@ -35,18 +34,20 @@ Instance::Instance(const std::string& applicationName,
     //=======================================================
     // Necessary:
 
+    // Here should be a checker of the enabled extensions
+    // which were both required and available
+    // ...
+
     // Set instance info
     VkInstanceCreateInfo instanceInfo{};
     instanceInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceInfo.pApplicationInfo = &appInfo;
 
-    instanceInfo.enabledExtensionCount = requiredExtensions.size();
+    instanceInfo.enabledExtensionCount = (uint32_t)requiredExtensions.size();
     instanceInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
-    instanceInfo.enabledLayerCount = 0;
-
     // Create instance
-    if (vkCreateInstance(&instanceInfo, nullptr, &this->handle) != VK_SUCCESS)
+    if (vkCreateInstance(&instanceInfo, nullptr, &(this->handle)) != VK_SUCCESS)
         throw std::runtime_error("Failed to create instance!");
 
 }
@@ -55,6 +56,5 @@ Instance::~Instance() {
     if (this->handle != VK_NULL_HANDLE)
         vkDestroyInstance(this->handle, nullptr);
 }
-
 
 VkInstance Instance::getHandle() { return this->handle; }
