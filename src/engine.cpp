@@ -46,12 +46,12 @@ void Engine::createInstance()
         requiredExtensions.push_back(glfwExtensions[i]);
 
     // Create instance
-    this->instance = std::unique_ptr<Instance>(new Instance(std::string{ "MyApp" }, requiredExtensions));
+    this->instance = std::make_unique<Instance>(std::string{ "MyApp" }, requiredExtensions);
 }
 
 void Engine::createDevice()
 {
-    this->device = std::unique_ptr<Device>(new Device(this->instance.get()));
+    this->device = std::make_unique<Device>(this->instance.get());
 }
 
 void Engine::createSurface()

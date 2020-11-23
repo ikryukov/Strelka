@@ -54,7 +54,7 @@ private:
 
     void initEngine()
     {
-        this->engine = std::unique_ptr<Engine>(new Engine(this->window));
+        this->engine = std::make_unique<Engine>(this->window);
     }
 
     void run()
