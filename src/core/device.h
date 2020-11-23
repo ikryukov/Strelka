@@ -1,8 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include <vulkan/vulkan.h>
-
 #include "core/instance.h"
 
 class Device {

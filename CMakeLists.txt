@@ -34,3 +34,6 @@ target_link_libraries(${PROJECT_NAME} glfw)
 # Vulkan
 find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
+
+# VMA (Vulkan Memory Allocator)
+target_include_directories(${PROJECT_NAME} PRIVATE external/vma/src)

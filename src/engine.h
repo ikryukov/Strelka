@@ -1,9 +1,6 @@
 #pragma once
 
 #include "common.h"
-#include <vulkan/vulkan.h>
-#include <GLFW/glfw3.h>
-
 #include "core/instance.h"
 #include "core/device.h"
 

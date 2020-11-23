@@ -1,14 +1,4 @@
-// Vulkan
-#include <vulkan/vulkan.h>
-
-// GLFW (OpenGL Framework)
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-// GLSL (OpenGL Shader Language)
-    // Vertex shader - it is about calculating the shape of the figure
-    // Fragment shader - it is about calculating the color of the figure
-//#include "shaders.h"
+#define VMA_IMPLEMENTATION
 
 #include "common.h"
 #include "engine.h"
