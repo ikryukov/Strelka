@@ -18,6 +18,5 @@ private:
 
 	// The Vulkan instance handler
 	VkInstance handle;
-	// The enabled extensions which were both required and available
-	// std::vector<const char*> enabledExtensions;
+
 };

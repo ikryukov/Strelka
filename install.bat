@@ -1,9 +1,9 @@
-del /q/f myopengl.exe
+del /q/f nevk.exe
 mkdir build
 cd build
 cmake ..
 cmake --build .
 cd Debug
-copy /B myopengl.exe ..\..\myopengl.exe
+copy /B nevk.exe ..\..\nevk.exe
 cd ..\..\
 rd /s/q build

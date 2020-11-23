@@ -12,15 +12,16 @@ public:
 	Device(Instance*);
 	~Device();
 
+	VkDevice getInterface();
+
 private:
 
-	VkPhysicalDevice GPU;   // Physical Device
-	VkDevice GPU_interface; // Logical Device
-
+	VkPhysicalDevice           GPU;            // Physical Device
+	VkDevice                   GPU_interface;  // Logical Device
 	VkPhysicalDeviceProperties GPU_properties;
-	VkPhysicalDeviceFeatures GPU_features;
+	VkPhysicalDeviceFeatures   GPU_features;
 
-	// Queue families
+	// Queues
 	VkQueue graphicsQueue;
 
 	void pickPhysicalDevice(Instance*);

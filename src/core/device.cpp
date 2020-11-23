@@ -1,7 +1,5 @@
 #include "core/device.h"
 
-//========================================================================================================
-
 Device::Device(Instance* instance):
     GPU{ VK_NULL_HANDLE },
     GPU_interface{ VK_NULL_HANDLE },
@@ -16,6 +14,13 @@ Device::Device(Instance* instance):
 Device::~Device() {
     if (this->GPU_interface != VK_NULL_HANDLE)
         vkDestroyDevice(this->GPU_interface, nullptr);
+}
+
+//========================================================================================================
+// Public functions
+
+VkDevice Device::getInterface() {
+    return this->GPU_interface;
 }
 
 //========================================================================================================
@@ -63,7 +68,7 @@ bool isDeviceSuitable(VkPhysicalDevice GPU) {
 }
 
 //========================================================================================================
-// Physical Device (GPU)
+// Private functions
 
 void Device::pickPhysicalDevice(Instance* instance) {
 
@@ -96,9 +101,6 @@ void Device::pickPhysicalDevice(Instance* instance) {
         throw std::runtime_error("Failed to find a GPU with current queues!");
 
 }
-
-//========================================================================================================
-// Logical Device (Interface)
 
 void Device::createLogicalDevice() {
 

@@ -11,67 +11,7 @@
 //#include "shaders.h"
 
 #include "common.h"
-
-//=====================================================================
-
-#include "core/instance.h"
-#include "core/device.h"
-
-class Engine {
-public:
-
-    Engine(GLFWwindow* window):
-        window{ window },
-        instance{ nullptr },
-        device{ nullptr },
-        surface{ VK_NULL_HANDLE }
-    {
-        createInstance();
-        createDevice();
-        createSurface();
-    }
-
-    ~Engine() {
-        vkDestroySurfaceKHR(this->instance->getHandle(), this->surface, nullptr);
-        delete this->device;
-        delete this->instance;
-    }
-
-private:
-    // External variables
-    GLFWwindow* window;
-
-    // Internal variables
-    VkSurfaceKHR surface;
-
-    // Interfaces
-    Instance* instance;
-    Device* device;
-
-    void createInstance() {
-
-        // Set required extenstions
-        std::vector<const char*> requiredExtensions;
-
-            // GLFW extensions
-            uint32_t extensionsCount = 0;
-            const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&extensionsCount);
-            for (uint32_t i = 0; i < extensionsCount; i++)
-                requiredExtensions.push_back(glfwExtensions[i]);
-
-        // Create instance
-        this->instance = new Instance(std::string{ "MyApp" }, requiredExtensions);
-    }
-
-    void createDevice() {
-        this->device = new Device(this->instance);
-    }
-
-    void createSurface() { 
-        if (glfwCreateWindowSurface(instance->getHandle(), window, nullptr, &surface) != VK_SUCCESS)
-            throw std::runtime_error("Failed to create window surface!");
-    }
-};
+#include "engine.h"
 
 //=====================================================================
 
@@ -88,13 +28,16 @@ public:
         initWindow();
         initEngine();
         run();
-        destroyEngine();
-        destroyWindow();
+    }
+
+    ~Application() {
+        glfwDestroyWindow(this->window);
+        glfwTerminate();
     }
 
 private:
     GLFWwindow* window;
-    Engine* engine;
+    std::unique_ptr<Engine> engine;
 
     void initWindow() {
 
@@ -117,7 +60,7 @@ private:
     }
 
     void initEngine() {
-        this->engine = new Engine(this->window);
+        this->engine = std::unique_ptr<Engine>(new Engine(this->window));
     }
 
     void run() {
@@ -125,21 +68,10 @@ private:
             glfwPollEvents(); // Check keyboard and mouse events
         }
     }
-
-    void destroyEngine() {
-        delete this->engine;
-    }
-
-    void destroyWindow() {
-        glfwDestroyWindow(this->window);
-        glfwTerminate();
-    }
 };
 
-#include <windows.h>
-
 int main()
-{
+{   
     try {
         Application app;
     }
