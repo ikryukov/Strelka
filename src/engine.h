@@ -4,9 +4,9 @@
 #include "core/instance.h"
 #include "core/device.h"
 
-class Engine {
+class Engine
+{
 public:
-
     Engine(GLFWwindow*);
     ~Engine();
 

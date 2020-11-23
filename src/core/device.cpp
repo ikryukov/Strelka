@@ -1,17 +1,18 @@
 #include "core/device.h"
 
-Device::Device(Instance* instance):
-    GPU{ VK_NULL_HANDLE },
-    GPU_interface{ VK_NULL_HANDLE },
-    GPU_properties{ VK_NULL_HANDLE },
-    GPU_features{ VK_NULL_HANDLE },
-    graphicsQueue{ VK_NULL_HANDLE }
+Device::Device(Instance* instance)
+    : GPU{ VK_NULL_HANDLE },
+      GPU_interface{ VK_NULL_HANDLE },
+      GPU_properties{ VK_NULL_HANDLE },
+      GPU_features{ VK_NULL_HANDLE },
+      graphicsQueue{ VK_NULL_HANDLE }
 {
     pickPhysicalDevice(instance);
     createLogicalDevice();
 }
 
-Device::~Device() {
+Device::~Device()
+{
     if (this->GPU_interface != VK_NULL_HANDLE)
         vkDestroyDevice(this->GPU_interface, nullptr);
 }
@@ -19,7 +20,8 @@ Device::~Device() {
 //========================================================================================================
 // Public functions
 
-VkDevice Device::getInterface() {
+VkDevice Device::getInterface()
+{
     return this->GPU_interface;
 }
 
@@ -28,11 +30,13 @@ VkDevice Device::getInterface() {
 
 // This structure contains indices of current queue families with certain capability
 // This is necessary to define variables without value at all using std::optional
-struct QueueFamiliesIndices {
+struct QueueFamiliesIndices
+{
     std::optional<uint32_t> graphicsFamilyIndex; // queue family with this index support graphic queue
     // ...
 
-    bool isComplete() {
+    bool isComplete()
+    {
         return graphicsFamilyIndex.has_value();
     }
 };
@@ -63,14 +67,16 @@ QueueFamiliesIndices getQueueFamiliesIndices(VkPhysicalDevice GPU)
     return indices;
 }
 
-bool isDeviceSuitable(VkPhysicalDevice GPU) {
+bool isDeviceSuitable(VkPhysicalDevice GPU)
+{
     return getQueueFamiliesIndices(GPU).isComplete();
 }
 
 //========================================================================================================
 // Private functions
 
-void Device::pickPhysicalDevice(Instance* instance) {
+void Device::pickPhysicalDevice(Instance* instance)
+{
 
     // Find the count of GPUs
     uint32_t deviceCount = 0;
@@ -82,10 +88,12 @@ void Device::pickPhysicalDevice(Instance* instance) {
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance->getHandle(), &deviceCount, devices.data());
     std::cout << "GPUs are found: " << std::endl;
-    for (const auto& device : devices) {
+    for (const auto& device : devices)
+    {
 
         // Choose the GPU
-        if (isDeviceSuitable(device)) {
+        if (isDeviceSuitable(device))
+        {
             this->GPU = device;
             vkGetPhysicalDeviceProperties(this->GPU, &(this->GPU_properties));
             vkGetPhysicalDeviceFeatures(this->GPU, &(this->GPU_features));
@@ -99,10 +107,10 @@ void Device::pickPhysicalDevice(Instance* instance) {
 
     if (this->GPU == VK_NULL_HANDLE)
         throw std::runtime_error("Failed to find a GPU with current queues!");
-
 }
 
-void Device::createLogicalDevice() {
+void Device::createLogicalDevice()
+{
 
     QueueFamiliesIndices indices = getQueueFamiliesIndices(this->GPU);
 

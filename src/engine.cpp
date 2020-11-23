@@ -1,17 +1,18 @@
 #include "engine.h"
 
-Engine::Engine(GLFWwindow* window) :
-    window{ window },
-    instance{ nullptr },
-    device{ nullptr },
-    surface{ VK_NULL_HANDLE }
+Engine::Engine(GLFWwindow* window)
+    : window{ window },
+      instance{ nullptr },
+      device{ nullptr },
+      surface{ VK_NULL_HANDLE }
 {
     createInstance();
     createDevice();
     createSurface();
 }
 
-Engine::~Engine() {
+Engine::~Engine()
+{
     if (this->surface != VK_NULL_HANDLE)
         vkDestroySurfaceKHR(this->instance->getHandle(), this->surface, nullptr);
 }
@@ -19,18 +20,21 @@ Engine::~Engine() {
 //========================================================================================================
 // Public functions
 
-Instance* Engine::getInstance() {
+Instance* Engine::getInstance()
+{
     return this->instance.get();
 }
 
-Device* Engine::getDevice() {
+Device* Engine::getDevice()
+{
     return this->device.get();
 }
 
 //========================================================================================================
 // Private functions
 
-void Engine::createInstance() {
+void Engine::createInstance()
+{
 
     // Set required extenstions
     std::vector<const char*> requiredExtensions;
@@ -42,14 +46,16 @@ void Engine::createInstance() {
         requiredExtensions.push_back(glfwExtensions[i]);
 
     // Create instance
-    this->instance = std::unique_ptr<Instance>( new Instance(std::string{ "MyApp" }, requiredExtensions) );
+    this->instance = std::unique_ptr<Instance>(new Instance(std::string{ "MyApp" }, requiredExtensions));
 }
 
-void Engine::createDevice() {
-    this->device = std::unique_ptr<Device>( new Device(this->instance.get()) );
+void Engine::createDevice()
+{
+    this->device = std::unique_ptr<Device>(new Device(this->instance.get()));
 }
 
-void Engine::createSurface() {
+void Engine::createSurface()
+{
     if (glfwCreateWindowSurface(this->instance->getHandle(), window, nullptr, &surface) != VK_SUCCESS)
         throw std::runtime_error("Failed to create window surface!");
 }

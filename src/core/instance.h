@@ -2,20 +2,17 @@
 
 #include "common.h"
 
-class Instance {
-
+class Instance
+{
 public:
+    Instance(std::string applicationName,
+             std::vector<const char*>& requiredExtensions,
+             uint32_t apiVersion = VK_API_VERSION_1_0);
+    ~Instance();
 
-	Instance(std::string applicationName,
-			 std::vector<const char*>& requiredExtensions,
-			 uint32_t apiVersion = VK_API_VERSION_1_0);
-	~Instance();
-
-	VkInstance getHandle();
+    VkInstance getHandle();
 
 private:
-
-	// The Vulkan instance handler
-	VkInstance handle;
-
+    // The Vulkan instance handler
+    VkInstance handle;
 };

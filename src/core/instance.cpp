@@ -1,7 +1,7 @@
 #include "core/instance.h"
 
-Instance::Instance(std::string applicationName, std::vector<const char*>& requiredExtensions, uint32_t apiVersion):
-    handle{ VK_NULL_HANDLE }
+Instance::Instance(std::string applicationName, std::vector<const char*>& requiredExtensions, uint32_t apiVersion)
+    : handle{ VK_NULL_HANDLE }
 {
     //=======================================================
     // Optional:
@@ -37,14 +37,15 @@ Instance::Instance(std::string applicationName, std::vector<const char*>& requir
     // Create instance
     if (vkCreateInstance(&instanceInfo, nullptr, &(this->handle)) != VK_SUCCESS)
         throw std::runtime_error("Failed to create instance!");
-
 }
 
-Instance::~Instance() { 
+Instance::~Instance()
+{
     if (this->handle != VK_NULL_HANDLE)
         vkDestroyInstance(this->handle, nullptr);
 }
 
-VkInstance Instance::getHandle() {
+VkInstance Instance::getHandle()
+{
     return this->handle;
 }
