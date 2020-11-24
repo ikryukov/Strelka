@@ -1,25 +1,28 @@
 #pragma once
-
 #include "common.h"
-#include "core/instance.h"
 
 class Device
 {
 public:
-    Device(Instance*);
+    Device(VkInstance, VkSurfaceKHR);
     ~Device();
 
     VkDevice getInterface();
 
 private:
-    VkPhysicalDevice GPU; // Physical Device
-    VkDevice GPU_interface; // Logical Device
+    // External variables
+    VkInstance instance;
+    VkSurfaceKHR surface;
+
+    // Internal variables
+    VkDevice GPU_interface;
+    VkPhysicalDevice GPU;
     VkPhysicalDeviceProperties GPU_properties;
     VkPhysicalDeviceFeatures GPU_features;
 
-    // Queues
     VkQueue graphicsQueue;
+    VkQueue presentQueue;
 
-    void pickPhysicalDevice(Instance*);
+    void pickPhysicalDevice();
     void createLogicalDevice();
 };

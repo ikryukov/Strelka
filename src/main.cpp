@@ -39,7 +39,7 @@ private:
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
         // Monitor
-        GLFWmonitor* monitor = nullptr; // use glfwGetPrimaryMonitor() for full screen
+        GLFWmonitor* monitor = nullptr; // use glfwGetPrimaryMonitor() for fullscreen
 
         // Window
         this->window = glfwCreateWindow(WIDTH, HEIGHT, "MyOpenGL", monitor, nullptr);

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "common.h"
 
 class Instance
@@ -13,6 +12,5 @@ public:
     VkInstance getHandle();
 
 private:
-    // The Vulkan instance handler
     VkInstance handle;
 };

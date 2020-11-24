@@ -11,7 +11,7 @@ Instance::Instance(std::string applicationName, std::vector<const char*>& requir
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.apiVersion = apiVersion;
 
-    appInfo.pEngineName = "No Engine";
+    appInfo.pEngineName = "NeVKengine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
 
     appInfo.pApplicationName = applicationName.c_str();

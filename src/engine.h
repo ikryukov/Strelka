@@ -1,5 +1,4 @@
 #pragma once
-
 #include "common.h"
 #include "core/instance.h"
 #include "core/device.h"
@@ -9,6 +8,8 @@ class Engine
 public:
     Engine(GLFWwindow*);
     ~Engine();
+
+    VkSurfaceKHR getSurface();
 
     Instance* getInstance();
     Device* getDevice();

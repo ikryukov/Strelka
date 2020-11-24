@@ -7,8 +7,8 @@ Engine::Engine(GLFWwindow* window)
       surface{ VK_NULL_HANDLE }
 {
     createInstance();
-    createDevice();
     createSurface();
+    createDevice();
 }
 
 Engine::~Engine()
@@ -30,12 +30,16 @@ Device* Engine::getDevice()
     return this->device.get();
 }
 
+VkSurfaceKHR Engine::getSurface()
+{
+    return this->surface;
+}
+
 //========================================================================================================
 // Private functions
 
 void Engine::createInstance()
 {
-
     // Set required extenstions
     std::vector<const char*> requiredExtensions;
 
@@ -46,16 +50,16 @@ void Engine::createInstance()
         requiredExtensions.push_back(glfwExtensions[i]);
 
     // Create instance
-    this->instance = std::make_unique<Instance>(std::string{ "MyApp" }, requiredExtensions);
-}
-
-void Engine::createDevice()
-{
-    this->device = std::make_unique<Device>(this->instance.get());
+    this->instance = std::make_unique<Instance>(std::string{ "NeVK" }, requiredExtensions);
 }
 
 void Engine::createSurface()
 {
-    if (glfwCreateWindowSurface(this->instance->getHandle(), window, nullptr, &surface) != VK_SUCCESS)
+    if (glfwCreateWindowSurface(this->instance->getHandle(), this->window, nullptr, &this->surface) != VK_SUCCESS)
         throw std::runtime_error("Failed to create window surface!");
+}
+
+void Engine::createDevice()
+{
+    this->device = std::make_unique<Device>(this->getInstance()->getHandle(), this->surface);
 }
