@@ -22,18 +22,25 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/s
 # External 3rd-party libraries
 
 # GLFW (OpenGL Framework)
-option(GLFW_BUILD_EXAMPLES OFF)
-option(GLFW_BUILD_TESTS OFF)
-option(GLFW_BUILD_DOCS OFF)
-add_subdirectory(external/glfw)
-
 target_include_directories(${PROJECT_NAME} PRIVATE external/glfw/include)
-target_link_directories(${PROJECT_NAME} PRIVATE external/glfw/src)
-target_link_libraries(${PROJECT_NAME} glfw)
+target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
 
 # Vulkan
 find_package(Vulkan REQUIRED)
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
 
+# ImGUI
+target_include_directories(${PROJECT_NAME} PRIVATE external/imgui/include)
+target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui.lib")
+
 # VMA (Vulkan Memory Allocator)
 target_include_directories(${PROJECT_NAME} PRIVATE external/vma/src)
+
+# GLM (OpenGL Mathematics)
+target_include_directories(${PROJECT_NAME} PRIVATE external/glm)
+
+# STB (image loader)
+target_include_directories(${PROJECT_NAME} PRIVATE external/stb)
+
+# TOL (TinyObjLoader)
+target_include_directories(${PROJECT_NAME} PRIVATE external/tol)
