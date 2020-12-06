@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.16)
 project(ShaderManager)
 
-file(GLOB_RECURSE SHADERS *.slang)
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" PREFIX "Shaders" FILES ${SHADERS})
+file(GLOB_RECURSE SHADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.slang)
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Shaders" FILES ${SHADERS})
 
 add_library(${PROJECT_NAME} STATIC
 	ShaderManager.h
