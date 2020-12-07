@@ -14,6 +14,17 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
 
+if (MINGW)
+	set(IMGUI_FILES
+			external/imgui/src/imgui.cpp
+			external/imgui/src/imgui_demo.cpp
+			external/imgui/src/imgui_draw.cpp
+			external/imgui/src/imgui_widgets.cpp
+			external/imgui/src/imgui_impl_glfw.cpp
+			external/imgui/src/imgui_impl_vulkan.cpp
+			)
+endif()
+
 add_executable(${PROJECT_NAME}
 	# Application
 	src/common.h
@@ -26,6 +37,9 @@ add_executable(${PROJECT_NAME}
 	src/core/instance.cpp
 	src/core/device.h
 	src/core/device.cpp
+
+	#imgui
+		${IMGUI_FILES}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
@@ -35,7 +49,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/s
 
 # GLFW (OpenGL Framework)
 target_include_directories(${PROJECT_NAME} PRIVATE external/glfw/include)
-target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
+if (MSVC)
+	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
+else (MINGW)
+	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/libglfw3.a")
+endif()
 
 # Vulkan
 find_package(Vulkan REQUIRED)
@@ -47,7 +65,9 @@ target_link_libraries(${PROJECT_NAME} ShaderManager)
 
 # ImGUI
 target_include_directories(${PROJECT_NAME} PRIVATE external/imgui/include)
-target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui.lib")
+if (MSVC)
+	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui.lib")
+endif()
 
 # VMA (Vulkan Memory Allocator)
 target_include_directories(${PROJECT_NAME} PRIVATE external/vma/src)
