@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "engine.h"
+#include "scene/scene.h"
 
 //=====================================================================
 
@@ -29,6 +30,8 @@ public:
 private:
     GLFWwindow* window;
     std::unique_ptr<Engine> engine;
+
+    nevk::Scene mScene;
 
     void initWindow()
     {

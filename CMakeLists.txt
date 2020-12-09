@@ -37,6 +37,8 @@ add_executable(${PROJECT_NAME}
 	src/core/instance.cpp
 	src/core/device.h
 	src/core/device.cpp
+	src/scene/scene.h
+	src/scene/scene.cpp
 
 	#imgui
 		${IMGUI_FILES}
