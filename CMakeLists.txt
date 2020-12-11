@@ -82,3 +82,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE external/stb)
 
 # TOL (TinyObjLoader)
 target_include_directories(${PROJECT_NAME} PRIVATE external/tol)
+
+# SPDLOG
+target_include_directories(${PROJECT_NAME} PRIVATE external/spdlog/include)
+
+# CXXOPTS
+target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
+
