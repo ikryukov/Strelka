@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(lldb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "VK_ICD_FILENAMES",
+                    "value": "${env:VULKAN_SDK}/share/vulkan/icd.d/MoltenVK_icd.json"
+                },
+                {
+                    "name": "VK_LAYER_PATH",
+                    "value": "${env:VULKAN_SDK}/share/vulkan/explicit_layer.d"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        }
+    ]
+}

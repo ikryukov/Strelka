@@ -51,8 +51,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/s
 target_include_directories(${PROJECT_NAME} PRIVATE external/glfw/include)
 if (MSVC)
 	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
-else (MINGW)
+elseif (MINGW)
 	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/libglfw3.a")
+elseif (APPLE)
+	find_package(glfw3 3.3 REQUIRED)
+    include_directories(${glfw3_INCLUDE_DIRS})
+    target_link_libraries (${PROJECT_NAME} glfw)
 endif()
 
 # Vulkan
