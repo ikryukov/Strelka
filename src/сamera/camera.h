@@ -1,5 +1,4 @@
-#ifndef NEVK_CAMERA_H
-#define NEVK_CAMRA_H
+#pragma once 
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -52,4 +51,3 @@ class Camera {
 	void update(float deltaTime);
 	bool updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime);
 };
-#endif  // NEVK_CAMERA_H
