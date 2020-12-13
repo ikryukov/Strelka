@@ -58,9 +58,19 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
 #target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
+# Scene
+set(SCENE_SOURCES          # All .cpp files in src/
+    src/scene/scene.cpp
+)
+set(SCENELIB_NAME scene)
+add_library(${SCENELIB_NAME} OBJECT ${SCENE_SOURCES})
+target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/scene)
+target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
+
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 ##########################################
