@@ -872,9 +872,6 @@ extern "C"
         @param outBlob A destination pointer to receive the blob of the file contents.
         @returns A `SlangResult` to indicate success or failure in loading the file.
 
-        NOTE! This is a *binary* load - the blob should contain the exact same bytes
-        as are found in the backing file. 
-
         If load is successful, the implementation should create a blob to hold
         the file's content, store it to `outBlob`, and return 0.
         If the load fails, the implementation should return a failure status
@@ -932,10 +929,6 @@ extern "C"
         SLANG_PATH_TYPE_DIRECTORY,      /**< Path specified specifies a directory. */
         SLANG_PATH_TYPE_FILE,           /**< Path specified is to a file. */
     };
-
-    /* Callback to enumerate the contents of of a directory in a ISlangFileSystemExt.
-    The name is the name of a file system object (directory/file) in the specified path (ie it is without a path) */
-    typedef void (*FileSystemContentsCallBack)(SlangPathType pathType, const char* name, void* userData);
 
     /** An extended file system abstraction.
     
@@ -1034,26 +1027,9 @@ extern "C"
         /** Clears any cached information */
         virtual SLANG_NO_THROW void SLANG_MCALL clearCache() = 0;
 
-        /** Enumerate the contents of the path
-        
-        Note that for normal Slang operation it isn't necessary to enumerate contents this can return SLANG_E_NOT_IMPLEMENTED.
-        
-        @param The path to enumerate
-        @param callback This callback is called for each entry in the path. 
-        @param userData This is passed to the callback
-        @returns SLANG_OK if successful 
-        */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL enumeratePathContents(
-            const char* path,
-            FileSystemContentsCallBack callback,
-            void* userData) = 0;
-    };
-
-    #define SLANG_UUID_ISlangFileSystemExt { 0x5fb632d2, 0x979d, 0x4481, { 0x9f, 0xee, 0x66, 0x3c, 0x3f, 0x14, 0x49, 0xe1 } }
-
-    struct ISlangMutableFileSystem : public ISlangFileSystemExt
-    {
         /** Write the data specified with data and size to the specified path.
+
+        Note that for normal slang operation it doesn't write files so this can return SLANG_E_NOT_IMPLEMENTED.
 
         @param path The path for data to be saved to
         @param data The data to be saved
@@ -1064,28 +1040,9 @@ extern "C"
             const char* path,
             const void* data,
             size_t size) = 0;
-
-        /** Remove the entry in the path (directory of file). Will only delete an empty directory, if not empty
-        will return an error.
-
-        @param path The path to remove 
-        @returns SLANG_OK if successful 
-        */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL remove(
-            const char* path) = 0;
-
-        /** Create a directory.
-
-        The path to the directory must exist
-
-        @param path To the directory to create. The parent path *must* exist otherwise will return an error.
-        @returns SLANG_OK if successful 
-        */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL createDirectory(
-            const char* path) = 0;
     };
 
-    #define SLANG_UUID_ISlangMutableFileSystem  { 0xa058675c, 0x1d65, 0x452a, { 0x84, 0x58, 0xcc, 0xde, 0xd1, 0x42, 0x71, 0x5 } }
+    #define SLANG_UUID_ISlangFileSystemExt { 0x5fb632d2, 0x979d, 0x4481, { 0x9f, 0xee, 0x66, 0x3c, 0x3f, 0x14, 0x49, 0xe1 } }
 
     /* Identifies different types of writer target*/
     typedef unsigned int SlangWriterChannel;
@@ -1140,22 +1097,23 @@ extern "C"
 
     namespace slang {
     struct IGlobalSession;
-    struct ICompileRequest;
     } // namespace slang
 
     /*!
     @brief An instance of the Slang library.
     */
     typedef slang::IGlobalSession SlangSession;
-    
 
     typedef struct SlangProgramLayout SlangProgramLayout;
 
     /*!
     @brief A request for one or more compilation actions to be performed.
     */
-    typedef struct slang::ICompileRequest SlangCompileRequest;
+    typedef struct SlangCompileRequest SlangCompileRequest;
 
+    namespace slang {
+    struct IGlobalSession;
+    } // namespace slang
 
     /*!
     @brief Initialize an instance of the Slang library.
@@ -1168,43 +1126,172 @@ extern "C"
     SLANG_API void spDestroySession(
         SlangSession*   session);
 
-    /** @see slang::IGlobalSession::setSharedLibraryLoader
+    /*!
+    @brief Set the session shared library loader. If this changes the loader, it may cause shared libraries to be unloaded
+    @param session Session to set the loader on
+    @param loader The loader to set. Setting nullptr sets the default loader. 
     */
     SLANG_API void spSessionSetSharedLibraryLoader(
         SlangSession*               session,
         ISlangSharedLibraryLoader*  loader);
 
-    /** @see slang::IGlobalSession::getSharedLibraryLoader
+    /*!
+    @brief Gets the currently set shared library loader
+    @param session Session to get the loader from
+    @return Gets the currently set loader. If returns nullptr, it's the default loader
     */
     SLANG_API ISlangSharedLibraryLoader* spSessionGetSharedLibraryLoader(
         SlangSession*   session);
 
-    /** @see slang::IGlobalSession::checkCompileTargetSupport
-    */
+    /*!
+    @brief Returns SLANG_OK if a the compilation target is supported for this session
+    @param session Session
+    @param target The compilation target to test
+    @return SLANG_OK if the target is available
+            SLANG_E_NOT_IMPLEMENTED if not implemented in this build
+            SLANG_E_NOT_FOUND if other resources (such as shared libraries) required to make target work could not be found
+            SLANG_FAIL other kinds of failures */
     SLANG_API SlangResult spSessionCheckCompileTargetSupport(
         SlangSession*       session,
         SlangCompileTarget  target);
 
-    /** @see slang::IGlobalSession::checkPassThroughSupport
-    */
+    /*!
+    @brief Returns SLANG_OK if a the pass through support is supported for this session
+    @param session Session
+    @param target The compilation target to test
+    @return SLANG_OK if the target is available
+    SLANG_E_NOT_IMPLEMENTED if not implemented in this build
+    SLANG_E_NOT_FOUND if other resources (such as shared libraries) required to make target work could not be found
+    SLANG_FAIL other kinds of failures */
     SLANG_API SlangResult spSessionCheckPassThroughSupport(
         SlangSession*       session,
         SlangPassThrough    passThrough
     );
 
-    /** @see slang::IGlobalSession::addBuiltins
+    /*!
+    @brief Add new builtin declarations to be used in subsequent compiles.
     */
     SLANG_API void spAddBuiltins(
         SlangSession*   session,
         char const*     sourcePath,
         char const*     sourceString);
 
-        /*!
-    @brief Callback type used for diagnostic output. 
+    /*!
+    @brief Create a compile request.
     */
-    typedef void(*SlangDiagnosticCallback)(
-        char const* message,
-        void*       userData);
+    SLANG_API SlangCompileRequest* spCreateCompileRequest(
+        SlangSession* session);
+
+    /*!
+    @brief Destroy a compile request.
+    */
+    SLANG_API void spDestroyCompileRequest(
+        SlangCompileRequest*    request);
+
+    /** Set the filesystem hook to use for a compile request
+
+    The provided `fileSystem` will be used to load any files that
+    need to be loaded during processing of the compile `request`.
+    This includes:
+
+      - Source files loaded via `spAddTranslationUnitSourceFile`
+      - Files referenced via `#include`
+      - Files loaded to resolve `#import` operations
+
+    */
+    SLANG_API void spSetFileSystem(
+        SlangCompileRequest*    request,
+        ISlangFileSystem*       fileSystem);
+
+
+    /*!
+    @brief Set flags to be used for compilation.
+    */
+    SLANG_API void spSetCompileFlags(
+        SlangCompileRequest*    request,
+        SlangCompileFlags       flags);
+
+    /*!
+    @brief Set whether to dump intermediate results (for debugging) or not.
+    */
+    SLANG_API void spSetDumpIntermediates(
+        SlangCompileRequest*    request,
+        int                     enable);
+
+    SLANG_API void spSetDumpIntermediatePrefix(
+        SlangCompileRequest*    request,
+        const char* prefix);
+
+    /*!
+    @brief Set whether (and how) `#line` directives should be output.
+    */
+    SLANG_API void spSetLineDirectiveMode(
+        SlangCompileRequest*    request,
+        SlangLineDirectiveMode  mode);
+
+    /*!
+    @brief Sets the target for code generation.
+    @param request The compilation context.
+    @param target The code generation target. Possible values are:
+    - SLANG_GLSL. Generates GLSL code.
+    - SLANG_HLSL. Generates HLSL code.
+    - SLANG_SPIRV. Generates SPIR-V code.
+    */
+    SLANG_API void spSetCodeGenTarget(
+        SlangCompileRequest*    request,
+        SlangCompileTarget target);
+
+    /*!
+    @brief Add a code-generation target to be used.
+    */
+    SLANG_API int spAddCodeGenTarget(
+        SlangCompileRequest*    request,
+        SlangCompileTarget      target);
+
+    SLANG_API void spSetTargetProfile(
+        SlangCompileRequest*    request,
+        int                     targetIndex,
+        SlangProfileID          profile);
+
+    SLANG_API void spSetTargetFlags(
+        SlangCompileRequest*    request,
+        int                     targetIndex,
+        SlangTargetFlags        flags);
+
+
+
+    /*!
+    @brief Set the floating point mode (e.g., precise or fast) to use a target.
+    */
+    SLANG_API void spSetTargetFloatingPointMode(
+        SlangCompileRequest*    request,
+        int                     targetIndex,
+        SlangFloatingPointMode  mode);
+
+    /* DEPRECATED: use `spSetMatrixLayoutMode` instead. */
+    SLANG_API void spSetTargetMatrixLayoutMode(
+        SlangCompileRequest*    request,
+        int                     targetIndex,
+        SlangMatrixLayoutMode   mode);
+
+    SLANG_API void spSetMatrixLayoutMode(
+        SlangCompileRequest*    request,
+        SlangMatrixLayoutMode   mode);
+
+    /*!
+    @brief Set the level of debug information to produce.
+    */
+    SLANG_API void spSetDebugInfoLevel(
+        SlangCompileRequest*    request,
+        SlangDebugInfoLevel     level);
+
+    /*!
+    @brief Set the level of optimization to perform.
+    */
+    SLANG_API void spSetOptimizationLevel(
+        SlangCompileRequest*    request,
+        SlangOptimizationLevel  level);
+
 
     /*!
     @brief Get the build version 'tag' string. The string is the same as produced via `git describe --tags`
@@ -1221,153 +1308,88 @@ extern "C"
     */
     SLANG_API const char* spGetBuildTagString();
 
-    /* @see slang::IGlobalSession::createCompileRequest
-    */
-    SLANG_API SlangCompileRequest* spCreateCompileRequest(
-        SlangSession* session);
-
     /*!
-    @brief Destroy a compile request.
-    Note a request is a COM object and can be destroyed via 'Release'.
+    @brief Set the container format to be used for binary output.
     */
-    SLANG_API void spDestroyCompileRequest(
-        SlangCompileRequest*    request);
-
-    /*! @see slang::ICompileRequest::setFileSystem */
-    SLANG_API void spSetFileSystem(
-        SlangCompileRequest*    request,
-        ISlangFileSystem*       fileSystem);
-
-    /*! @see slang::ICompileRequest::setCompileFlags */
-    SLANG_API void spSetCompileFlags(
-        SlangCompileRequest*    request,
-        SlangCompileFlags       flags);
-
-    /*! @see slang::ICompileRequest::setDumpIntermediates */
-    SLANG_API void spSetDumpIntermediates(
-        SlangCompileRequest*    request,
-        int                     enable);
-
-    /*! @see slang::ICompileRequest::setDumpIntermediatePrefix */
-    SLANG_API void spSetDumpIntermediatePrefix(
-        SlangCompileRequest*    request,
-        const char* prefix);
-
-    /*! @see slang::ICompileRequest::setLineDirectiveMode */
-    SLANG_API void spSetLineDirectiveMode(
-        SlangCompileRequest*    request,
-        SlangLineDirectiveMode  mode);
-
-    /*! @see slang::ICompileRequest::setCodeGenTarget */
-    SLANG_API void spSetCodeGenTarget(
-        SlangCompileRequest*    request,
-        SlangCompileTarget target);
-
-    /*! @see slang::ICompileRequest::addCodeGenTarget */
-    SLANG_API int spAddCodeGenTarget(
-        SlangCompileRequest*    request,
-        SlangCompileTarget      target);
-
-    /*! @see slang::ICompileRequest::setTargetProfile */
-    SLANG_API void spSetTargetProfile(
-        SlangCompileRequest*    request,
-        int                     targetIndex,
-        SlangProfileID          profile);
-
-    /*! @see slang::ICompileRequest::setTargetFlags */
-    SLANG_API void spSetTargetFlags(
-        SlangCompileRequest*    request,
-        int                     targetIndex,
-        SlangTargetFlags        flags);
-
-
-
-    /*! @see slang::ICompileRequest::setTargetFloatingPointMode */
-    SLANG_API void spSetTargetFloatingPointMode(
-        SlangCompileRequest*    request,
-        int                     targetIndex,
-        SlangFloatingPointMode  mode);
-
-    /* DEPRECATED: use `spSetMatrixLayoutMode` instead. */
-    SLANG_API void spSetTargetMatrixLayoutMode(
-        SlangCompileRequest*    request,
-        int                     targetIndex,
-        SlangMatrixLayoutMode   mode);
-
-    /*! @see slang::ICompileRequest::setMatrixLayoutMode */
-    SLANG_API void spSetMatrixLayoutMode(
-        SlangCompileRequest*    request,
-        SlangMatrixLayoutMode   mode);
-
-    /*! @see slang::ICompileRequest::setDebugInfoLevel */
-    SLANG_API void spSetDebugInfoLevel(
-        SlangCompileRequest*    request,
-        SlangDebugInfoLevel     level);
-
-    /*! @see slang::ICompileRequest::setOptimizationLevel */
-    SLANG_API void spSetOptimizationLevel(
-        SlangCompileRequest*    request,
-        SlangOptimizationLevel  level);
-
-
-    
-    /*! @see slang::ICompileRequest::setOutputContainerFormat */
     SLANG_API void spSetOutputContainerFormat(
         SlangCompileRequest*    request,
         SlangContainerFormat    format);
 
-    /*! @see slang::ICompileRequest::setPassThrough */
     SLANG_API void spSetPassThrough(
         SlangCompileRequest*    request,
         SlangPassThrough        passThrough);
 
-     /*! @see slang::ICompileRequest::setDiagnosticCallback */
+    typedef void(*SlangDiagnosticCallback)(
+        char const* message,
+        void*       userData);
+
     SLANG_API void spSetDiagnosticCallback(
         SlangCompileRequest*    request,
         SlangDiagnosticCallback callback,
         void const*             userData);
 
-    /*! @see slang::ICompileRequest::setWriter */
     SLANG_API void spSetWriter(
         SlangCompileRequest*    request,
         SlangWriterChannel      channel, 
         ISlangWriter*           writer);
 
-    /*! @see slang::ICompileRequest::getWriter */
     SLANG_API ISlangWriter* spGetWriter(
         SlangCompileRequest*    request,
         SlangWriterChannel      channel);
 
-    /*! @see slang::ICompileRequest::addSearchPath */
+    /*!
+    @brief Add a path to use when searching for referenced files.
+    This will be used for both `#include` directives and also for explicit `__import` declarations.
+    @param ctx The compilation context.
+    @param searchDir The additional search directory.
+    */
     SLANG_API void spAddSearchPath(
         SlangCompileRequest*    request,
         const char*             searchDir);
 
-   /*! @see slang::ICompileRequest::addPreprocessorDefine */
+    /*!
+    @brief Add a macro definition to be used during preprocessing.
+    @param key The name of the macro to define.
+    @param value The value of the macro to define.
+    */
     SLANG_API void spAddPreprocessorDefine(
         SlangCompileRequest*    request,
         const char*             key,
         const char*             value);
 
-    /*! @see slang::ICompileRequest::processCommandLineArguments */
+    /*!
+    @brief Set options using arguments as if specified via command line.
+    @return Returns SlangResult. On success SLANG_SUCCEEDED(result) is true.
+    */
     SLANG_API SlangResult spProcessCommandLineArguments(
         SlangCompileRequest*    request,
         char const* const*      args,
         int                     argCount);
 
-    /*! @see slang::ICompileRequest::addTranslationUnit */
+    /** Add a distinct translation unit to the compilation request
+
+    `name` is optional. 
+    Returns the zero-based index of the translation unit created.
+    */
     SLANG_API int spAddTranslationUnit(
         SlangCompileRequest*    request,
         SlangSourceLanguage     language,
         char const*             name);
 
     
-    /*! @see slang::ICompileRequest::setDefaultModuleName */
+    /** Set a default module name. Translation units will default to this module name if one is not
+    passed. If not set each translation unit will get a unique name. 
+    */
     SLANG_API void spSetDefaultModuleName(
         SlangCompileRequest*    request,
         const char* defaultModuleName);
 
-    /*! @see slang::ICompileRequest::addPreprocessorDefine */
+    /** Add a preprocessor definition that is scoped to a single translation unit.
+
+    @param translationUnitIndex The index of the translation unit to get the definition.
+    @param key The name of the macro to define.
+    @param value The value of the macro to define.
+    */
     SLANG_API void spTranslationUnit_addPreprocessorDefine(
         SlangCompileRequest*    request,
         int                     translationUnitIndex,
@@ -1375,13 +1397,36 @@ extern "C"
         const char*             value);
 
 
-    /*! @see slang::ICompileRequest::addTranslationUnitSourceFile */
+    /** Add a source file to the given translation unit.
+
+    If a user-defined file system has been specified via
+    `spSetFileSystem`, then it will be used to load the
+    file at `path`. Otherwise, Slang will use the OS
+    file system.
+
+    This function does *not* search for a file using
+    the registered search paths (`spAddSearchPath`),
+    and instead using the given `path` as-is.
+    */
     SLANG_API void spAddTranslationUnitSourceFile(
         SlangCompileRequest*    request,
         int                     translationUnitIndex,
         char const*             path);
 
-    /*! @see slang::ICompileRequest::addTranslationUnitSourceString */
+    /** Add a source string to the given translation unit.
+
+    @param request The compile request that owns the translation unit.
+    @param translationUnitIndex The index of the translation unit to add source to.
+    @param path The file-system path that should be assumed for the source code.
+    @param source A null-terminated UTF-8 encoded string of source code.
+
+    The implementation will make a copy of the source code data.
+    An application may free the buffer immediately after this call returns.
+
+    The `path` will be used in any diagnostic output, as well
+    as to determine the base path when resolving relative
+    `#include`s.
+    */
     SLANG_API void spAddTranslationUnitSourceString(
         SlangCompileRequest*    request,
         int                     translationUnitIndex,
@@ -1389,13 +1434,33 @@ extern "C"
         char const*             source);
 
 
-    /*! @see slang::ICompileRequest::addLibraryReference */
+    /** Add a slang library - such that its contents can be referenced during linking.
+    This is equivalent to the -r command line option.
+
+    @param request The compile request
+    @param libData The library data
+    @param libDataSize The size of the library data
+    */
     SLANG_API SlangResult spAddLibraryReference(
         SlangCompileRequest*    request,
         const void* libData,
         size_t libDataSize);
 
-    /*! @see slang::ICompileRequest::addTranslationUnitSourceStringSpan */
+    /** Add a source string to the given translation unit.
+
+    @param request The compile request that owns the translation unit.
+    @param translationUnitIndex The index of the translation unit to add source to.
+    @param path The file-system path that should be assumed for the source code.
+    @param sourceBegin A pointer to a buffer of UTF-8 encoded source code.
+    @param sourceEnd A pointer to to the end of the buffer specified in `sourceBegin`
+
+    The implementation will make a copy of the source code data.
+    An application may free the buffer immediately after this call returns.
+
+    The `path` will be used in any diagnostic output, as well
+    as to determine the base path when resolving relative
+    `#include`s.
+    */
     SLANG_API void spAddTranslationUnitSourceStringSpan(
         SlangCompileRequest*    request,
         int                     translationUnitIndex,
@@ -1403,26 +1468,46 @@ extern "C"
         char const*             sourceBegin,
         char const*             sourceEnd);
 
-    /*! @see slang::ICompileRequest::addTranslationUnitSourceBlob */
+    /** Add a blob of source code to the given translation unit.
+
+    @param request The compile request that owns the translation unit.
+    @param translationUnitIndex The index of the translation unit to add source to.
+    @param path The file-system path that should be assumed for the source code.
+    @param sourceBlob A blob containing UTF-8 encoded source code.
+    @param sourceEnd A pointer to to the end of the buffer specified in `sourceBegin`
+
+    The compile request will retain a reference to the blob.
+
+    The `path` will be used in any diagnostic output, as well
+    as to determine the base path when resolving relative
+    `#include`s.
+    */
     SLANG_API void spAddTranslationUnitSourceBlob(
         SlangCompileRequest*    request,
         int                     translationUnitIndex,
         char const*             path,
         ISlangBlob*             sourceBlob);
 
-    /*! @see slang::ICompileRequest::findProfile */
+    /** Look up a compilation profile by name.
+
+    For example, one could look up the string `"ps_5_0"` to find the corresponding target ID.
+    */
     SLANG_API SlangProfileID spFindProfile(
         SlangSession*   session,
         char const*     name);
 
-    /*! @see slang::ICompileRequest::addEntryPoint */
+    /** Add an entry point in a particular translation unit
+    */
     SLANG_API int spAddEntryPoint(
         SlangCompileRequest*    request,
         int                     translationUnitIndex,
         char const*             name,
         SlangStage              stage);
 
-    /*! @see slang::ICompileRequest::addEntryPointEx */
+    /** Add an entry point in a particular translation unit,
+        with additional arguments that specify the concrete
+        type names for entry-point generic type parameters.
+    */
     SLANG_API int spAddEntryPointEx(
         SlangCompileRequest*    request,
         int                     translationUnitIndex,
@@ -1431,120 +1516,247 @@ extern "C"
         int                     genericArgCount,
         char const**            genericArgs);
 
-    /*! @see slang::ICompileRequest::setGlobalGenericArgs */
+    /** Specify the arguments to use for global generic parameters.
+    */
     SLANG_API SlangResult spSetGlobalGenericArgs(
         SlangCompileRequest*    request,
         int                     genericArgCount,
         char const**            genericArgs);
 
-    /*! @see slang::ICompileRequest::setTypeNameForGlobalExistentialTypeParam */
+    /** Specify the concrete type to be used for a global "existential slot."
+
+    Every shader parameter (or leaf field of a `struct`-type shader parameter)
+    that has an interface or array-of-interface type introduces an existential
+    slot. The number of slots consumed by a shader parameter, and the starting
+    slot of each parameter can be queried via the reflection API using
+    `SLANG_PARAMETER_CATEGORY_EXISTENTIAL_TYPE_PARAM`.
+
+    In order to generate specialized code, a concrete type needs to be specified
+    for each existential slot. This function specifies the name of the type
+    (or in general a type *expression*) to use for a specific slot at the
+    global scope.
+    */
     SLANG_API SlangResult spSetTypeNameForGlobalExistentialTypeParam(
         SlangCompileRequest*    request,
         int                     slotIndex,
         char const*             typeName);
 
-    /*! @see slang::ICompileRequest::setTypeNameForEntryPointExistentialTypeParam */
+    /** Specify the concrete type to be used for an entry-point "existential slot."
+
+    Every shader parameter (or leaf field of a `struct`-type shader parameter)
+    that has an interface or array-of-interface type introduces an existential
+    slot. The number of slots consumed by a shader parameter, and the starting
+    slot of each parameter can be queried via the reflection API using
+    `SLANG_PARAMETER_CATEGORY_EXISTENTIAL_TYPE_PARAM`.
+
+    In order to generate specialized code, a concrete type needs to be specified
+    for each existential slot. This function specifies the name of the type
+    (or in general a type *expression*) to use for a specific slot at the
+    entry-point scope.
+    */
     SLANG_API SlangResult spSetTypeNameForEntryPointExistentialTypeParam(
         SlangCompileRequest*    request,
         int                     entryPointIndex,
         int                     slotIndex,
         char const*             typeName);
 
-    /*! @see slang::ICompileRequest::compile */
+    /** Execute the compilation request.
+
+    @returns  SlangResult, SLANG_OK on success. Use SLANG_SUCCEEDED() and SLANG_FAILED() to test SlangResult.
+    */
     SLANG_API SlangResult spCompile(
         SlangCompileRequest*    request);
 
 
-    /*! @see slang::ICompileRequest::getDiagnosticOutput */
+    /** Get any diagnostic messages reported by the compiler.
+
+    @returns A null-terminated UTF-8 encoded string of diagnostic messages.
+
+    The returned pointer is only guaranteed to be valid
+    until `request` is destroyed. Applications that wish to
+    hold on to the diagnostic output for longer should use
+    `spGetDiagnosticOutputBlob`.
+    */
     SLANG_API char const* spGetDiagnosticOutput(
         SlangCompileRequest*    request);
 
-    /*! @see slang::ICompileRequest::getDiagnosticOutputBlob */
+    /** Get diagnostic messages reported by the compiler.
+
+    @param request The compile request to get output from.
+    @param outBlob A pointer to receive a blob holding a nul-terminated UTF-8 encoded string of diagnostic messages.
+    @returns A `SlangResult` indicating success or failure.
+    */
     SLANG_API SlangResult spGetDiagnosticOutputBlob(
         SlangCompileRequest*    request,
         ISlangBlob**            outBlob);
 
 
-    /*! @see slang::ICompileRequest::getDependencyFileCount */
+    /** Get the number of files that this compilation depended on.
+
+    This includes both the explicit source files, as well as any
+    additional files that were transitively referenced (e.g., via
+    a `#include` directive).
+    */
     SLANG_API int
     spGetDependencyFileCount(
         SlangCompileRequest*    request);
 
-    /*! @see slang::ICompileRequest::getDependencyFilePath */
+    /** Get the path to a file this compilation depended on.
+    */
     SLANG_API char const*
     spGetDependencyFilePath(
         SlangCompileRequest*    request,
         int                     index);
 
-    /*! @see slang::ICompileRequest::getTranslationUnitCount */
+    /** Get the number of translation units associated with the compilation request
+    */
     SLANG_API int
     spGetTranslationUnitCount(
         SlangCompileRequest*    request);
 
-    /*! @see slang::ICompileRequest::getEntryPointSource */
+    /** Get the output source code associated with a specific entry point.
+
+    The lifetime of the output pointer is the same as `request`.
+    */
     SLANG_API char const* spGetEntryPointSource(
         SlangCompileRequest*    request,
         int                     entryPointIndex);
 
-    /*! @see slang::ICompileRequest::getEntryPointCode */
+    /** Get the output bytecode associated with a specific entry point.
+
+    The lifetime of the output pointer is the same as `request`.
+    */
     SLANG_API void const* spGetEntryPointCode(
         SlangCompileRequest*    request,
         int                     entryPointIndex,
         size_t*                 outSize);
 
-    /*! @see slang::ICompileRequest::getEntryPointCodeBlob */
+    /** Get the output code associated with a specific entry point.
+
+    @param request   The request 
+    @param entryPointIndex The index of the entry point to get code for.
+    @param targetIndex The index of the target to get code for (default: zero).
+    @param outBlob A pointer that will receive the blob of code
+    @returns A `SlangResult` to indicate success or failure.
+    */
     SLANG_API SlangResult spGetEntryPointCodeBlob(
         SlangCompileRequest*    request,
         int                     entryPointIndex,
         int                     targetIndex,
         ISlangBlob**            outBlob);
 
-    /*! @see slang::ICompileRequest::getEntryPointHostCallable */
+    /** Get entry point 'callable' functions accessible through the ISlangSharedLibrary interface.
+
+    That the functions remain in scope as long as the ISlangSharedLibrary interface is in scope.
+
+    NOTE! Requires a compilation target of SLANG_HOST_CALLABLE.
+    
+    @param request          The request 
+    @param entryPointIndex  The index of the entry point to get code for.
+    @param targetIndex      The index of the target to get code for (default: zero).
+    @param outSharedLibrary A pointer to a ISharedLibrary interface which functions can be queried on.
+    @returns                A `SlangResult` to indicate success or failure.
+    */
     SLANG_API SlangResult spGetEntryPointHostCallable(
         SlangCompileRequest*    request,
         int                     entryPointIndex,
         int                     targetIndex,
         ISlangSharedLibrary**   outSharedLibrary);
 
-    /*! @see slang::ICompileRequest::getTargetCodeBlob */
+    /** Get the output code associated with a specific target.
+
+    @param request   The request 
+    @param targetIndex The index of the target to get code for (default: zero).
+    @param outBlob A pointer that will receive the blob of code
+    @returns A `SlangResult` to indicate success or failure.
+    */
     SLANG_API SlangResult spGetTargetCodeBlob(
         SlangCompileRequest*    request,
         int                     targetIndex,
         ISlangBlob**            outBlob);
 
-    /*! @see slang::ICompileRequest::getTargetHostCallable */
+    /** Get 'callable' functions for a target accessible through the ISlangSharedLibrary interface.
+
+    That the functions remain in scope as long as the ISlangSharedLibrary interface is in scope.
+
+    NOTE! Requires a compilation target of SLANG_HOST_CALLABLE.
+    
+    @param request          The request 
+    @param targetIndex      The index of the target to get code for (default: zero).
+    @param outSharedLibrary A pointer to a ISharedLibrary interface which functions can be queried on.
+    @returns                A `SlangResult` to indicate success or failure.
+    */
     SLANG_API SlangResult spGetTargetHostCallable(
         SlangCompileRequest*    request,
         int                     targetIndex,
         ISlangSharedLibrary**   outSharedLibrary);
 
-    /*! @see slang::ICompileRequest::getCompileRequestCode */
+    /** Get the output bytecode associated with an entire compile request.
+
+    The lifetime of the output pointer is the same as `request` and the last spCompile.
+
+    @param request          The request
+    @param outSize          The size of the containers contents in bytes. Will be zero if there is no code available.
+    @returns                Pointer to start of the contained data, or nullptr if there is no code available.
+    */
     SLANG_API void const* spGetCompileRequestCode(
         SlangCompileRequest*    request,
         size_t*                 outSize);
 
-    /*! @see slang::ICompileRequest::getContainerCode */
+    /** Return the container code as a blob. The container blob is created as part of a compilation (with spCompile),
+    and a container is produced with a suitable ContainerFormat. 
+
+    @param request          The request
+    @param outSize          The blob containing the container data. 
+    @returns                A `SlangResult` to indicate success or failure.
+    */
     SLANG_API SlangResult spGetContainerCode(
         SlangCompileRequest*    request,
         ISlangBlob**            outBlob);
 
-    /*! @see slang::ICompileRequest::loadRepro */
+    /** Load repro from memory specified.
+
+    Should only be performed on a newly created request.
+
+    NOTE! When using the fileSystem, files will be loaded via their `unique names` as if they are part of the flat file system. This
+    mechanism is described more fully in docs/repro.md.
+
+    @param request          The request
+    @param fileSystem       An (optional) filesystem. Pass nullptr to just use contents of repro held in data.
+    @param data             The data to load from.
+    @param size             The size of the data to load from. 
+    @returns                A `SlangResult` to indicate success or failure.
+    */
     SLANG_API SlangResult spLoadRepro(
         SlangCompileRequest* request,
         ISlangFileSystem* fileSystem,
         const void* data,
         size_t size);
 
-    /*! @see slang::ICompileRequest::saveRepro */
+    /** Save repro state. Should *typically* be performed after spCompile, so that everything
+    that is needed for a compilation is available. 
+
+    @param request          The request 
+    @param outBlob          Blob that will hold the serialized state
+    @returns                A `SlangResult` to indicate success or failure.
+    */
     SLANG_API SlangResult spSaveRepro(
         SlangCompileRequest* request,
         ISlangBlob** outBlob
     );
 
-    /*! @see slang::ICompileRequest::enableReproCapture */
+    /** Enable repro capture.
+
+    Should be set after any ISlangFileSystem has been set, but before any compilation. It ensures that everything
+    that the ISlangFileSystem accesses will be correctly recorded.
+    Note that if a ISlangFileSystem/ISlangFileSystemExt isn't explicitly set (ie the default is used), then the
+    request will automatically be set up to record everything appropriate. 
+
+    @param request          The request
+    @returns                A `SlangResult` to indicate success or failure.
+    */
     SLANG_API SlangResult spEnableReproCapture(
         SlangCompileRequest* request);
-
 
     /** Extract contents of a repro.
 
@@ -1561,7 +1773,7 @@ extern "C"
         SlangSession* session,
         const void* reproData,
         size_t reproDataSize,
-        ISlangMutableFileSystem* fileSystem);
+        ISlangFileSystemExt* fileSystem);
 
     /* Turns a repro into a file system.
 
@@ -1773,61 +1985,6 @@ extern "C"
         SLANG_PARAMETER_CATEGORY_FRAGMENT_OUTPUT = SLANG_PARAMETER_CATEGORY_VARYING_OUTPUT,
     };
 
-    /** Types of API-managed bindings that a parameter might use.
-    
-    `SlangBindingType` represents the distinct types of binding ranges that might be
-    understood by an underlying graphics API or cross-API abstraction layer.
-    Several of the enumeration cases here correspond to cases of `VkDescriptorType`
-    defined by the Vulkan API. Note however that the values of this enumeration
-    are not the same as those of any particular API.
-
-    The `SlangBindingType` enumeration is distinct from `SlangParameterCategory`
-    because `SlangParameterCategory` differentiates the types of parameters for
-    the purposes of layout, where the layout rules of some targets will treat
-    parameters of different types as occupying the same binding space for layout
-    (e.g., in SPIR-V both a `Texture2D` and `SamplerState` use the same space of
-    `binding` indices, and are not allowed to overlap), while those same types
-    map to different types of bindingsin the API (e.g., both textures and samplers
-    use different `VkDescriptorType` values).
-
-    When you want to answer "what register/binding did this parameter use?" you
-    should use `SlangParameterCategory`.
-
-    When you wnat to answer "what type of descriptor range should this parameter use?"
-    you should use `SlangBindingType`.
-    */
-    typedef SlangUInt32 SlangBindingType;
-    enum
-    {
-        SLANG_BINDING_TYPE_UNKNOWN = 0,
-
-        SLANG_BINDING_TYPE_SAMPLER,
-        SLANG_BINDING_TYPE_TEXTURE,
-        SLANG_BINDING_TYPE_CONSTANT_BUFFER,
-        SLANG_BINDING_TYPE_PARAMETER_BLOCK,
-        SLANG_BINDING_TYPE_TYPED_BUFFER,
-        SLANG_BINDING_TYPE_RAW_BUFFER,
-        SLANG_BINDING_TYPE_COMBINED_TEXTURE_SAMPLER,
-        SLANG_BINDING_TYPE_INPUT_RENDER_TARGET,
-        SLANG_BINDING_TYPE_INLINE_UNIFORM_DATA,
-        SLANG_BINDING_TYPE_RAY_TRACTING_ACCELERATION_STRUCTURE,
-
-        SLANG_BINDING_TYPE_VARYING_INPUT,
-        SLANG_BINDING_TYPE_VARYING_OUTPUT,
-
-        SLANG_BINDING_TYPE_EXISTENTIAL_VALUE,
-        SLANG_BINDING_TYPE_PUSH_CONSTANT,
-
-        SLANG_BINDING_TYPE_MUTABLE_FLAG = 0x100,
-
-        SLANG_BINDING_TYPE_MUTABLE_TETURE = SLANG_BINDING_TYPE_TEXTURE | SLANG_BINDING_TYPE_MUTABLE_FLAG,
-        SLANG_BINDING_TYPE_MUTABLE_TYPED_BUFFER = SLANG_BINDING_TYPE_TYPED_BUFFER | SLANG_BINDING_TYPE_MUTABLE_FLAG,
-        SLANG_BINDING_TYPE_MUTABLE_RAW_BUFFER = SLANG_BINDING_TYPE_RAW_BUFFER | SLANG_BINDING_TYPE_MUTABLE_FLAG,
-
-        SLANG_BINDING_TYPE_BASE_MASK = 0x00FF,
-        SLANG_BINDING_TYPE_EXT_MASK  = 0xFF00,
-    };
-
     typedef SlangUInt32 SlangLayoutRules;
     enum
     {
@@ -1892,13 +2049,10 @@ extern "C"
     // Type Layout Reflection
 
     SLANG_API SlangReflectionType* spReflectionTypeLayout_GetType(SlangReflectionTypeLayout* type);
-    SLANG_API SlangTypeKind spReflectionTypeLayout_getKind(SlangReflectionTypeLayout* type);
     SLANG_API size_t spReflectionTypeLayout_GetSize(SlangReflectionTypeLayout* type, SlangParameterCategory category);
     SLANG_API int32_t spReflectionTypeLayout_getAlignment(SlangReflectionTypeLayout* type, SlangParameterCategory category);
 
     SLANG_API SlangReflectionVariableLayout* spReflectionTypeLayout_GetFieldByIndex(SlangReflectionTypeLayout* type, unsigned index);
-
-    SLANG_API SlangInt spReflectionTypeLayout_findFieldIndexByName(SlangReflectionTypeLayout* typeLayout, const char* nameBegin, const char* nameEnd);
 
     SLANG_API size_t spReflectionTypeLayout_GetElementStride(SlangReflectionTypeLayout* type, SlangParameterCategory category);
     SLANG_API SlangReflectionTypeLayout* spReflectionTypeLayout_GetElementTypeLayout(SlangReflectionTypeLayout* type);
@@ -1917,39 +2071,6 @@ extern "C"
     SLANG_API SlangReflectionTypeLayout* spReflectionTypeLayout_getPendingDataTypeLayout(SlangReflectionTypeLayout* type);
 
     SLANG_API SlangReflectionVariableLayout* spReflectionTypeLayout_getSpecializedTypePendingDataVarLayout(SlangReflectionTypeLayout* type);
-
-    SLANG_API SlangInt spReflectionTypeLayout_getBindingRangeCount(SlangReflectionTypeLayout* typeLayout);
-    SLANG_API SlangBindingType spReflectionTypeLayout_getBindingRangeType(SlangReflectionTypeLayout* typeLayout, SlangInt index);
-    SLANG_API SlangInt spReflectionTypeLayout_getBindingRangeBindingCount(SlangReflectionTypeLayout* typeLayout, SlangInt index);
-    SLANG_API SlangReflectionTypeLayout* spReflectionTypeLayout_getBindingRangeLeafTypeLayout(SlangReflectionTypeLayout* typeLayout, SlangInt index);
-    SLANG_API SlangInt spReflectionTypeLayout_getFieldBindingRangeOffset(SlangReflectionTypeLayout* typeLayout, SlangInt fieldIndex);
-
-    SLANG_API SlangInt spReflectionTypeLayout_getBindingRangeDescriptorSetIndex(SlangReflectionTypeLayout* typeLayout, SlangInt index);
-    SLANG_API SlangInt spReflectionTypeLayout_getBindingRangeFirstDescriptorRangeIndex(SlangReflectionTypeLayout* typeLayout, SlangInt index);
-
-    SLANG_API SlangInt spReflectionTypeLayout_getDescriptorSetCount(SlangReflectionTypeLayout* typeLayout);
-    SLANG_API SlangInt spReflectionTypeLayout_getDescriptorSetSpaceOffset(SlangReflectionTypeLayout* typeLayout, SlangInt setIndex);
-    SLANG_API SlangInt spReflectionTypeLayout_getDescriptorSetDescriptorRangeCount(SlangReflectionTypeLayout* typeLayout, SlangInt setIndex);
-    SLANG_API SlangInt spReflectionTypeLayout_getDescriptorSetDescriptorRangeIndexOffset(SlangReflectionTypeLayout* typeLayout, SlangInt setIndex, SlangInt rangeIndex);
-    SLANG_API SlangInt spReflectionTypeLayout_getDescriptorSetDescriptorRangeDescriptorCount(SlangReflectionTypeLayout* typeLayout, SlangInt setIndex, SlangInt rangeIndex);
-    SLANG_API SlangBindingType spReflectionTypeLayout_getDescriptorSetDescriptorRangeType(SlangReflectionTypeLayout* typeLayout, SlangInt setIndex, SlangInt rangeIndex);
-    SLANG_API SlangParameterCategory spReflectionTypeLayout_getDescriptorSetDescriptorRangeCategory(SlangReflectionTypeLayout* typeLayout, SlangInt setIndex, SlangInt rangeIndex);
-
-    SLANG_API SlangInt spReflectionTypeLayout_getSubObjectRangeCount(SlangReflectionTypeLayout* typeLayout);
-    SLANG_API SlangInt spReflectionTypeLayout_getSubObjectRangeBindingRangeIndex(SlangReflectionTypeLayout* typeLayout, SlangInt subObjectRangeIndex);
-
-#if 0
-    SLANG_API SlangInt spReflectionTypeLayout_getSubObjectRangeCount(SlangReflectionTypeLayout* typeLayout);
-    SLANG_API SlangInt spReflectionTypeLayout_getSubObjectRangeObjectCount(SlangReflectionTypeLayout* typeLayout, SlangInt index);
-    SLANG_API SlangInt spReflectionTypeLayout_getSubObjectRangeBindingRangeIndex(SlangReflectionTypeLayout* typeLayout, SlangInt index);
-    SLANG_API SlangReflectionTypeLayout* spReflectionTypeLayout_getSubObjectRangeTypeLayout(SlangReflectionTypeLayout* typeLayout, SlangInt index);
-
-    SLANG_API SlangInt spReflectionTypeLayout_getSubObjectRangeDescriptorRangeCount(SlangReflectionTypeLayout* typeLayout, SlangInt subObjectRangeIndex);
-    SLANG_API SlangBindingType spReflectionTypeLayout_getSubObjectRangeDescriptorRangeBindingType(SlangReflectionTypeLayout* typeLayout, SlangInt subObjectRangeIndex, SlangInt bindingRangeIndexInSubObject);
-    SLANG_API SlangInt spReflectionTypeLayout_getSubObjectRangeDescriptorRangeBindingCount(SlangReflectionTypeLayout* typeLayout, SlangInt subObjectRangeIndex, SlangInt bindingRangeIndexInSubObject);
-    SLANG_API SlangInt spReflectionTypeLayout_getSubObjectRangeDescriptorRangeIndexOffset(SlangReflectionTypeLayout* typeLayout, SlangInt subObjectRangeIndex, SlangInt bindingRangeIndexInSubObject);
-    SLANG_API SlangInt spReflectionTypeLayout_getSubObjectRangeDescriptorRangeSpaceOffset(SlangReflectionTypeLayout* typeLayout, SlangInt subObjectRangeIndex, SlangInt bindingRangeIndexInSubObject);
-#endif
 
     // Variable Reflection
 
@@ -2070,12 +2191,7 @@ extern "C"
         /// Count should *NOT* include terminating zero.
     SLANG_API int spComputeStringHash(const char* chars, size_t count);
 
-        /// Get a type layout representing reflection information for the global-scope prameters.
     SLANG_API SlangReflectionTypeLayout* spReflection_getGlobalParamsTypeLayout(
-        SlangReflection* reflection);
-
-        /// Get a variable layout representing reflection information for the global-scope prameters.
-    SLANG_API SlangReflectionVariableLayout* spReflection_getGlobalParamsVarLayout(
         SlangReflection* reflection);
 
 #ifdef __cplusplus
@@ -2294,35 +2410,6 @@ namespace slang
         FragmentOutput = SLANG_PARAMETER_CATEGORY_FRAGMENT_OUTPUT,
     };
 
-    enum class BindingType : SlangBindingType
-    {
-        Unknown                             = SLANG_BINDING_TYPE_UNKNOWN,
-
-        Sampler                             = SLANG_BINDING_TYPE_SAMPLER,
-        Texture                             = SLANG_BINDING_TYPE_TEXTURE,
-        ConstantBuffer                      = SLANG_BINDING_TYPE_CONSTANT_BUFFER,
-        ParameterBlock                      = SLANG_BINDING_TYPE_PARAMETER_BLOCK,
-        TypedBuffer                         = SLANG_BINDING_TYPE_TYPED_BUFFER,
-        RawBuffer                           = SLANG_BINDING_TYPE_RAW_BUFFER,
-        CombinedTextureSampler              = SLANG_BINDING_TYPE_COMBINED_TEXTURE_SAMPLER,
-        InputRenderTarget                   = SLANG_BINDING_TYPE_INPUT_RENDER_TARGET,
-        InlineUniformData                   = SLANG_BINDING_TYPE_INLINE_UNIFORM_DATA,
-        RayTracingAccelerationStructure     = SLANG_BINDING_TYPE_RAY_TRACTING_ACCELERATION_STRUCTURE,
-        VaryingInput                        = SLANG_BINDING_TYPE_VARYING_INPUT,
-        VaryingOutput                       = SLANG_BINDING_TYPE_VARYING_OUTPUT,
-        ExistentialValue                    = SLANG_BINDING_TYPE_EXISTENTIAL_VALUE,
-        PushConstant                        = SLANG_BINDING_TYPE_PUSH_CONSTANT,
-
-        MutableFlag                         = SLANG_BINDING_TYPE_MUTABLE_FLAG,
-
-        MutableTexture                      = SLANG_BINDING_TYPE_MUTABLE_TETURE,
-        MutableTypedBuffer                  = SLANG_BINDING_TYPE_MUTABLE_TYPED_BUFFER,
-        MutableRawBuffer                    = SLANG_BINDING_TYPE_MUTABLE_RAW_BUFFER,
-
-        BaseMask                            = SLANG_BINDING_TYPE_BASE_MASK,
-        ExtMask                             = SLANG_BINDING_TYPE_EXT_MASK,
-    };
-
     struct TypeLayoutReflection
     {
         TypeReflection* getType()
@@ -2330,10 +2417,7 @@ namespace slang
             return (TypeReflection*) spReflectionTypeLayout_GetType((SlangReflectionTypeLayout*) this);
         }
 
-        TypeReflection::Kind getKind()
-        {
-            return (TypeReflection::Kind) spReflectionTypeLayout_getKind((SlangReflectionTypeLayout*) this);
-        }
+        TypeReflection::Kind getKind() { return getType()->getKind(); }
 
         size_t getSize(SlangParameterCategory category = SLANG_PARAMETER_CATEGORY_UNIFORM)
         {
@@ -2353,11 +2437,6 @@ namespace slang
         VariableLayoutReflection* getFieldByIndex(unsigned int index)
         {
             return (VariableLayoutReflection*) spReflectionTypeLayout_GetFieldByIndex((SlangReflectionTypeLayout*) this, index);
-        }
-
-        SlangInt findFieldIndexByName(char const* nameBegin, char const* nameEnd = nullptr)
-        {
-            return spReflectionTypeLayout_findFieldIndexByName((SlangReflectionTypeLayout*) this, nameBegin, nameEnd);
         }
 
         bool isArray() { return getType()->isArray(); }
@@ -2475,136 +2554,6 @@ namespace slang
         {
             return (VariableLayoutReflection*) spReflectionTypeLayout_getSpecializedTypePendingDataVarLayout(
                 (SlangReflectionTypeLayout*) this);
-        }
-
-        SlangInt getBindingRangeCount()
-        {
-            return spReflectionTypeLayout_getBindingRangeCount(
-                (SlangReflectionTypeLayout*) this);
-        }
-
-        BindingType getBindingRangeType(SlangInt index)
-        {
-            return (BindingType) spReflectionTypeLayout_getBindingRangeType(
-                (SlangReflectionTypeLayout*) this,
-                index);
-        }
-
-        SlangInt getBindingRangeBindingCount(SlangInt index)
-        {
-            return spReflectionTypeLayout_getBindingRangeBindingCount(
-                (SlangReflectionTypeLayout*) this,
-                index);
-        }
-
-        /*
-        SlangInt getBindingRangeIndexOffset(SlangInt index)
-        {
-            return spReflectionTypeLayout_getBindingRangeIndexOffset(
-                (SlangReflectionTypeLayout*) this,
-                index);
-        }
-
-        SlangInt getBindingRangeSpaceOffset(SlangInt index)
-        {
-            return spReflectionTypeLayout_getBindingRangeSpaceOffset(
-                (SlangReflectionTypeLayout*) this,
-                index);
-        }
-        */
-
-        SlangInt getFieldBindingRangeOffset(SlangInt fieldIndex)
-        {
-            return spReflectionTypeLayout_getFieldBindingRangeOffset(
-                (SlangReflectionTypeLayout*) this,
-                fieldIndex);
-        }
-
-        TypeLayoutReflection* getBindingRangeLeafTypeLayout(SlangInt index)
-        {
-            return (TypeLayoutReflection*) spReflectionTypeLayout_getBindingRangeLeafTypeLayout(
-                (SlangReflectionTypeLayout*) this,
-                index);
-        }
-
-        SlangInt getBindingRangeDescriptorSetIndex(SlangInt index)
-        {
-            return spReflectionTypeLayout_getBindingRangeDescriptorSetIndex(
-                (SlangReflectionTypeLayout*) this,
-                index);
-        }
-
-        SlangInt getBindingRangeFirstDescriptorRangeIndex(SlangInt index)
-        {
-            return spReflectionTypeLayout_getBindingRangeFirstDescriptorRangeIndex(
-                (SlangReflectionTypeLayout*) this,
-                index);
-        }
-
-
-        SlangInt getDescriptorSetCount()
-        {
-            return spReflectionTypeLayout_getDescriptorSetCount(
-                (SlangReflectionTypeLayout*) this);
-        }
-
-        SlangInt getDescriptorSetSpaceOffset(SlangInt setIndex)
-        {
-            return spReflectionTypeLayout_getDescriptorSetSpaceOffset(
-                (SlangReflectionTypeLayout*) this,
-                setIndex);
-        }
-
-        SlangInt getDescriptorSetDescriptorRangeCount(SlangInt setIndex)
-        {
-            return spReflectionTypeLayout_getDescriptorSetDescriptorRangeCount(
-                (SlangReflectionTypeLayout*) this,
-                setIndex);
-        }
-
-        SlangInt getDescriptorSetDescriptorRangeIndexOffset(SlangInt setIndex, SlangInt rangeIndex)
-        {
-            return spReflectionTypeLayout_getDescriptorSetDescriptorRangeIndexOffset(
-                (SlangReflectionTypeLayout*) this,
-                setIndex,
-                rangeIndex);
-        }
-
-        SlangInt getDescriptorSetDescriptorRangeDescriptorCount(SlangInt setIndex, SlangInt rangeIndex)
-        {
-            return spReflectionTypeLayout_getDescriptorSetDescriptorRangeDescriptorCount(
-                (SlangReflectionTypeLayout*) this,
-                setIndex,
-                rangeIndex);
-        }
-
-        BindingType getDescriptorSetDescriptorRangeType(SlangInt setIndex, SlangInt rangeIndex)
-        {
-            return (BindingType) spReflectionTypeLayout_getDescriptorSetDescriptorRangeType(
-                (SlangReflectionTypeLayout*) this,
-                setIndex,
-                rangeIndex);
-        }
-
-        ParameterCategory getDescriptorSetDescriptorRangeCategory(SlangInt setIndex, SlangInt rangeIndex)
-        {
-            return (ParameterCategory) spReflectionTypeLayout_getDescriptorSetDescriptorRangeCategory(
-                (SlangReflectionTypeLayout*) this,
-                setIndex,
-                rangeIndex);
-        }
-
-        SlangInt getSubObjectRangeCount()
-        {
-            return spReflectionTypeLayout_getSubObjectRangeCount(
-                (SlangReflectionTypeLayout*) this);
-        }
-
-        SlangInt getSubObjectRangeBindingRangeIndex(SlangInt subObjectRangeIndex)
-        {
-            return spReflectionTypeLayout_getSubObjectRangeBindingRangeIndex(
-                (SlangReflectionTypeLayout*) this,
-                subObjectRangeIndex);
         }
     };
 
@@ -2916,10 +2865,6 @@ namespace slang
             return (TypeLayoutReflection*) spReflection_getGlobalParamsTypeLayout((SlangReflection*) this);
         }
 
-        VariableLayoutReflection* getGlobalParamsVarLayout()
-        {
-            return (VariableLayoutReflection*) spReflection_getGlobalParamsVarLayout((SlangReflection*) this);
-        }
     };
 
     typedef ISlangBlob IBlob;
@@ -3043,601 +2988,9 @@ namespace slang
         virtual SLANG_NO_THROW void SLANG_MCALL getLanguagePrelude(
             SlangSourceLanguage sourceLanguage,
             ISlangBlob** outPrelude) = 0;
-
-            /** Create a compile request.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL createCompileRequest(
-            slang::ICompileRequest** outCompileRequest) = 0;
-
-            /** Add new builtin declarations to be used in subsequent compiles.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL addBuiltins(
-            char const*     sourcePath,
-            char const*     sourceString) = 0;
-
-            /** Set the session shared library loader. If this changes the loader, it may cause shared libraries to be unloaded
-            @param loader The loader to set. Setting nullptr sets the default loader. 
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setSharedLibraryLoader(
-            ISlangSharedLibraryLoader* loader) = 0;
-
-            /** Gets the currently set shared library loader
-            @return Gets the currently set loader. If returns nullptr, it's the default loader
-            */
-        virtual SLANG_NO_THROW ISlangSharedLibraryLoader* SLANG_MCALL getSharedLibraryLoader() = 0;
-
-            /** Returns SLANG_OK if a the compilation target is supported for this session
-            
-            @param target The compilation target to test
-            @return SLANG_OK if the target is available
-            SLANG_E_NOT_IMPLEMENTED if not implemented in this build
-            SLANG_E_NOT_FOUND if other resources (such as shared libraries) required to make target work could not be found
-            SLANG_FAIL other kinds of failures */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL checkCompileTargetSupport(
-            SlangCompileTarget  target) = 0;
-
-            /** Returns SLANG_OK if a the pass through support is supported for this session
-            @param session Session
-            @param target The compilation target to test
-            @return SLANG_OK if the target is available
-            SLANG_E_NOT_IMPLEMENTED if not implemented in this build
-            SLANG_E_NOT_FOUND if other resources (such as shared libraries) required to make target work could not be found
-            SLANG_FAIL other kinds of failures */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL checkPassThroughSupport(
-            SlangPassThrough    passThrough) = 0;
-
-            /** Compile from (embedded source) the StdLib on the session.
-            Will return a failure if there is already a StdLib available
-            NOTE! API is experimental and not ready for production code 
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL compileStdLib() = 0;
-
-            /** Load the StdLib. Currently loads modules from the file system
-            NOTE! API is experimental and not ready for production code 
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL loadStdLib() = 0;
-
-            /** Save the StdLib modules to the file system
-            NOTE! API is experimental and not ready for production code  */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL saveStdLib() = 0;
     };
 
     #define SLANG_UUID_IGlobalSession { 0xc140b5fd, 0xc78, 0x452e, { 0xba, 0x7c, 0x1a, 0x1e, 0x70, 0xc7, 0xf7, 0x1c } };
-
-    /*!
-    @brief A request for one or more compilation actions to be performed.
-    */
-    struct ICompileRequest : public ISlangUnknown
-    {
-    public:
-
-            /** Set the filesystem hook to use for a compile request
-
-            The provided `fileSystem` will be used to load any files that
-            need to be loaded during processing of the compile `request`.
-            This includes:
-
-              - Source files loaded via `spAddTranslationUnitSourceFile`
-              - Files referenced via `#include`
-              - Files loaded to resolve `#import` operations
-                */
-        virtual SLANG_NO_THROW void SLANG_MCALL setFileSystem(
-            ISlangFileSystem*       fileSystem) = 0;
-
-            /*!
-            @brief Set flags to be used for compilation.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setCompileFlags(
-            SlangCompileFlags       flags) = 0;
-
-            /*!
-            @brief Set whether to dump intermediate results (for debugging) or not.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setDumpIntermediates(
-            int                     enable) = 0;
-
-        virtual SLANG_NO_THROW void SLANG_MCALL setDumpIntermediatePrefix(
-            const char* prefix) = 0;
-
-            /*!
-            @brief Set whether (and how) `#line` directives should be output.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setLineDirectiveMode(
-            SlangLineDirectiveMode  mode) = 0;
-
-            /*!
-            @brief Sets the target for code generation.
-            @param target The code generation target. Possible values are:
-            - SLANG_GLSL. Generates GLSL code.
-            - SLANG_HLSL. Generates HLSL code.
-            - SLANG_SPIRV. Generates SPIR-V code.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setCodeGenTarget(
-            SlangCompileTarget target) = 0;
-
-            /*!
-            @brief Add a code-generation target to be used.
-            */
-        virtual SLANG_NO_THROW int SLANG_MCALL addCodeGenTarget(
-            SlangCompileTarget      target) = 0;
-
-        virtual SLANG_NO_THROW void SLANG_MCALL setTargetProfile(
-            int                     targetIndex,
-            SlangProfileID          profile) = 0;
-
-        virtual SLANG_NO_THROW void SLANG_MCALL setTargetFlags(
-            int                     targetIndex,
-            SlangTargetFlags        flags) = 0;
-
-
-            /*!
-            @brief Set the floating point mode (e.g., precise or fast) to use a target.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setTargetFloatingPointMode(
-            int                     targetIndex,
-            SlangFloatingPointMode  mode) = 0;
-
-            /* DEPRECATED: use `spSetMatrixLayoutMode` instead. */
-        virtual SLANG_NO_THROW void SLANG_MCALL setTargetMatrixLayoutMode(
-            int                     targetIndex,
-            SlangMatrixLayoutMode   mode) = 0;
-
-        virtual SLANG_NO_THROW void SLANG_MCALL setMatrixLayoutMode(
-            SlangMatrixLayoutMode   mode) = 0;
-
-            /*!
-            @brief Set the level of debug information to produce.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setDebugInfoLevel(
-            SlangDebugInfoLevel     level) = 0;
-
-            /*!
-            @brief Set the level of optimization to perform.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setOptimizationLevel(
-            SlangOptimizationLevel  level) = 0;
-
-
-    
-            /*!
-            @brief Set the container format to be used for binary output.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setOutputContainerFormat(
-            SlangContainerFormat    format) = 0;
-
-        virtual SLANG_NO_THROW void SLANG_MCALL setPassThrough(
-            SlangPassThrough        passThrough) = 0;
-
-    
-        virtual SLANG_NO_THROW void SLANG_MCALL setDiagnosticCallback(
-            SlangDiagnosticCallback callback,
-            void const*             userData) = 0;
-
-        virtual SLANG_NO_THROW void SLANG_MCALL setWriter(
-            SlangWriterChannel      channel, 
-            ISlangWriter*           writer) = 0;
-
-        virtual SLANG_NO_THROW ISlangWriter* SLANG_MCALL getWriter(
-            SlangWriterChannel      channel) = 0;
-
-            /*!
-            @brief Add a path to use when searching for referenced files.
-            This will be used for both `#include` directives and also for explicit `__import` declarations.
-            @param ctx The compilation context.
-            @param searchDir The additional search directory.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL addSearchPath(
-            const char*             searchDir) = 0;
-
-            /*!
-            @brief Add a macro definition to be used during preprocessing.
-            @param key The name of the macro to define.
-            @param value The value of the macro to define.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL addPreprocessorDefine(
-            const char*             key,
-            const char*             value) = 0;
-
-            /*!
-            @brief Set options using arguments as if specified via command line.
-            @return Returns SlangResult. On success SLANG_SUCCEEDED(result) is true.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL processCommandLineArguments(
-            char const* const*      args,
-            int                     argCount) = 0;
-
-            /** Add a distinct translation unit to the compilation request
-
-            `name` is optional. 
-            Returns the zero-based index of the translation unit created.
-            */
-        virtual SLANG_NO_THROW int SLANG_MCALL addTranslationUnit(
-            SlangSourceLanguage     language,
-            char const*             name) = 0;
-
-    
-            /** Set a default module name. Translation units will default to this module name if one is not
-            passed. If not set each translation unit will get a unique name. 
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL setDefaultModuleName(
-            const char* defaultModuleName) = 0;
-
-            /** Add a preprocessor definition that is scoped to a single translation unit.
-
-            @param translationUnitIndex The index of the translation unit to get the definition.
-            @param key The name of the macro to define.
-            @param value The value of the macro to define.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL addTranslationUnitPreprocessorDefine(
-            int                     translationUnitIndex,
-            const char*             key,
-            const char*             value) = 0;
-
-
-            /** Add a source file to the given translation unit.
-
-            If a user-defined file system has been specified via
-            `spSetFileSystem`, then it will be used to load the
-            file at `path`. Otherwise, Slang will use the OS
-            file system.
-
-            This function does *not* search for a file using
-            the registered search paths (`spAddSearchPath`),
-            and instead using the given `path` as-is.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL addTranslationUnitSourceFile(
-            int                     translationUnitIndex,
-            char const*             path) = 0;
-
-            /** Add a source string to the given translation unit.
-
-            @param translationUnitIndex The index of the translation unit to add source to.
-            @param path The file-system path that should be assumed for the source code.
-            @param source A null-terminated UTF-8 encoded string of source code.
-
-            The implementation will make a copy of the source code data.
-            An application may free the buffer immediately after this call returns.
-
-            The `path` will be used in any diagnostic output, as well
-            as to determine the base path when resolving relative
-            `#include`s.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL addTranslationUnitSourceString(
-            int                     translationUnitIndex,
-            char const*             path,
-            char const*             source) = 0;
-
-
-            /** Add a slang library - such that its contents can be referenced during linking.
-            This is equivalent to the -r command line option.
-
-            @param libData The library data
-            @param libDataSize The size of the library data
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL addLibraryReference(
-            const void* libData,
-            size_t libDataSize) = 0;
-
-            /** Add a source string to the given translation unit.
-
-            @param translationUnitIndex The index of the translation unit to add source to.
-            @param path The file-system path that should be assumed for the source code.
-            @param sourceBegin A pointer to a buffer of UTF-8 encoded source code.
-            @param sourceEnd A pointer to to the end of the buffer specified in `sourceBegin`
-
-            The implementation will make a copy of the source code data.
-            An application may free the buffer immediately after this call returns.
-
-            The `path` will be used in any diagnostic output, as well
-            as to determine the base path when resolving relative
-            `#include`s.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL addTranslationUnitSourceStringSpan(
-            int                     translationUnitIndex,
-            char const*             path,
-            char const*             sourceBegin,
-            char const*             sourceEnd) = 0;
-
-            /** Add a blob of source code to the given translation unit.
-
-            @param translationUnitIndex The index of the translation unit to add source to.
-            @param path The file-system path that should be assumed for the source code.
-            @param sourceBlob A blob containing UTF-8 encoded source code.
-            @param sourceEnd A pointer to to the end of the buffer specified in `sourceBegin`
-
-            The compile request will retain a reference to the blob.
-
-            The `path` will be used in any diagnostic output, as well
-            as to determine the base path when resolving relative
-            `#include`s.
-            */
-        virtual SLANG_NO_THROW void SLANG_MCALL addTranslationUnitSourceBlob(
-            int                     translationUnitIndex,
-            char const*             path,
-            ISlangBlob*             sourceBlob) = 0;
-
-            /** Add an entry point in a particular translation unit
-            */
-        virtual SLANG_NO_THROW int SLANG_MCALL addEntryPoint(
-            int                     translationUnitIndex,
-            char const*             name,
-            SlangStage              stage) = 0;
-
-            /** Add an entry point in a particular translation unit,
-                with additional arguments that specify the concrete
-                type names for entry-point generic type parameters.
-            */
-        virtual SLANG_NO_THROW int SLANG_MCALL addEntryPointEx(
-            int                     translationUnitIndex,
-            char const*             name,
-            SlangStage              stage,
-            int                     genericArgCount,
-            char const**            genericArgs) = 0;
-
-            /** Specify the arguments to use for global generic parameters.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL setGlobalGenericArgs(
-            int                     genericArgCount,
-            char const**            genericArgs) = 0;
-
-            /** Specify the concrete type to be used for a global "existential slot."
-
-            Every shader parameter (or leaf field of a `struct`-type shader parameter)
-            that has an interface or array-of-interface type introduces an existential
-            slot. The number of slots consumed by a shader parameter, and the starting
-            slot of each parameter can be queried via the reflection API using
-            `SLANG_PARAMETER_CATEGORY_EXISTENTIAL_TYPE_PARAM`.
-
-            In order to generate specialized code, a concrete type needs to be specified
-            for each existential slot. This function specifies the name of the type
-            (or in general a type *expression*) to use for a specific slot at the
-            global scope.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL setTypeNameForGlobalExistentialTypeParam(
-            int                     slotIndex,
-            char const*             typeName) = 0;
-
-            /** Specify the concrete type to be used for an entry-point "existential slot."
-
-            Every shader parameter (or leaf field of a `struct`-type shader parameter)
-            that has an interface or array-of-interface type introduces an existential
-            slot. The number of slots consumed by a shader parameter, and the starting
-            slot of each parameter can be queried via the reflection API using
-            `SLANG_PARAMETER_CATEGORY_EXISTENTIAL_TYPE_PARAM`.
-
-            In order to generate specialized code, a concrete type needs to be specified
-            for each existential slot. This function specifies the name of the type
-            (or in general a type *expression*) to use for a specific slot at the
-            entry-point scope.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL setTypeNameForEntryPointExistentialTypeParam(
-            int                     entryPointIndex,
-            int                     slotIndex,
-            char const*             typeName) = 0;
-
-            /** Execute the compilation request.
-
-            @returns  SlangResult, SLANG_OK on success. Use SLANG_SUCCEEDED() and SLANG_FAILED() to test SlangResult.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL compile() = 0;
-
-
-            /** Get any diagnostic messages reported by the compiler.
-
-            @returns A null-terminated UTF-8 encoded string of diagnostic messages.
-
-            The returned pointer is only guaranteed to be valid
-            until `request` is destroyed. Applications that wish to
-            hold on to the diagnostic output for longer should use
-            `getDiagnosticOutputBlob`.
-            */
-        virtual SLANG_NO_THROW char const* SLANG_MCALL getDiagnosticOutput() = 0;
-
-            /** Get diagnostic messages reported by the compiler.
-
-            @param outBlob A pointer to receive a blob holding a nul-terminated UTF-8 encoded string of diagnostic messages.
-            @returns A `SlangResult` indicating success or failure.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getDiagnosticOutputBlob(
-            ISlangBlob**            outBlob) = 0;
-
-
-            /** Get the number of files that this compilation depended on.
-
-            This includes both the explicit source files, as well as any
-            additional files that were transitively referenced (e.g., via
-            a `#include` directive).
-            */
-        virtual SLANG_NO_THROW int SLANG_MCALL getDependencyFileCount() = 0;
-
-            /** Get the path to a file this compilation depended on.
-            */
-        virtual SLANG_NO_THROW char const* SLANG_MCALL getDependencyFilePath(
-            int                     index) = 0;
-
-            /** Get the number of translation units associated with the compilation request
-            */
-        virtual SLANG_NO_THROW int SLANG_MCALL getTranslationUnitCount() = 0;
-
-            /** Get the output source code associated with a specific entry point.
-
-            The lifetime of the output pointer is the same as `request`.
-            */
-        virtual SLANG_NO_THROW char const* SLANG_MCALL getEntryPointSource(
-            int                     entryPointIndex) = 0;
-
-            /** Get the output bytecode associated with a specific entry point.
-
-            The lifetime of the output pointer is the same as `request`.
-            */
-        virtual SLANG_NO_THROW void const* SLANG_MCALL getEntryPointCode(
-            int                     entryPointIndex,
-            size_t*                 outSize) = 0;
-
-            /** Get the output code associated with a specific entry point.
-
-            @param entryPointIndex The index of the entry point to get code for.
-            @param targetIndex The index of the target to get code for (default: zero).
-            @param outBlob A pointer that will receive the blob of code
-            @returns A `SlangResult` to indicate success or failure.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getEntryPointCodeBlob(
-            int                     entryPointIndex,
-            int                     targetIndex,
-            ISlangBlob**            outBlob) = 0;
-
-            /** Get entry point 'callable' functions accessible through the ISlangSharedLibrary interface.
-
-            That the functions remain in scope as long as the ISlangSharedLibrary interface is in scope.
-
-            NOTE! Requires a compilation target of SLANG_HOST_CALLABLE.
-    
-            @param entryPointIndex  The index of the entry point to get code for.
-            @param targetIndex      The index of the target to get code for (default: zero).
-            @param outSharedLibrary A pointer to a ISharedLibrary interface which functions can be queried on.
-            @returns                A `SlangResult` to indicate success or failure.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getEntryPointHostCallable(
-            int                     entryPointIndex,
-            int                     targetIndex,
-            ISlangSharedLibrary**   outSharedLibrary) = 0;
-
-            /** Get the output code associated with a specific target.
-
-            @param targetIndex The index of the target to get code for (default: zero).
-            @param outBlob A pointer that will receive the blob of code
-            @returns A `SlangResult` to indicate success or failure.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getTargetCodeBlob(
-            int                     targetIndex,
-            ISlangBlob**            outBlob) = 0;
-
-            /** Get 'callable' functions for a target accessible through the ISlangSharedLibrary interface.
-
-            That the functions remain in scope as long as the ISlangSharedLibrary interface is in scope.
-
-            NOTE! Requires a compilation target of SLANG_HOST_CALLABLE.
-    
-            @param targetIndex      The index of the target to get code for (default: zero).
-            @param outSharedLibrary A pointer to a ISharedLibrary interface which functions can be queried on.
-            @returns                A `SlangResult` to indicate success or failure.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getTargetHostCallable(
-            int                     targetIndex,
-            ISlangSharedLibrary**   outSharedLibrary) = 0;
-
-            /** Get the output bytecode associated with an entire compile request.
-
-            The lifetime of the output pointer is the same as `request` and the last spCompile.
-
-            @param outSize          The size of the containers contents in bytes. Will be zero if there is no code available.
-            @returns                Pointer to start of the contained data, or nullptr if there is no code available.
-            */
-        virtual SLANG_NO_THROW void const* SLANG_MCALL getCompileRequestCode(
-            size_t*                 outSize) = 0;
-
-            /** Return the container code as a blob. The container blob is created as part of a compilation (with spCompile),
-            and a container is produced with a suitable ContainerFormat. 
-
-            @param outSize          The blob containing the container data. 
-            @returns                A `SlangResult` to indicate success or failure.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getContainerCode(
-            ISlangBlob**            outBlob) = 0;
-
-            /** Load repro from memory specified.
-
-            Should only be performed on a newly created request.
-
-            NOTE! When using the fileSystem, files will be loaded via their `unique names` as if they are part of the flat file system. This
-            mechanism is described more fully in docs/repro.md.
-
-            @param fileSystem       An (optional) filesystem. Pass nullptr to just use contents of repro held in data.
-            @param data             The data to load from.
-            @param size             The size of the data to load from. 
-            @returns                A `SlangResult` to indicate success or failure.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL loadRepro(
-            ISlangFileSystem* fileSystem,
-            const void* data,
-            size_t size) = 0;
-
-            /** Save repro state. Should *typically* be performed after spCompile, so that everything
-            that is needed for a compilation is available. 
-
-            @param outBlob          Blob that will hold the serialized state
-            @returns                A `SlangResult` to indicate success or failure.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL saveRepro(
-            ISlangBlob** outBlob) = 0;
-
-            /** Enable repro capture.
-
-            Should be set after any ISlangFileSystem has been set, but before any compilation. It ensures that everything
-            that the ISlangFileSystem accesses will be correctly recorded.
-            Note that if a ISlangFileSystem/ISlangFileSystemExt isn't explicitly set (ie the default is used), then the
-            request will automatically be set up to record everything appropriate. 
-
-            @returns                A `SlangResult` to indicate success or failure.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL enableReproCapture() = 0;
-
-            /** Get the (linked) program for a compile request.
-
-            The linked program will include all of the global-scope modules for the
-            translation units in the program, plus any modules that they `import`
-            (transitively), specialized to any global specialization arguments that
-            were provided via the API.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getProgram(
-            slang::IComponentType** outProgram) = 0;
-
-            /** Get the (partially linked) component type for an entry point.
-
-            The returned component type will include the entry point at the
-            given index, and will be specialized using any specialization arguments
-            that were provided for it via the API.
-
-            The returned component will *not* include the modules representing
-            the global scope and its dependencies/specialization, so a client
-            program will typically want to compose this component type with
-            the one returned by `spCompileRequest_getProgram` to get a complete
-            and usable component type from which kernel code can be requested.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getEntryPoint(
-            SlangInt                entryPointIndex,
-            slang::IComponentType** outEntryPoint) = 0;
-
-            /** Get the (un-linked) module for a translation unit.
-
-            The returned module will not be linked against any dependencies,
-            nor against any entry points (even entry points declared inside
-            the module). Similarly, the module will not be specialized
-            to the arguments that might have been provided via the API.
-
-            This function provides an atomic unit of loaded code that
-            is suitable for looking up types and entry points in the
-            given module, and for linking together to produce a composite
-            program that matches the needs of an application.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getModule(
-            SlangInt                translationUnitIndex,
-            slang::IModule**        outModule) = 0;
-
-            /** Get the `ISession` handle behind the `SlangCompileRequest`.
-            TODO(JS): Arguably this should just return the session pointer.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getSession(
-            slang::ISession** outSession) = 0;
-
-            /** get reflection data from a compilation request */
-        virtual SLANG_NO_THROW SlangReflection* SLANG_MCALL getReflection() = 0;
-
-            /** Make output specially handled for command line output */
-        virtual SLANG_NO_THROW void SLANG_MCALL setCommandLineCompilerMode() = 0;
-    };
-
-    #define SLANG_UUID_ICompileRequest { 0x96d33993, 0x317c, 0x4db5, { 0xaf, 0xd8, 0x66, 0x6e, 0xe7, 0x72, 0x48, 0xe2 } };
 
         /** Description of a code generation target.
         */
@@ -3812,13 +3165,6 @@ namespace slang
             TypeReflection* type,
             TypeReflection* interfaceType,
             ISlangBlob** outNameBlob) = 0;
-
-            /** Get the sequential ID used to identify a type witness in a dynamic object.
-            */
-        virtual SLANG_NO_THROW SlangResult SLANG_MCALL getTypeConformanceWitnessSequentialID(
-            slang::TypeReflection* type,
-            slang::TypeReflection* interfaceType,
-            uint32_t*              outId) = 0;
 
             /** Create a request to load/compile front-end code.
             */
@@ -4025,28 +3371,9 @@ namespace slang
     };
 }
 
-// Passed into functions to create globalSession to identify the API version client code is
-// using. 
 #define SLANG_API_VERSION 0
 
-/* Create a global session, with built in StdLib.
-
-@param apiVersion Pass in SLANG_API_VERSION
-@param outGlobalSession (out)The created global session. 
-*/
 SLANG_API SlangResult slang_createGlobalSession(
-    SlangInt                apiVersion,
-    slang::IGlobalSession** outGlobalSession);
-
-/* Create a global session, but do not set up the stdlib. The stdlib can
-then be loaded via loadStdLib or compileStdLib
-
-@param apiVersion Pass in SLANG_API_VERSION
-@param outGlobalSession (out)The created global session that doesn't have a StdLib setup.
-
-NOTE! API is experimental and not ready for production code 
-*/
-SLANG_API SlangResult slang_createGlobalSessionWithoutStdLib(
     SlangInt                apiVersion,
     slang::IGlobalSession** outGlobalSession);
 
@@ -4059,27 +3386,52 @@ namespace slang
     }
 }
 
-/** @see slang::ICompileRequest::getProgram
+/** Get the (linked) program for a compile request.
+
+The linked program will include all of the global-scope modules for the
+translation units in the program, plus any modules that they `import`
+(transitively), specialized to any global specialization arguments that
+were provided via the API.
 */
 SLANG_API SlangResult spCompileRequest_getProgram(
     SlangCompileRequest*    request,
     slang::IComponentType** outProgram);
 
-/** @see slang::ICompileRequest::getEntryPoint
+/** Get the (partially linked) component type for an entry point.
+
+The returned component type will include the entry point at the
+given index, and will be specialized using any specialization arguments
+that were provided for it via the API.
+
+The returned component will *not* include the modules representing
+the global scope and its dependencies/specialization, so a client
+program will typically want to compose this component type with
+the one returned by `spCompileRequest_getProgram` to get a complete
+and usable component type from which kernel code can be requested.
 */
 SLANG_API SlangResult spCompileRequest_getEntryPoint(
     SlangCompileRequest*    request,
     SlangInt                entryPointIndex,
     slang::IComponentType** outEntryPoint);
 
-/** @see slang::ICompileRequest::getModule
+/** Get the (un-linked) module for a translation unit.
+
+The returned module will not be linked against any dependencies,
+nor against any entry points (even entry points declared inside
+the module). Similarly, the module will not be specialized
+to the arguments that might have been provided via the API.
+
+This function provides an atomic unit of loaded code that
+is suitable for looking up types and entry points in the
+given module, and for linking together to produce a composite
+program that matches the needs of an application.
 */
 SLANG_API SlangResult spCompileRequest_getModule(
     SlangCompileRequest*    request,
     SlangInt                translationUnitIndex,
     slang::IModule**        outModule);
 
-/** @see slang::ICompileRequest::getSession
+/** Get the `ISession` handle behind the `SlangCompileRequest`.
 */
 SLANG_API SlangResult spCompileRequest_getSession(
     SlangCompileRequest* request,
