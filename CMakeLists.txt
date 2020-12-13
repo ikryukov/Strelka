@@ -35,6 +35,31 @@ endif()
 # Vulkan
 find_package(Vulkan REQUIRED)
 
+# Shader Manager
+set(SHADERMANAGER_SOURCES          # All .cpp files in src/
+    src/shadermanager/shadermanager.cpp
+)
+set(SHADERLIB_NAME shadermanager)
+add_library(${SHADERLIB_NAME} OBJECT ${SHADERMANAGER_SOURCES})
+target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/shadermanager)
+target_include_directories(${SHADERLIB_NAME} PUBLIC external/slang/include)
+if (MSVC)
+	target_link_libraries(${SHADERLIB_NAME} "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")
+elseif (APPLE)
+	target_link_libraries(${SHADERLIB_NAME} "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib")
+endif()
+
+# Scene
+set(SCENE_SOURCES          # All .cpp files in src/
+    src/scene/scene.cpp
+)
+set(SCENELIB_NAME scene)
+add_library(${SCENELIB_NAME} OBJECT ${SCENE_SOURCES})
+target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/scene)
+target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
+
 # Render lib
 set(RENDER_SOURCES          # All .cpp files in src/
     src/render/render.cpp
@@ -56,29 +81,21 @@ endif()
 #target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 #target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
-
-# Scene
-set(SCENE_SOURCES          # All .cpp files in src/
-    src/scene/scene.cpp
-)
-set(SCENELIB_NAME scene)
-add_library(${SCENELIB_NAME} OBJECT ${SCENE_SOURCES})
-target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
-target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/scene)
-target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME}  ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 ##########################################
 # External 3rd-party libraries
 
 # Slang (Shader manager)
-add_subdirectory(shaders)
-target_link_libraries(${PROJECT_NAME} ShaderManager)
+# add_subdirectory(shaders)
+# target_link_libraries(${PROJECT_NAME} ShaderManager)
 
 # ImGUI
 target_include_directories(${PROJECT_NAME} PRIVATE external/imgui/include)

@@ -4,13 +4,14 @@ set(TESTFILES
     tests_main.cpp
     render/tests_render.cpp
     scene/tests_scene.cpp
+    shadermanager/tests_shadermanager.cpp
 )
 
 set(TEST_MAIN unit_tests)
 set(TEST_RUNNER_PARAMS "")
 
 add_executable(${TEST_MAIN} ${TESTFILES})
-target_link_libraries(${TEST_MAIN} PRIVATE ${SCENELIB_NAME} ${RENDERLIB_NAME} doctest)
+target_link_libraries(${TEST_MAIN} PRIVATE ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} doctest)
 target_include_directories(${TEST_MAIN} PRIVATE ../src/)
 
 set_target_properties(${TEST_MAIN} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
