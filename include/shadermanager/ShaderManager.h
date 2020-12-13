@@ -15,11 +15,15 @@ public:
     bool loadShader(const char* fileName, const char* entryPointName, bool isPixel = false)
     {
         SlangCompileRequest* slangRequest = spCreateCompileRequest(mSlangSession);
-        int targetIndex = spAddCodeGenTarget(slangRequest, SLANG_DXBC);
-        spSetTargetProfile(slangRequest, targetIndex, spFindProfile(mSlangSession, "sm_4_0"));
+
+        spSetDebugInfoLevel(slangRequest, SLANG_DEBUG_INFO_LEVEL_MAXIMAL);
+        int targetIndex = spAddCodeGenTarget(slangRequest, SLANG_SPIRV);
+        SlangProfileID profileID = spFindProfile(mSlangSession, "sm_6_3");
+        spSetTargetProfile(slangRequest, targetIndex, profileID);
         int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
         spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, fileName);
-        int epIndex = spAddEntryPoint(slangRequest, translationUnitIndex, entryPointName, isPixel ? SLANG_STAGE_PIXEL : SLANG_STAGE_VERTEX);
+        const SlangStage stage = isPixel ? SLANG_STAGE_FRAGMENT : SLANG_STAGE_VERTEX;
+        int entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, entryPointName, stage);
         const SlangResult compileRes = spCompile(slangRequest);
         if(auto diagnostics = spGetDiagnosticOutput(slangRequest))
         {
@@ -31,19 +35,14 @@ public:
             return false;
         }
 
-        ISlangBlob* shaderBlob = nullptr;
-        spGetEntryPointCodeBlob(slangRequest, epIndex, 0, &shaderBlob);
-
-        // We extract the begin/end pointers to the output code buffers
-        // using operations on the `ISlangBlob` interface.
-        //
-        char const* code = (char const*) shaderBlob->getBufferPointer();
-        uint32_t codeSize = shaderBlob->getBufferSize();
-
+        size_t dataSize = 0;
+        void const* data = spGetEntryPointCode(slangRequest, entryPointIndex, &dataSize);
+        char const* code = spGetEntryPointSource(slangRequest, entryPointIndex);
+        if (!data)
+        {
+            return false;
+        }
         
-        // Once we have extracted the output blobs, it is safe to destroy
-        // the compile request and even the session.
-        //
         spDestroyCompileRequest(slangRequest);
         return true;
     }

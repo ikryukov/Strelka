@@ -11,5 +11,5 @@ TEST_CASE("shader manager test")
 TEST_CASE("shader manager load")
 {
     nevk::ShaderManager* sm = new nevk::ShaderManager();
-    CHECK(sm->loadShader("../../shaders/test/test_shader.hlsl", "vertexMain", false) != false);
+    CHECK(sm->loadShader("../../shaders/test/test_shader.hlsl", "fragmentMain", true) != false);
 }
