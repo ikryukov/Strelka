@@ -10,3 +10,6 @@
 [submodule "external/tol"]
 	path = external/tol
 	url = https://github.com/tinyobjloader/tinyobjloader.git
+[submodule "external/doctest"]
+	path = external/doctest
+	url = https://github.com/onqtam/doctest.git

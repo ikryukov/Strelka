@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.16)
 project(nevk)
 set(CMAKE_CXX_STANDARD 17)
 
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+include(ConfigSafeGuards)
+include(CTest)
+include(Doctest)
+include(Warnings)
+
 set(OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Set output directory for executable files
@@ -25,43 +31,40 @@ if (MINGW)
 			)
 endif()
 
-add_executable(${PROJECT_NAME}
-	# Application
-	src/common.h
-	src/main.cpp
+######## Packages
+# Vulkan
+find_package(Vulkan REQUIRED)
 
-	# Engine
-	src/engine.h
-	src/engine.cpp
-	src/core/instance.h
-	src/core/instance.cpp
-	src/core/device.h
-	src/core/device.cpp
-
-	#imgui
-		${IMGUI_FILES}
+# Render lib
+set(RENDER_SOURCES          # All .cpp files in src/
+    src/render/render.cpp
 )
-
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/)
-
-##########################################
-# External 3rd-party libraries
-
-# GLFW (OpenGL Framework)
-target_include_directories(${PROJECT_NAME} PRIVATE external/glfw/include)
+set(RENDERLIB_NAME render)
+add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
+target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
+# GLFW
+target_include_directories(${RENDERLIB_NAME} PRIVATE external/glfw/include)
 if (MSVC)
-	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
+	target_link_libraries(${RENDERLIB_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
 elseif (MINGW)
-	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/libglfw3.a")
+	target_link_libraries(${RENDERLIB_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/libglfw3.a")
 elseif (APPLE)
 	find_package(glfw3 3.3 REQUIRED)
     include_directories(${glfw3_INCLUDE_DIRS})
-    target_link_libraries (${PROJECT_NAME} glfw)
+    target_link_libraries(${RENDERLIB_NAME} PUBLIC glfw)
 endif()
+#target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
+#target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
-# Vulkan
-find_package(Vulkan REQUIRED)
-target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
+# Application
+add_executable(${PROJECT_NAME} app/main.cpp)
+target_link_libraries(${PROJECT_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
+#target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
+
+##########################################
+# External 3rd-party libraries
 
 # Slang (Shader manager)
 add_subdirectory(shaders)
@@ -91,3 +94,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE external/spdlog/include)
 # CXXOPTS
 target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
 
+option(NEVK_TESTS "enable tests" ON)
+
+if(NOT NEVK_TESTS)
+    message(STATUS "tests are disabled")
+else()
+    add_subdirectory(tests)
+endif()
