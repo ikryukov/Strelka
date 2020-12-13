@@ -4,23 +4,9 @@ project(ShaderManager)
 file(GLOB_RECURSE SHADERS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.slang)
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "Shaders" FILES ${SHADERS})
 
-add_library(${PROJECT_NAME} STATIC
-	ShaderManager.h
-	ShaderManager.cpp
-	${SHADERS}
-)
-
-# Slang
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/slang/include)
-target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/external/slang)
-target_link_libraries(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")
-
-# Copy slang dll to final directory after building
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
-        "${OUTPUT_DIRECTORY}"
-)
+#add_library(${PROJECT_NAME} STATIC
+#	${SHADERS}
+#)
 
 # Copy shaders to final directory after building
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

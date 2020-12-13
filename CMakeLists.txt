@@ -50,6 +50,7 @@ elseif (APPLE)
 	target_link_libraries(${SHADERLIB_NAME} "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib")
 endif()
 
+
 # Scene
 set(SCENE_SOURCES          # All .cpp files in src/
     src/scene/scene.cpp
@@ -67,17 +68,19 @@ set(RENDER_SOURCES          # All .cpp files in src/
 set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
-# GLFW
-target_include_directories(${RENDERLIB_NAME} PRIVATE external/glfw/include)
+## GLFW
+target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
 if (MSVC)
-	target_link_libraries(${RENDERLIB_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
+	target_link_libraries(${RENDERLIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
 elseif (MINGW)
-	target_link_libraries(${RENDERLIB_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/libglfw3.a")
+	target_link_libraries(${RENDERLIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/libglfw3.a")
 elseif (APPLE)
 	find_package(glfw3 3.3 REQUIRED)
     include_directories(${glfw3_INCLUDE_DIRS})
     target_link_libraries(${RENDERLIB_NAME} PUBLIC glfw)
 endif()
+## GLM (Mathematics)
+target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
 #target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
@@ -87,8 +90,15 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME}  ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
+
+# Copy slang dll to final directory after building
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
+        "${OUTPUT_DIRECTORY}"
+)
 
 ##########################################
 # External 3rd-party libraries
@@ -98,28 +108,28 @@ target_link_libraries(${PROJECT_NAME}  ${RENDERLIB_NAME})  # Link the executable
 # target_link_libraries(${PROJECT_NAME} ShaderManager)
 
 # ImGUI
-target_include_directories(${PROJECT_NAME} PRIVATE external/imgui/include)
-if (MSVC)
-	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui.lib")
-endif()
+# target_include_directories(${PROJECT_NAME} PRIVATE external/imgui/include)
+# if (MSVC)
+#	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui.lib")
+# endif()
 
 # VMA (Vulkan Memory Allocator)
-target_include_directories(${PROJECT_NAME} PRIVATE external/vma/src)
+# target_include_directories(${PROJECT_NAME} PRIVATE external/vma/src)
 
 # GLM (OpenGL Mathematics)
-target_include_directories(${PROJECT_NAME} PRIVATE external/glm)
+# target_include_directories(${PROJECT_NAME} PRIVATE external/glm)
 
 # STB (image loader)
-target_include_directories(${PROJECT_NAME} PRIVATE external/stb)
+# target_include_directories(${PROJECT_NAME} PRIVATE external/stb)
 
 # TOL (TinyObjLoader)
-target_include_directories(${PROJECT_NAME} PRIVATE external/tol)
+# target_include_directories(${PROJECT_NAME} PRIVATE external/tol)
 
 # SPDLOG
-target_include_directories(${PROJECT_NAME} PRIVATE external/spdlog/include)
+# target_include_directories(${PROJECT_NAME} PRIVATE external/spdlog/include)
 
 # CXXOPTS
-target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
+# target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
 
 option(NEVK_TESTS "enable tests" ON)
 
