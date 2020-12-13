@@ -20,7 +20,6 @@ public:
         int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
         spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, fileName);
         int epIndex = spAddEntryPoint(slangRequest, translationUnitIndex, entryPointName, isPixel ? SLANG_STAGE_PIXEL : SLANG_STAGE_VERTEX);
-        printf("before compile\n");
         const SlangResult compileRes = spCompile(slangRequest);
         if(auto diagnostics = spGetDiagnosticOutput(slangRequest))
         {
