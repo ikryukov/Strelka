@@ -36,7 +36,8 @@ endif()
 find_package(Vulkan REQUIRED)
 
 # Shader Manager
-set(SHADERMANAGER_SOURCES          # All .cpp files in src/
+set(SHADERMANAGER_SOURCES
+	include/shadermanager/shadermanager.h
     src/shadermanager/shadermanager.cpp
 )
 set(SHADERLIB_NAME shadermanager)
@@ -52,7 +53,8 @@ endif()
 
 
 # Scene
-set(SCENE_SOURCES          # All .cpp files in src/
+set(SCENE_SOURCES
+	include/scene/scene.h
     src/scene/scene.cpp
 )
 set(SCENELIB_NAME scene)
@@ -62,7 +64,8 @@ target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include
 target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
 
 # Render lib
-set(RENDER_SOURCES          # All .cpp files in src/
+set(RENDER_SOURCES
+	include/render/render.h
     src/render/render.cpp
 )
 set(RENDERLIB_NAME render)
