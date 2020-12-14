@@ -98,13 +98,17 @@ add_executable(${PROJECT_NAME} app/main.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${SHADERLIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
-# Copy slang dll to final directory after building
+# Copy slang dlls to final directory after building
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
         "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
         "${OUTPUT_DIRECTORY}"
 )
-
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
+        "${OUTPUT_DIRECTORY}"
+)
 ##########################################
 # External 3rd-party libraries
 
