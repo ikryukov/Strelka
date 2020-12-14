@@ -1,7 +1,7 @@
 #include "ShaderManager.h"
 
-using namespace nevk;
-
+namespace nevk
+{
 ShaderManager::ShaderManager()
 {
     mSlangSession = spCreateSession(NULL);
@@ -11,3 +11,4 @@ ShaderManager::~ShaderManager()
 {
     spDestroySession(mSlangSession);
 }
+} // namespace nevk

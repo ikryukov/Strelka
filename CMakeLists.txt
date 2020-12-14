@@ -45,9 +45,9 @@ target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/includ
 target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/shadermanager)
 target_include_directories(${SHADERLIB_NAME} PUBLIC external/slang/include)
 if (MSVC)
-	target_link_libraries(${SHADERLIB_NAME} "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")
+	target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")
 elseif (APPLE)
-	target_link_libraries(${SHADERLIB_NAME} "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib")
+	target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib")
 endif()
 
 
@@ -67,7 +67,11 @@ set(RENDER_SOURCES          # All .cpp files in src/
 )
 set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
-target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/render)
+## Vulkan
+target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
 if (MSVC)
@@ -81,8 +85,6 @@ elseif (APPLE)
 endif()
 ## GLM (Mathematics)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
-#target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
-target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
@@ -90,7 +92,7 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC ${SHADERLIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 # Copy slang dll to final directory after building

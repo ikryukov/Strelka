@@ -33,7 +33,7 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr)
@@ -46,7 +46,7 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMes
     }
 }
 
-void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
 {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr)
@@ -86,6 +86,8 @@ public:
 
 private:
     GLFWwindow* window;
+
+    nevk::ShaderManager mShaderManager;
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -483,11 +485,23 @@ private:
 
     void createGraphicsPipeline()
     {
-        auto vertShaderCode = readFile("shaders/vert.spv");
-        auto fragShaderCode = readFile("shaders/frag.spv");
+        uint32_t vertId = mShaderManager.loadShader("../shaders/simple.hlsl", "vertexMain", false);
+        uint32_t fragId = mShaderManager.loadShader("../shaders/simple.hlsl", "fragmentMain", true);
 
-        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+        //auto vertShaderCode = readFile("shaders/vert.spv");
+        //auto fragShaderCode = readFile("shaders/frag.spv");
+        
+        const char* fragShaderCode = nullptr;
+        uint32_t fragShaderCodeSize = 0;
+        mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+
+        const char* vertShaderCode = nullptr;
+        uint32_t vertShaderCodeSize = 0;
+        mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+        
+
+        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, vertShaderCodeSize);
+        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, fragShaderCodeSize);
 
         VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
         vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -765,12 +779,12 @@ private:
         currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
-    VkShaderModule createShaderModule(const std::vector<char>& code)
+    VkShaderModule createShaderModule(const char* code, uint32_t codeSize)
     {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = code.size();
-        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+        createInfo.codeSize = codeSize;
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code);
 
         VkShaderModule shaderModule;
         if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
