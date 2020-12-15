@@ -3,6 +3,8 @@
 #include <slang-com-ptr.h>
 #include <cstdio>
 #include <vector>
+#include <string>
+#include <iostream>
 
 namespace nevk
 {
@@ -16,6 +18,8 @@ public:
 
     struct ShaderDesc
     {
+        std::string fileName;
+        std::string entryPointName;
         std::vector<char> code;
         uint32_t codeSize;
         SlangStage type;
@@ -52,14 +56,31 @@ public:
             return -1;
         }
 
+        uint32_t shaderId = 0;
+        for (; shaderId < mShaderDescs.size(); shaderId++)
+        {
+            ShaderDesc shader = mShaderDescs[shaderId];
+            if (shader.fileName == std::string(fileName) && shader.entryPointName == std::string(entryPointName))
+            {
+                shader.code.resize(dataSize);
+                memcpy(&shader.code[0], data, dataSize);
+                shader.codeSize = dataSize;
+                std::cout << shaderId << " reloaded" << std::endl;
+                return shaderId;
+            }
+        }
+
         ShaderDesc desc{};
+        desc.fileName = std::string(fileName);
+        desc.entryPointName = std::string(entryPointName);
         desc.code.resize(dataSize);
         memcpy(&desc.code[0], data, dataSize);
         desc.codeSize = dataSize;
         desc.type = stage;
 
-        uint32_t shaderId = mShaderDescs.size();
+        shaderId = mShaderDescs.size();
         mShaderDescs.push_back(desc);
+        std::cout << shaderId << " loaded" << std::endl;
 
         spDestroyCompileRequest(slangRequest);
         return shaderId;

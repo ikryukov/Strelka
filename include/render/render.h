@@ -233,7 +233,7 @@ private:
 
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
     }
@@ -277,6 +277,8 @@ private:
         while (!glfwWindowShouldClose(window))
         {
             glfwPollEvents();
+            if (glfwGetKey(window, GLFW_KEY_F9) == GLFW_PRESS)
+                this->createGraphicsPipeline();
             drawFrame();
         }
 
@@ -1584,7 +1586,7 @@ private:
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = codeSize;
-        createInfo.pCode = (uint32_t*) code;
+        createInfo.pCode = (uint32_t*)code;
 
         VkShaderModule shaderModule;
         if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
