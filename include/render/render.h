@@ -35,8 +35,8 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "../misc/viking_room.obj";
-const std::string TEXTURE_PATH = "../misc/viking_room.png";
+const std::string MODEL_PATH = "misc/viking_room.obj";
+const std::string TEXTURE_PATH = "misc/viking_room.png";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -703,8 +703,8 @@ private:
 
     void createGraphicsPipeline()
     {
-        uint32_t vertId = mShaderManager.loadShader("../shaders/simple.hlsl", "vertexMain", false);
-        uint32_t fragId = mShaderManager.loadShader("../shaders/simple.hlsl", "fragmentMain", true);
+        uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
+        uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", true);
 
         //auto vertShaderCode = readFile("shaders/vert.spv");
         //auto fragShaderCode = readFile("shaders/frag.spv");
