@@ -55,7 +55,9 @@ endif()
 # Scene
 set(SCENE_SOURCES
 	include/scene/scene.h
+	include/scene/camera.h
     src/scene/scene.cpp
+    src/scene/camera.cpp
 )
 set(SCENELIB_NAME scene)
 add_library(${SCENELIB_NAME} OBJECT ${SCENE_SOURCES})
