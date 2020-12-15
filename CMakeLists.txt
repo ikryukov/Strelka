@@ -51,7 +51,6 @@ elseif (APPLE)
 	target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib")
 endif()
 
-
 # Scene
 set(SCENE_SOURCES
 	include/scene/scene.h
@@ -88,6 +87,10 @@ elseif (APPLE)
 endif()
 ## GLM (Mathematics)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
+# TOL (TinyObjLoader)
+target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
+# STB (image loader)
+target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
@@ -128,8 +131,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 # GLM (OpenGL Mathematics)
 # target_include_directories(${PROJECT_NAME} PRIVATE external/glm)
 
-# STB (image loader)
-# target_include_directories(${PROJECT_NAME} PRIVATE external/stb)
 
 # TOL (TinyObjLoader)
 # target_include_directories(${PROJECT_NAME} PRIVATE external/tol)
