@@ -717,9 +717,6 @@ private:
         uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
         uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", true);
 
-        //auto vertShaderCode = readFile("shaders/vert.spv");
-        //auto fragShaderCode = readFile("shaders/frag.spv");
-
         const char* fragShaderCode = nullptr;
         uint32_t fragShaderCodeSize = 0;
         mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
