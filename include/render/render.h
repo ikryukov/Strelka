@@ -35,8 +35,8 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "../misc/viking_room.obj";
-const std::string TEXTURE_PATH = "../misc/viking_room.png";
+const std::string MODEL_PATH = "misc/viking_room.obj";
+const std::string TEXTURE_PATH = "misc/viking_room.png";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -230,18 +230,29 @@ private:
     void initWindow()
     {
         glfwInit();
-
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+        glfwSetKeyCallback(window, keyCallback);
     }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
+    }
+
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+    {
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
+        {
+            app->createGraphicsPipeline();
+            app->createCommandBuffers();
+            std::cout << "Shaders were reloaded";
+        }
     }
 
     void initVulkan()
@@ -703,11 +714,8 @@ private:
 
     void createGraphicsPipeline()
     {
-        uint32_t vertId = mShaderManager.loadShader("../shaders/simple.hlsl", "vertexMain", false);
-        uint32_t fragId = mShaderManager.loadShader("../shaders/simple.hlsl", "fragmentMain", true);
-
-        //auto vertShaderCode = readFile("shaders/vert.spv");
-        //auto fragShaderCode = readFile("shaders/frag.spv");
+        uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
+        uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", true);
 
         const char* fragShaderCode = nullptr;
         uint32_t fragShaderCodeSize = 0;
@@ -1225,11 +1233,13 @@ private:
 
     void createDescriptorPool()
     {
-        std::array<VkDescriptorPoolSize, 2> poolSizes{};
+        std::array<VkDescriptorPoolSize, 3> poolSizes{};
         poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-        poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        poolSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+        poolSizes[2].type = VK_DESCRIPTOR_TYPE_SAMPLER;
+        poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
         VkDescriptorPoolCreateInfo poolInfo{};
         poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1584,7 +1594,7 @@ private:
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = codeSize;
-        createInfo.pCode = (uint32_t*) code;
+        createInfo.pCode = (uint32_t*)code;
 
         VkShaderModule shaderModule;
         if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)

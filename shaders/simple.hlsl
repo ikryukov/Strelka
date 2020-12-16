@@ -37,7 +37,7 @@ PS_INPUT vertexMain(AssembledVertex av)
     PS_INPUT out;
 
     out.pos = mul(modelViewProj, float4(av.position, 1.0f));
-    out.color = float4(av.color.rgb, 1.0);
+    out.color = float4(av.color.rgb, 1.0f);
     out.uv = av.uv;
 
     return out;

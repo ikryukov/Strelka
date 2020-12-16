@@ -15,20 +15,15 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
 
-# Set output directory for static libraries
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIRECTORY})
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIRECTORY})
-
 if (MINGW)
 	set(IMGUI_FILES
-			external/imgui/src/imgui.cpp
-			external/imgui/src/imgui_demo.cpp
-			external/imgui/src/imgui_draw.cpp
-			external/imgui/src/imgui_widgets.cpp
-			external/imgui/src/imgui_impl_glfw.cpp
-			external/imgui/src/imgui_impl_vulkan.cpp
-			)
+		external/imgui/src/imgui.cpp
+		external/imgui/src/imgui_demo.cpp
+		external/imgui/src/imgui_draw.cpp
+		external/imgui/src/imgui_widgets.cpp
+		external/imgui/src/imgui_impl_glfw.cpp
+		external/imgui/src/imgui_impl_vulkan.cpp
+		)
 endif()
 
 ######## Packages
@@ -38,7 +33,7 @@ find_package(Vulkan REQUIRED)
 # Shader Manager
 set(SHADERMANAGER_SOURCES
 	include/shadermanager/shadermanager.h
-    src/shadermanager/shadermanager.cpp
+	src/shadermanager/shadermanager.cpp
 )
 set(SHADERLIB_NAME shadermanager)
 add_library(${SHADERLIB_NAME} OBJECT ${SHADERMANAGER_SOURCES})
@@ -74,9 +69,11 @@ set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/render)
+
 ## Vulkan
 target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
+
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
 if (MSVC)
@@ -88,10 +85,13 @@ elseif (APPLE)
     include_directories(${glfw3_INCLUDE_DIRS})
     target_link_libraries(${RENDERLIB_NAME} PUBLIC glfw)
 endif()
+
 ## GLM (Mathematics)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
+
 # TOL (TinyObjLoader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
+
 # STB (image loader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
@@ -104,6 +104,25 @@ add_executable(${PROJECT_NAME} app/main.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${SHADERLIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
+# Set working directory
+if (MSVC)
+	set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
+elseif (APPLE)
+	set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_SCHEME_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
+endif()
+
+# Create symbolic links in final directory before building
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+	COMMAND ${CMAKE_COMMAND} -E create_symlink
+		"${CMAKE_SOURCE_DIR}/shaders"
+		"${OUTPUT_DIRECTORY}/shaders"
+)
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+	COMMAND ${CMAKE_COMMAND} -E create_symlink
+		"${CMAKE_SOURCE_DIR}/misc"
+		"${OUTPUT_DIRECTORY}/misc"
+)
+
 # Copy slang dlls to final directory after building
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy
@@ -115,6 +134,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
         "${OUTPUT_DIRECTORY}"
 )
+
 ##########################################
 # External 3rd-party libraries
 

@@ -5,7 +5,7 @@
 TEST_CASE("shader manager test")
 {
     nevk::ShaderManager* sm = new nevk::ShaderManager();
-    CHECK(sm->mSlangSession != nullptr);
+    CHECK(sm != nullptr);
 }
 
 TEST_CASE("shader manager load")
