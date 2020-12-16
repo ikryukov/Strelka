@@ -230,18 +230,29 @@ private:
     void initWindow()
     {
         glfwInit();
-
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
         window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+        glfwSetKeyCallback(window, keyCallback);
     }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
+    }
+
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+    {
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
+        {
+            app->createGraphicsPipeline();
+            app->createCommandBuffers();
+            std::cout << "Shaders were reloaded";
+        }
     }
 
     void initVulkan()
@@ -277,8 +288,6 @@ private:
         while (!glfwWindowShouldClose(window))
         {
             glfwPollEvents();
-            if (glfwGetKey(window, GLFW_KEY_F9) == GLFW_PRESS)
-                this->createGraphicsPipeline();
             drawFrame();
         }
 
