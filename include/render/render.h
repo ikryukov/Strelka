@@ -367,11 +367,6 @@ private:
         {
             vkDestroySemaphore(device, fd.renderFinished, nullptr);
             vkDestroySemaphore(device, fd.imageAvailable, nullptr);
-            
-            if (fd.imagesInFlight)
-            {
-                vkDestroyFence(device, fd.imagesInFlight, nullptr);
-            }            
             vkDestroyFence(device, fd.inFlightFence, nullptr);
 
             vkDestroyCommandPool(device, fd.cmdPool, nullptr);
@@ -1436,12 +1431,12 @@ private:
         throw std::runtime_error("failed to find suitable memory type!");
     }
 
-    void recordCommandBuffer(VkCommandBuffer& cmd)
+    void recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     {
         VkRenderPassBeginInfo renderPassInfo{};
         renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
+        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex % MAX_FRAMES_IN_FLIGHT];
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = swapChainExtent;
 
@@ -1462,7 +1457,7 @@ private:
 
         vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[mCurrentFrame % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
 
         vkCmdDrawIndexed(cmd, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
@@ -1560,7 +1555,7 @@ private:
 
         vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
 
-        recordCommandBuffer(cmdBuff);
+        recordCommandBuffer(cmdBuff, imageIndex);
         
         if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
         {
