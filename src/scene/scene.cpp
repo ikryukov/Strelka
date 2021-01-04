@@ -1,17 +1,16 @@
 #include "scene.h"
 
-namespace nevk
-{
-uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint32_t>& ib)
-{
-    Mesh mesh = {};
-    mesh.mIndex = mIndices.size();
-    mesh.mCount = ib.size();
+namespace nevk {
 
+
+uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint32_t>& ib) {
+    Mesh mesh = {};
+    mesh.mIndex = mIndices.size();  // Index of 1st index in index buffer // 1st vertex ??
+    mesh.mCount = ib.size();// amount of indices in mesh
+    
     // adjust indices for global index buffer
     const uint32_t ibOffset = mIndices.size();
-    for (int i = 0; i < ib.size(); ++i)
-    {
+    for (int i = 0; i < ib.size(); ++i) {
         mIndices.push_back(ibOffset + ib[i]);
     }
     // copy vertices
@@ -24,8 +23,51 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     return meshId;
 }
 
-uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform)
-{
+void MeshInstance::init_update(const glm::mat4& projectionViewMatrix) {
+    this->update(projectionViewMatrix);
+}
+
+void MeshInstance::init_rotateBy(const float& degrees) {
+    this->rotateBy(degrees);
+}
+
+glm::mat4 MeshInstance::getTransformMatrix() const {
+    return this->transformMatrix;
+}
+
+glm::mat4 Scene::createMeshTransform() {
+    // create the identity matrix needed for the subsequent matrix operations
+    glm::mat4 identity{1.0f};
+    // define the position, rotation axis, scale and how many degrees to rotate about the rotation axis.
+    glm::vec3 position{0.0f, 0.0f, 0.0f};
+    glm::vec3 rotationAxis{0.0f, 1.0f, 0.0f};
+    glm::vec3 scale{1.0f, 1.0f, 1.0f};
+    float rotationDegrees{45.0f};
+
+    /*  Transform matrix is calculated by:
+    *
+    *  Translating from the identity to the position, multiplied by
+    *  Rotating from the identity about the rotationAxis by the rotationDegrees amount in radians, multiplied by
+    *  Scaling from the identity by the scale vector.
+    */
+    return glm::translate(identity, position) *
+        glm::rotate(identity, glm::radians(rotationDegrees), rotationAxis) *
+        glm::scale(identity, scale);
+}
+
+//////////////////////////////////////////////////////////////////////////
+
+//void Scene::update_scene(const float& delta) {
+////    const glm::mat4 cameraMatrix{camera.getProjectionMatrix() * camera.getViewMatrix()};
+//
+//    for (auto& mesh : mMeshes) {
+//        mesh.rotateBy(delta * 45.0f);
+//        mesh.update(cameraMatrix);
+//    }
+//}
+//////////////////////////////////////////////////////////////////////////
+
+uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform) {
     assert(meshId < mMeshes.size());
     assert(materialId < mMaterials.size());
     Instance inst = {};
@@ -37,6 +79,44 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
 
     const uint32_t instId = mInstances.size() - 1;
     return instId;
+}
+
+void Scene::createMaterial(const glm::vec4& color) {
+    Material mater = {};
+    mater.color = color;
+
+    mMaterials.push_back(mater);
+}
+
+void Scene::add(Mod mod,  uint32_t meshId, uint32_t materialId, glm::mat4& transform,
+                std::vector<Vertex>& vb, std::vector<uint32_t>& ib,
+                glm::vec4& color) {
+    if (mod == INSTANCE){
+        createInstance(meshId, materialId, transform);
+    }
+    else if(mod == MESH){
+        createMesh(vb, ib);
+    }
+    else if (mod == MATERIAL){
+        createMaterial(color);
+    }
+}
+
+void Scene::remove(Mod mod, uint32_t meshId, uint32_t materialId, uint32_t instId) {
+    if (mod == INSTANCE){
+        mInstances.erase(mInstances.begin() + instId);
+    }
+    else if(mod == MESH){
+        mMeshes.erase(mMeshes.begin() + meshId);
+    }
+    else if (mod == MATERIAL){
+        mMaterials.erase(mMaterials.begin() + materialId);
+    }
+}
+
+bool Vertex::operator==(const Vertex& other) const{
+    return pos == other.pos && uv == other.uv;
+
 }
 
 } // namespace nevk
