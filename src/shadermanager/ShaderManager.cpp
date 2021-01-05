@@ -50,8 +50,9 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     memcpy(&desc.code[0], data, dataSize);
     desc.codeSize = dataSize;
     desc.type = stage;
-
-    spDestroyCompileRequest(slangRequest);
+    desc.slangReflection = (slang::ShaderReflection*) spGetReflection(slangRequest);
+    desc.slangRequest = slangRequest;
+    //spDestroyCompileRequest(slangRequest);
     return desc;
 }
 uint32_t ShaderManager::loadShader(const char* fileName, const char* entryPointName, bool isPixel)

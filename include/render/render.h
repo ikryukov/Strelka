@@ -363,7 +363,7 @@ private:
         vkDestroyBuffer(device, vertexBuffer, nullptr);
         vkFreeMemory(device, vertexBufferMemory, nullptr);
 
-        for (FrameData& fd: mFramesData)
+        for (FrameData& fd : mFramesData)
         {
             vkDestroySemaphore(device, fd.renderFinished, nullptr);
             vkDestroySemaphore(device, fd.imageAvailable, nullptr);
@@ -372,7 +372,6 @@ private:
             vkDestroyCommandPool(device, fd.cmdPool, nullptr);
         }
 
-        
 
         vkDestroyDevice(device, nullptr);
 
@@ -744,7 +743,6 @@ private:
         const char* vertShaderCode = nullptr;
         uint32_t vertShaderCodeSize = 0;
         mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
-
 
         VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, vertShaderCodeSize);
         VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, fragShaderCodeSize);
@@ -1462,7 +1460,6 @@ private:
         vkCmdDrawIndexed(cmd, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
         vkCmdEndRenderPass(cmd);
-
     }
 
     void createCommandBuffers()
@@ -1543,7 +1540,7 @@ private:
         }
 
         updateUniformBuffer(imageIndex);
-        
+
         VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
         vkResetCommandBuffer(cmdBuff, 0);
 
@@ -1556,7 +1553,7 @@ private:
         vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
 
         recordCommandBuffer(cmdBuff, imageIndex);
-        
+
         if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to record command buffer!");

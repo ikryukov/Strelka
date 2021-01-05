@@ -25,7 +25,8 @@ private:
         std::string fileName;
         std::string entryPointName;
         bool isPixel = false;
-
+        slang::ShaderReflection* slangReflection;
+        SlangCompileRequest* slangRequest;
         std::vector<char> code;
         uint32_t codeSize = 0;
         SlangStage type = SLANG_STAGE_NONE;

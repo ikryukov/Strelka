@@ -63,7 +63,9 @@ target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
 # Render lib
 set(RENDER_SOURCES
 	include/render/render.h
+	include/render/renderpass.h
     src/render/render.cpp
+    src/render/renderpass.cpp
 )
 set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
