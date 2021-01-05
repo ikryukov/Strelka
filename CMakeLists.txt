@@ -101,6 +101,7 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
+#add_executable(${PROJECT_NAME} include/render/loader_example.cc)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${SHADERLIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
@@ -112,28 +113,28 @@ elseif (APPLE)
 endif()
 
 # Create symbolic links in final directory before building
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-	COMMAND ${CMAKE_COMMAND} -E create_symlink
-		"${CMAKE_SOURCE_DIR}/shaders"
-		"${OUTPUT_DIRECTORY}/shaders"
-)
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-	COMMAND ${CMAKE_COMMAND} -E create_symlink
-		"${CMAKE_SOURCE_DIR}/misc"
-		"${OUTPUT_DIRECTORY}/misc"
-)
+#add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+#	COMMAND ${CMAKE_COMMAND} -E create_symlink
+#		"${CMAKE_SOURCE_DIR}/shaders"
+#		"${OUTPUT_DIRECTORY}/shaders"
+#)
+#add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+#	COMMAND ${CMAKE_COMMAND} -E create_symlink
+#		"${CMAKE_SOURCE_DIR}/misc"
+#		"${OUTPUT_DIRECTORY}/misc"
+#)
 
 # Copy slang dlls to final directory after building
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
-        "${OUTPUT_DIRECTORY}"
-)
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
-        "${OUTPUT_DIRECTORY}"
-)
+#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+ #   COMMAND ${CMAKE_COMMAND} -E copy
+ #       "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
+ #       "${OUTPUT_DIRECTORY}"
+#)
+#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+#    COMMAND ${CMAKE_COMMAND} -E copy
+  #      "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
+  #      "${OUTPUT_DIRECTORY}"
+#)
 
 ##########################################
 # External 3rd-party libraries
