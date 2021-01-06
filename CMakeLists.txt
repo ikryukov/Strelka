@@ -60,8 +60,22 @@ target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include
 target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/scene)
 target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
 
+# Resource Manager lib
+set(RESMNGR_SOURCES
+	include/resourcemanager/resourcemanager.h
+    src/resourcemanager/resourcemanager.cpp
+)
+set(RESMNGR_NAME resourcemanager)
+add_library(${RESMNGR_NAME} OBJECT ${RESMNGR_SOURCES})
+target_include_directories(${RESMNGR_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${RESMNGR_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/resourcemanager)
+## Vulkan
+target_include_directories(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
+
 # Render lib
 set(RENDER_SOURCES
+	include/render/vertex.h
 	include/render/render.h
 	include/render/renderpass.h
     src/render/render.cpp
@@ -97,13 +111,14 @@ target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
 # STB (image loader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${RESMNGR_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 #target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${SHADERLIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 # Set working directory

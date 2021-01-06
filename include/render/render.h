@@ -30,6 +30,8 @@
 #include <array>
 #include <unordered_map>
 #include <shadermanager/ShaderManager.h>
+#include "vertex.h"
+#include "renderpass.h"
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -92,56 +94,14 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct Vertex
-{
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
 
-    static VkVertexInputBindingDescription getBindingDescription()
-    {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions()
-    {
-        std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-
-        return attributeDescriptions;
-    }
-
-    bool operator==(const Vertex& other) const
-    {
-        return pos == other.pos && color == other.color && texCoord == other.texCoord;
-    }
-};
 
 namespace std
 {
 template <>
-struct hash<Vertex>
+struct hash<nevk::Vertex>
 {
-    size_t operator()(Vertex const& vertex) const
+    size_t operator()(nevk::Vertex const& vertex) const
     {
         return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
     }
@@ -200,7 +160,11 @@ private:
     VkImageView textureImageView;
     VkSampler textureSampler;
 
-    std::vector<Vertex> vertices;
+    nevk::ResourceManager* mResManager;
+
+    nevk::RenderPass mPass;
+
+    std::vector<nevk::Vertex> vertices;
     std::vector<uint32_t> indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
@@ -277,21 +241,52 @@ private:
         createLogicalDevice();
         createSwapChain();
         createImageViews();
-        createRenderPass();
-        createDescriptorSetLayout();
-        createGraphicsPipeline();
+        
+
+            uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
+            uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", true);
+
+            const char* fragShaderCode = nullptr;
+            uint32_t fragShaderCodeSize = 0;
+            mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+
+            const char* vertShaderCode = nullptr;
+            uint32_t vertShaderCodeSize = 0;
+            mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+
+            VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, vertShaderCodeSize);
+            VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, fragShaderCodeSize);
+        
+        mResManager = new nevk::ResourceManager(device, physicalDevice);
+
+        createDescriptorPool();
+
+
+        //createRenderPass();
+        //createDescriptorSetLayout();
+        //createGraphicsPipeline();
         createCommandPool();
         createDepthResources();
-        createFramebuffers();
+        //createFramebuffers();
         createTextureImage();
         createTextureImageView();
         createTextureSampler();
+
+        mPass.setFrameBufferFormat(swapChainImageFormat);
+        mPass.setDepthBufferFormat(findDepthFormat());
+        mPass.setTextureImageView(textureImageView);
+        mPass.setTextureSampler(textureSampler);
+
+        mPass.init(device, vertShaderModule, fragShaderModule, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+        mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
         loadModel();
         createVertexBuffer();
         createIndexBuffer();
         createUniformBuffers();
-        createDescriptorPool();
-        createDescriptorSets();
+        
+
+        //createDescriptorSets();
         createCommandBuffers();
         createSyncObjects();
     }
@@ -405,6 +400,7 @@ private:
         createSwapChain();
         createImageViews();
         createRenderPass();
+
         createGraphicsPipeline();
         createDepthResources();
         createFramebuffers();
@@ -733,7 +729,7 @@ private:
 
     void createGraphicsPipeline()
     {
-        uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
+        /*uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
         uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", true);
 
         const char* fragShaderCode = nullptr;
@@ -764,8 +760,8 @@ private:
         VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
         vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-        auto bindingDescription = Vertex::getBindingDescription();
-        auto attributeDescriptions = Vertex::getAttributeDescriptions();
+        auto bindingDescription = nevk::Vertex::getBindingDescription();
+        auto attributeDescriptions = nevk::Vertex::getAttributeDescriptions();
 
         vertexInputInfo.vertexBindingDescriptionCount = 1;
         vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
@@ -866,7 +862,7 @@ private:
         }
 
         vkDestroyShaderModule(device, fragShaderModule, nullptr);
-        vkDestroyShaderModule(device, vertShaderModule, nullptr);
+        vkDestroyShaderModule(device, vertShaderModule, nullptr);*/
     }
 
     void createFramebuffers()
@@ -1166,13 +1162,13 @@ private:
             throw std::runtime_error(warn + err);
         }
 
-        std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+        std::unordered_map<nevk::Vertex, uint32_t> uniqueVertices{};
 
         for (const auto& shape : shapes)
         {
             for (const auto& index : shape.mesh.indices)
             {
-                Vertex vertex{};
+                nevk::Vertex vertex{};
 
                 vertex.pos = {
                     attrib.vertices[3 * index.vertex_index + 0],
@@ -1431,35 +1427,37 @@ private:
 
     void recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     {
-        VkRenderPassBeginInfo renderPassInfo{};
-        renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass = renderPass;
-        renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex % MAX_FRAMES_IN_FLIGHT];
-        renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = swapChainExtent;
+        //VkRenderPassBeginInfo renderPassInfo{};
+        //renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        //renderPassInfo.renderPass = renderPass;
+        //renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex % MAX_FRAMES_IN_FLIGHT];
+        //renderPassInfo.renderArea.offset = { 0, 0 };
+        //renderPassInfo.renderArea.extent = swapChainExtent;
 
-        std::array<VkClearValue, 2> clearValues{};
-        clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-        clearValues[1].depthStencil = { 1.0f, 0 };
+        //std::array<VkClearValue, 2> clearValues{};
+        //clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
+        //clearValues[1].depthStencil = { 1.0f, 0 };
 
-        renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-        renderPassInfo.pClearValues = clearValues.data();
+        //renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+        //renderPassInfo.pClearValues = clearValues.data();
 
-        vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+        //vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+        //vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-        VkBuffer vertexBuffers[] = { vertexBuffer };
-        VkDeviceSize offsets[] = { 0 };
-        vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
+        //VkBuffer vertexBuffers[] = { vertexBuffer };
+        //VkDeviceSize offsets[] = { 0 };
+        //vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
 
-        vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+        //vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
+        //vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
 
-        vkCmdDrawIndexed(cmd, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+        //vkCmdDrawIndexed(cmd, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
-        vkCmdEndRenderPass(cmd);
+        //vkCmdEndRenderPass(cmd);
+
+        mPass.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
 
     void createCommandBuffers()
@@ -1539,7 +1537,7 @@ private:
             throw std::runtime_error("failed to acquire swap chain image!");
         }
 
-        updateUniformBuffer(imageIndex);
+        mPass.updateUniformBuffer(imageIndex);
 
         VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
         vkResetCommandBuffer(cmdBuff, 0);
