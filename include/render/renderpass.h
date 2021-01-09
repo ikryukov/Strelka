@@ -23,6 +23,8 @@ private:
     VkDescriptorSetLayout mDescriptorSetLayout;
     VkDevice mDevice;
 
+    VkShaderModule mVS, mPS;
+
     ResourceManager* mResMngr;
     VkDescriptorPool mDescriptorPool;
     std::vector<VkBuffer> uniformBuffers;
@@ -39,7 +41,7 @@ private:
     void createUniformBuffers();
 
     std::vector<VkDescriptorSet> mDescriptorSets;
-    
+
     std::vector<VkFramebuffer> mFrameBuffers;
 
     VkFormat mFrameBufferFormat;
@@ -103,13 +105,18 @@ public:
         mDescriptorPool = descpool;
         mWidth = width;
         mHeight = height;
+        mVS = vertShaderModule;
+        mPS = fragShaderModule;
         createUniformBuffers();
 
         createRenderPass();
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
-        createGraphicsPipeline(vertShaderModule, fragShaderModule, width, height);        
+        createGraphicsPipeline(vertShaderModule, fragShaderModule, width, height);
     }
+
+    void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
+
 
     void updateUniformBuffer(uint32_t currentImage);
 

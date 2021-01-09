@@ -390,6 +390,25 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage)
     vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
 }
 
+void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
+{
+    mWidth = width;
+    mHeight = height;
+
+    for (auto& framebuffer : mFrameBuffers)
+    {
+        vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
+    }
+
+    vkDestroyPipeline(mDevice, mPipeline, nullptr);
+    vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
+    vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
+
+    createRenderPass();
+    createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
+    createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
+}
+
 void RenderPass::setTextureImageView(VkImageView textureImageView)
 {
     mTextureImageView = textureImageView;
