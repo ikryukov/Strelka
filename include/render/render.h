@@ -94,7 +94,6 @@ struct SwapChainSupportDetails
     std::vector<VkPresentModeKHR> presentModes;
 };
 
-
 namespace std
 {
 template <>
@@ -299,6 +298,10 @@ private:
     {
         cleanupSwapChain();
 
+        mPass.onDestroy();
+
+        vkDestroyDescriptorPool(device, descriptorPool, nullptr);
+
         vkDestroySampler(device, textureSampler, nullptr);
         vkDestroyImageView(device, textureImageView, nullptr);
 
@@ -319,7 +322,6 @@ private:
 
             vkDestroyCommandPool(device, fd.cmdPool, nullptr);
         }
-
 
         vkDestroyDevice(device, nullptr);
 

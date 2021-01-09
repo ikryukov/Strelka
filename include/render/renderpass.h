@@ -117,6 +117,7 @@ public:
 
     void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
 
+    void onDestroy();
 
     void updateUniformBuffer(uint32_t currentImage);
 
