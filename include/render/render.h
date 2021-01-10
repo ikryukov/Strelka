@@ -235,9 +235,6 @@ private:
         uint32_t vertShaderCodeSize = 0;
         mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
 
-        VkShaderModule vertShaderModule = createShaderModule(vertShaderCode, vertShaderCodeSize);
-        VkShaderModule fragShaderModule = createShaderModule(fragShaderCode, fragShaderCodeSize);
-
         mResManager = new nevk::ResourceManager(device, physicalDevice);
 
         createDescriptorPool();
@@ -253,7 +250,8 @@ private:
         mPass.setTextureImageView(textureImageView);
         mPass.setTextureSampler(textureSampler);
 
-        mPass.init(device, vertShaderModule, fragShaderModule, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+        mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+
         mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
         loadModel();
@@ -1175,22 +1173,6 @@ private:
         }
 
         mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
-    }
-
-    VkShaderModule createShaderModule(const char* code, const uint32_t codeSize)
-    {
-        VkShaderModuleCreateInfo createInfo{};
-        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-        createInfo.codeSize = codeSize;
-        createInfo.pCode = (uint32_t*)code;
-
-        VkShaderModule shaderModule;
-        if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create shader module!");
-        }
-
-        return shaderModule;
     }
 
     VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

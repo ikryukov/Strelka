@@ -15,7 +15,6 @@ private:
         alignas(16) glm::mat4 modelViewProj;
     };
 
-
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
     VkPipeline mPipeline;
     VkPipelineLayout mPipelineLayout;
@@ -80,6 +79,8 @@ private:
         return attributeDescriptions;
     }
 
+    VkShaderModule createShaderModule(const char* code, const uint32_t codeSize);
+
 public:
     void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
 
@@ -98,21 +99,21 @@ public:
     void setTextureImageView(VkImageView textureImageView);
     void setTextureSampler(VkSampler textureSampler);
 
-    void init(VkDevice& device, VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
+    void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
     {
         mDevice = device;
         mResMngr = resMngr;
         mDescriptorPool = descpool;
         mWidth = width;
         mHeight = height;
-        mVS = vertShaderModule;
-        mPS = fragShaderModule;
+        mVS = createShaderModule(vsCode, vsCodeSize);
+        mPS = createShaderModule(psCode, psCodeSize);
         createUniformBuffers();
 
         createRenderPass();
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
-        createGraphicsPipeline(vertShaderModule, fragShaderModule, width, height);
+        createGraphicsPipeline(mVS, mPS, width, height);
     }
 
     void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);

@@ -168,6 +168,22 @@ void RenderPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImag
     }
 }
 
+VkShaderModule RenderPass::createShaderModule(const char* code, const uint32_t codeSize)
+{
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = codeSize;
+    createInfo.pCode = (uint32_t*)code;
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(mDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create shader module!");
+    }
+
+    return shaderModule;
+}
+
 void RenderPass::createRenderPass()
 {
     VkAttachmentDescription colorAttachment{};
@@ -395,10 +411,12 @@ void RenderPass::onDestroy()
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
-    for (auto& frameBuff: mFrameBuffers)
+    vkDestroyShaderModule(mDevice, mVS, nullptr);
+    vkDestroyShaderModule(mDevice, mPS, nullptr);
+    for (auto& frameBuff : mFrameBuffers)
     {
         vkDestroyFramebuffer(mDevice, frameBuff, nullptr);
-    }    
+    }
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
