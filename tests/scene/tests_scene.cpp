@@ -36,8 +36,32 @@ TEST_CASE("test createMesh")
 
 TEST_CASE("test createInstance")
 {
-    nevk::Instance* instance = new nevk::Instance();
-    CHECK(instance != nullptr);
+    nevk::Scene scene;
+    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<uint32_t> ib;
+    uint32_t meshId = scene.createMesh(vb, ib);
+    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    glm::float4x4 transform{ 1.0f };
+    glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
+    uint32_t instId = scene.createInstance(meshId, matId, transform);
+    CHECK(instId != -1);
+}
+
+TEST_CASE("test createInstance complex")
+{
+    nevk::Scene scene;
+    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<uint32_t> ib;
+    uint32_t meshId = scene.createMesh(vb, ib);
+    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    glm::float4x4 transform{ 1.0f };
+    glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
+    uint32_t firstId = scene.createInstance(meshId, matId, transform);
+    uint32_t secondId = scene.createInstance(meshId, matId, transform);
+    CHECK(firstId != secondId);
+    scene.removeInstance(firstId);
+    uint32_t thirdId = scene.createInstance(meshId, matId, transform);
+    CHECK(firstId == thirdId);
 }
 
 TEST_CASE("test createMaterial")

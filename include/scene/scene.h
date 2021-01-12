@@ -150,7 +150,7 @@ public:
     /// </summary>
     /// <param name="color">Color</param>
     /// <returns>Nothing</returns>
-    void createMaterial(const glm::float4& color);
+    uint32_t createMaterial(const glm::float4& color);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>

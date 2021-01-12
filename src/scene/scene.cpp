@@ -97,13 +97,14 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     }
 }
 
-void Scene::createMaterial(const glm::float4& color)
+uint32_t Scene::createMaterial(const glm::float4& color)
 {
     if (mDelMaterial.empty())
     {
         Material mater = {};
         mater.color = color;
         mMaterials.push_back(mater);
+        return mMaterials.size() - 1;
     }
     else
     {
@@ -112,6 +113,7 @@ void Scene::createMaterial(const glm::float4& color)
         Material mater = mMaterials[materIndex];
         mater.color = color;
         mMaterials[materIndex] = mater; // update old Material to a new one
+        return materIndex;
     }
 }
 

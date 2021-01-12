@@ -293,7 +293,11 @@ private:
             }
         }
 
-        mScene.createMesh(_vertices, _indices);
+        uint32_t meshId = mScene.createMesh(_vertices, _indices);
+        uint32_t matId = mScene.createMaterial(glm::float4(1.0));
+        glm::float4x4 transform{ 1.0f };
+        glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
+        uint32_t instId = mScene.createInstance(meshId, matId, transform);
     }
 
     void createVertexBuffer();
