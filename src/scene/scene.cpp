@@ -3,7 +3,6 @@
 namespace nevk
 {
 
-
 uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint32_t>& ib)
 {
     if (mDelMesh.empty())
@@ -146,17 +145,11 @@ void Scene::removeMaterial(const uint32_t materialId)
 
 void Scene::updateInstanceTransform(uint32_t instId, glm::mat4 newTransform)
 {
-    Instance inst = mInstances[instId];
+    Instance& inst = mInstances[instId];
     inst.transform = newTransform;
-    mInstances[instId] = inst;
     mDirtyInstances.insert(instId);
-
-    /*
-     * If true, the new transform is interpreted as a World Space transform,
-     * otherwise it is interpreted as Local Space
-     */
-    // bool bWorldSpace = true;
 }
+
 void Scene::beginFrame()
 {
     fr_mod = true;

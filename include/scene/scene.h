@@ -5,10 +5,8 @@
 #include <set>
 #include <cstdint>
 #include "glm-wrapper.hpp"
-#define GLM_FORCE_CTOR_INIT
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
+#include "camera.h"
+
 
 namespace nevk
 {
@@ -33,7 +31,6 @@ struct Mesh
     uint32_t mIndex; // Index of 1st index in index buffer
     uint32_t mCount; // amount of indices in mesh
 };
-
 
 struct MeshInstance
 {
@@ -80,7 +77,6 @@ struct MeshInstance
     [[nodiscard]] glm::mat4 getTransformMatrix() const;
 };
 
-
 //////////////////////////////////////////////////
 
 struct Material
@@ -95,11 +91,10 @@ struct Instance
     uint32_t mMaterialId;
 };
 
-
 class Scene
 {
 private:
-    //    Camera camera;
+    Camera mCamera;
     std::stack<uint32_t> mDelInstances;
     std::stack<uint32_t> mDelMesh;
     std::stack<uint32_t> mDelMaterial;
@@ -120,6 +115,10 @@ public:
 
     ~Scene() = default;
 
+    Camera& getCamera()
+    {
+        return mCamera;
+    }
     //This is where the scene will perform any of its per frame logical operations
     //and is supplied with the delta for the current frame loop.
     // void update_scene(const float& delta) = 0;
@@ -181,23 +180,3 @@ public:
     void endFrame();
 };
 } // namespace nevk
-
-/*
- *  A template definition - a custom hashing function for a vertex.
- *  It takes the hash of the pos(position) and the hash of the uv fields, exclusive ors (XOR) them together
- *  while shifting the bits of the uv left.
- *  By combining the pos(position) and the uv into the hashing function,
- *  we can once again evaluate the uniqueness of a vertex correctly within our std::unordered_map.
- *  "FOR ASSETS" =>  std::unordered_map<ast::Vertex, uint32_t> uniqueVertices;
- */
-namespace std
-{
-template <>
-struct hash<nevk::Vertex>
-{
-    size_t operator()(const nevk::Vertex& vertex) const
-    {
-        return ((hash<glm::float4>()(vertex.pos) ^ (hash<glm::float2>()(vertex.uv) << 1)) >> 1);
-    }
-};
-} // namespace std
