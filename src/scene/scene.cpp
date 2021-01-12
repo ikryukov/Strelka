@@ -5,47 +5,34 @@ namespace nevk
 
 uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint32_t>& ib)
 {
+    Mesh* mesh = nullptr;
+    uint32_t meshId = -1;
     if (mDelMesh.empty())
     {
-        Mesh mesh = {};
-        mesh.mIndex = mIndices.size(); // Index of 1st index in index buffer
-        mesh.mCount = ib.size(); // amount of indices in mesh
-
-        // adjust indices for global index buffer
-        const uint32_t ibOffset = mIndices.size();
-        for (int i = 0; i < ib.size(); ++i)
-        {
-            mIndices.push_back(ibOffset + ib[i]);
-        }
-        // copy vertices
-        mVertices.insert(mVertices.end(), vb.begin(), vb.end());
-
         // add mesh to storage
-        mMeshes.push_back(mesh);
-
-        const uint32_t meshId = mMeshes.size() - 1;
-        return meshId;
+        meshId = mMeshes.size();
+        mMeshes.push_back({});
+        mesh = &mMeshes.back();
     }
     else
     {
-        uint32_t meshIndex = mDelMesh.top(); // get index from stack
+        meshId = mDelMesh.top(); // get index from stack
         mDelMesh.pop(); // del taken index from stack
-        Mesh mesh = mMeshes[meshIndex];
-        mesh.mIndex = mIndices.size(); // Index of 1st index in index buffer
-        mesh.mCount = ib.size(); // amount of indices in mesh
-
-        // adjust indices for global index buffer
-        const uint32_t ibOffset = mIndices.size();
-        for (int i = 0; i < ib.size(); ++i)
-        {
-            mIndices.push_back(ibOffset + ib[i]);
-        }
-        // copy vertices
-        mVertices.insert(mVertices.end(), vb.begin(), vb.end());
-
-        mMeshes[meshIndex] = mesh; // update old Mesh to a new one
-        return meshIndex;
+        mesh = &mMeshes[meshId];
     }
+
+    mesh->mIndex = mIndices.size(); // Index of 1st index in index buffer
+    mesh->mCount = ib.size(); // amount of indices in mesh
+
+    // adjust indices for global index buffer
+    const uint32_t ibOffset = mIndices.size();
+    for (int i = 0; i < ib.size(); ++i)
+    {
+        mIndices.push_back(ibOffset + ib[i]);
+    }
+    // copy vertices
+    mVertices.insert(mVertices.end(), vb.begin(), vb.end());
+    return meshId;
 }
 
 void MeshInstance::init_rotateBy(const float& degrees)
