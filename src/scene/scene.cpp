@@ -161,9 +161,4 @@ void Scene::endFrame()
     fr_mod = false;
 }
 
-bool Vertex::operator==(const Vertex& other) const
-{
-    return pos == other.pos && uv == other.uv;
-}
-
 } // namespace nevk

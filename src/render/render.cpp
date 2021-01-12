@@ -583,6 +583,17 @@ void Render::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
 
 void Render::createVertexBuffer()
 {
+    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene.getVertices();
+    // convert to render's vertices
+    vertices.resize(sceneVertices.size());
+
+    for (int i = 0; i < sceneVertices.size(); ++i)
+    {
+        vertices[i].pos = sceneVertices[i].pos;
+        vertices[i].texCoord = sceneVertices[i].uv;
+        vertices[i].color = sceneVertices[i].color;
+    }
+
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
     VkBuffer stagingBuffer;
@@ -604,6 +615,14 @@ void Render::createVertexBuffer()
 
 void Render::createIndexBuffer()
 {
+    std::vector<uint32_t>& sceneIndices = mScene.getIndices();
+    indices.resize(sceneIndices.size());
+
+    for (int i = 0; i < sceneIndices.size(); ++i)
+    {
+        indices[i] = sceneIndices[i];
+    }
+
     VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
     VkBuffer stagingBuffer;

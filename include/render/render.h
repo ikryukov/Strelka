@@ -32,6 +32,7 @@
 #include <shadermanager/ShaderManager.h>
 #include "vertex.h"
 #include "renderpass.h"
+#include <scene.h>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -93,18 +94,6 @@ struct SwapChainSupportDetails
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
 };
-
-namespace std
-{
-template <>
-struct hash<nevk::Vertex>
-{
-    size_t operator()(nevk::Vertex const& vertex) const
-    {
-        return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^ (hash<glm::vec2>()(vertex.texCoord) << 1);
-    }
-};
-} // namespace std
 
 class Render
 {
@@ -185,6 +174,7 @@ private:
     bool framebufferResized = false;
 
     nevk::ShaderManager mShaderManager;
+    nevk::Scene mScene;
 
     void initWindow()
     {
@@ -277,13 +267,14 @@ private:
             throw std::runtime_error(warn + err);
         }
 
-        std::unordered_map<nevk::Vertex, uint32_t> uniqueVertices{};
+        std::vector<nevk::Scene::Vertex> _vertices;
+        std::vector<uint32_t> _indices;
 
         for (const auto& shape : shapes)
         {
             for (const auto& index : shape.mesh.indices)
             {
-                nevk::Vertex vertex{};
+                nevk::Scene::Vertex vertex{};
 
                 vertex.pos = {
                     attrib.vertices[3 * index.vertex_index + 0],
@@ -291,22 +282,18 @@ private:
                     attrib.vertices[3 * index.vertex_index + 2]
                 };
 
-                vertex.texCoord = {
+                vertex.uv = {
                     attrib.texcoords[2 * index.texcoord_index + 0],
                     1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
                 };
 
                 vertex.color = { 1.0f, 1.0f, 1.0f };
-
-                if (uniqueVertices.count(vertex) == 0)
-                {
-                    uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-                    vertices.push_back(vertex);
-                }
-
-                indices.push_back(uniqueVertices[vertex]);
+                _indices.push_back(_vertices.size());
+                _vertices.push_back(vertex);
             }
         }
+
+        mScene.createMesh(_vertices, _indices);
     }
 
     void createVertexBuffer();

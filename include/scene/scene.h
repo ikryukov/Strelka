@@ -7,24 +7,8 @@
 #include "glm-wrapper.hpp"
 #include "camera.h"
 
-
 namespace nevk
 {
-
-struct Vertex
-{
-    glm::float4 pos;
-    glm::float3 normal;
-    glm::float2 uv; // hold the texture coordinate
-
-    /*
-     * A vertex should really only be considered equal
-     * if both the position and the texture coordinate are the same.
-     * This will cause our vertex class to only be unique
-     * when one or more of its properties are different in comparison to another vertex.
-     */
-    bool operator==(const nevk::Vertex& other) const;
-};
 
 struct Mesh
 {
@@ -100,6 +84,14 @@ private:
     std::stack<uint32_t> mDelMaterial;
 
 public:
+    struct Vertex
+    {
+        glm::float3 pos;
+        glm::float3 normal;
+        glm::float2 uv; // hold the texture coordinate
+        glm::float3 color;
+    };
+
     bool fr_mod;
 
     std::set<uint32_t> mDirtyInstances;
@@ -115,6 +107,14 @@ public:
 
     ~Scene() = default;
 
+    std::vector<Vertex>& getVertices()
+    {
+        return mVertices;
+    }
+    std::vector<uint32_t>& getIndices()
+    {
+        return mIndices;
+    }
     Camera& getCamera()
     {
         return mCamera;
