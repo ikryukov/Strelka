@@ -26,8 +26,12 @@ TEST_CASE("test checkBeginFrameDirty")
 
 TEST_CASE("test createMesh")
 {
-    nevk::Mesh* mesh = new nevk::Mesh();
-    CHECK(mesh != nullptr);
+    nevk::Scene scene;
+    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<uint32_t> ib;
+    uint32_t meshId = scene.createMesh(vb, ib);
+
+    CHECK(meshId != -1);
 }
 
 TEST_CASE("test createInstance")
