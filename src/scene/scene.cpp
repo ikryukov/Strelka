@@ -6,29 +6,47 @@ namespace nevk
 
 uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint32_t>& ib)
 {
-    Mesh mesh = {};
-    mesh.mIndex = mIndices.size(); // Index of 1st index in index buffer // 1st vertex ??
-    mesh.mCount = ib.size(); // amount of indices in mesh
-
-    // adjust indices for global index buffer
-    const uint32_t ibOffset = mIndices.size();
-    for (int i = 0; i < ib.size(); ++i)
+    if (mDelMesh.empty())
     {
-        mIndices.push_back(ibOffset + ib[i]);
+        Mesh mesh = {};
+        mesh.mIndex = mIndices.size(); // Index of 1st index in index buffer
+        mesh.mCount = ib.size(); // amount of indices in mesh
+
+        // adjust indices for global index buffer
+        const uint32_t ibOffset = mIndices.size();
+        for (int i = 0; i < ib.size(); ++i)
+        {
+            mIndices.push_back(ibOffset + ib[i]);
+        }
+        // copy vertices
+        mVertices.insert(mVertices.end(), vb.begin(), vb.end());
+
+        // add mesh to storage
+        mMeshes.push_back(mesh);
+
+        const uint32_t meshId = mMeshes.size() - 1;
+        return meshId;
     }
-    // copy vertices
-    mVertices.insert(mVertices.end(), vb.begin(), vb.end());
+    else
+    {
+        uint32_t meshIndex = mDelMesh.top(); // get index from stack
+        mDelMesh.pop(); // del taken index from stack
+        Mesh mesh = mMeshes[meshIndex];
+        mesh.mIndex = mIndices.size(); // Index of 1st index in index buffer
+        mesh.mCount = ib.size(); // amount of indices in mesh
 
-    // add mesh to storage
-    mMeshes.push_back(mesh);
+        // adjust indices for global index buffer
+        const uint32_t ibOffset = mIndices.size();
+        for (int i = 0; i < ib.size(); ++i)
+        {
+            mIndices.push_back(ibOffset + ib[i]);
+        }
+        // copy vertices
+        mVertices.insert(mVertices.end(), vb.begin(), vb.end());
 
-    const uint32_t meshId = mMeshes.size() - 1;
-    return meshId;
-}
-
-void MeshInstance::init_update(const glm::mat4& projectionViewMatrix)
-{
-    this->update(projectionViewMatrix);
+        mMeshes[meshIndex] = mesh; // update old Mesh to a new one
+        return meshIndex;
+    }
 }
 
 void MeshInstance::init_rotateBy(const float& degrees)
@@ -62,56 +80,93 @@ glm::mat4 Scene::createMeshTransform()
            glm::scale(identity, scale);
 }
 
-//////////////////////////////////////////////////////////////////////////
-
-//void Scene::update_scene(const float& delta) {
-////    const glm::mat4 cameraMatrix{camera.getProjectionMatrix() * camera.getViewMatrix()};
-//
-//    for (auto& mesh : mMeshes) {
-//        mesh.rotateBy(delta * 45.0f);
-//        mesh.update(cameraMatrix);
-//    }
-//}
-//////////////////////////////////////////////////////////////////////////
 
 uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform)
 {
     assert(meshId < mMeshes.size());
     assert(materialId < mMaterials.size());
-    Instance inst = {};
-    inst.mMaterialId = materialId;
-    inst.mMeshId = meshId;
-    inst.transform = transform;
 
-    mInstances.push_back(inst);
+    if (mDelInstances.empty())
+    {
+        Instance inst = {};
+        inst.mMaterialId = materialId;
+        inst.mMeshId = meshId;
+        inst.transform = transform;
 
-    const uint32_t instId = mInstances.size() - 1;
-    return instId;
+        mInstances.push_back(inst);
+
+        const uint32_t instId = mInstances.size() - 1;
+        return instId;
+    }
+    else
+    {
+        uint32_t instIndex = mDelInstances.top(); // get index from stack
+        mDelInstances.pop(); // del taken index from stack
+        Instance inst = mInstances[instIndex];
+        inst.mMaterialId = materialId;
+        inst.mMeshId = meshId;
+        inst.transform = transform;
+        mInstances[instIndex] = inst; // update old Instance to a new one
+        return instIndex; // ?
+    }
 }
 
 void Scene::createMaterial(const glm::float4& color)
 {
-    Material mater = {};
-    mater.color = color;
-
-    mMaterials.push_back(mater);
+    if (mDelMaterial.empty())
+    {
+        Material mater = {};
+        mater.color = color;
+        mMaterials.push_back(mater);
+    }
+    else
+    {
+        uint32_t materIndex = mDelMaterial.top(); // get index from stack
+        mDelMaterial.pop(); // del taken index from stack
+        Material mater = mMaterials[materIndex];
+        mater.color = color;
+        mMaterials[materIndex] = mater; // update old Material to a new one
+    }
 }
 
 void Scene::removeInstance(const uint32_t instId)
 {
-    mInstances.erase(mInstances.begin() + instId);
+    mDelInstances.push(instId); // marked as removed
 }
 
 void Scene::removeMesh(const uint32_t meshId)
 {
-    mMeshes.erase(mMeshes.begin() + meshId);
+    mDelMesh.push(meshId); // marked as removed
 }
 
 void Scene::removeMaterial(const uint32_t materialId)
 {
-    mMaterials.erase(mMaterials.begin() + materialId);
+    mDelMaterial.push(materialId); // marked as removed
 }
 
+void Scene::updateInstanceTransform(uint32_t instId, glm::mat4 newTransform)
+{
+    Instance inst = mInstances[instId];
+    inst.transform = newTransform;
+    mInstances[instId] = inst;
+    mDirtyInstances.insert(instId);
+
+    /*
+     * If true, the new transform is interpreted as a World Space transform,
+     * otherwise it is interpreted as Local Space
+     */
+    // bool bWorldSpace = true;
+}
+void Scene::beginFrame()
+{
+    fr_mod = true;
+    mDirtyInstances.clear();
+}
+
+void Scene::endFrame()
+{
+    fr_mod = false;
+}
 
 bool Vertex::operator==(const Vertex& other) const
 {

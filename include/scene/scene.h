@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <stack>
+#include <set>
 #include <cstdint>
 #include "glm-wrapper.hpp"
 #define GLM_FORCE_CTOR_INIT
@@ -59,14 +61,6 @@ struct MeshInstance
           transformMatrix(identity){};
 
 
-    void update(const glm::mat4& projectionViewMatrix)
-    {
-        transformMatrix = projectionViewMatrix *
-                          glm::translate(identity, position) *
-                          glm::rotate(identity, glm::radians(rotationDegrees), rotationAxis) *
-                          glm::scale(identity, scale);
-    }
-
     void rotateBy(const float& degrees)
     { // функция поворота экземпляра
         rotationDegrees += degrees;
@@ -81,12 +75,11 @@ struct MeshInstance
         }
     }
 
-    void init_update(const glm::mat4& projectionViewMatrix);
-
     void init_rotateBy(const float& degrees); // функция поворота экземпляра
 
-    glm::mat4 getTransformMatrix() const;
+    [[nodiscard]] glm::mat4 getTransformMatrix() const;
 };
+
 
 //////////////////////////////////////////////////
 
@@ -102,17 +95,20 @@ struct Instance
     uint32_t mMaterialId;
 };
 
-enum Mod
-{
-    INSTANCE,
-    MESH,
-    MATERIAL,
-};
 
 class Scene
 {
 private:
     //    Camera camera;
+    std::stack<uint32_t> mDelInstances;
+    std::stack<uint32_t> mDelMesh;
+    std::stack<uint32_t> mDelMaterial;
+
+public:
+    bool fr_mod;
+
+    std::set<uint32_t> mDirtyInstances;
+
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
 
@@ -120,20 +116,21 @@ private:
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
 
-public:
     Scene() = default;
 
     ~Scene() = default;
 
-    // This is where the scene will perform any of its per frame logical operations
-    // and is supplied with the delta for the current frame loop.
+    //This is where the scene will perform any of its per frame logical operations
+    //and is supplied with the delta for the current frame loop.
     // void update_scene(const float& delta) = 0;
+
+    //    void update_camera();
 
     /// <summary>
     /// Transform matrix
     /// </summary>
     /// <returns>Nothing</returns>
-    glm::mat4 createMeshTransform();
+    static glm::mat4 createMeshTransform();
     /// <summary>
     /// Create Mesh geometry
     /// </summary>
@@ -155,8 +152,6 @@ public:
     /// <param name="color">Color</param>
     /// <returns>Nothing</returns>
     void createMaterial(const glm::float4& color);
-
-
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>
@@ -164,11 +159,26 @@ public:
     /// <param name="materialId">valid material id</param>
     /// <param name="instId">valid instance id</param>
     /// <returns>Nothing</returns>
-    void removeInstance(const uint32_t instId);
-    void removeMesh(const uint32_t meshId);
-    void removeMaterial(const uint32_t materialId);
-
-    //    void update_camera();
+    void removeInstance(uint32_t instId);
+    void removeMesh(uint32_t meshId);
+    void removeMaterial(uint32_t materialId);
+    /// <summary>
+    /// Updates Instance matrix(transform)
+    /// </summary>
+    /// <param name="instId">valid instance id</param>
+    /// <param name="newTransform">new transformation matrix</param>
+    /// <returns>Nothing</returns>
+    void updateInstanceTransform(uint32_t instId, glm::mat4 newTransform);
+    /// <summary>
+    /// Changes status of scene and cleans up mDirty* sets
+    /// </summary>
+    /// <returns>Nothing</returns>
+    void beginFrame();
+    /// <summary>
+    /// Changes status of scene
+    /// </summary>
+    /// <returns>Nothing</returns>
+    void endFrame();
 };
 } // namespace nevk
 
