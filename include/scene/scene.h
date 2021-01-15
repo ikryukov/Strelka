@@ -13,8 +13,12 @@ namespace nevk
 {
 struct Vertex
 {
-    glm::vec4 pos;
-    glm::vec3 normal;
+    //glm::vec4 pos;
+    glm::vec3 pos;
+    glm::vec3 color;
+    glm::vec3 ka;
+    glm::vec3 kd;
+    glm::vec3 ks;
     glm::vec2 uv;
 };
 
@@ -71,8 +75,9 @@ public:
     /// <param name="transform">transform</param>
     /// <returns>Instance id in scene</returns>
     uint32_t createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform);
-    void add(); // instance, mesh, material
-    void remove(); // instance, mesh, material
+    //void add(); // instance, mesh, material
+    //void remove(); // instance, mesh, material
+    uint32_t createMaterial(const glm::vec4& color);
     //    void update_camera();
 };
 } // namespace nevk

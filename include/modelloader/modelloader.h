@@ -1,6 +1,5 @@
 #pragma once
 
-#define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
 #include <iostream>
@@ -16,7 +15,8 @@
 #include <array>
 #include <unordered_map>
 
-#include "Vertex.h"
+#include "scene/scene.h"
+
 
 namespace nevk
 {
@@ -24,13 +24,13 @@ namespace nevk
 class Model
 {
 private:
-    std::vector<Vertex> m_vertices;
-    std::vector<uint32_t> m_indices;
+    std::vector<Vertex> _vertices;
+    std::vector<uint32_t> _indices;
 
 public:
-    Model(){}
+    Model()= default;
 
-    void loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH)
+    void loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
     {
         tinyobj::attrib_t attrib;
         std::vector<tinyobj::shape_t> shapes;
@@ -42,7 +42,6 @@ public:
             throw std::runtime_error(warn + err);
         }
 
-        std::unordered_map<Vertex, uint32_t> uniqueVertices{};
 
         for (size_t s = 0; s < shapes.size(); s++)
         {
@@ -60,7 +59,8 @@ public:
                         attrib.vertices[3 * idx.vertex_index + 2]
                     };
 
-                    vertex.texCoord = {
+
+                    vertex.uv = {
                         attrib.texcoords[2 * idx.texcoord_index + 0],
                         1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]
                     };
@@ -87,32 +87,30 @@ public:
 
                     };
 
-                    if (uniqueVertices.count(vertex) == 0)
-                    {
-                        uniqueVertices[vertex] = static_cast<uint32_t>(m_vertices.size());
-                        m_vertices.push_back(vertex);
-                    }
 
-                    m_indices.push_back(uniqueVertices[vertex]);
+                    _indices.push_back(static_cast<uint32_t>(_vertices.size()));
+                    _vertices.push_back(vertex);
                 }
                 index_offset += fv;
             }
         }
+
+        uint32_t meshId = mScene.createMesh(_vertices, _indices);
+        uint32_t matId = mScene.createMaterial(glm::vec4(1.0));
+        glm::mat4 transform{ 1.0f };
+        glm::translate(transform, glm::vec3(0.0f, 0.0f, 0.0f));
+        uint32_t instId = mScene.createInstance(meshId, matId, transform);
     }
 
     std::vector<Vertex> getVertices()
     {
-        return m_vertices;
+        return _vertices;
     }
 
     std::vector<uint32_t> getIndices()
     {
-        return m_indices;
+        return _indices;
     }
 
 };
-}
-
-
-
-
+} // namespace nevk

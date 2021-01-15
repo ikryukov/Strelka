@@ -73,7 +73,6 @@ target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/includ
 # Model loader lib
 set(MODELLIB_SOURCES
 		include/modelloader/modelloader.h
-		include/modelloader/Vertex.h
 		src/modelloader/modelloader.cpp)
 set(MODELLIB_NAME modelloader)
 add_library(${MODELLIB_NAME} OBJECT ${MODELLIB_SOURCES})
@@ -104,7 +103,7 @@ target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
 target_include_directories(${MODELLIB_NAME} PUBLIC external/glm)
 
 # TOL (TinyObjLoader)
-#target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
+target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
 target_include_directories(${MODELLIB_NAME} PUBLIC external/tol)
 
 # STB (image loader)
