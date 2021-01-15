@@ -12,7 +12,7 @@
             "args": [],
             "stopAtEntry": false,
             //"cwd": "${workspaceFolder}",
-            "cwd": "${command:cmake.buildDirectory}",
+            "cwd": "${command:cmake.buildDirectory}/bin",
             "environment": [
                 {
                     "name": "VK_ICD_FILENAMES",
