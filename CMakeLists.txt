@@ -70,9 +70,22 @@ add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/render)
 
+# Model loader lib
+set(MODELLIB_SOURCES
+		include/modelloader/modelloader.h
+		include/modelloader/Vertex.h
+		src/modelloader/modelloader.cpp)
+set(MODELLIB_NAME modelloader)
+add_library(${MODELLIB_NAME} OBJECT ${MODELLIB_SOURCES})
+target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/modelloader)
+
+
 ## Vulkan
 target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_include_directories(${MODELLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${MODELLIB_NAME} PUBLIC Vulkan::Vulkan)
 
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
@@ -88,15 +101,18 @@ endif()
 
 ## GLM (Mathematics)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
+target_include_directories(${MODELLIB_NAME} PUBLIC external/glm)
 
 # TOL (TinyObjLoader)
-target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
+#target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
+target_include_directories(${MODELLIB_NAME} PUBLIC external/tol)
 
 # STB (image loader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 #target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
@@ -112,28 +128,27 @@ elseif (APPLE)
 endif()
 
 # Create symbolic links in final directory before building
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-	COMMAND ${CMAKE_COMMAND} -E create_symlink
-		"${CMAKE_SOURCE_DIR}/shaders"
-		"${OUTPUT_DIRECTORY}/shaders"
-)
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-	COMMAND ${CMAKE_COMMAND} -E create_symlink
-		"${CMAKE_SOURCE_DIR}/misc"
-		"${OUTPUT_DIRECTORY}/misc"
-)
+#add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+#	COMMAND ${CMAKE_COMMAND} -E create_symlink
+#		"${CMAKE_SOURCE_DIR}/shaders"
+#		"${OUTPUT_DIRECTORY}/shaders"
+#)
+##	COMMAND ${CMAKE_COMMAND} -E create_symlink
+#		"${CMAKE_SOURCE_DIR}/misc"
+#		"${OUTPUT_DIRECTORY}/misc"
+#)
 
 # Copy slang dlls to final directory after building
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
-        "${OUTPUT_DIRECTORY}"
-)
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
-        "${OUTPUT_DIRECTORY}"
-)
+#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+ #   COMMAND ${CMAKE_COMMAND} -E copy
+ #       "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
+ #       "${OUTPUT_DIRECTORY}"
+#)
+#add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+ #   COMMAND ${CMAKE_COMMAND} -E copy
+ #       "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
+ #       "${OUTPUT_DIRECTORY}"
+#)
 
 ##########################################
 # External 3rd-party libraries
