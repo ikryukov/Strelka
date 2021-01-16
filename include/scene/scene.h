@@ -16,50 +16,6 @@ struct Mesh
     uint32_t mCount; // amount of indices in mesh
 };
 
-struct MeshInstance
-{
-    /*
-    * Defining an object that can hold a definition of which mesh and texture to use
-    * and offer a way to update and fetch its transform matrix.
-    * We need the transform matrix to know where and how the mesh should be positioned in the 3d world
-    */
-    const glm::mat4 identity;
-    glm::float3 position;
-    glm::float3 scale;
-    glm::float3 rotationAxis;
-    float rotationDegrees;
-    glm::mat4 transformMatrix;
-
-    explicit MeshInstance(const glm::float3& position = glm::float3{ 0.0f, 0.0f, 0.0f },
-                          const glm::float3& scale = glm::float3{ 1.0f, 1.0f, 1.0f },
-                          const glm::float3& rotationAxis = glm::float3{ 0.0f, 1.0f, 0.0f },
-                          const float& rotationDegrees = 0.0f)
-        : identity(glm::mat4{ 1.0f }), // create the identity matrix needed for the subsequent matrix operations
-          position(position),
-          scale(scale),
-          rotationAxis(rotationAxis),
-          rotationDegrees(rotationDegrees),
-          transformMatrix(identity){};
-
-    void rotateBy(const float& degrees)  // функция поворота экземпляра
-    {
-        rotationDegrees += degrees;
-
-        if (rotationDegrees > 360.0f)
-        {
-            rotationDegrees -= 360.0f;
-        }
-        else if (rotationDegrees < -360.0f)
-        {
-            rotationDegrees += 360.0f;
-        }
-    }
-
-    void init_rotateBy(const float& degrees); // функция поворота экземпляра
-
-    [[nodiscard]] glm::mat4 getTransformMatrix() const;
-};
-
 struct Material
 {
     glm::float4 color;
