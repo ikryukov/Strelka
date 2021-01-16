@@ -5,13 +5,13 @@
 
 TEST_CASE("test sceneCreation")
 {
-    nevk::Scene* scene = new nevk::Scene();
+    auto* scene = new nevk::Scene();
     CHECK(scene != nullptr);
 }
 
 TEST_CASE("test checkBeginFrameStatus")
 {
-    nevk::Scene* scene = new nevk::Scene();
+    auto* scene = new nevk::Scene();
     scene->beginFrame();
     bool rez = scene->fr_mod;
     CHECK(rez == true);
@@ -19,9 +19,9 @@ TEST_CASE("test checkBeginFrameStatus")
 
 TEST_CASE("test checkBeginFrameDirty")
 {
-    nevk::Scene* scene = new nevk::Scene();
+    auto* scene = new nevk::Scene();
     scene->beginFrame();
-    CHECK(scene->mDirtyInstances.empty() == true); // true
+    CHECK(scene->mDirtyInstances.empty() == true);
 }
 
 TEST_CASE("test createMesh")
@@ -30,8 +30,20 @@ TEST_CASE("test createMesh")
     std::vector<nevk::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
-
     CHECK(meshId != -1);
+}
+
+TEST_CASE("test createMesh complex")
+{
+    nevk::Scene scene;
+    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<uint32_t> ib;
+    uint32_t meshIdFst = scene.createMesh(vb, ib);
+    uint32_t meshIdSnd = scene.createMesh(vb, ib);
+    CHECK(meshIdFst != meshIdSnd);
+    scene.removeMesh(meshIdFst);
+    uint32_t meshIdThd = scene.createMesh(vb, ib);
+    CHECK(meshIdFst == meshIdThd);
 }
 
 TEST_CASE("test createInstance")
@@ -66,81 +78,52 @@ TEST_CASE("test createInstance complex")
 
 TEST_CASE("test createMaterial")
 {
-    nevk::Material* material = new nevk::Material();
-    CHECK(material != nullptr);
+    nevk::Scene scene;
+    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    CHECK(matId != -1);
 }
 
-//TEST_CASE("test checkMesh")
-//{
-//    nevk::Scene* scene = new nevk::Scene();
-//    nevk::Mesh m = {};
-//    nevk::Mesh* mesh = new nevk::Mesh();
-//    m = *mesh;
-//    scene->mMeshes.push_back(m);
-//
-//    CHECK(scene->mMeshes[0] == *mesh);
-//}
-//
-//TEST_CASE("test checkInstance")
-//{
-//    nevk::Scene* scene = new nevk::Scene();
-//    nevk::Instance inst = {};
-//    nevk::Instance* instance = new nevk::Instance();
-//    inst = *instance;
-//    scene->mInstances.push_back(inst);
-//    CHECK( == nullptr);
-//}
-//
-//TEST_CASE("test checkMaterial")
-//{
-//    nevk::Scene* scene = new nevk::Scene();
-//    nevk::Material m = {};
-//    nevk::Material* material = new nevk::Material();
-//    m = *material;
-//    scene->mMaterials.push_back(m);
-//
-//        CHECK( == nullptr);
-//}
+TEST_CASE("test createMaterial complex")
+{
+    nevk::Scene scene;
 
-/*
- * создается сцена, меш и инстанс, проверяется что он есть и у инстанса нужный меш выставлен
- */
-//TEST_CASE("test checkMeshInst")
-//{
-//    auto* scene = new nevk::Scene();
-//
-//    nevk::Mesh m = {};
-//    auto* mesh = new nevk::Mesh();
-//    m = *mesh;
-//    scene->mMeshes.push_back(m);
-//
-//    nevk::Instance inst = {};
-//    auto* instance = new nevk::Instance();
-//    inst = *instance;
-//    inst.mMeshId = mesh->mIndex;
-//    scene->mInstances.push_back(inst);
-//
-//    CHECK();
-//}
-//
-//TEST_CASE("test removeInstance")
-//{
-//    nevk::Scene* scene = new nevk::Scene();
-//    nevk::Instance inst = {};
-//    nevk::Instance* instance = new nevk::Instance();
-//    inst = *instance;
-//    scene->mInstances.push_back(inst);
-//    scene->removeInstance();
-//    CHECK( == nullptr);
-//}
-//
-//TEST_CASE("test removeMesh")
-//{
-//    nevk::Scene* scene = new nevk::Scene();
-//    nevk::Mesh m = {};
-//    nevk::Mesh* mesh = new nevk::Mesh();
-//    m = *mesh;
-//    scene->mMeshes.push_back(m);
-//    scene->removeMesh();
-//    CHECK( == nullptr);
-//}
+    uint32_t matIdFst = scene.createMaterial(glm::float4(1.0));
+    uint32_t matIdSnd = scene.createMaterial(glm::float4(1.0));
+    CHECK(matIdFst != matIdSnd);
+    scene.removeMaterial(matIdFst);
+    uint32_t matIdThd = scene.createMaterial(glm::float4(1.0));
+    CHECK(matIdFst == matIdThd);
+}
+
+
+TEST_CASE("test checkMesh")
+{
+    nevk::Scene scene;
+    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<uint32_t> ib;
+    uint32_t meshId = scene.createMesh(vb, ib);
+    CHECK(meshId == 0);
+    CHECK(scene.mMeshes.size() == 1);
+}
+
+TEST_CASE("test checkInstance")
+{
+    nevk::Scene scene;
+    std::vector<nevk::Scene::Vertex> vb;
+    std::vector<uint32_t> ib;
+    uint32_t meshId = scene.createMesh(vb, ib);
+    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    glm::float4x4 transform{ 1.0f };
+    glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
+    uint32_t instId = scene.createInstance(meshId, matId, transform);
+    CHECK(instId == 0);
+    CHECK(scene.mInstances.size() == 1);
+}
+
+TEST_CASE("test checkMaterial")
+{
+    nevk::Scene scene;
+    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    CHECK(matId == 0);
+    CHECK(scene.mMaterials.size() == 1);
+}
