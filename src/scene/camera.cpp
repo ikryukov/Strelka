@@ -1,15 +1,16 @@
+#include <scene/glm-wrapper.hpp>
 #include "camera.h"
 
 void Camera::updateViewMatrix()
 {
-    glm::mat4 rotM = glm::mat4(1.0f);
-    glm::mat4 transM;
+    glm::float4x4 rotM = glm::float4x4(1.0f);
+    glm::float4x4 transM;
 
-    rotM = glm::rotate(rotM, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f)); // ??
-    rotM = glm::rotate(rotM, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
-    rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    rotM = glm::rotate(rotM, glm::radians(rotation.x), glm::float3(1.0f, 0.0f, 0.0f)); // ??
+    rotM = glm::rotate(rotM, glm::radians(rotation.y), glm::float3(0.0f, 1.0f, 0.0f));
+    rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::float3(0.0f, 0.0f, 1.0f));
 
-    transM = glm::translate(glm::mat4(1.0f), position * glm::vec3(1.0f, 1.0f, -1.0f));
+    transM = glm::translate(glm::float4x4(1.0f), position * glm::float3(1.0f, 1.0f, -1.0f));
 
     if (type == CameraType::firstperson)
     {
@@ -50,31 +51,31 @@ void Camera::updateAspectRatio(float aspect)
     matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
 }
 
-void Camera::setPosition(glm::vec3 position)
+void Camera::setPosition(glm::float3 position)
 {
     this->position = position;
     updateViewMatrix();
 }
 
-void Camera::setRotation(glm::vec3 rotation)
+void Camera::setRotation(glm::float3 rotation)
 {
     this->rotation = rotation;
     updateViewMatrix();
 }
 
-void Camera::rotate(glm::vec3 delta)
+void Camera::rotate(glm::float3 delta)
 {
     this->rotation += delta;
     updateViewMatrix();
 }
 
-void Camera::setTranslation(glm::vec3 translation)
+void Camera::setTranslation(glm::float3 translation)
 {
     this->position = translation;
     updateViewMatrix();
 }
 
-void Camera::translate(glm::vec3 delta)
+void Camera::translate(glm::float3 delta)
 {
     this->position += delta;
     updateViewMatrix();
@@ -87,7 +88,7 @@ void Camera::update(float deltaTime)
     {
         if (moving())
         {
-            glm::vec3 camFront;
+            glm::float3 camFront;
             camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
             camFront.y = sin(glm::radians(rotation.x));
             camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
@@ -100,9 +101,9 @@ void Camera::update(float deltaTime)
             if (keys.down)
                 position -= camFront * moveSpeed;
             if (keys.left)
-                position -= glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+                position -= glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * moveSpeed;
             if (keys.right)
-                position += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+                position += glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * moveSpeed;
 
             updateViewMatrix();
         }
@@ -111,7 +112,7 @@ void Camera::update(float deltaTime)
 
 // Update camera passing separate axis data (gamepad)
 // Returns true if view or position has been changed
-bool Camera::updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime)
+bool Camera::updatePad(glm::float2 axisLeft, glm::float2 axisRight, float deltaTime)
 {
     bool retVal = false;
 
@@ -123,7 +124,7 @@ bool Camera::updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime)
         const float deadZone = 0.0015f;
         const float range = 1.0f - deadZone;
 
-        glm::vec3 camFront;
+        glm::float3 camFront;
         camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
         camFront.y = sin(glm::radians(rotation.x));
         camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
@@ -142,7 +143,7 @@ bool Camera::updatePad(glm::vec2 axisLeft, glm::vec2 axisRight, float deltaTime)
         if (fabsf(axisLeft.x) > deadZone)
         {
             float pos = (fabsf(axisLeft.x) - deadZone) / range;
-            position += glm::normalize(glm::cross(camFront, glm::vec3(0.0f, 1.0f, 0.0f))) * pos * ((axisLeft.x < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
+            position += glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * pos * ((axisLeft.x < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
             retVal = true;
         }
 
