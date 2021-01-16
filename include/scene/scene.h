@@ -41,9 +41,8 @@ struct MeshInstance
           rotationDegrees(rotationDegrees),
           transformMatrix(identity){};
 
-
-    void rotateBy(const float& degrees)
-    { // функция поворота экземпляра
+    void rotateBy(const float& degrees)  // функция поворота экземпляра
+    {
         rotationDegrees += degrees;
 
         if (rotationDegrees > 360.0f)
@@ -60,8 +59,6 @@ struct MeshInstance
 
     [[nodiscard]] glm::mat4 getTransformMatrix() const;
 };
-
-//////////////////////////////////////////////////
 
 struct Material
 {
@@ -92,7 +89,7 @@ public:
         glm::float3 color;
     };
 
-    bool fr_mod;
+    bool fr_mod{};
 
     std::set<uint32_t> mDirtyInstances;
 
@@ -119,12 +116,6 @@ public:
     {
         return mCamera;
     }
-    //This is where the scene will perform any of its per frame logical operations
-    //and is supplied with the delta for the current frame loop.
-    // void update_scene(const float& delta) = 0;
-
-    //    void update_camera();
-
     /// <summary>
     /// Transform matrix
     /// </summary>
@@ -144,7 +135,7 @@ public:
     /// <param name="materialId">valid material id</param>
     /// <param name="transform">transform</param>
     /// <returns>Instance id in scene</returns>
-    uint32_t createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform);
+    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform);
     /// <summary>
     /// Creates Material
     /// </summary>
