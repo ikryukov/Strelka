@@ -9,8 +9,7 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     uint32_t meshId = -1;
     if (mDelMesh.empty())
     {
-        // add mesh to storage
-        meshId = mMeshes.size();
+        meshId = mMeshes.size(); // add mesh to storage
         mMeshes.push_back({});
         mesh = &mMeshes.back();
     }
@@ -24,14 +23,12 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     mesh->mIndex = mIndices.size(); // Index of 1st index in index buffer
     mesh->mCount = ib.size(); // amount of indices in mesh
 
-    // adjust indices for global index buffer
-    const uint32_t ibOffset = mIndices.size();
+    const uint32_t ibOffset = mIndices.size();  // adjust indices for global index buffer
     for (int i = 0; i < ib.size(); ++i)
     {
         mIndices.push_back(ibOffset + ib[i]);
     }
-    // copy vertices
-    mVertices.insert(mVertices.end(), vb.begin(), vb.end());
+    mVertices.insert(mVertices.end(), vb.begin(), vb.end());  // copy vertices
     return meshId;
 }
 
@@ -66,55 +63,47 @@ glm::mat4 Scene::createMeshTransform()
            glm::scale(identity, scale);
 }
 
-
 uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform)
 {
-    assert(meshId < mMeshes.size());
-    assert(materialId < mMaterials.size());
-
+    Instance* inst = nullptr;
+    uint32_t instId = -1;
     if (mDelInstances.empty())
     {
-        Instance inst = {};
-        inst.mMaterialId = materialId;
-        inst.mMeshId = meshId;
-        inst.transform = transform;
-
-        mInstances.push_back(inst);
-
-        const uint32_t instId = mInstances.size() - 1;
-        return instId;
+        instId = mInstances.size();  // add instance to storage
+        mInstances.push_back({});
+        inst = &mInstances.back();
     }
     else
     {
-        uint32_t instIndex = mDelInstances.top(); // get index from stack
+        instId = mDelInstances.top(); // get index from stack
         mDelInstances.pop(); // del taken index from stack
-        Instance inst = mInstances[instIndex];
-        inst.mMaterialId = materialId;
-        inst.mMeshId = meshId;
-        inst.transform = transform;
-        mInstances[instIndex] = inst; // update old Instance to a new one
-        return instIndex; // ?
+        inst = &mInstances[instId];
     }
+    inst->mMaterialId = materialId;
+    inst->mMeshId = meshId;
+    inst->transform = transform;
+
+    return instId;
 }
 
 uint32_t Scene::createMaterial(const glm::float4& color)
 {
+    Material* material = nullptr;
+    uint32_t materialId = -1;
     if (mDelMaterial.empty())
     {
-        Material mater = {};
-        mater.color = color;
-        mMaterials.push_back(mater);
-        return mMaterials.size() - 1;
+        materialId = mMaterials.size(); // add material to storage
+        mMaterials.push_back({});
+        material = &mMaterials.back();
     }
     else
     {
-        uint32_t materIndex = mDelMaterial.top(); // get index from stack
+        materialId = mDelMaterial.top(); // get index from stack
         mDelMaterial.pop(); // del taken index from stack
-        Material mater = mMaterials[materIndex];
-        mater.color = color;
-        mMaterials[materIndex] = mater; // update old Material to a new one
-        return materIndex;
+        material = &mMaterials[materialId];
     }
+    material->color = color;
+    return materialId;
 }
 
 void Scene::removeInstance(const uint32_t instId)
@@ -149,5 +138,4 @@ void Scene::endFrame()
 {
     fr_mod = false;
 }
-
 } // namespace nevk
