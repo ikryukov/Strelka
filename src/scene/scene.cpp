@@ -32,16 +32,6 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     return meshId;
 }
 
-void MeshInstance::init_rotateBy(const float& degrees)
-{
-    this->rotateBy(degrees);
-}
-
-glm::mat4 MeshInstance::getTransformMatrix() const
-{
-    return this->transformMatrix;
-}
-
 glm::mat4 Scene::createMeshTransform()
 {
     // create the identity matrix needed for the subsequent matrix operations
