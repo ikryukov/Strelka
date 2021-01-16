@@ -11,16 +11,6 @@
 
 namespace nevk
 {
-struct Vertex
-{
-    //glm::vec4 pos;
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec3 ka;
-    glm::vec3 kd;
-    glm::vec3 ks;
-    glm::vec2 uv;
-};
 
 struct Mesh
 {
@@ -42,16 +32,19 @@ struct Instance
 
 class Scene
 {
-private:
-    //    Camera camera;
-    std::vector<Vertex> mVertices;
-    std::vector<uint32_t> mIndices;
-
-    std::vector<Mesh> mMeshes;
-    std::vector<Material> mMaterials;
-    std::vector<Instance> mInstances;
 
 public:
+    struct Vertex
+    {
+        //glm::vec4 pos;
+        glm::vec3 pos;
+        glm::vec3 color;
+        glm::vec3 ka;
+        glm::vec3 kd;
+        glm::vec3 ks;
+        glm::vec2 uv;
+    };
+
     Scene()
     {
     }
@@ -77,7 +70,16 @@ public:
     uint32_t createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform);
     //void add(); // instance, mesh, material
     //void remove(); // instance, mesh, material
-    uint32_t createMaterial(const glm::vec4& color);
+    // uint32_t createMaterial(const glm::vec4& color);
     //    void update_camera();
+
+private:
+    //    Camera camera;
+    std::vector<Vertex> mVertices;
+    std::vector<uint32_t> mIndices;
+
+    std::vector<Mesh> mMeshes;
+    std::vector<Material> mMaterials;
+    std::vector<Instance> mInstances;
 };
 } // namespace nevk

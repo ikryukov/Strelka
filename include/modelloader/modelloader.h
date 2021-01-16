@@ -24,11 +24,11 @@ namespace nevk
 class Model
 {
 private:
-    std::vector<Vertex> _vertices;
+    std::vector<Scene::Vertex> _vertices;
     std::vector<uint32_t> _indices;
 
 public:
-    Model()= default;
+    Model() = default;
 
     void loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
     {
@@ -42,7 +42,6 @@ public:
             throw std::runtime_error(warn + err);
         }
 
-
         for (size_t s = 0; s < shapes.size(); s++)
         {
             size_t index_offset = 0;
@@ -51,7 +50,7 @@ public:
                 int fv = shapes[s].mesh.num_face_vertices[f];
                 for (size_t v = 0; v < fv; v++)
                 {
-                    Vertex vertex{};
+                    Scene::Vertex vertex{};
                     auto idx = shapes[s].mesh.indices[index_offset + v];
                     vertex.pos = {
                         attrib.vertices[3 * idx.vertex_index + 0],
@@ -66,24 +65,24 @@ public:
                     };
 
                     vertex.color = { attrib.colors[3 * idx.vertex_index + 0],
-                        attrib.colors[3 * idx.vertex_index + 1],
-                        attrib.colors[3 * idx.vertex_index + 2] };
+                                     attrib.colors[3 * idx.vertex_index + 1],
+                                     attrib.colors[3 * idx.vertex_index + 2] };
 
                     vertex.ka = { materials[shapes[s].mesh.material_ids[f]].ambient[0],
-                        materials[shapes[s].mesh.material_ids[f]].ambient[1],
-                        materials[shapes[s].mesh.material_ids[f]].ambient[2]
+                                  materials[shapes[s].mesh.material_ids[f]].ambient[1],
+                                  materials[shapes[s].mesh.material_ids[f]].ambient[2]
 
                     };
 
                     vertex.kd = { materials[shapes[s].mesh.material_ids[f]].diffuse[0],
-                        materials[shapes[s].mesh.material_ids[f]].diffuse[1],
-                        materials[shapes[s].mesh.material_ids[f]].diffuse[2]
+                                  materials[shapes[s].mesh.material_ids[f]].diffuse[1],
+                                  materials[shapes[s].mesh.material_ids[f]].diffuse[2]
 
                     };
 
                     vertex.ks = { materials[shapes[s].mesh.material_ids[f]].specular[0],
-                        materials[shapes[s].mesh.material_ids[f]].specular[1],
-                        materials[shapes[s].mesh.material_ids[f]].specular[2]
+                                  materials[shapes[s].mesh.material_ids[f]].specular[1],
+                                  materials[shapes[s].mesh.material_ids[f]].specular[2]
 
                     };
 
@@ -96,13 +95,13 @@ public:
         }
 
         uint32_t meshId = mScene.createMesh(_vertices, _indices);
-        uint32_t matId = mScene.createMaterial(glm::vec4(1.0));
+        // uint32_t matId = mScene.createMaterial(glm::vec4(1.0));
         glm::mat4 transform{ 1.0f };
         glm::translate(transform, glm::vec3(0.0f, 0.0f, 0.0f));
-        uint32_t instId = mScene.createInstance(meshId, matId, transform);
+        uint32_t instId = mScene.createInstance(meshId, -1, transform);
     }
 
-    std::vector<Vertex> getVertices()
+    std::vector<Scene::Vertex> getVertices()
     {
         return _vertices;
     }
@@ -111,6 +110,5 @@ public:
     {
         return _indices;
     }
-
 };
 } // namespace nevk

@@ -94,7 +94,7 @@ set(MODELLIB_NAME modelloader)
 add_library(${MODELLIB_NAME} OBJECT ${MODELLIB_SOURCES})
 target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/modelloader)
-
+target_link_libraries(${MODELLIB_NAME} PUBLIC ${SCENELIB_NAME})
 
 ## Vulkan
 target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
@@ -133,7 +133,7 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 # Set working directory

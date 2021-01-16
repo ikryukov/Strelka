@@ -268,11 +268,21 @@ private:
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
+    std::vector<nevk::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
+    {
+        std::vector<nevk::Vertex> ret(params.size());
+        std::transform(params.begin(), params.end(), ret.begin(),
+                       [](auto& value) {
+                           return nevk::Vertex{ value.pos, value.color, value.ka, value.kd, value.ks, value.uv };
+                       });
+        return ret;
+    }
+
     void loadModel()
     {
         nevk::Model testmodel;
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
-        vertices = Vertex::create(testmodel.getVertices());
+        vertices = convertVerticesToRender(testmodel.getVertices());
         indices = testmodel.getIndices();
     }
 
