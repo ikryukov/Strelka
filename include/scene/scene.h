@@ -37,12 +37,12 @@ class Scene
 public:
     struct Vertex
     {
-        glm::vec3 pos;
-        glm::vec3 color;
-        glm::vec3 ka;
-        glm::vec3 kd;
-        glm::vec3 ks;
-        glm::vec2 uv;
+        glm::float3 pos;
+        glm::float3 color;
+        glm::float3 ka;
+        glm::float3 kd;
+        glm::float3 ks;
+        glm::float2 uv;
     };
 
     Scene()

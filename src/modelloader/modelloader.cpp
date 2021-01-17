@@ -2,14 +2,15 @@
 
 namespace nevk
 {
-void Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
+bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str(), MTL_PATH.c_str(), false))
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str(), MTL_PATH.c_str(), false);
+    if (!ret)
     {
         throw std::runtime_error(warn + err);
     }
@@ -66,5 +67,7 @@ void Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
     uint32_t instId = mScene.createInstance(meshId, -1, transform);
+
+    return ret;
 }
 } // namespace nevk

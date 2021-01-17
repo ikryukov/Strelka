@@ -5,18 +5,21 @@
 const std::string MODEL_PATH = "misc/cube.obj";
 const std::string MTL_PATH = "misc/";
 
-TEST_CASE("model test")
+TEST_CASE("load model")
 {
-    auto* e = new nevk::Model();
-    CHECK(e != nullptr);
+    nevk::Scene mScene;
+    nevk::Model model;
+    bool loaded = model.loadModel(MODEL_PATH, MTL_PATH, mScene);
+
+    CHECK(loaded == true);
 }
 
-TEST_CASE("load model")
+TEST_CASE("check model data")
 {
     nevk::Scene mScene;
     nevk::Model model;
     model.loadModel(MODEL_PATH, MTL_PATH, mScene);
 
-    CHECK(model.getIndices());
-    CHECK(model.getVertices());
+    CHECK(model.getIndices().size() == 36);
+    CHECK(model.getVertices().size() == 36);
 }

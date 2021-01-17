@@ -30,7 +30,7 @@ private:
 public:
     Model() = default;
 
-    void loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
+    bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
 
     std::vector<Scene::Vertex> getVertices()
     {
