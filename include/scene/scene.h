@@ -36,6 +36,10 @@ private:
     std::stack<uint32_t> mDelMesh;
     std::stack<uint32_t> mDelMaterial;
 
+    bool FrMod{};
+
+    std::set<uint32_t> mDirtyInstances;
+
 public:
     struct Vertex
     {
@@ -44,10 +48,6 @@ public:
         glm::float2 uv; // hold the texture coordinate
         glm::float3 color;
     };
-
-    bool fr_mod{};
-
-    std::set<uint32_t> mDirtyInstances;
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
@@ -72,11 +72,6 @@ public:
     {
         return mCamera;
     }
-    /// <summary>
-    /// Transform matrix
-    /// </summary>
-    /// <returns>Nothing</returns>
-    static glm::mat4 createMeshTransform();
     /// <summary>
     /// Create Mesh geometry
     /// </summary>
@@ -109,12 +104,22 @@ public:
     void removeMesh(uint32_t meshId);
     void removeMaterial(uint32_t materialId);
     /// <summary>
+    /// Get set of DirtyInstances
+    /// </summary>
+    /// <returns>Set of instances</returns>
+    std::set<uint32_t> getDirtyInstances();
+    /// <summary>
+    /// Get Frame mode (bool)
+    /// </summary>
+    /// <returns>Bool</returns>
+    bool getFrMod();
+    /// <summary>
     /// Updates Instance matrix(transform)
     /// </summary>
     /// <param name="instId">valid instance id</param>
     /// <param name="newTransform">new transformation matrix</param>
     /// <returns>Nothing</returns>
-    void updateInstanceTransform(uint32_t instId, glm::mat4 newTransform);
+    void updateInstanceTransform(uint32_t instId, glm::float4x4 newTransform);
     /// <summary>
     /// Changes status of scene and cleans up mDirty* sets
     /// </summary>
