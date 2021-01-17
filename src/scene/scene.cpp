@@ -32,27 +32,6 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     return meshId;
 }
 
-glm::mat4 Scene::createMeshTransform()
-{
-    // create the identity matrix needed for the subsequent matrix operations
-    glm::mat4 identity{ 1.0f };
-    // define the position, rotation axis, scale and how many degrees to rotate about the rotation axis.
-    glm::float3 position{ 0.0f, 0.0f, 0.0f };
-    glm::float3 rotationAxis{ 0.0f, 1.0f, 0.0f };
-    glm::float3 scale{ 1.0f, 1.0f, 1.0f };
-    float rotationDegrees{ 45.0f };
-
-    /*  Transform matrix is calculated by:
-    *
-    *  Translating from the identity to the position, multiplied by
-    *  Rotating from the identity about the rotationAxis by the rotationDegrees amount in radians, multiplied by
-    *  Scaling from the identity by the scale vector.
-    */
-    return glm::translate(identity, position) *
-           glm::rotate(identity, glm::radians(rotationDegrees), rotationAxis) *
-           glm::scale(identity, scale);
-}
-
 uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform)
 {
     Instance* inst = nullptr;
@@ -111,7 +90,16 @@ void Scene::removeMaterial(const uint32_t materialId)
     mDelMaterial.push(materialId); // marked as removed
 }
 
-void Scene::updateInstanceTransform(uint32_t instId, glm::mat4 newTransform)
+std::set<uint32_t> Scene::getDirtyInstances()
+{
+    return this->mDirtyInstances;
+}
+bool Scene::getFrMod()
+{
+    return this->FrMod;
+}
+
+void Scene::updateInstanceTransform(uint32_t instId, glm::float4x4 newTransform)
 {
     Instance& inst = mInstances[instId];
     inst.transform = newTransform;
@@ -120,12 +108,12 @@ void Scene::updateInstanceTransform(uint32_t instId, glm::mat4 newTransform)
 
 void Scene::beginFrame()
 {
-    fr_mod = true;
+    FrMod = true;
     mDirtyInstances.clear();
 }
 
 void Scene::endFrame()
 {
-    fr_mod = false;
+    FrMod = false;
 }
 } // namespace nevk
