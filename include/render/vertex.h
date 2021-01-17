@@ -10,6 +10,9 @@ struct Vertex
 {
     glm::vec3 pos;
     glm::vec3 color;
+    glm::vec3 ka;
+    glm::vec3 kd;
+    glm::vec3 ks;
     glm::vec2 texCoord;
 
     bool operator==(const Vertex& other) const

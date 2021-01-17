@@ -86,9 +86,21 @@ add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/render)
 
+# Model loader lib
+set(MODELLIB_SOURCES
+		include/modelloader/modelloader.h
+		src/modelloader/modelloader.cpp)
+set(MODELLIB_NAME modelloader)
+add_library(${MODELLIB_NAME} OBJECT ${MODELLIB_SOURCES})
+target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/modelloader)
+target_link_libraries(${MODELLIB_NAME} PUBLIC ${SCENELIB_NAME})
+
 ## Vulkan
 target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_include_directories(${MODELLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${MODELLIB_NAME} PUBLIC Vulkan::Vulkan)
 
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
@@ -104,9 +116,11 @@ endif()
 
 ## GLM (Mathematics)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
+target_include_directories(${MODELLIB_NAME} PUBLIC external/glm)
 
 # TOL (TinyObjLoader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
+target_include_directories(${MODELLIB_NAME} PUBLIC external/tol)
 
 # STB (image loader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
@@ -114,11 +128,12 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${RESMNGR_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 #target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${RENDERLIB_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${MODELLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 # Set working directory

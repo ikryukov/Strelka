@@ -8,15 +8,10 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/compatibility.hpp>
 
 namespace nevk
 {
-struct Vertex
-{
-    glm::vec4 pos;
-    glm::vec3 normal;
-    glm::vec2 uv;
-};
 
 struct Mesh
 {
@@ -38,16 +33,18 @@ struct Instance
 
 class Scene
 {
-private:
-    //    Camera camera;
-    std::vector<Vertex> mVertices;
-    std::vector<uint32_t> mIndices;
-
-    std::vector<Mesh> mMeshes;
-    std::vector<Material> mMaterials;
-    std::vector<Instance> mInstances;
 
 public:
+    struct Vertex
+    {
+        glm::float3 pos;
+        glm::float3 color;
+        glm::float3 ka;
+        glm::float3 kd;
+        glm::float3 ks;
+        glm::float2 uv;
+    };
+
     Scene()
     {
     }
@@ -71,8 +68,21 @@ public:
     /// <param name="transform">transform</param>
     /// <returns>Instance id in scene</returns>
     uint32_t createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform);
-    void add(); // instance, mesh, material
-    void remove(); // instance, mesh, material
+    //void add(); // instance, mesh, material
+    //void remove(); // instance, mesh, material
+    // uint32_t createMaterial(const glm::vec4& color);
     //    void update_camera();
+    uint32_t createMaterial(const glm::float4& color)
+    {
+    }
+
+private:
+    //    Camera camera;
+    std::vector<Vertex> mVertices;
+    std::vector<uint32_t> mIndices;
+
+    std::vector<Mesh> mMeshes;
+    std::vector<Material> mMaterials;
+    std::vector<Instance> mInstances;
 };
 } // namespace nevk

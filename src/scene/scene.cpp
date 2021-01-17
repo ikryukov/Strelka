@@ -27,7 +27,7 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
 uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform)
 {
     assert(meshId < mMeshes.size());
-    assert(materialId < mMaterials.size());
+    // assert(materialId < mMaterials.size());
     Instance inst = {};
     inst.mMaterialId = materialId;
     inst.mMeshId = meshId;
