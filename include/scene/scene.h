@@ -8,6 +8,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/compatibility.hpp>
 
 namespace nevk
 {
@@ -36,7 +37,6 @@ class Scene
 public:
     struct Vertex
     {
-        //glm::vec4 pos;
         glm::vec3 pos;
         glm::vec3 color;
         glm::vec3 ka;
@@ -72,6 +72,9 @@ public:
     //void remove(); // instance, mesh, material
     // uint32_t createMaterial(const glm::vec4& color);
     //    void update_camera();
+    uint32_t createMaterial(const glm::float4& color)
+    {
+    }
 
 private:
     //    Camera camera;
