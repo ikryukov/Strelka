@@ -2,18 +2,11 @@
 
 #include <doctest.h>
 
-
-TEST_CASE("test sceneCreation")
-{
-    auto* scene = new nevk::Scene();
-    CHECK(scene != nullptr);
-}
-
 TEST_CASE("test checkBeginFrameStatus")
 {
     auto* scene = new nevk::Scene();
     scene->beginFrame();
-    bool rez = scene->fr_mod;
+    bool rez = scene->getFrMod();
     CHECK(rez == true);
 }
 
@@ -21,7 +14,7 @@ TEST_CASE("test checkBeginFrameDirty")
 {
     auto* scene = new nevk::Scene();
     scene->beginFrame();
-    CHECK(scene->mDirtyInstances.empty() == true);
+    CHECK(scene->getDirtyInstances().empty() == true);
 }
 
 TEST_CASE("test createMesh")
