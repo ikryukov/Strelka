@@ -6,14 +6,20 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-class Camera {
+class Camera
+{
 private:
     float fov;
     float znear, zfar;
 
     void updateViewMatrix();
+
 public:
-    enum CameraType { lookat, firstperson };
+    enum CameraType
+    {
+        lookat,
+        firstperson
+    };
     CameraType type = CameraType::lookat;
 
     glm::float3 rotation = glm::float3();
