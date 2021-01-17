@@ -14,8 +14,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <tiny_obj_loader.h>
-
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -29,17 +27,20 @@
 #include <set>
 #include <array>
 #include <unordered_map>
+
 #include <shadermanager/ShaderManager.h>
 #include "vertex.h"
 #include "renderpass.h"
 #include <scene.h>
+#include <modelloader/modelloader.h>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/viking_room.obj";
-const std::string TEXTURE_PATH = "misc/viking_room.png";
+const std::string MODEL_PATH = "misc/cube.obj";
+const std::string TEXTURE_PATH = "misc/white.jpg";
+const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -255,49 +256,22 @@ private:
 
     void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
+    std::vector<nevk::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
+    {
+        std::vector<nevk::Vertex> ret(params.size());
+        std::transform(params.begin(), params.end(), ret.begin(),
+                       [](auto& value) {
+                           return nevk::Vertex{ value.pos, value.color, value.ka, value.kd, value.ks, value.uv };
+                       });
+        return ret;
+    }
+
     void loadModel()
     {
-        tinyobj::attrib_t attrib;
-        std::vector<tinyobj::shape_t> shapes;
-        std::vector<tinyobj::material_t> materials;
-        std::string warn, err;
-
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str()))
-        {
-            throw std::runtime_error(warn + err);
-        }
-
-        std::vector<nevk::Scene::Vertex> _vertices;
-        std::vector<uint32_t> _indices;
-
-        for (const auto& shape : shapes)
-        {
-            for (const auto& index : shape.mesh.indices)
-            {
-                nevk::Scene::Vertex vertex{};
-
-                vertex.pos = {
-                    attrib.vertices[3 * index.vertex_index + 0],
-                    attrib.vertices[3 * index.vertex_index + 1],
-                    attrib.vertices[3 * index.vertex_index + 2]
-                };
-
-                vertex.uv = {
-                    attrib.texcoords[2 * index.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                };
-
-                vertex.color = { 1.0f, 1.0f, 1.0f };
-                _indices.push_back(_vertices.size());
-                _vertices.push_back(vertex);
-            }
-        }
-
-        uint32_t meshId = mScene.createMesh(_vertices, _indices);
-        uint32_t matId = mScene.createMaterial(glm::float4(1.0));
-        glm::float4x4 transform{ 1.0f };
-        glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-        uint32_t instId = mScene.createInstance(meshId, matId, transform);
+        nevk::Model testmodel;
+        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
+        vertices = convertVerticesToRender(testmodel.getVertices());
+        indices = testmodel.getIndices();
     }
 
     void createVertexBuffer();

@@ -41,12 +41,14 @@ private:
     std::set<uint32_t> mDirtyInstances;
 
 public:
-    struct Vertex
+      struct Vertex
     {
         glm::float3 pos;
-        glm::float3 normal;
-        glm::float2 uv; // hold the texture coordinate
         glm::float3 color;
+        glm::float3 ka;
+        glm::float3 kd;
+        glm::float3 ks;
+        glm::float2 uv;
     };
 
     std::vector<Vertex> mVertices;
