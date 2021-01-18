@@ -60,6 +60,31 @@ target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include
 target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/scene)
 target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
 
+# UI
+set(UI_SOURCES
+        include/ui/ui.h
+        src/ui/ui.cpp
+
+        #		 Imgui
+        external/imgui/src/imgui.cpp
+        external/imgui/src/imgui_demo.cpp
+        external/imgui/src/imgui_draw.cpp
+        external/imgui/src/imgui_widgets.cpp
+        external/imgui/src/imgui_impl_vulkan.cpp
+        external/imgui/src/imgui_impl_glfw.cpp)
+set(UILIB_NAME ui)
+add_library(${UILIB_NAME} OBJECT ${UI_SOURCES})
+target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ui)
+target_include_directories(${UILIB_NAME} PRIVATE external/imgui/include)
+#target_include_directories(${UILIB_NAME} PRIVATE external/imgui/src) #
+target_include_directories(${UILIB_NAME} PRIVATE external/glfw/include)
+target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
+## Vulkan
+target_include_directories(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
+
+
 # Resource Manager lib
 set(RESMNGR_SOURCES
 	include/resourcemanager/resourcemanager.h
@@ -133,7 +158,7 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${MODELLIB_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME})  # Link the executable to library (if it uses it).
 #target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 # Set working directory
@@ -144,12 +169,12 @@ elseif (APPLE)
 endif()
 
 # Create symbolic links in final directory before building
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+#add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
 	COMMAND ${CMAKE_COMMAND} -E create_symlink
 		"${CMAKE_SOURCE_DIR}/shaders"
 		"${OUTPUT_DIRECTORY}/shaders"
 )
-add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+#add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
 	COMMAND ${CMAKE_COMMAND} -E create_symlink
 		"${CMAKE_SOURCE_DIR}/misc"
 		"${OUTPUT_DIRECTORY}/misc"
