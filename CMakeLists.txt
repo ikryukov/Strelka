@@ -62,10 +62,13 @@ target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
 
 # UI
 set(UI_SOURCES
-        src/ui/test1.cpp include/ui/test1.h
-        include/ui/window.h src/ui/window.cpp
+        include/ui/test1.h
+        src/ui/test1.cpp 
+        include/ui/window.h
+        src/ui/window.cpp
 
         #		 Imgui
+        external/imgui/include
         external/imgui/src/imgui.cpp
         external/imgui/src/imgui_demo.cpp
         external/imgui/src/imgui_draw.cpp
@@ -76,7 +79,7 @@ set(UILIB_NAME ui)
 add_library(${UILIB_NAME} OBJECT ${UI_SOURCES})
 target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ui)
-target_include_directories(${UILIB_NAME} PRIVATE external/imgui/include)
+target_include_directories(${UILIB_NAME} PUBLIC external/imgui/include)
 target_include_directories(${UILIB_NAME} PRIVATE external/glfw/include)
 target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
 ## Vulkan
@@ -152,6 +155,7 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${RESMNGR_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${UILIB_NAME})
 #target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
