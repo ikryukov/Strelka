@@ -47,6 +47,11 @@ void Render::initVulkan()
 
     createCommandBuffers();
     createSyncObjects();
+
+}
+
+void Render::initImgui(){  /////////////////////////////////
+    nevk::ImGuiManager::Init();
 }
 
 void Render::mainLoop()
@@ -81,6 +86,9 @@ void Render::cleanupSwapChain()
 
 void Render::cleanup()
 {
+    // shut ImGui down ///////////////////////
+    nevk::ImGuiManager::Shutdown(); ////////////////////
+
     cleanupSwapChain();
 
     mPass.onDestroy();
