@@ -62,10 +62,11 @@ target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
 
 # UI
 set(UI_SOURCES
-        src/ui/test1.cpp include/ui/test1.h
-        include/ui/window.h src/ui/window.cpp
+        include/ui/ui.h
+        src/ui/ui.cpp
 
         #		 Imgui
+        external/imgui/include
         external/imgui/src/imgui.cpp
         external/imgui/src/imgui_demo.cpp
         external/imgui/src/imgui_draw.cpp
@@ -76,7 +77,7 @@ set(UILIB_NAME ui)
 add_library(${UILIB_NAME} OBJECT ${UI_SOURCES})
 target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ui)
-target_include_directories(${UILIB_NAME} PRIVATE external/imgui/include)
+target_include_directories(${UILIB_NAME} PUBLIC external/imgui/include)
 target_include_directories(${UILIB_NAME} PRIVATE external/glfw/include)
 target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
 ## Vulkan
@@ -152,6 +153,7 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${RESMNGR_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${UILIB_NAME})
 #target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
@@ -167,17 +169,17 @@ elseif (APPLE)
     set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_SCHEME_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
 endif ()
 
-# Create symbolic links in final directory before building
+## Create symbolic links in final directory before building
 #add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-#	COMMAND ${CMAKE_COMMAND} -E create_symlink
-#		"${CMAKE_SOURCE_DIR}/shaders"
-#		"${OUTPUT_DIRECTORY}/shaders"
-#)
+#        COMMAND ${CMAKE_COMMAND} -E create_symlink
+#        "${CMAKE_SOURCE_DIR}/shaders"
+#        "${OUTPUT_DIRECTORY}/shaders"
+#        )
 #add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-#	COMMAND ${CMAKE_COMMAND} -E create_symlink
-#		"${CMAKE_SOURCE_DIR}/misc"
-#		"${OUTPUT_DIRECTORY}/misc"
-#)
+#        COMMAND ${CMAKE_COMMAND} -E create_symlink
+#        "${CMAKE_SOURCE_DIR}/misc"
+#        "${OUTPUT_DIRECTORY}/misc"
+#        )
 
 # Copy slang dlls to final directory after building
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

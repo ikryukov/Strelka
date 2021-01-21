@@ -34,7 +34,7 @@
 #include <scene/scene.h>
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
-#include <ui/test1.h>                                  /////////////////////////////////////////////////
+#include <ui/ui.h>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -105,8 +105,6 @@ public:
     {
         initWindow();
         initVulkan();
-        //init imgui
-        initImgui();  /////////////////
         mainLoop();
         cleanup();
     }
@@ -178,6 +176,7 @@ private:
 
     bool framebufferResized = false;
 
+    nevk::Ui mUi; ///////////////////////////////
     nevk::ShaderManager mShaderManager;
     nevk::Scene mScene;
 
@@ -210,8 +209,6 @@ private:
     }
 
     void initVulkan();
-
-    static void initImgui();  /////////////////////////////////////
 
     void mainLoop();
 

@@ -27,10 +27,29 @@ void Render::initVulkan()
     createDescriptorPool();
 
     createCommandPool();
+    createCommandBuffers();
+    createSyncObjects();
+
     createDepthResources();
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
+
+    QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
+
+    ImGui_ImplVulkan_InitInfo init_info{};
+    init_info.DescriptorPool = descriptorPool;
+    init_info.Device = device;
+    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
+    init_info.Instance = instance;
+    init_info.MinImageCount = 2;
+    init_info.PhysicalDevice = physicalDevice;
+    init_info.Queue = graphicsQueue;
+    init_info.QueueFamily = indicesFamily.graphicsFamily.value();
+
+    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
+    mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
+    //    mUi.updateImGui(window);
 
     mPass.setFrameBufferFormat(swapChainImageFormat);
     mPass.setDepthBufferFormat(findDepthFormat());
@@ -44,14 +63,6 @@ void Render::initVulkan()
     loadModel();
     createVertexBuffer();
     createIndexBuffer();
-
-    createCommandBuffers();
-    createSyncObjects();
-
-}
-
-void Render::initImgui(){  /////////////////////////////////
-    nevk::ImGuiManager::Init();
 }
 
 void Render::mainLoop()
@@ -86,9 +97,6 @@ void Render::cleanupSwapChain()
 
 void Render::cleanup()
 {
-    // shut ImGui down ///////////////////////
-    nevk::ImGuiManager::Shutdown(); ////////////////////
-
     cleanupSwapChain();
 
     mPass.onDestroy();
@@ -652,19 +660,26 @@ void Render::createIndexBuffer()
 
 void Render::createDescriptorPool()
 {
-    std::array<VkDescriptorPoolSize, 3> poolSizes{};
-    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-    poolSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-    poolSizes[2].type = VK_DESCRIPTOR_TYPE_SAMPLER;
-    poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+    VkDescriptorPoolSize pool_sizes[] = {
+        { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+    };
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-    poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    poolInfo.poolSizeCount = sizeof(pool_sizes) / sizeof(VkDescriptorPoolSize);
+    poolInfo.pPoolSizes = pool_sizes;
+    poolInfo.maxSets = 1000 * poolInfo.poolSizeCount;
 
     if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
     {
@@ -738,6 +753,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mPass.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mUi.render(cmd, imageIndex);
 }
 
 void Render::createCommandBuffers()
@@ -795,6 +811,33 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
+
+    // Start the Dear ImGui frame //////////////////////
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ////////////////////////
+
+    char windowTitle[255] = "Just do it!";
+    ImGui::Begin("Sample window"); // begin window
+
+    // Window title text edit
+    ImGui::InputText("Window title", windowTitle, 255);
+
+    if (ImGui::Button("Change"))
+    {
+        // this code gets if user clicks on the button
+        // yes, you could have written if(ImGui::InputText(...))
+        // but I do this to show how buttons work :)
+        glfwSetWindowTitle(window, windowTitle);
+    }
+
+    ImGui::End(); // end window
+    //////////////////////
+    //    {
+    //        bool show_demo_window = true;
+    //        ImGui::ShowDemoWindow(&show_demo_window);
+    //    }
 
     mPass.updateUniformBuffer(imageIndex);
 
