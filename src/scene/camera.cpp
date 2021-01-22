@@ -6,7 +6,7 @@ void Camera::updateViewMatrix()
     glm::float4x4 rotM = glm::float4x4(1.0f);
     glm::float4x4 transM;
 
-    rotM = glm::rotate(rotM, glm::radians(rotation.x), glm::float3(1.0f, 0.0f, 0.0f)); // ??
+    rotM = glm::rotate(rotM, glm::radians(rotation.x), glm::float3(1.0f, 0.0f, 0.0f));
     rotM = glm::rotate(rotM, glm::radians(rotation.y), glm::float3(0.0f, 1.0f, 0.0f));
     rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::float3(0.0f, 0.0f, 1.0f));
 

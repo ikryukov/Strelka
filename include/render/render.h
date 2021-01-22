@@ -181,11 +181,12 @@ private:
     {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
         window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         glfwSetKeyCallback(window, keyCallback);
+        glfwSetMouseButtonCallback(window, mouseButtonCallback);
+        glfwSetScrollCallback(window, scrollCallback);
     }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
@@ -194,15 +195,97 @@ private:
         app->framebufferResized = true;
     }
 
+
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        nevk::Scene mScene = app->getScene();
+        Camera mCamera = mScene.getCamera();
+        
+        static auto startTime = std::chrono::high_resolution_clock::now();
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
         if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
         {
             // app->createGraphicsPipeline();
             // app->createCommandBuffers();
             // std::cout << "Shaders were reloaded";
         }
+        if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+        {
+            mCamera.keys.up = true;
+            mCamera.update(time);
+            //
+            mCamera.keys.up = false;
+        }
+        if (key == GLFW_KEY_E && action == GLFW_PRESS)
+        {
+            mCamera.keys.down = true;
+            mCamera.update(time);
+            //
+            mCamera.keys.down = false;
+        }
+        if (key == GLFW_KEY_W && action == GLFW_PRESS || key == GLFW_KEY_UP && action == GLFW_PRESS)
+        {
+            mCamera.keys.left = true;
+            mCamera.update(time);
+            //
+            mCamera.keys.left = false;
+        }
+        if (key == GLFW_KEY_S && action == GLFW_PRESS || key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+        {
+            mCamera.keys.right = true;
+            mCamera.update(time);
+            //
+            mCamera.keys.right = false;
+        }
+        if (key == GLFW_KEY_A && action == GLFW_PRESS || key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+        {
+            mCamera.keys.left = true;
+            mCamera.update(time);
+            //
+            mCamera.keys.left = false;
+        }
+        if (key == GLFW_KEY_D && action == GLFW_PRESS || key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+        {
+            mCamera.keys.right = true;
+            mCamera.update(time);
+            //
+            mCamera.keys.right = false;
+        }
+    }
+
+    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+    {
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        nevk::Scene mScene = app->getScene();
+        Camera mCamera = mScene.getCamera();
+        if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+        {
+            mCamera.rotate(glm::float3(mCamera.rotation));
+        }
+    }
+
+    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+    {
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        nevk::Scene mScene = app->getScene();
+        Camera mCamera = mScene.getCamera();
+        if (yoffset < 0)
+        {
+          
+        }
+        if (xoffset > 0)
+        {
+        
+        }
+    }
+    
+    nevk::Scene& getScene()
+    {
+        return this->mScene;
     }
 
     void initVulkan();
