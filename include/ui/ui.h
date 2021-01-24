@@ -19,12 +19,6 @@ namespace nevk
 class Ui
 {
 public:
-    Ui()
-    {
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-    }
-
     ~Ui()
     {
         ImGui::DestroyContext();
