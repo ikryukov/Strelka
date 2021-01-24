@@ -171,15 +171,15 @@ endif ()
 
 # Create symbolic links in final directory before building
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-	COMMAND ${CMAKE_COMMAND} -E create_symlink
-		"${CMAKE_SOURCE_DIR}/shaders"
-		"${OUTPUT_DIRECTORY}/shaders"
-)
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        "${CMAKE_SOURCE_DIR}/shaders"
+        "${OUTPUT_DIRECTORY}/shaders"
+        )
 add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
-	COMMAND ${CMAKE_COMMAND} -E create_symlink
-		"${CMAKE_SOURCE_DIR}/misc"
-		"${OUTPUT_DIRECTORY}/misc"
-)
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        "${CMAKE_SOURCE_DIR}/misc"
+        "${OUTPUT_DIRECTORY}/misc"
+        )
 
 # Copy slang dlls to final directory after building
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

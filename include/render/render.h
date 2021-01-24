@@ -36,8 +36,8 @@
 #include <resourcemanager/resourcemanager.h>
 #include <ui/ui.h>
 
-const uint32_t WIDTH = 800;
-const uint32_t HEIGHT = 600;
+const uint32_t WIDTH = 2560;
+const uint32_t HEIGHT = 2048;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
@@ -111,6 +111,7 @@ public:
 
 private:
     GLFWwindow* window;
+    ImGui_ImplVulkan_InitInfo init_info{};
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -128,6 +129,7 @@ private:
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkFormat mFrameBufferFormat;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -185,7 +187,8 @@ private:
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example",  nullptr, nullptr);
+//        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example",  glfwGetPrimaryMonitor(), nullptr);  // for full screen
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         glfwSetKeyCallback(window, keyCallback);

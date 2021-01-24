@@ -37,7 +37,7 @@ void Render::initVulkan()
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
 
-    ImGui_ImplVulkan_InitInfo init_info{};
+    //    ImGui_ImplVulkan_InitInfo init_info{};
     init_info.DescriptorPool = descriptorPool;
     init_info.Device = device;
     init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
@@ -100,6 +100,7 @@ void Render::cleanup()
     cleanupSwapChain();
 
     mPass.onDestroy();
+    mUi.onDestroy();
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
@@ -158,6 +159,7 @@ void Render::recreateSwapChain()
     createDepthResources();
 
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
+    mUi.onResize(init_info, device, swapChainImageViews, width, height);
 }
 
 void Render::createInstance()
@@ -812,33 +814,7 @@ void Render::drawFrame()
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    // Start the Dear ImGui frame //////////////////////
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-    ////////////////////////
-
-    char windowTitle[255] = "Just do it!";
-    ImGui::Begin("Sample window"); // begin window
-
-    // Window title text edit
-    ImGui::InputText("Window title", windowTitle, 255);
-
-    if (ImGui::Button("Change"))
-    {
-        // this code gets if user clicks on the button
-        // yes, you could have written if(ImGui::InputText(...))
-        // but I do this to show how buttons work :)
-        glfwSetWindowTitle(window, windowTitle);
-    }
-
-    ImGui::End(); // end window
-    //////////////////////
-    //    {
-    //        bool show_demo_window = true;
-    //        ImGui::ShowDemoWindow(&show_demo_window);
-    //    }
-
+    mUi.updateUI(window);
     mPass.updateUniformBuffer(imageIndex);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
