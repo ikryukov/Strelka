@@ -23,12 +23,6 @@ Render initVK(){
     r.createCommandBuffers();
     r.createSyncObjects();
 
-    r.createDepthResources();
-    r.createTextureImage();
-    r.createTextureImageView();
-    r.createTextureSampler();
-
-
     return r;
 }
 
