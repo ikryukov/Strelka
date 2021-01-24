@@ -50,7 +50,6 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, G
 {
     wd.Width = width;
     wd.Height = height;
-
     createVkRenderPass(init_info, framebufferFormat);
 
     //    Setup Dear ImGui context
@@ -162,9 +161,10 @@ void Ui::setDarkThemeColors()
     style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25f, 1.00f, 0.00f, 0.43f);
     style->Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(1.00f, 0.98f, 0.95f, 0.73f);
 }
-void Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
+bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
 {
     mFrameBuffers.resize(3);
+    VkResult err;
 
     for (size_t i = 0; i < 3; i++)
     {
@@ -181,9 +181,11 @@ void Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
         framebufferInfo.height = height;
         framebufferInfo.layers = 1;
 
-        VkResult err = vkCreateFramebuffer(device, &framebufferInfo, nullptr, &mFrameBuffers[i]);
+        err = vkCreateFramebuffer(device, &framebufferInfo, nullptr, &mFrameBuffers[i]);
         check_vk_result(err);
     }
+
+    return err == 0;
 }
 
 void Ui::updateUI(GLFWwindow* window)
