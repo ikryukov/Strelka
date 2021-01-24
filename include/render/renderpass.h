@@ -4,6 +4,7 @@
 #include <vector>
 #include <array>
 #include <resourcemanager.h>
+#include <glm/gtx/compatibility.hpp>
 
 namespace nevk
 {
@@ -135,7 +136,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, glm::mat4 perspective, glm::mat4 view);
+    void updateUniformBuffer(uint32_t currentImage, glm::float4x4 perspective, glm::float4x4 view);
 
     RenderPass(/* args */);
     ~RenderPass();

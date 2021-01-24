@@ -25,7 +25,7 @@ void Camera::updateViewMatrix()
 
 bool Camera::moving()
 {
-    return keys.left || keys.right || keys.up || keys.down;
+    return keys.left || keys.right || keys.up || keys.down || keys.forward || keys.back;
 }
 
 float Camera::getNearClip()
@@ -104,7 +104,10 @@ void Camera::update(float deltaTime)
                 position -= glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * moveSpeed;
             if (keys.right)
                 position += glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * moveSpeed;
-
+            if (keys.forward)
+              position += glm::normalize(glm::cross( camFront, glm::float3(1.0f, 0.0f, 0.0f))) * moveSpeed;
+            if (keys.back)
+              position -= glm::normalize(glm::cross(camFront, glm::float3(1.0f, 0.0f, 0.0f))) * moveSpeed;
             updateViewMatrix();
         }
     }

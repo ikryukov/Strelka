@@ -199,63 +199,58 @@ private:
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene mScene = app->getScene();
-        Camera mCamera = mScene.getCamera();
+        nevk::Scene* mScene = &app->getScene();
+        Camera* mCamera = &mScene->getCamera();
 
         if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
         {
-
+          //
         }
         if (key == GLFW_KEY_Q && action == GLFW_PRESS)
         {
-            mCamera.keys.up = true;
+            mCamera->keys.forward = true;
         }
         if (key == GLFW_KEY_E && action == GLFW_PRESS)
         {
-            mCamera.keys.down = true;
+            mCamera->keys.back = true;
         }
         if (key == GLFW_KEY_W && action == GLFW_PRESS || key == GLFW_KEY_UP && action == GLFW_PRESS)
         {
-            mCamera.keys.left = true;
+            mCamera->keys.up = true;
         }
         if (key == GLFW_KEY_S && action == GLFW_PRESS || key == GLFW_KEY_DOWN && action == GLFW_PRESS)
         {
-            mCamera.keys.right = true;
+            mCamera->keys.down = true;
         }
         if (key == GLFW_KEY_A && action == GLFW_PRESS || key == GLFW_KEY_LEFT && action == GLFW_PRESS)
         {
-            mCamera.keys.left = true;
+            mCamera->keys.left = true;
         }
         if (key == GLFW_KEY_D && action == GLFW_PRESS || key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
         {
-            mCamera.keys.right = true;
+            mCamera->keys.right = true;
         }
     }
 
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene mScene = app->getScene();
-        Camera mCamera = mScene.getCamera();
-       /* if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+        nevk::Scene* mScene = &app->getScene();
+        Camera* mCamera = &mScene->getCamera();
+        if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
         {
-            mCamera.translate(glm::vec3(-0.0f, 0.0f, 100 * .005f * mCamera.movementSpeed));
-        }*/
+          mCamera->rotate(glm::vec3(10 * mCamera->rotationSpeed, 10 * mCamera->rotationSpeed, 0.0f));
+        }
     }
 
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene mScene = app->getScene();
-        Camera mCamera = mScene.getCamera();
-       /* if (yoffset < 0)
-        {
-          
-        }
-        if (xoffset > 0)
-        {
-        
-        }*/
+        nevk::Scene* mScene = &app->getScene();
+        Camera* mCamera = &mScene->getCamera();
+
+        mCamera->translate(glm::vec3(0.0f, 0.0f,
+            - yoffset * mCamera->movementSpeed));
     }
     
     nevk::Scene& getScene()

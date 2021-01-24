@@ -42,6 +42,8 @@ public:
         bool right = false;
         bool up = false;
         bool down = false;
+        bool forward = false;
+        bool back = false;
     } keys;
 
     bool moving();

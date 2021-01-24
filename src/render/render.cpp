@@ -793,14 +793,17 @@ void Render::drawFrame()
     auto currentTime = std::chrono::high_resolution_clock::now();
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-    this->getScene().getCamera().update(time);
+    Camera& cam = getScene().getCamera();
+    cam.update(time);
 
-    mPass.updateUniformBuffer(imageIndex, this->mScene.getCamera().matrices.perspective, this->mScene.getCamera().matrices.view);
+    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
 
-    this->getScene().getCamera().keys.up = false;
-    this->getScene().getCamera().keys.down = false;
-    this->getScene().getCamera().keys.left = false;
-    this->getScene().getCamera().keys.right = false;
+    cam.keys.up = false;
+    cam.keys.down = false;
+    cam.keys.left = false;
+    cam.keys.right = false;
+    cam.keys.forward = false;
+    cam.keys.back = false;
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);

@@ -385,7 +385,7 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, glm::mat4 mPerspective, glm::mat4 mView)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, glm::float4x4 mPerspective, glm::float4x4 mView)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -395,13 +395,10 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, glm::mat4 mPerspecti
     UniformBufferObject ubo{};
     auto model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     auto view = mView;
-      //glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     auto proj = mPerspective;
-      //glm::perspective(glm::radians(45.0f), mWidth / (float)mHeight, 0.1f, 10.0f);
     proj[1][1] *= -1;
 
     ubo.modelViewProj = proj * view * model;
-
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
