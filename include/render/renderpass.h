@@ -135,7 +135,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage);
+    void updateUniformBuffer(uint32_t currentImage, glm::mat4 perspective, glm::mat4 view);
 
     RenderPass(/* args */);
     ~RenderPass();

@@ -23,16 +23,16 @@ public:
     CameraType type = CameraType::firstperson;
 
     glm::float3 rotation;
-    glm::float3 position = glm::float3(2.0f, 2.0f, 2.0f);
+    glm::float3 position;
 
-    float rotationSpeed = 1.0f;
-    float movementSpeed = 1.0f;
+    float rotationSpeed;
+    float movementSpeed;
 
     bool updated = false;
 
     struct
     {
-        glm::float4x4 perspective = glm::perspective(glm::radians(45.0f), 1280 / (float)720, 0.1f, 10.0f);
+        glm::float4x4 perspective;
         glm::float4x4 view;
     } matrices;
 

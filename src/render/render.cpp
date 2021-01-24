@@ -787,8 +787,20 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
+   
+    static auto startTime = std::chrono::high_resolution_clock::now();
 
-    mPass.updateUniformBuffer(imageIndex);
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    this->getScene().getCamera().update(time);
+
+    mPass.updateUniformBuffer(imageIndex, this->mScene.getCamera().matrices.perspective, this->mScene.getCamera().matrices.view);
+
+    this->getScene().getCamera().keys.up = false;
+    this->getScene().getCamera().keys.down = false;
+    this->getScene().getCamera().keys.left = false;
+    this->getScene().getCamera().keys.right = false;
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);

@@ -58,7 +58,14 @@ public:
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
 
-    Scene() = default;
+    Scene() {
+      mCamera.type = Camera::CameraType::firstperson;
+      mCamera.setPerspective(45.0f, (float) 800 / (float)600, 0.1f, 256.0f);
+      mCamera.rotationSpeed = 0.25f;
+      mCamera.movementSpeed = 0.1f;
+      mCamera.setPosition({ 0.0f, -1.0f, 4.0f });
+      mCamera.setRotation({ 0.0f, 0.0f, 0.0f });
+    }
 
     ~Scene() = default;
 
