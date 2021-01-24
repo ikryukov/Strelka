@@ -46,7 +46,7 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 }
 
 
-void Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
+bool Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
 {
     wd.Width = width;
     wd.Height = height;
@@ -71,15 +71,17 @@ void Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, G
 
     // set debug callback
     init_info.CheckVkResultFn = check_vk_result;
-    ImGui_ImplVulkan_Init(&init_info, wd.RenderPass);
+    bool ret = ImGui_ImplVulkan_Init(&init_info, wd.RenderPass);
 
     // Upload Fonts
     uploadFonts(init_info, command_pool, command_buffer);
 
     setDarkThemeColors();
+
+    return ret;
 }
 
-void Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer)
+bool Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer)
 {
     // Use any command queue
     VkResult err = vkResetCommandPool(init_info.Device, command_pool, 0);
@@ -90,7 +92,7 @@ void Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_
     err = vkBeginCommandBuffer(command_buffer, &begin_info);
     check_vk_result(err);
 
-    ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+    bool ret = ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
 
     VkSubmitInfo end_info = {};
     end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -104,6 +106,8 @@ void Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_
     err = vkDeviceWaitIdle(init_info.Device);
     check_vk_result(err);
     ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+    return ret;
 }
 
 void Ui::setDarkThemeColors()
