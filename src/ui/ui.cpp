@@ -48,9 +48,10 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 
 bool Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
 {
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
     wd.Width = width;
     wd.Height = height;
-
     createVkRenderPass(init_info, framebufferFormat);
 
     //    Setup Dear ImGui context
