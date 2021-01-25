@@ -178,7 +178,7 @@ private:
 
     bool framebufferResized = false;
 
-    nevk::Ui mUi; ///////////////////////////////
+    nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
     nevk::Scene mScene;
 

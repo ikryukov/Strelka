@@ -46,7 +46,7 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 }
 
 
-void Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
+bool Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
 {
     wd.Width = width;
     wd.Height = height;
@@ -54,8 +54,9 @@ void Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, G
     createVkRenderPass(init_info, framebufferFormat);
 
     //    Setup Dear ImGui context
-    //    IMGUI_CHECKVERSION();
-    //    ImGui::CreateContext(); // //this initializes the core structures of imgui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext(); // //this initializes the core structures of imgui
+
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(width, height);
     io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
@@ -71,15 +72,17 @@ void Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, G
 
     // set debug callback
     init_info.CheckVkResultFn = check_vk_result;
-    ImGui_ImplVulkan_Init(&init_info, wd.RenderPass);
+    bool ret = ImGui_ImplVulkan_Init(&init_info, wd.RenderPass);
 
     // Upload Fonts
     uploadFonts(init_info, command_pool, command_buffer);
 
     setDarkThemeColors();
+
+    return ret;
 }
 
-void Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer)
+bool Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer)
 {
     // Use any command queue
     VkResult err = vkResetCommandPool(init_info.Device, command_pool, 0);
@@ -90,7 +93,7 @@ void Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_
     err = vkBeginCommandBuffer(command_buffer, &begin_info);
     check_vk_result(err);
 
-    ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+    bool ret = ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
 
     VkSubmitInfo end_info = {};
     end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -104,6 +107,8 @@ void Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_
     err = vkDeviceWaitIdle(init_info.Device);
     check_vk_result(err);
     ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+    return ret;
 }
 
 void Ui::setDarkThemeColors()
@@ -158,9 +163,11 @@ void Ui::setDarkThemeColors()
     style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(0.25f, 1.00f, 0.00f, 0.43f);
     style->Colors[ImGuiCol_ModalWindowDarkening] = ImVec4(1.00f, 0.98f, 0.95f, 0.73f);
 }
-void Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
+
+bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
 {
     mFrameBuffers.resize(3);
+    VkResult err;
 
     for (size_t i = 0; i < 3; i++)
     {
@@ -177,9 +184,10 @@ void Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
         framebufferInfo.height = height;
         framebufferInfo.layers = 1;
 
-        VkResult err = vkCreateFramebuffer(device, &framebufferInfo, nullptr, &mFrameBuffers[i]);
+        err = vkCreateFramebuffer(device, &framebufferInfo, nullptr, &mFrameBuffers[i]);
         check_vk_result(err);
     }
+    return err == 0;
 }
 
 void Ui::updateUI(GLFWwindow* window)
@@ -246,7 +254,7 @@ void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat frameb
     VkAttachmentDescription attachment = {};
     attachment.format = framebufferFormat;
     attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD; //wd.ClearEnable ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; //wd.ClearEnable ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -278,19 +286,19 @@ void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat frameb
     check_vk_result(err);
 }
 
-void Ui::onResize(ImGui_ImplVulkan_InitInfo init_info, VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
+void Ui::onResize(ImGui_ImplVulkan_InitInfo init_info, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
 {
     wd.Width = width;
     wd.Height = height;
 
     for (auto& framebuffer : mFrameBuffers)
     {
-        vkDestroyFramebuffer(device, framebuffer, nullptr);
+        vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
     }
-    vkDestroyRenderPass(device, wd.RenderPass, nullptr);
+    vkDestroyRenderPass(mDevice, wd.RenderPass, nullptr);
 
     createVkRenderPass(init_info, mFrameBufferFormat);
-    createFrameBuffers(device, imageViews, wd.Width, wd.Height);
+    createFrameBuffers(mDevice, imageViews, wd.Width, wd.Height);
 }
 
 void Ui::onDestroy() const

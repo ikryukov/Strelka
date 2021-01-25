@@ -49,7 +49,6 @@ void Render::initVulkan()
 
     mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
-    //    mUi.updateImGui(window);
 
     mPass.setFrameBufferFormat(swapChainImageFormat);
     mPass.setDepthBufferFormat(findDepthFormat());
@@ -159,7 +158,7 @@ void Render::recreateSwapChain()
     createDepthResources();
 
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
-    mUi.onResize(init_info, device, swapChainImageViews, width, height);
+    mUi.onResize(init_info, swapChainImageViews, width, height);
 }
 
 void Render::createInstance()
@@ -826,14 +825,14 @@ void Render::drawFrame()
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
+    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo); ////////////
 
     recordCommandBuffer(cmdBuff, imageIndex);
 
-    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to record command buffer!");
-    }
+//    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
+//    {
+//        throw std::runtime_error("failed to record command buffer!");
+//    }
 
     if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
     {

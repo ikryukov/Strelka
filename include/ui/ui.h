@@ -21,8 +21,6 @@ class Ui
 public:
     Ui()
     {
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
     }
 
     ~Ui()
@@ -42,14 +40,14 @@ public:
         //        vkDestroyDescriptorSetLayout(device->logicalDevice, descriptorSetLayout, nullptr);
     }
 
-    void init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
+    bool init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
     void updateUI(GLFWwindow* window);
     void render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-    void createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
+    bool createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat);
-    void uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer);
+    bool uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer);
     static void setDarkThemeColors();
-    void onResize(ImGui_ImplVulkan_InitInfo init_info, VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
+    void onResize(ImGui_ImplVulkan_InitInfo init_info, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void onDestroy() const;
 
 private:
