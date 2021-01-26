@@ -30,6 +30,15 @@ public:
 
     bool updated = false;
 
+    struct MouseButtons
+    {
+        bool left = false;
+        bool right = false;
+        bool middle = false;
+    } mouseButtons;
+
+    glm::float2 mousePos;
+
     struct
     {
         glm::float4x4 perspective;

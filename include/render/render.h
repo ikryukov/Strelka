@@ -186,6 +186,7 @@ private:
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         glfwSetKeyCallback(window, keyCallback);
         glfwSetMouseButtonCallback(window, mouseButtonCallback);
+        glfwSetCursorPosCallback(window, handleMouseMoveCallback);
         glfwSetScrollCallback(window, scrollCallback);
     }
 
@@ -204,7 +205,7 @@ private:
 
         if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
         {
-          //
+            //
         }
         if (key == GLFW_KEY_Q && action == GLFW_PRESS)
         {
@@ -235,12 +236,61 @@ private:
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& mScene = app->getScene();
-        Camera& mCamera = mScene.getCamera();
-        if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS)
+        nevk::Scene& scene = app->getScene();
+        Camera& camera = scene.getCamera();
+        if (button == GLFW_MOUSE_BUTTON_RIGHT)
         {
-            mCamera.rotate(glm::vec3(mCamera.rotationSpeed, mCamera.rotationSpeed, 0.0f));
+            if (action == GLFW_PRESS)
+            {
+                camera.mouseButtons.right = true;
+            }
+            else if (action == GLFW_RELEASE)
+            {
+                camera.mouseButtons.right = false;
+            }
         }
+        else if (button == GLFW_MOUSE_BUTTON_LEFT)
+        {
+            if (action == GLFW_PRESS)
+            {
+                camera.mouseButtons.left = true;
+            }
+            else if (action == GLFW_RELEASE)
+            {
+                camera.mouseButtons.left = false;
+            }
+        }
+    }
+
+    static void handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
+    {
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        nevk::Scene& scene = app->getScene();
+        Camera& camera = scene.getCamera();
+        const float dx = camera.mousePos.x - xpos;
+        const float dy = camera.mousePos.y - ypos;
+        // Uncomment after Imgui merge
+        // ImGuiIO& io = ImGui::GetIO();
+        // bool handled = io.WantCaptureMouse;
+        // if (handled)
+        // {
+        //     mousePos = glm::vec2((float)x, (float)y);
+        //     return;
+        // }
+
+        if (camera.mouseButtons.left)
+        {
+            camera.rotate(glm::float3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
+        }
+        if (camera.mouseButtons.right)
+        {
+            camera.translate(glm::float3(-0.0f, 0.0f, dy * .005f * camera.movementSpeed));
+        }
+        if (camera.mouseButtons.middle)
+        {
+            camera.translate(glm::float3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+        }
+        camera.mousePos = glm::float2((float)xpos, (float)ypos);
     }
 
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
@@ -250,9 +300,9 @@ private:
         Camera& mCamera = mScene.getCamera();
 
         mCamera.translate(glm::vec3(0.0f, 0.0f,
-            - yoffset * mCamera.movementSpeed));
+                                    -yoffset * mCamera.movementSpeed));
     }
-    
+
     nevk::Scene& getScene()
     {
         return this->mScene;
