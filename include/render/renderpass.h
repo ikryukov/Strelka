@@ -136,7 +136,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, glm::float4x4 perspective, glm::float4x4 view);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view);
 
     RenderPass(/* args */);
     ~RenderPass();

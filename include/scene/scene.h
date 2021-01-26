@@ -61,7 +61,7 @@ public:
     Scene() {
       mCamera.type = Camera::CameraType::firstperson;
       mCamera.setPerspective(45.0f, (float) 800 / (float)600, 0.1f, 256.0f);
-      mCamera.rotationSpeed = 0.25f;
+      mCamera.rotationSpeed = 2.5f;
       mCamera.movementSpeed = 0.1f;
       mCamera.setPosition({ 2.0f, -1.0f, 4.0f });
       mCamera.setRotation({ 0.0f, 0.0f, 0.0f });
@@ -80,6 +80,10 @@ public:
     Camera& getCamera()
     {
         return mCamera;
+    }
+    void updateCameraParams(int width, int height) 
+    {
+      mCamera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
     }
     /// <summary>
     /// Create Mesh geometry

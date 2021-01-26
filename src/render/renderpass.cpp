@@ -385,7 +385,7 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, glm::float4x4 mPerspective, glm::float4x4 mView)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& mPerspective, const glm::float4x4& mView)
 {
     static auto startTime = std::chrono::high_resolution_clock::now();
 
