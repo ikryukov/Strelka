@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <utility>
+#include <string>
 #include "ui.h"
 
 namespace nevk
@@ -48,10 +49,9 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 
 bool Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
 {
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
     wd.Width = width;
     wd.Height = height;
+
     createVkRenderPass(init_info, framebufferFormat);
 
     //    Setup Dear ImGui context
@@ -191,8 +191,11 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(GLFWwindow* window)
+//void Ui::updateUI(GLFWwindow* window)
+void Ui::updateUI(GLFWwindow* window, VkExtent2D swapChainExtent)
 {
+    ImGuiIO& io = ImGui::GetIO(); ////////////
+
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -211,6 +214,40 @@ void Ui::updateUI(GLFWwindow* window)
         glfwSetWindowTitle(window, windowTitle);
     }
     ImGui::End(); // end window
+
+    /////////////////////
+    //
+    //
+    //    auto WindowSize = ImVec2((float)swapChainExtent.width, (float)swapChainExtent.height);
+    //    ImGui::SetNextWindowSize(WindowSize, ImGuiCond_::ImGuiCond_FirstUseEver);
+    //    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_::ImGuiCond_FirstUseEver);
+    //    ImGui::NewFrame();
+    //
+    //    // render your GUI
+    //    ImGui::Begin("Hello");
+    //    ImGui::Text("%s", std::to_string(deltaTime * 1000.0).c_str());
+    //    //    bool inputImage = ImGui::InputText("Path to Image", &imageName);
+    //    //    bool logoImage = ImGui::InputText("Path to Logo", &logoImageName);
+    //    //    if (ImGui::Button("Reload")) {
+    //    //        changeImage = true;
+    //    //    }
+    //    //    ImGui::Checkbox("Show OpenCV", &showOpenCV);
+    //    //    ImGui::Checkbox("Flip Image", &flip);
+    //    ImGui::SliderFloat("Size", &sizeMultiplier, 0.0, 10.0, "%.3f", 1.0f);
+    //    ImGui::SliderFloat("Resize Window", &resize, 1.0, 10.0, "%.3f", 1.0f);
+    //    ImGui::SliderFloat("XPos", &xTrans, -1.0, 1.0, "%.3f", 1.0f);
+    //    ImGui::SliderFloat("YPos", &yTrans, -1.0, 1.0, "%.3f", 1.0f);
+    //    ImGui::SliderFloat("Alpha", &alpha, 0.0, 1.0, "%.3f", 1.0f);
+    //    ImGui::SliderFloat("Transparency", &transparency, 0.0, 1.0, "%.3f", 1.0f);
+    //    //    bool outputImage = ImGui::InputText("Save As (No file type at the end, only the name)", &outputImageName);
+    //    //    ImGui::ListBox("File format\n(single select)", &fileFormat, listbox_items, 5, 4);
+    //    //    tempOutImageName = outputImageName + listbox_items[fileFormat];
+    //    //    ImGui::Text(tempOutImageName.c_str());
+    //    //    if (ImGui::Button("Save")) {
+    //    //        writeImage = true;
+    //    //    }
+    //
+    //    ImGui::End();
 }
 
 void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)
@@ -287,10 +324,14 @@ void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat frameb
     check_vk_result(err);
 }
 
-void Ui::onResize(ImGui_ImplVulkan_InitInfo init_info, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
+void Ui::onResize(std::vector<VkImageView>& imageViews, VkExtent2D swapChainExtent, ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, uint32_t width, uint32_t height)
 {
     wd.Width = width;
     wd.Height = height;
+
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
     for (auto& framebuffer : mFrameBuffers)
     {
@@ -298,8 +339,9 @@ void Ui::onResize(ImGui_ImplVulkan_InitInfo init_info, std::vector<VkImageView>&
     }
     vkDestroyRenderPass(mDevice, wd.RenderPass, nullptr);
 
-    createVkRenderPass(init_info, mFrameBufferFormat);
-    createFrameBuffers(mDevice, imageViews, wd.Width, wd.Height);
+    init(init_info, framebufferFormat, window, command_pool, command_buffer, wd.Width = width, wd.Height);
+    createFrameBuffers(mDevice, imageViews, wd.Width = width, wd.Height);
+    updateUI(window, swapChainExtent);
 }
 
 void Ui::onDestroy() const
