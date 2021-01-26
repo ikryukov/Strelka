@@ -47,12 +47,13 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 }
 
 
-bool Ui::init(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
+bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
 {
     wd.Width = width;
     wd.Height = height;
-
+    mFrameBufferFormat = framebufferFormat;
     createVkRenderPass(init_info, framebufferFormat);
+    mInitInfo = init_info;
 
     //    Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -191,10 +192,9 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-//void Ui::updateUI(GLFWwindow* window)
-void Ui::updateUI(GLFWwindow* window, VkExtent2D swapChainExtent)
+void Ui::updateUI(GLFWwindow* window)
 {
-    ImGuiIO& io = ImGui::GetIO(); ////////////
+    ImGuiIO& io = ImGui::GetIO();
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -324,29 +324,24 @@ void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat frameb
     check_vk_result(err);
 }
 
-void Ui::onResize(std::vector<VkImageView>& imageViews, VkExtent2D swapChainExtent, ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, uint32_t width, uint32_t height)
+void Ui::onResize(ImGui_ImplVulkan_InitInfo& init_info, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
 {
     wd.Width = width;
     wd.Height = height;
 
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
-
     for (auto& framebuffer : mFrameBuffers)
     {
-        vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
+        vkDestroyFramebuffer(mInitInfo.Device, framebuffer, nullptr);
     }
-    vkDestroyRenderPass(mDevice, wd.RenderPass, nullptr);
+    vkDestroyRenderPass(mInitInfo.Device, wd.RenderPass, nullptr);
 
-    init(init_info, framebufferFormat, window, command_pool, command_buffer, wd.Width = width, wd.Height);
-    createFrameBuffers(mDevice, imageViews, wd.Width = width, wd.Height);
-    updateUI(window, swapChainExtent);
+    createVkRenderPass(init_info, mFrameBufferFormat);
+    createFrameBuffers(mInitInfo.Device, imageViews, wd.Width, wd.Height);
 }
 
 void Ui::onDestroy() const
 {
-    vkDestroyRenderPass(mDevice, wd.RenderPass, nullptr);
+    vkDestroyRenderPass(mInitInfo.Device, wd.RenderPass, nullptr);
 }
 
 } // namespace nevk
