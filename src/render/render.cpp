@@ -142,6 +142,9 @@ void Render::recreateSwapChain()
     createDepthResources();
 
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
+
+    Camera& camera = mScene.getCamera();
+    camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 }
 
 void Render::createInstance()
@@ -787,23 +790,17 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
-   
-    static auto startTime = std::chrono::high_resolution_clock::now();
+
+    static auto prevTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    double deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
+    prevTime = currentTime;
 
     Camera& cam = getScene().getCamera();
-    cam.update(time);
+    cam.update(deltaTime);
 
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
-
-    cam.keys.up = false;
-    cam.keys.down = false;
-    cam.keys.left = false;
-    cam.keys.right = false;
-    cam.keys.forward = false;
-    cam.keys.back = false;
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);

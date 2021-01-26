@@ -200,36 +200,37 @@ private:
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& mScene = app->getScene();
-        Camera& mCamera = mScene.getCamera();
+        nevk::Scene& scene = app->getScene();
+        Camera& camera = scene.getCamera();
 
-        if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
+        const bool keyState = (GLFW_PRESS == action) ? true : false;
+        switch (key)
         {
-            //
+        case GLFW_KEY_W: {
+            camera.keys.forward = keyState;
+            break;
         }
-        if (key == GLFW_KEY_Q && action == GLFW_PRESS)
-        {
-            mCamera.keys.forward = true;
+        case GLFW_KEY_S: {
+            camera.keys.back = keyState;
+            break;
         }
-        if (key == GLFW_KEY_E && action == GLFW_PRESS)
-        {
-            mCamera.keys.back = true;
+        case GLFW_KEY_A: {
+            camera.keys.left = keyState;
+            break;
         }
-        if (key == GLFW_KEY_W && action == GLFW_PRESS || key == GLFW_KEY_UP && action == GLFW_PRESS)
-        {
-            mCamera.keys.up = true;
+        case GLFW_KEY_D: {
+            camera.keys.right = keyState;
+            break;
         }
-        if (key == GLFW_KEY_S && action == GLFW_PRESS || key == GLFW_KEY_DOWN && action == GLFW_PRESS)
-        {
-            mCamera.keys.down = true;
+        case GLFW_KEY_Q: {
+            camera.keys.down = keyState;
+            break;
         }
-        if (key == GLFW_KEY_A && action == GLFW_PRESS || key == GLFW_KEY_LEFT && action == GLFW_PRESS)
-        {
-            mCamera.keys.left = true;
+        case GLFW_KEY_E: {
+            camera.keys.up = keyState;
         }
-        if (key == GLFW_KEY_D && action == GLFW_PRESS || key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
-        {
-            mCamera.keys.right = true;
+        default:
+            break;
         }
     }
 
@@ -375,6 +376,15 @@ private:
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
         vertices = convertVerticesToRender(testmodel.getVertices());
         indices = testmodel.getIndices();
+
+        Camera& camera = mScene.getCamera();
+        camera.type = Camera::CameraType::firstperson;
+
+        camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
+        camera.rotationSpeed = 0.25f;
+        camera.movementSpeed = 1.0f;
+        camera.setPosition({ 0.0f, 0.0f, 1.0f });
+        camera.setRotation({ 0.0f, 0.0f, 0.0f });
     }
 
     void createVertexBuffer();
