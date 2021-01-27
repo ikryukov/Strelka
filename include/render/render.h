@@ -188,7 +188,6 @@ private:
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
         window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
-        //        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example",  glfwGetPrimaryMonitor(), nullptr);  // for full screen
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         glfwSetKeyCallback(window, keyCallback);
