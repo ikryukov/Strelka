@@ -825,14 +825,9 @@ void Render::drawFrame()
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo); ////////////
+    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
 
     recordCommandBuffer(cmdBuff, imageIndex);
-
-//    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
-//    {
-//        throw std::runtime_error("failed to record command buffer!");
-//    }
 
     if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
     {

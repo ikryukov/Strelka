@@ -55,9 +55,9 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
     createVkRenderPass(init_info, framebufferFormat);
     mInitInfo = init_info;
 
-    //    Setup Dear ImGui context
+    // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext(); // //this initializes the core structures of imgui
+    ImGui::CreateContext(); // this initializes the core structures of imgui
 
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(width, height);
@@ -214,40 +214,6 @@ void Ui::updateUI(GLFWwindow* window)
         glfwSetWindowTitle(window, windowTitle);
     }
     ImGui::End(); // end window
-
-    /////////////////////
-    //
-    //
-    //    auto WindowSize = ImVec2((float)swapChainExtent.width, (float)swapChainExtent.height);
-    //    ImGui::SetNextWindowSize(WindowSize, ImGuiCond_::ImGuiCond_FirstUseEver);
-    //    ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_::ImGuiCond_FirstUseEver);
-    //    ImGui::NewFrame();
-    //
-    //    // render your GUI
-    //    ImGui::Begin("Hello");
-    //    ImGui::Text("%s", std::to_string(deltaTime * 1000.0).c_str());
-    //    //    bool inputImage = ImGui::InputText("Path to Image", &imageName);
-    //    //    bool logoImage = ImGui::InputText("Path to Logo", &logoImageName);
-    //    //    if (ImGui::Button("Reload")) {
-    //    //        changeImage = true;
-    //    //    }
-    //    //    ImGui::Checkbox("Show OpenCV", &showOpenCV);
-    //    //    ImGui::Checkbox("Flip Image", &flip);
-    //    ImGui::SliderFloat("Size", &sizeMultiplier, 0.0, 10.0, "%.3f", 1.0f);
-    //    ImGui::SliderFloat("Resize Window", &resize, 1.0, 10.0, "%.3f", 1.0f);
-    //    ImGui::SliderFloat("XPos", &xTrans, -1.0, 1.0, "%.3f", 1.0f);
-    //    ImGui::SliderFloat("YPos", &yTrans, -1.0, 1.0, "%.3f", 1.0f);
-    //    ImGui::SliderFloat("Alpha", &alpha, 0.0, 1.0, "%.3f", 1.0f);
-    //    ImGui::SliderFloat("Transparency", &transparency, 0.0, 1.0, "%.3f", 1.0f);
-    //    //    bool outputImage = ImGui::InputText("Save As (No file type at the end, only the name)", &outputImageName);
-    //    //    ImGui::ListBox("File format\n(single select)", &fileFormat, listbox_items, 5, 4);
-    //    //    tempOutImageName = outputImageName + listbox_items[fileFormat];
-    //    //    ImGui::Text(tempOutImageName.c_str());
-    //    //    if (ImGui::Button("Save")) {
-    //    //        writeImage = true;
-    //    //    }
-    //
-    //    ImGui::End();
 }
 
 void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)

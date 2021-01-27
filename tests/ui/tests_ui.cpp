@@ -41,7 +41,6 @@ TEST_CASE("test UI init")
     init_info.Queue = r.graphicsQueue;
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
-
     bool init = mUi->init(init_info, r.swapChainImageFormat, r.window, r.mFramesData[0].cmdPool, r.mFramesData[0].cmdBuffer, r.swapChainExtent.width, r.swapChainExtent.height);
     bool fonts = mUi->uploadFonts(init_info, r.mFramesData[0].cmdPool, r.mFramesData[0].cmdBuffer);
 
