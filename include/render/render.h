@@ -194,6 +194,8 @@ private:
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
+        nevk::Scene& mScene = app->getScene();
+        mScene.updateCameraParams(width, height);
     }
 
 
