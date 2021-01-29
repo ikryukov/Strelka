@@ -20,15 +20,24 @@ public:
         lookat,
         firstperson
     };
-    CameraType type = CameraType::lookat;
+    CameraType type = CameraType::firstperson;
 
-    glm::float3 rotation = glm::float3();
-    glm::float3 position = glm::float3();
+    glm::float3 rotation;
+    glm::float3 position;
 
-    float rotationSpeed = 1.0f;
-    float movementSpeed = 1.0f;
+    float rotationSpeed;
+    float movementSpeed;
 
     bool updated = false;
+
+    struct MouseButtons
+    {
+        bool left = false;
+        bool right = false;
+        bool middle = false;
+    } mouseButtons;
+
+    glm::float2 mousePos;
 
     struct
     {
@@ -42,6 +51,8 @@ public:
         bool right = false;
         bool up = false;
         bool down = false;
+        bool forward = false;
+        bool back = false;
     } keys;
 
     bool moving();

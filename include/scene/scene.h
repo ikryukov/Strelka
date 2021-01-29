@@ -41,7 +41,7 @@ private:
     std::set<uint32_t> mDirtyInstances;
 
 public:
-      struct Vertex
+    struct Vertex
     {
         glm::float3 pos;
         glm::float3 color;
@@ -58,7 +58,9 @@ public:
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
 
-    Scene() = default;
+    Scene()
+    {
+    }
 
     ~Scene() = default;
 
@@ -73,6 +75,10 @@ public:
     Camera& getCamera()
     {
         return mCamera;
+    }
+    void updateCameraParams(int width, int height)
+    {
+        mCamera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
     }
     /// <summary>
     /// Create Mesh geometry
