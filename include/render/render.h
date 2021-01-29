@@ -205,7 +205,7 @@ private:
         nevk::Scene& scene = app->getScene();
         Camera& camera = scene.getCamera();
 
-        const bool keyState = (GLFW_PRESS == action) ? true : false;
+        const bool keyState = ((GLFW_REPEAT || GLFW_PRESS) == action) ? true : false;
         switch (key)
         {
         case GLFW_KEY_W: {
