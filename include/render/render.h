@@ -209,11 +209,11 @@ private:
         switch (key)
         {
         case GLFW_KEY_W: {
-            camera.keys.forward = keyState;
+            camera.keys.down = keyState;
             break;
         }
         case GLFW_KEY_S: {
-            camera.keys.back = keyState;
+            camera.keys.up = keyState;
             break;
         }
         case GLFW_KEY_A: {
@@ -225,11 +225,11 @@ private:
             break;
         }
         case GLFW_KEY_Q: {
-            camera.keys.down = keyState;
+            camera.keys.forward = keyState;
             break;
         }
         case GLFW_KEY_E: {
-            camera.keys.up = keyState;
+            camera.keys.back = keyState;
         }
         default:
             break;
