@@ -31,8 +31,10 @@
 #include <shadermanager/ShaderManager.h>
 #include "vertex.h"
 #include "renderpass.h"
-#include <scene.h>
+#include <scene/scene.h>
 #include <modelloader/modelloader.h>
+#include <resourcemanager/resourcemanager.h>
+#include <ui/ui.h>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -109,6 +111,7 @@ public:
 
 private:
     GLFWwindow* window;
+    ImGui_ImplVulkan_InitInfo init_info{};
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -126,6 +129,7 @@ private:
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkFormat mFrameBufferFormat;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -174,6 +178,7 @@ private:
 
     bool framebufferResized = false;
 
+    nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
     nevk::Scene mScene;
 
