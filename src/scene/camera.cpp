@@ -89,9 +89,9 @@ void Camera::update(float deltaTime)
         if (moving())
         {
             glm::float3 camFront;
-            camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
+            camFront.x = sin(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
             camFront.y = sin(glm::radians(rotation.x));
-            camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
+            camFront.z = cos(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
             camFront = glm::normalize(camFront);
 
             float moveSpeed = deltaTime * movementSpeed;

@@ -288,11 +288,11 @@ private:
 
         if (camera.mouseButtons.left)
         {
-            camera.rotate(glm::float3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
+          camera.translate(glm::float3(-0.0f, 0.0f, dy * .005f * camera.movementSpeed));
         }
         if (camera.mouseButtons.right)
         {
-            camera.translate(glm::float3(-0.0f, 0.0f, dy * .005f * camera.movementSpeed));
+            camera.rotate(glm::float3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
         }
         if (camera.mouseButtons.middle)
         {
