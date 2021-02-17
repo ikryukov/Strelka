@@ -1,70 +1,53 @@
-#define protected public
-#define private public
 #include <render/render.h>
 #include <ui/ui.h>
 
 #include <doctest.h>
 
-Render initVK(){
+Render initVK()
+{
     Render r;
 
-    r.initWindow();
-    r.createInstance();
-    r.setupDebugMessenger();
-    r.createSurface();
-    r.pickPhysicalDevice();
-    r.createLogicalDevice();
-    r.createSwapChain();
-    r.createImageViews();
+    r.setWindow();
+    r.setInstance();
+    r.setDebugMessenger();
+    r.setSurface();
+    r.setPhysicalDevice();
+    r.setLogicalDevice();
+    r.setSwapChain();
+    r.setImageViews();
 
-    r.createDescriptorPool();
-    r.createCommandPool();
-    r.createCommandBuffers();
-    r.createSyncObjects();
+    r.setDescriptorPool();
+    r.setCommandPool();
+    r.setCommandBuffers();
+    r.setSyncObjects();
 
     return r;
 }
 
 TEST_CASE("test UI init")
 {
-    auto* mUi = new nevk::Ui();
+    nevk::Ui* mUi = new nevk::Ui();
     Render r = initVK();
 
-    QueueFamilyIndices indicesFamily = r.findQueueFamilies(r.physicalDevice);
+    QueueFamilyIndices indicesFamily = r.getQueueFamilies(r.getPhysicalDevice());
     ImGui_ImplVulkan_InitInfo init_info{};
-    init_info.DescriptorPool = r.descriptorPool;
-    init_info.Device = r.device;
+    init_info.DescriptorPool = r.getDescriptorPool();
+    init_info.Device = r.getDevice();
     init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
-    init_info.Instance = r.instance;
+    init_info.Instance = r.getInstance();
     init_info.MinImageCount = 2;
-    init_info.PhysicalDevice = r.physicalDevice;
-    init_info.Queue = r.graphicsQueue;
+    init_info.PhysicalDevice = r.getPhysicalDevice();
+    init_info.Queue = r.getGraphicsQueue();
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
-    bool init = mUi->init(init_info, r.swapChainImageFormat, r.window, r.mFramesData[0].cmdPool, r.mFramesData[0].cmdBuffer, r.swapChainExtent.width, r.swapChainExtent.height);
-    bool fonts = mUi->uploadFonts(init_info, r.mFramesData[0].cmdPool, r.mFramesData[0].cmdBuffer);
+    bool init = mUi->init(init_info, r.getSwapChainImageFormat(), r.getWindow(), r.getFramesData()[0].cmdPool, r.getFramesData()[0].cmdBuffer, r.getSwapChainExtent().width, r.getSwapChainExtent().height);
+    bool fonts = mUi->uploadFonts(init_info, r.getFramesData()[0].cmdPool, r.getFramesData()[0].cmdBuffer);
 
     CHECK(init == true);
     CHECK(fonts == true);
-}
 
-TEST_CASE("test frame buffer creation")
-{
-    auto* mUi = new nevk::Ui();
-    Render r = initVK();
+    mUi->init(init_info, r.getSwapChainImageFormat(), r.getWindow(), r.getFramesData()[0].cmdPool, r.getFramesData()[0].cmdBuffer, r.getSwapChainExtent().width, r.getSwapChainExtent().height);
+    bool frameBuf = mUi->createFrameBuffers(r.getDevice(), r.getSwapChainImageViews(), r.getSwapChainExtent().width, r.getSwapChainExtent().height);
 
-    QueueFamilyIndices indicesFamily = r.findQueueFamilies(r.physicalDevice);
-    ImGui_ImplVulkan_InitInfo init_info{};
-    init_info.DescriptorPool = r.descriptorPool;
-    init_info.Device = r.device;
-    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
-    init_info.Instance = r.instance;
-    init_info.MinImageCount = 2;
-    init_info.PhysicalDevice = r.physicalDevice;
-    init_info.Queue = r.graphicsQueue;
-    init_info.QueueFamily = indicesFamily.graphicsFamily.value();
-
-    mUi->init(init_info, r.swapChainImageFormat, r.window, r.mFramesData[0].cmdPool, r.mFramesData[0].cmdBuffer, r.swapChainExtent.width, r.swapChainExtent.height);
-    bool frameBuf = mUi->createFrameBuffers(r.device, r.swapChainImageViews, r.swapChainExtent.width, r.swapChainExtent.height);
     CHECK(frameBuf == true);
 }
