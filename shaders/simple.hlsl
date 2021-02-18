@@ -12,10 +12,14 @@ static const float3 colors[3] = {
 struct AssembledVertex
 {
     float3  position : POSITION;
+    float3  normal;
+    float3  tangent;
+    float3  bitangent;
     float3  ka   : COLOR0;
     float3  ks   : COLOR1;
     float3  kd   : COLOR2;
     float2  uv;
+    float3 color : COLOR;
 };
 
 cbuffer ubo
@@ -29,10 +33,14 @@ SamplerState gSampler;
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
+    float3 normal;
+    float3 tangent;
+    float3 bitangent;
     float4 ka;
     float4 ks;
     float4 kd;
     float2 uv;
+    float4 color : COLOR;
 };
 
 [shader("vertex")]
@@ -43,7 +51,11 @@ PS_INPUT vertexMain(AssembledVertex av)
     out.ka = float4(av.ka.rgb, 1.0f);
     out.ks = float4(av.ks.rgb, 1.0f);
     out.kd = float4(av.kd.rgb, 1.0f);
+    out.color = float4(av.color.rgb, 1.0f);
     out.uv = av.uv;
+    out.normal = av.normal;
+    out.tangent = av.tangent;
+    out.bitangent = av.bitangent;
 
     return out;
 }
@@ -52,5 +64,5 @@ PS_INPUT vertexMain(AssembledVertex av)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    return inp.ka + (inp.ks + inp.kd) * tex.Sample(gSampler, inp.uv);
+    return inp.ka + (inp.color) * tex.Sample(gSampler, inp.uv);
 }

@@ -16,11 +16,6 @@ struct Mesh
     uint32_t mCount; // amount of indices in mesh
 };
 
-struct Material
-{
-    glm::float4 color;
-};
-
 struct Instance
 {
     glm::mat4 transform;
@@ -41,14 +36,22 @@ private:
     std::set<uint32_t> mDirtyInstances;
 
 public:
-    struct Vertex
+      struct Vertex
     {
         glm::float3 pos;
+        glm::float3 normal;
+        glm::float3 tangent;
+        glm::float3 bitangent;
         glm::float3 color;
         glm::float3 ka;
         glm::float3 kd;
         glm::float3 ks;
         glm::float2 uv;
+    };
+
+    struct Material
+    {
+        glm::float4 color;
     };
 
     std::vector<Vertex> mVertices;
@@ -58,9 +61,7 @@ public:
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
 
-    Scene()
-    {
-    }
+    Scene() = default;
 
     ~Scene() = default;
 
@@ -75,10 +76,6 @@ public:
     Camera& getCamera()
     {
         return mCamera;
-    }
-    void updateCameraParams(int width, int height)
-    {
-        mCamera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
     }
     /// <summary>
     /// Create Mesh geometry
