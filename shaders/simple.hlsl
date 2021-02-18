@@ -13,13 +13,12 @@ struct AssembledVertex
 {
     float3  position : POSITION;
     float3  normal;
-    float3  tangent;
-    float3  bitangent;
-    float3  ka   : COLOR0;
-    float3  ks   : COLOR1;
-    float3  kd   : COLOR2;
+    uint32_t materialId;
+    //float3  ka   : COLOR0;
+   // float3  ks   : COLOR1;
+   // float3  kd   : COLOR2;
     float2  uv;
-    float3 color : COLOR;
+  //  float3 color : COLOR;
 };
 
 cbuffer ubo
@@ -34,13 +33,12 @@ struct PS_INPUT
 {
     float4 pos : SV_POSITION;
     float3 normal;
-    float3 tangent;
-    float3 bitangent;
-    float4 ka;
-    float4 ks;
-    float4 kd;
+    uint32_t materialId;
+    //float4 ka;
+   // float4 ks;
+   // float4 kd;
     float2 uv;
-    float4 color : COLOR;
+    //float4 color : COLOR;
 };
 
 [shader("vertex")]
@@ -48,14 +46,13 @@ PS_INPUT vertexMain(AssembledVertex av)
 {
     PS_INPUT out;
     out.pos = mul(modelViewProj, float4(av.position, 1.0f));
-    out.ka = float4(av.ka.rgb, 1.0f);
-    out.ks = float4(av.ks.rgb, 1.0f);
-    out.kd = float4(av.kd.rgb, 1.0f);
-    out.color = float4(av.color.rgb, 1.0f);
+    //out.ka = float4(av.ka.rgb, 1.0f);
+    //out.ks = float4(av.ks.rgb, 1.0f);
+    //out.kd = float4(av.kd.rgb, 1.0f);
+    //out.color = float4(av.color.rgb, 1.0f);
     out.uv = av.uv;
     out.normal = av.normal;
-    out.tangent = av.tangent;
-    out.bitangent = av.bitangent;
+    out.materialId = av.materialId;
 
     return out;
 }
@@ -64,5 +61,6 @@ PS_INPUT vertexMain(AssembledVertex av)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    return inp.ka + (inp.color) * tex.Sample(gSampler, inp.uv);
+    return float4(inp.normal, 1.0);
+    //return inp.ka + (inp.color) * tex.Sample(gSampler, inp.uv);
 }

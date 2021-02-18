@@ -40,18 +40,16 @@ public:
     {
         glm::float3 pos;
         glm::float3 normal;
-        glm::float3 tangent;
-        glm::float3 bitangent;
-        glm::float3 color;
-        glm::float3 ka;
-        glm::float3 kd;
-        glm::float3 ks;
         glm::float2 uv;
+        uint32_t materialId;
     };
 
     struct Material
     {
         glm::float4 color;
+        glm::float3 ka;
+        glm::float3 kd;
+        glm::float3 ks;
     };
 
     std::vector<Vertex> mVertices;
@@ -73,6 +71,12 @@ public:
     {
         return mIndices;
     }
+
+    std::vector<Material>& getMaterials()
+    {
+        return mMaterials;
+    }
+
     Camera& getCamera()
     {
         return mCamera;
@@ -97,7 +101,7 @@ public:
     /// </summary>
     /// <param name="color">Color</param>
     /// <returns>Nothing</returns>
-    uint32_t createMaterial(const glm::float4& color);
+    uint32_t createMaterial(const glm::float4& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>

@@ -26,7 +26,6 @@ class Model
 private:
     std::vector<Scene::Vertex> _vertices;
     std::vector<uint32_t> _indices;
-//    std::vector<Scene::Material> _materials;
 
 public:
     Model() = default;
@@ -43,9 +42,5 @@ public:
         return _indices;
     }
 
-//    std::vector<Scene::Material> getMaterial()
-//    {
-//        return _materials;
-//    }
 };
 } // namespace nevk

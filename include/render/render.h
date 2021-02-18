@@ -140,11 +140,6 @@ class Render
   VkDeviceMemory depthImageMemory;
   VkImageView depthImageView;
 
-  VkImage normalImage; ///////////////////////////////////////////////////////////////
-  VkDeviceMemory normalImageMemory;
-  VkImageView normalImageView;
-  VkSampler normalSampler;
-
   VkImage textureImage;
   VkDeviceMemory textureImageMemory;
   VkImageView textureImageView;
@@ -155,9 +150,12 @@ class Render
   nevk::RenderPass mPass;
 
   std::vector<nevk::Scene::Vertex> vertices;
+  std::vector<nevk::Scene::Material> materials;
   std::vector<uint32_t> indices;
   VkBuffer vertexBuffer;
   VkDeviceMemory vertexBufferMemory;
+  VkBuffer materialBuffer;
+  VkDeviceMemory materialBufferMemory;
   VkBuffer indexBuffer;
   VkDeviceMemory indexBufferMemory;
 
@@ -277,7 +275,7 @@ class Render
     std::vector<nevk::Scene::Vertex> ret(params.size());
     std::transform(params.begin(), params.end(), ret.begin(),
                    [](auto& value) {
-                     return nevk::Scene::Vertex{ value.pos, value.color, value.normal, value.tangent, value.bitangent, value.ka, value.kd, value.ks, value.uv };
+                     return nevk::Scene::Vertex{ value.pos, value.normal, value.uv, value.materialId };
                    });
     return ret;
   }
@@ -291,6 +289,8 @@ class Render
   }
 
   void createVertexBuffer();
+
+  void createMaterialBuffer();
 
   void createIndexBuffer();
 

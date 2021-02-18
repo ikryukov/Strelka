@@ -75,70 +75,6 @@ void Render::mainLoop()
     vkDeviceWaitIdle(device);
 }
 
-//std::vector<nevk::Scene::Vertex> CalcVertex()
-//{
-//    // positions
-//    glm::vec3 pos1(-1.0f, 1.0f, 0.0f);
-//    glm::vec3 pos2(-1.0f, -1.0f, 0.0f);
-//    glm::vec3 pos3(1.0f, -1.0f, 0.0f);
-//    glm::vec3 pos4(1.0f, 1.0f, 0.0f);
-//    // texture coordinates
-//    glm::vec2 uv1(0.0f, 1.0f);
-//    glm::vec2 uv2(0.0f, 0.0f);
-//    glm::vec2 uv3(1.0f, 0.0f);
-//    glm::vec2 uv4(1.0f, 1.0f);
-//    // normal vector
-//    glm::vec3 nm(0.0f, 0.0f, 1.0f);
-//
-//    // calculate tangent/bitangent vectors of both triangles
-//    glm::vec3 tangent1, bitangent1;
-//    glm::vec3 tangent2, bitangent2;
-//    // triangle 1
-//    // ----------
-//    glm::vec3 edge1 = pos2 - pos1;
-//    glm::vec3 edge2 = pos3 - pos1;
-//    glm::vec2 deltaUV1 = uv2 - uv1;
-//    glm::vec2 deltaUV2 = uv3 - uv1;
-//
-//    float f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-//
-//    tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-//    tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-//    tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-//
-//    bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-//    bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-//    bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-//
-//    // triangle 2
-//    // ----------
-//    edge1 = pos3 - pos1;
-//    edge2 = pos4 - pos1;
-//    deltaUV1 = uv3 - uv1;
-//    deltaUV2 = uv4 - uv1;
-//
-//    f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-//
-//    tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-//    tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-//    tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-//
-//
-//    bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-//    bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-//    bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-//    // positions            // normal         // texcoords  // tangent                          // bitangent
-//    return {
-//        { { pos1.x, pos1.y, pos1.z }, { nm.x, nm.y, nm.z }, { uv1.x, uv1.y }, { tangent1.x, tangent1.y, tangent1.z }, { bitangent1.x, bitangent1.y, bitangent1.z } },
-//        { { pos2.x, pos2.y, pos2.z }, { nm.x, nm.y, nm.z }, { uv2.x, uv2.y }, { tangent1.x, tangent1.y, tangent1.z }, { bitangent1.x, bitangent1.y, bitangent1.z } },
-//        { { pos3.x, pos3.y, pos3.z }, { nm.x, nm.y, nm.z }, { uv3.x, uv3.y }, { tangent1.x, tangent1.y, tangent1.z }, { bitangent1.x, bitangent1.y, bitangent1.z } },
-//
-//        { { pos1.x, pos1.y, pos1.z }, { nm.x, nm.y, nm.z }, { uv1.x, uv1.y }, { tangent2.x, tangent2.y, tangent2.z }, { bitangent2.x, bitangent2.y, bitangent2.z } },
-//        { { pos3.x, pos3.y, pos3.z }, { nm.x, nm.y, nm.z }, { uv3.x, uv3.y }, { tangent2.x, tangent2.y, tangent2.z }, { bitangent2.x, bitangent2.y, bitangent2.z } },
-//        { { pos4.x, pos4.y, pos4.z }, { nm.x, nm.y, nm.z }, { uv4.x, uv4.y }, { tangent2.x, tangent2.y, tangent2.z }, { bitangent2.x, bitangent2.y, bitangent2.z } }
-//    };
-//}
-
 void Render::cleanupSwapChain()
 {
     vkDestroyImageView(device, depthImageView, nullptr);
@@ -672,7 +608,9 @@ void Render::createVertexBuffer()
     {
         vertices[i].pos = sceneVertices[i].pos;
         vertices[i].uv = sceneVertices[i].uv;
-        vertices[i].color = sceneVertices[i].color;
+        vertices[i].normal = sceneVertices[i].normal;
+        vertices[i].materialId = sceneVertices[i].materialId;
+//        vertices[i].color = sceneVertices[i].color;
     }
 
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
@@ -689,6 +627,39 @@ void Render::createVertexBuffer()
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void Render::createMaterialBuffer()
+{
+    std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
+    // convert to render's vertices
+    materials.resize(sceneMaterials.size());
+
+    for (int i = 0; i < sceneMaterials.size(); ++i)
+    {
+        materials[i].ka = sceneMaterials[i].ka;
+        materials[i]. kd = sceneMaterials[i].kd;
+        materials[i].ks = sceneMaterials[i].ks;
+        materials[i].color = sceneMaterials[i].color;
+    }
+
+    VkDeviceSize bufferSize = sizeof(materials[0]) * materials.size();
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, materials.data(), (size_t)bufferSize);
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,  materialBuffer,   materialBufferMemory);
+
+    copyBuffer(stagingBuffer, materialBuffer, bufferSize);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);

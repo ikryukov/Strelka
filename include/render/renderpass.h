@@ -58,54 +58,100 @@ private:
         return bindingDescription;
     }
 
-    static std::array<VkVertexInputAttributeDescription, 6> getAttributeDescriptions()
+//    static std::array<VkVertexInputAttributeDescription, 7> getAttributeDescriptions()
+//    {
+//        std::array<VkVertexInputAttributeDescription, 7> attributeDescriptions{};
+//
+//        attributeDescriptions[0].binding = 0;
+//        attributeDescriptions[0].location = 0;
+//        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescriptions[0].offset = offsetof(Scene::Vertex, pos);
+//
+//        attributeDescriptions[1].binding = 0;
+//        attributeDescriptions[1].location = 1;
+//        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescriptions[1].offset = offsetof(Scene::Vertex, ka);
+//
+//        attributeDescriptions[2].binding = 0;
+//        attributeDescriptions[2].location = 2;
+//        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescriptions[2].offset = offsetof(Scene::Vertex, kd);
+//
+//        attributeDescriptions[3].binding = 0;
+//        attributeDescriptions[3].location = 3;
+//        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescriptions[3].offset = offsetof(Scene::Vertex, ks);
+//
+//        attributeDescriptions[4].binding = 0;
+//        attributeDescriptions[4].location = 4;
+//        attributeDescriptions[4].format = VK_FORMAT_R32G32_SFLOAT;
+//        attributeDescriptions[4].offset = offsetof(Scene::Vertex, uv);
+//
+//        attributeDescriptions[5].binding = 0;
+//        attributeDescriptions[5].location = 5;
+//        attributeDescriptions[5].format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescriptions[5].offset = offsetof(Scene::Vertex, color);
+//
+//        attributeDescriptions[6].binding = 0;
+//        attributeDescriptions[6].location = 6;
+//        attributeDescriptions[6].format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescriptions[6].offset = offsetof(Scene::Vertex, normal);
+//
+//        return attributeDescriptions;
+//    }
+    static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()
     {
-        std::array<VkVertexInputAttributeDescription, 6> attributeDescriptions{};
+        std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
 
-        attributeDescriptions[0].binding = 0;
-        attributeDescriptions[0].location = 0;
-        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[0].offset = offsetof(Scene::Vertex, pos);
+        VkVertexInputAttributeDescription attributeDescription;
 
-        attributeDescriptions[1].binding = 0;
-        attributeDescriptions[1].location = 1;
-        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[1].offset = offsetof(Scene::Vertex, ka);
+        attributeDescription.binding = 0;
+        attributeDescription.location = 0;
+        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescription.offset = offsetof(Scene::Vertex, pos);
+        attributeDescriptions.emplace_back(attributeDescription);
 
-        attributeDescriptions[2].binding = 0;
-        attributeDescriptions[2].location = 2;
-        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[2].offset = offsetof(Scene::Vertex, kd);
+//        attributeDescription.binding = 0;
+//        attributeDescription.location = 1;
+//        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescription.offset = offsetof(Scene::Vertex, ka);
+//        attributeDescriptions.emplace_back(attributeDescription);
+//
+//        attributeDescription.binding = 0;
+//        attributeDescription.location = 2;
+//        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescription.offset = offsetof(Scene::Vertex, kd);
+//        attributeDescriptions.emplace_back(attributeDescription);
+//
+//        attributeDescription.binding = 0;
+//        attributeDescription.location = 3;
+//        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescription.offset = offsetof(Scene::Vertex, ks);
+//        attributeDescriptions.emplace_back(attributeDescription);
 
-        attributeDescriptions[3].binding = 0;
-        attributeDescriptions[3].location = 3;
-        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[3].offset = offsetof(Scene::Vertex, ks);
+        attributeDescription.binding = 0;
+        attributeDescription.location = 1;
+        attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescription.offset = offsetof(Scene::Vertex, uv);
+        attributeDescriptions.emplace_back(attributeDescription);
 
-        attributeDescriptions[4].binding = 0;
-        attributeDescriptions[4].location = 4;
-        attributeDescriptions[4].format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescriptions[4].offset = offsetof(Scene::Vertex, uv);
+//        attributeDescription.binding = 0;
+//        attributeDescription.location = 5;
+//        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+//        attributeDescription.offset = offsetof(Scene::Vertex, color);
+//        attributeDescriptions.emplace_back(attributeDescription);
 
-        attributeDescriptions[5].binding = 0;
-        attributeDescriptions[5].location = 5;
-        attributeDescriptions[5].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[5].offset = offsetof(Scene::Vertex, color);
+        attributeDescription.binding = 0;
+        attributeDescription.location = 2;
+        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescription.offset = offsetof(Scene::Vertex, normal);
+        attributeDescriptions.emplace_back(attributeDescription);
 
-        attributeDescriptions[6].binding = 0;
-        attributeDescriptions[6].location = 7;
-        attributeDescriptions[6].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[6].offset = offsetof(Scene::Vertex, normal);
-
-        attributeDescriptions[7].binding = 0;
-        attributeDescriptions[7].location = 7;
-        attributeDescriptions[7].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[7].offset = offsetof(Scene::Vertex, tangent);
-
-        attributeDescriptions[8].binding = 0;
-        attributeDescriptions[8].location = 8;
-        attributeDescriptions[8].format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescriptions[8].offset = offsetof(Scene::Vertex, bitangent);
+        attributeDescription.binding = 0;
+        attributeDescription.location = 3;
+        attributeDescription.format = VK_FORMAT_R32G32B32_UINT;              // check !
+        attributeDescription.offset = offsetof(Scene::Vertex, materialId);
+        attributeDescriptions.emplace_back(attributeDescription);
 
         return attributeDescriptions;
     }
