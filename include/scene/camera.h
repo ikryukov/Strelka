@@ -22,7 +22,7 @@ public:
     };
     CameraType type = CameraType::firstperson;
 
-    glm::float3 rotation;
+    glm::quat rotation;
     glm::float3 position;
 
     float rotationSpeed;
@@ -61,8 +61,8 @@ public:
     void setPerspective(float fov, float aspect, float znear, float zfar);
     void updateAspectRatio(float aspect);
     void setPosition(glm::float3 position);
-    void setRotation(glm::float3 rotation);
-    void rotate(glm::float3 delta);
+    void setRotation(glm::quat rotation);
+    void rotate(float, float);
     void setTranslation(glm::float3 translation);
     void translate(glm::float3 delta);
     void update(float deltaTime);

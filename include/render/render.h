@@ -214,11 +214,11 @@ private:
         switch (key)
         {
         case GLFW_KEY_W: {
-            camera.keys.down = keyState;
+            camera.keys.forward = keyState;
             break;
         }
         case GLFW_KEY_S: {
-            camera.keys.up = keyState;
+            camera.keys.back = keyState;
             break;
         }
         case GLFW_KEY_A: {
@@ -230,11 +230,11 @@ private:
             break;
         }
         case GLFW_KEY_Q: {
-            camera.keys.forward = keyState;
+            camera.keys.up = keyState;
             break;
         }
         case GLFW_KEY_E: {
-            camera.keys.back = keyState;
+            camera.keys.down = keyState;
         }
         default:
             break;
@@ -288,11 +288,11 @@ private:
 
         if (camera.mouseButtons.left)
         {
-          camera.translate(glm::float3(-0.0f, 0.0f, dy * .005f * camera.movementSpeed));
+          camera.rotate(dy, dx);
         }
         if (camera.mouseButtons.right)
         {
-            camera.rotate(glm::float3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
+          camera.translate(glm::float3(-0.0f, 0.0f, -dy * .005f * camera.movementSpeed)); 
         }
         if (camera.mouseButtons.middle)
         {
@@ -391,7 +391,7 @@ private:
         camera.rotationSpeed = 0.25f;
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
-        camera.setRotation({ 0.0f, 0.0f, 0.0f });
+        camera.setRotation(glm::quat({ 0.0f, 0.0f, 0.0f, 0.0f}));
     }
 
     void createVertexBuffer();

@@ -3,18 +3,22 @@
 
 void Camera::updateViewMatrix()
 {
-    glm::float4x4 rotM = glm::float4x4(1.0f);
+
     glm::float4x4 transM;
 
-    rotM = glm::rotate(rotM, glm::radians(rotation.x), glm::float3(1.0f, 0.0f, 0.0f));
-    rotM = glm::rotate(rotM, glm::radians(rotation.y), glm::float3(0.0f, 1.0f, 0.0f));
-    rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::float3(0.0f, 0.0f, 1.0f));
+    /*glm::quat qPitch = glm::angleAxis(rotation.x, glm::float3(1.0f, 0.0f, 0.0f));
+    glm::quat qYaw = glm::angleAxis(rotation.y, glm::float3(0.0f, 1.0f, 0.0f));*/
+    glm::quat q = rotation;
+    q.x *= -1.0f;
+    q.y *= -1.0f;
+    q.z *= 0.0f;
+    glm::mat4 rotM = mat4_cast(q);
 
     transM = glm::translate(glm::float4x4(1.0f), position * glm::float3(1.0f, 1.0f, -1.0f));
 
     if (type == CameraType::firstperson)
     {
-        matrices.view = rotM * transM;
+        matrices.view = transM * rotM;
     }
     else
     {
@@ -57,15 +61,17 @@ void Camera::setPosition(glm::float3 position)
     updateViewMatrix();
 }
 
-void Camera::setRotation(glm::float3 rotation)
+void Camera::setRotation(glm::quat rotation)
 {
     this->rotation = rotation;
     updateViewMatrix();
 }
 
-void Camera::rotate(glm::float3 delta)
+void Camera::rotate(float upAngle, float rightAngle)
 {
-    this->rotation += delta;
+    rotation *= glm::angleAxis(glm::radians(rightAngle), glm::float3(matrices.view[1]));
+    rotation *= glm::angleAxis(glm::radians(upAngle), glm::float3(matrices.view[0]));
+    rotation = glm::normalize(rotation);
     updateViewMatrix();
 }
 
@@ -88,26 +94,20 @@ void Camera::update(float deltaTime)
     {
         if (moving())
         {
-            glm::float3 camFront;
-            camFront.x = sin(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
-            camFront.y = sin(glm::radians(rotation.x));
-            camFront.z = cos(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
-            camFront = glm::normalize(camFront);
-
             float moveSpeed = deltaTime * movementSpeed;
 
             if (keys.up)
-                position += camFront * moveSpeed;
+                position += glm::float3(matrices.view[1]) * moveSpeed;
             if (keys.down)
-                position -= camFront * moveSpeed;
+                position -= glm::float3(matrices.view[1]) * moveSpeed;
             if (keys.left)
-                position -= glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+              position += glm::float3(matrices.view[0]) * moveSpeed;
             if (keys.right)
-                position += glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * moveSpeed;
-            if (keys.forward)
-              position += glm::normalize(glm::cross( camFront, glm::float3(1.0f, 0.0f, 0.0f))) * moveSpeed;
+                position -= glm::float3(matrices.view[0]) * moveSpeed;
+             if (keys.forward)
+                position -= glm::float3(matrices.view[2]) * moveSpeed;
             if (keys.back)
-              position -= glm::normalize(glm::cross(camFront, glm::float3(1.0f, 0.0f, 0.0f))) * moveSpeed;
+                position += glm::float3(matrices.view[2]) * moveSpeed;
             updateViewMatrix();
         }
     }
@@ -128,9 +128,9 @@ bool Camera::updatePad(glm::float2 axisLeft, glm::float2 axisRight, float deltaT
         const float range = 1.0f - deadZone;
 
         glm::float3 camFront;
-        camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
-        camFront.y = sin(glm::radians(rotation.x));
-        camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
+        camFront.x = position.z * sin(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
+        camFront.y = position.z * sin(glm::radians(rotation.x));
+        camFront.z = position.z * cos(glm::radians(rotation.y)) * cos(glm::radians(rotation.x));
         camFront = glm::normalize(camFront);
 
         float moveSpeed = deltaTime * movementSpeed * 2.0f;

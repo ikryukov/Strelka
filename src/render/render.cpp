@@ -822,8 +822,9 @@ void Render::drawFrame()
     prevTime = currentTime;
 
     Camera& cam = getScene().getCamera();
-    cam.update(deltaTime);
 
+    cam.update(deltaTime);
+    
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
     mUi.updateUI(window);
 
