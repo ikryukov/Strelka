@@ -61,6 +61,7 @@ void Render::initVulkan()
 
     loadModel();
     createVertexBuffer();
+    createMaterialBuffer();
     createIndexBuffer();
 }
 
@@ -644,6 +645,7 @@ void Render::createMaterialBuffer()
         materials[i]. kd = sceneMaterials[i].kd;
         materials[i].ks = sceneMaterials[i].ks;
         materials[i].color = sceneMaterials[i].color;
+//        materials[i].textureId = sceneMaterials[i].textureId;
     }
 
     VkDeviceSize bufferSize = sizeof(materials[0]) * materials.size();

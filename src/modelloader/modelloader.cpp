@@ -9,7 +9,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str(), MTL_PATH.c_str(), false);
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str(), MTL_PATH.c_str(), true);
     if (!ret)
     {
         throw std::runtime_error(warn + err);
@@ -43,10 +43,10 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                 };
 
                 Scene::Material material{};
-                material.color = { attrib.colors[4 * idx.vertex_index + 0],  // idx.vertex_index ??
-                                   attrib.colors[4 * idx.vertex_index + 1],
-                                   attrib.colors[4 * idx.vertex_index + 2],
-                                   attrib.colors[4 * idx.vertex_index + 3] };
+                material.color = { attrib.colors[3 * idx.vertex_index + 0],  // idx.vertex_index ??
+                                   attrib.colors[3 * idx.vertex_index + 1],
+                                   attrib.colors[3 * idx.vertex_index + 2]};
+//                material.color = {0.0,0.0,0.0,0.0};
 
                 if (!MTL_PATH.empty())
                 {
@@ -73,7 +73,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     }
 
     uint32_t meshId = mScene.createMesh(_vertices, _indices);
-//    uint32_t matId = mScene.createMaterial(glm::float4(1.0)); //  glm::float3& ka,  glm::float3& kd,  glm::float3& ks
+//    uint32_t matId = mScene.createMaterial(glm::float4(1.0));
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
     uint32_t instId = mScene.createInstance(meshId, -1, transform);

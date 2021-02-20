@@ -58,47 +58,6 @@ private:
         return bindingDescription;
     }
 
-//    static std::array<VkVertexInputAttributeDescription, 7> getAttributeDescriptions()
-//    {
-//        std::array<VkVertexInputAttributeDescription, 7> attributeDescriptions{};
-//
-//        attributeDescriptions[0].binding = 0;
-//        attributeDescriptions[0].location = 0;
-//        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescriptions[0].offset = offsetof(Scene::Vertex, pos);
-//
-//        attributeDescriptions[1].binding = 0;
-//        attributeDescriptions[1].location = 1;
-//        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescriptions[1].offset = offsetof(Scene::Vertex, ka);
-//
-//        attributeDescriptions[2].binding = 0;
-//        attributeDescriptions[2].location = 2;
-//        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescriptions[2].offset = offsetof(Scene::Vertex, kd);
-//
-//        attributeDescriptions[3].binding = 0;
-//        attributeDescriptions[3].location = 3;
-//        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescriptions[3].offset = offsetof(Scene::Vertex, ks);
-//
-//        attributeDescriptions[4].binding = 0;
-//        attributeDescriptions[4].location = 4;
-//        attributeDescriptions[4].format = VK_FORMAT_R32G32_SFLOAT;
-//        attributeDescriptions[4].offset = offsetof(Scene::Vertex, uv);
-//
-//        attributeDescriptions[5].binding = 0;
-//        attributeDescriptions[5].location = 5;
-//        attributeDescriptions[5].format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescriptions[5].offset = offsetof(Scene::Vertex, color);
-//
-//        attributeDescriptions[6].binding = 0;
-//        attributeDescriptions[6].location = 6;
-//        attributeDescriptions[6].format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescriptions[6].offset = offsetof(Scene::Vertex, normal);
-//
-//        return attributeDescriptions;
-//    }
     static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()
     {
         std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
