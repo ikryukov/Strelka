@@ -49,6 +49,7 @@ public:
         glm::float3 kd;
         glm::float3 ks;
         glm::float2 uv;
+       // std::string material;
     };
 
     std::vector<Vertex> mVertices;

@@ -41,7 +41,8 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
-const std::string TEXTURE_PATH = "misc/white.jpg";
+const std::string TEXTURE_PATH = "misc/cat.png";
+const std::string TEXTURE_PATH2 = "misc/viking_room.png";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -135,8 +136,8 @@ private:
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
 
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
+   // VkImage textureImage;
+   // VkDeviceMemory textureImageMemory;
     VkImageView textureImageView;
     VkSampler textureSampler;
 
@@ -355,9 +356,18 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    void createTextureImage();
+    void textureManager();
 
-    void createTextureImageView();
+    struct Texture {
+        VkImage textureImage;
+        int texWidth;
+        int texHeight;
+        VkDeviceMemory textureImageMemory;
+    };
+
+    Texture createTextureImage(std::string texture_path);
+
+    void createTextureImageView(Texture tex);
 
     void createTextureSampler();
 

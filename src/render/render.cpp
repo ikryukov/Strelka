@@ -31,9 +31,7 @@ void Render::initVulkan()
     createSyncObjects();
 
     createDepthResources();
-    createTextureImage();
-    createTextureImageView();
-    createTextureSampler();
+    textureManager();
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
 
@@ -106,8 +104,8 @@ void Render::cleanup()
     vkDestroySampler(device, textureSampler, nullptr);
     vkDestroyImageView(device, textureImageView, nullptr);
 
-    vkDestroyImage(device, textureImage, nullptr);
-    vkFreeMemory(device, textureImageMemory, nullptr);
+   // vkDestroyImage(device, textureImage, nullptr);
+  //  vkFreeMemory(device, textureImageMemory, nullptr);
 
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
@@ -439,17 +437,26 @@ VkFormat Render::findDepthFormat()
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-void Render::createTextureImage()
+void Render::textureManager() {
+    Texture tex = createTextureImage(TEXTURE_PATH);
+    Texture tex2 = createTextureImage(TEXTURE_PATH2);
+
+    createTextureImageView(tex2);
+    createTextureSampler();
+}
+
+Render::Texture Render::createTextureImage(std::string texture_path)
 {
     int texWidth, texHeight, texChannels;
-    stbi_uc* pixels = stbi_load(TEXTURE_PATH.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
+    stbi_uc* pixels = stbi_load(texture_path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
 
     if (!pixels)
     {
         throw std::runtime_error("failed to load texture image!");
     }
-
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
@@ -469,11 +476,13 @@ void Render::createTextureImage()
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
+
+    return Texture{textureImage, texWidth, texHeight, textureImageMemory};
 }
 
-void Render::createTextureImageView()
+void Render::createTextureImageView(Texture tex)
 {
-    textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    textureImageView = createImageView(tex.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Render::createTextureSampler()
@@ -609,8 +618,11 @@ void Render::createVertexBuffer()
     for (int i = 0; i < sceneVertices.size(); ++i)
     {
         vertices[i].pos = sceneVertices[i].pos;
-        vertices[i].texCoord = sceneVertices[i].uv;
         vertices[i].color = sceneVertices[i].color;
+        vertices[i].ka = sceneVertices[i].ka;
+        vertices[i].kd = sceneVertices[i].kd;
+        vertices[i].ks = sceneVertices[i].ks;
+        vertices[i].texCoord = sceneVertices[i].uv;
     }
 
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();

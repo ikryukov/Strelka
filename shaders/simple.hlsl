@@ -24,6 +24,7 @@ cbuffer ubo
 }
 
 Texture2D tex;
+
 SamplerState gSampler;
 
 struct PS_INPUT
