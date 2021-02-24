@@ -41,8 +41,8 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
-const std::string TEXTURE_PATH = "misc/cat.png";
-const std::string TEXTURE_PATH2 = "misc/viking_room.png";
+const std::string TEXTURE_PATH = "misc/brickwall.png";
+const std::string TEXTURE_PATH2 = "misc/container.jpg";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -370,6 +370,8 @@ private:
     void createTextureImageView(Texture tex);
 
     void createTextureSampler();
+
+    void textureDestroy();
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 

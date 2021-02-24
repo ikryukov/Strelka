@@ -22,6 +22,8 @@ private:
     VkRenderPass mRenderPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
     VkDevice mDevice;
+    bool needDesciptorSetUpdate;
+    void updateDescriptorSets(uint32_t descSetIndex);
 
     VkShaderModule mVS, mPS;
 

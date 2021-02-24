@@ -91,6 +91,10 @@ void Render::cleanupSwapChain()
 
     vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
+void Render::textureDestroy() {
+     //vkDestroyImage(device, tex.textureImage, nullptr);
+   //  vkFreeMemory(device, tex.textureImageMemory, nullptr);
+}
 
 void Render::cleanup()
 {
@@ -105,8 +109,7 @@ void Render::cleanup()
     vkDestroyImageView(device, textureImageView[0], nullptr);
     vkDestroyImageView(device, textureImageView[1], nullptr);
 
-   // vkDestroyImage(device, textureImage, nullptr);
-  //  vkFreeMemory(device, textureImageMemory, nullptr);
+    textureDestroy();
 
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);

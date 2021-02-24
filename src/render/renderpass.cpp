@@ -305,15 +305,11 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo.imageView = mTextureImageView[0];
 
-        VkDescriptorImageInfo imageInfo2{};
-        imageInfo2.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo2.imageView = mTextureImageView[1];
-
         VkDescriptorImageInfo samplerInfo{};
         samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         samplerInfo.sampler = mTextureSampler;
 
-        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = mDescriptorSets[i];
@@ -333,19 +329,11 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
         descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[2].dstSet = mDescriptorSets[i];
-        descriptorWrites[2].dstBinding = 1;
+        descriptorWrites[2].dstBinding = 2;
         descriptorWrites[2].dstArrayElement = 0;
-        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
         descriptorWrites[2].descriptorCount = 1;
-        descriptorWrites[2].pImageInfo = &imageInfo2;
-
-        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[3].dstSet = mDescriptorSets[i];
-        descriptorWrites[3].dstBinding = 2;
-        descriptorWrites[3].dstArrayElement = 0;
-        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        descriptorWrites[3].descriptorCount = 1;
-        descriptorWrites[3].pImageInfo = &samplerInfo;
+        descriptorWrites[2].pImageInfo = &samplerInfo;
 
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -353,6 +341,8 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
+    if (needDesciptorSetUpdate)
+        updateDescriptorSets(imageIndex);
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mRenderPass;
@@ -450,11 +440,57 @@ void RenderPass::setTextureImageView(std::vector<VkImageView> textureImageView)
 {
     for (int i = 0; i < textureImageView.size(); ++i)
         mTextureImageView.push_back(textureImageView[i]);
+    needDesciptorSetUpdate = true;
 }
 
 void RenderPass::setTextureSampler(VkSampler textureSampler)
 {
     mTextureSampler = textureSampler;
+}
+
+void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
+{
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = uniformBuffers[descSetIndex];
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
+
+    VkDescriptorImageInfo imageInfo{};
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = mTextureImageView[1]; //??
+
+    VkDescriptorImageInfo samplerInfo{};
+    samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    samplerInfo.sampler = mTextureSampler;
+
+    std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = mDescriptorSets[descSetIndex];
+    descriptorWrites[0].dstBinding = 0;
+    descriptorWrites[0].dstArrayElement = 0;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    descriptorWrites[0].descriptorCount = 1;
+    descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[1].dstSet = mDescriptorSets[descSetIndex];
+    descriptorWrites[1].dstBinding = 1;
+    descriptorWrites[1].dstArrayElement = 0;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].pImageInfo = &imageInfo;
+
+    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[2].dstSet = mDescriptorSets[descSetIndex];
+    descriptorWrites[2].dstBinding = 2;
+    descriptorWrites[2].dstArrayElement = 0;
+    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    descriptorWrites[2].descriptorCount = 1;
+    descriptorWrites[2].pImageInfo = &samplerInfo;
+
+    vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    needDesciptorSetUpdate = false;
 }
 
 } // namespace nevk
