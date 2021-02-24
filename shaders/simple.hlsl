@@ -17,6 +17,22 @@ struct VertexInput
     uint32_t materialId;
 };
 
+struct MaterialInput
+{
+    float4 color : COLOR;
+    float3 ka : COLOR0;
+    float3 kd : COLOR1;
+    float3 ks : COLOR2;
+};
+
+struct M_INPUT
+{
+    float4 color;
+    float3 ka;
+    float3 kd;
+    float3 ks;
+};
+
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
@@ -32,8 +48,6 @@ cbuffer ubo
 Texture2D tex;
 SamplerState gSampler;
 
-StructuredBuffer<Material> materials; //
-
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
 {
@@ -42,19 +56,21 @@ PS_INPUT vertexMain(VertexInput vi)
     out.uv = vi.uv;
     out.normal = vi.normal;
     out.materialId = vi.materialId;
+    //out.materialId = 0;
 
     return out;
 }
 
 // Fragment Shader
 [shader("fragment")]
-float4 fragmentMain(PS_INPUT inp) : SV_TARGET
+float4 fragmentMain(PS_INPUT inp, M_INPUT m_inp) : SV_TARGET
 {
-    Material mater = materials[materialId];
-    inp.color = mater.color;
-    inp.ka = mater.ka;
-    inp.ks = mater.ks;
-    inp.kd = mater.kd;
+    StructuredBuffer<MaterialInput> materials;
+    MaterialInput mater = materials[materialId];
+    m_inp.color = mater.color;
+    m_inp.ka = mater.ka;
+    m_inp.ks = mater.ks;
+    m_inp.kd = mater.kd;
 
     return float4(inp.normal, 1.0);
 }
