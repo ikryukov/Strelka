@@ -438,6 +438,7 @@ VkFormat Render::findDepthFormat()
 }
 
 void Render::textureManager() {
+
     Texture tex = createTextureImage(TEXTURE_PATH);
     Texture tex2 = createTextureImage(TEXTURE_PATH2);
 

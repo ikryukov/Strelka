@@ -120,6 +120,15 @@ target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include
 target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/modelloader)
 target_link_libraries(${MODELLIB_NAME} PUBLIC ${SCENELIB_NAME})
 
+set(TEXTURELIB_SOURCES
+        include/texturemanager/texturemanager.h
+        src/texturemanager/texturemanager.cpp)
+set(TEXTURELIB_NAME texturemanager)
+add_library(${TEXTURELIB_NAME} OBJECT ${TEXTURELIB_SOURCES})
+target_include_directories(${TEXTURELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${TEXTURELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/texturemanager)
+target_link_libraries(${TEXTURELIB_NAME} PUBLIC ${SCENELIB_NAME} ${MODELLIB_NAME})
+
 ## Vulkan
 target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
@@ -154,6 +163,7 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${UILIB_NAME})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${TEXTURELIB_NAME})
 #target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
