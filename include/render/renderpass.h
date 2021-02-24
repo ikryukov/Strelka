@@ -70,52 +70,28 @@ private:
         attributeDescription.offset = offsetof(Scene::Vertex, pos);
         attributeDescriptions.emplace_back(attributeDescription);
 
-//        attributeDescription.binding = 0;
-//        attributeDescription.location = 1;
-//        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescription.offset = offsetof(Scene::Vertex, ka);
-//        attributeDescriptions.emplace_back(attributeDescription);
-//
-//        attributeDescription.binding = 0;
-//        attributeDescription.location = 2;
-//        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescription.offset = offsetof(Scene::Vertex, kd);
-//        attributeDescriptions.emplace_back(attributeDescription);
-//
-//        attributeDescription.binding = 0;
-//        attributeDescription.location = 3;
-//        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescription.offset = offsetof(Scene::Vertex, ks);
-//        attributeDescriptions.emplace_back(attributeDescription);
-
         attributeDescription.binding = 0;
         attributeDescription.location = 1;
-        attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescription.offset = offsetof(Scene::Vertex, uv);
-        attributeDescriptions.emplace_back(attributeDescription);
-
-//        attributeDescription.binding = 0;
-//        attributeDescription.location = 5;
-//        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-//        attributeDescription.offset = offsetof(Scene::Vertex, color);
-//        attributeDescriptions.emplace_back(attributeDescription);
-
-        attributeDescription.binding = 0;
-        attributeDescription.location = 2;
         attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
         attributeDescription.offset = offsetof(Scene::Vertex, normal);
         attributeDescriptions.emplace_back(attributeDescription);
 
         attributeDescription.binding = 0;
+        attributeDescription.location = 2;
+        attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescription.offset = offsetof(Scene::Vertex, uv);
+        attributeDescriptions.emplace_back(attributeDescription);
+
+        attributeDescription.binding = 0;
         attributeDescription.location = 3;
-        attributeDescription.format = VK_FORMAT_R32G32B32_UINT;              // check !
+        attributeDescription.format = VK_FORMAT_R32_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, materialId);
         attributeDescriptions.emplace_back(attributeDescription);
 
         return attributeDescriptions;
     }
 
-    VkShaderModule createShaderModule(const char* code, const uint32_t codeSize);
+    VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
 
 public:
     void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);

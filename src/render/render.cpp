@@ -113,6 +113,9 @@ void Render::cleanup()
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
 
+    vkDestroyBuffer(device, materialBuffer, nullptr);
+    vkFreeMemory(device, materialBufferMemory, nullptr);
+
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
 
@@ -641,10 +644,10 @@ void Render::createMaterialBuffer()
 
     for (int i = 0; i < sceneMaterials.size(); ++i)
     {
+        materials[i].color = sceneMaterials[i].color;
         materials[i].ka = sceneMaterials[i].ka;
         materials[i]. kd = sceneMaterials[i].kd;
         materials[i].ks = sceneMaterials[i].ks;
-        materials[i].color = sceneMaterials[i].color;
 //        materials[i].textureId = sceneMaterials[i].textureId;
     }
 

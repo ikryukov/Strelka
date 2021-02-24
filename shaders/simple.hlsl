@@ -9,50 +9,39 @@ static const float3 colors[3] = {
     float3(0.0, 1.0, 0.0),
     float3(0.0, 0.0, 1.0)
 };
-struct AssembledVertex
+struct VertexInput
 {
-    float3  position : POSITION;
-    float3  normal;
+    float3 position : POSITION;
+    float3 normal;
+    float2 uv;
     uint32_t materialId;
-    //float3  ka   : COLOR0;
-   // float3  ks   : COLOR1;
-   // float3  kd   : COLOR2;
-    float2  uv;
-  //  float3 color : COLOR;
+};
+
+struct PS_INPUT
+{
+    float4 pos : SV_POSITION;
+    float3 normal;
+    float2 uv;
+    nointerpolation uint32_t materialId;
 };
 
 cbuffer ubo
 {
     float4x4 modelViewProj;
 }
-
 Texture2D tex;
 SamplerState gSampler;
 
-struct PS_INPUT
-{
-    float4 pos : SV_POSITION;
-    float3 normal;
-    uint32_t materialId;
-    //float4 ka;
-   // float4 ks;
-   // float4 kd;
-    float2 uv;
-    //float4 color : COLOR;
-};
+StructuredBuffer<Material> materials; //
 
 [shader("vertex")]
-PS_INPUT vertexMain(AssembledVertex av)
+PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
-    out.pos = mul(modelViewProj, float4(av.position, 1.0f));
-    //out.ka = float4(av.ka.rgb, 1.0f);
-    //out.ks = float4(av.ks.rgb, 1.0f);
-    //out.kd = float4(av.kd.rgb, 1.0f);
-    //out.color = float4(av.color.rgb, 1.0f);
-    out.uv = av.uv;
-    out.normal = av.normal;
-    out.materialId = av.materialId;
+    out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
+    out.uv = vi.uv;
+    out.normal = vi.normal;
+    out.materialId = vi.materialId;
 
     return out;
 }
@@ -61,6 +50,11 @@ PS_INPUT vertexMain(AssembledVertex av)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
+    Material mater = materials[materialId];
+    inp.color = mater.color;
+    inp.ka = mater.ka;
+    inp.ks = mater.ks;
+    inp.kd = mater.kd;
+
     return float4(inp.normal, 1.0);
-    //return inp.ka + (inp.color) * tex.Sample(gSampler, inp.uv);
 }

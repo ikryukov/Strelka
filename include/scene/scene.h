@@ -46,7 +46,7 @@ public:
 
     struct Material
     {
-        glm::float3 color;
+        glm::float4 color;
         glm::float3 ka;
         glm::float3 kd;
         glm::float3 ks;
@@ -103,7 +103,7 @@ public:
     /// <param name="color">Color</param>
     /// <returns>Nothing</returns>
 //    uint32_t createMaterial(const glm::float4& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks, uint32_t textureId);
-    uint32_t createMaterial(const glm::float3& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks);
+    uint32_t createMaterial(const glm::float4& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>

@@ -41,13 +41,13 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
 const std::string TEXTURE_PATH = R"(C:\NEED\NeVK\misc\red-brick-wall.jpg)";
-const std::string MTL_PATH = "misc/";
+//const std::string MTL_PATH = "misc/";
 //const std::string MODEL_PATH = "misc/san-miguel-low-poly.obj";
 //const std::string TEXTURE_PATH = "misc/white.jpg";
 //const std::string MTL_PATH = "misc/san-miguel-low-poly.mtl";
 //const std::string MODEL_PATH = "misc/viking_room.obj";
 //const std::string TEXTURE_PATH = "misc/viking_room.png";
-//const std::string MTL_PATH = "";
+const std::string MTL_PATH = "";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"

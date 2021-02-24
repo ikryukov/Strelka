@@ -56,7 +56,7 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
 }
 
 //uint32_t Scene::createMaterial(const glm::float4& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks, const uint32_t textureId)
-uint32_t Scene::createMaterial(const glm::float3& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks)
+uint32_t Scene::createMaterial(const glm::float4& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks)
 {
     Material* material = nullptr;
     uint32_t materialId = -1;
