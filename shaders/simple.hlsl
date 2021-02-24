@@ -24,6 +24,7 @@ cbuffer ubo
 }
 
 Texture2D tex;
+Texture2D tex2;
 
 SamplerState gSampler;
 
@@ -53,5 +54,5 @@ PS_INPUT vertexMain(AssembledVertex av)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    return inp.ka + (inp.ks + inp.kd) * tex.Sample(gSampler, inp.uv);
+    return inp.ka + (inp.ks + inp.kd) * tex2.Sample(gSampler, inp.uv);
 }

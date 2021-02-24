@@ -138,7 +138,7 @@ private:
 
    // VkImage textureImage;
    // VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
+    std::vector<VkImageView> textureImageView;
     VkSampler textureSampler;
 
     nevk::ResourceManager* mResManager;

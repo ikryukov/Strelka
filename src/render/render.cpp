@@ -102,7 +102,8 @@ void Render::cleanup()
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
     vkDestroySampler(device, textureSampler, nullptr);
-    vkDestroyImageView(device, textureImageView, nullptr);
+    vkDestroyImageView(device, textureImageView[0], nullptr);
+    vkDestroyImageView(device, textureImageView[1], nullptr);
 
    // vkDestroyImage(device, textureImage, nullptr);
   //  vkFreeMemory(device, textureImageMemory, nullptr);
@@ -443,6 +444,7 @@ void Render::textureManager() {
     Texture tex2 = createTextureImage(TEXTURE_PATH2);
 
     createTextureImageView(tex2);
+    createTextureImageView(tex);
     createTextureSampler();
 }
 
@@ -483,7 +485,7 @@ Render::Texture Render::createTextureImage(std::string texture_path)
 
 void Render::createTextureImageView(Texture tex)
 {
-    textureImageView = createImageView(tex.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    textureImageView.push_back(createImageView(tex.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
 }
 
 void Render::createTextureSampler()

@@ -303,13 +303,17 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = mTextureImageView;
+        imageInfo.imageView = mTextureImageView[0];
+
+        VkDescriptorImageInfo imageInfo2{};
+        imageInfo2.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo2.imageView = mTextureImageView[1];
 
         VkDescriptorImageInfo samplerInfo{};
         samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         samplerInfo.sampler = mTextureSampler;
 
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = mDescriptorSets[i];
@@ -329,11 +333,19 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
         descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[2].dstSet = mDescriptorSets[i];
-        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstBinding = 1;
         descriptorWrites[2].dstArrayElement = 0;
-        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descriptorWrites[2].descriptorCount = 1;
-        descriptorWrites[2].pImageInfo = &samplerInfo;
+        descriptorWrites[2].pImageInfo = &imageInfo2;
+
+        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3].dstSet = mDescriptorSets[i];
+        descriptorWrites[3].dstBinding = 2;
+        descriptorWrites[3].dstArrayElement = 0;
+        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorWrites[3].descriptorCount = 1;
+        descriptorWrites[3].pImageInfo = &samplerInfo;
 
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -434,9 +446,10 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
     createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
 }
 
-void RenderPass::setTextureImageView(VkImageView textureImageView)
+void RenderPass::setTextureImageView(std::vector<VkImageView> textureImageView)
 {
-    mTextureImageView = textureImageView;
+    for (int i = 0; i < textureImageView.size(); ++i)
+        mTextureImageView.push_back(textureImageView[i]);
 }
 
 void RenderPass::setTextureSampler(VkSampler textureSampler)
