@@ -288,7 +288,7 @@ private:
 
         if (camera.mouseButtons.left)
         {
-          camera.rotate(dy, dx);
+          camera.rotate(dx, dy);
         }
         if (camera.mouseButtons.right)
         {
@@ -391,7 +391,7 @@ private:
         camera.rotationSpeed = 0.25f;
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
-        camera.setRotation(glm::quat({ 0.0f, 0.0f, 0.0f, 0.0f}));
+        camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f}));
     }
 
     void createVertexBuffer();

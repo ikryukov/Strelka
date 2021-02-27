@@ -29,6 +29,7 @@ public:
     float movementSpeed;
 
     bool updated = false;
+    glm::float3 directionVector;
 
     struct MouseButtons
     {
@@ -44,6 +45,7 @@ public:
         glm::float4x4 perspective;
         glm::float4x4 view;
     } matrices;
+       
 
     struct
     {

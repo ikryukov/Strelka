@@ -3,22 +3,17 @@
 
 void Camera::updateViewMatrix()
 {
-
-    glm::float4x4 transM;
-
-    /*glm::quat qPitch = glm::angleAxis(rotation.x, glm::float3(1.0f, 0.0f, 0.0f));
-    glm::quat qYaw = glm::angleAxis(rotation.y, glm::float3(0.0f, 1.0f, 0.0f));*/
     glm::quat q = rotation;
     q.x *= -1.0f;
     q.y *= -1.0f;
-    q.z *= 0.0f;
+    q.z *= 1.0f;
     glm::mat4 rotM = mat4_cast(q);
 
-    transM = glm::translate(glm::float4x4(1.0f), position * glm::float3(1.0f, 1.0f, -1.0f));
+    glm::float4x4 transM = glm::translate(glm::float4x4(1.0f), position * glm::float3(1.0f, 1.0f, -1.0f));
 
     if (type == CameraType::firstperson)
     {
-        matrices.view = transM * rotM;
+        matrices.view = rotM * transM;
     }
     else
     {
@@ -67,10 +62,14 @@ void Camera::setRotation(glm::quat rotation)
     updateViewMatrix();
 }
 
-void Camera::rotate(float upAngle, float rightAngle)
+void Camera::rotate(float rightAngle, float upAngle)
 {
-    rotation *= glm::angleAxis(glm::radians(rightAngle), glm::float3(matrices.view[1]));
-    rotation *= glm::angleAxis(glm::radians(upAngle), glm::float3(matrices.view[0]));
+    glm::float3 front = glm::normalize( glm::float3(0.0, 0.0f, 1.0)* rotation);
+    glm::float3 right = glm::normalize(glm::cross(glm::float3(0.0, 1.0f, 0.0), front));
+    glm::float3 up = glm::normalize(glm::cross(right, front));
+    rotation *= glm::angleAxis(glm::radians(upAngle), right);
+    rotation *= glm::angleAxis(glm::radians(rightAngle), -up);
+
     rotation = glm::normalize(rotation);
     updateViewMatrix();
 }
@@ -95,19 +94,21 @@ void Camera::update(float deltaTime)
         if (moving())
         {
             float moveSpeed = deltaTime * movementSpeed;
-
+            glm::float3 front = glm::normalize(glm::float3(0.0, 0.0f, 1.0) * rotation);
+            glm::float3 right = glm::normalize(glm::cross(glm::float3(0.0, 1.0f, 0.0), front));
+            glm::float3 up = glm::normalize(glm::cross(right, front));
             if (keys.up)
-                position += glm::float3(matrices.view[1]) * moveSpeed;
+                position += up * moveSpeed;
             if (keys.down)
-                position -= glm::float3(matrices.view[1]) * moveSpeed;
+                position -= up * moveSpeed;
             if (keys.left)
-              position += glm::float3(matrices.view[0]) * moveSpeed;
+                position += right * moveSpeed;
             if (keys.right)
-                position -= glm::float3(matrices.view[0]) * moveSpeed;
-             if (keys.forward)
-                position -= glm::float3(matrices.view[2]) * moveSpeed;
+                position -= right * moveSpeed;
+            if (keys.forward)
+                position -= front * moveSpeed;
             if (keys.back)
-                position += glm::float3(matrices.view[2]) * moveSpeed;
+                position += front * moveSpeed;
             updateViewMatrix();
         }
     }
@@ -115,14 +116,14 @@ void Camera::update(float deltaTime)
 
 // Update camera passing separate axis data (gamepad)
 // Returns true if view or position has been changed
-bool Camera::updatePad(glm::float2 axisLeft, glm::float2 axisRight, float deltaTime)
+bool Camera::updatePad(glm::float2 axisright, glm::float2 axisRight, float deltaTime)
 {
     bool retVal = false;
 
     if (type == CameraType::firstperson)
     {
         // Use the common console thumbstick layout
-        // Left = view, right = move
+        // right = view, right = move
 
         const float deadZone = 0.0015f;
         const float range = 1.0f - deadZone;
@@ -137,16 +138,16 @@ bool Camera::updatePad(glm::float2 axisLeft, glm::float2 axisRight, float deltaT
         float rotSpeed = deltaTime * rotationSpeed * 50.0f;
 
         // Move
-        if (fabsf(axisLeft.y) > deadZone)
+        if (fabsf(axisright.y) > deadZone)
         {
-            float pos = (fabsf(axisLeft.y) - deadZone) / range;
-            position -= camFront * pos * ((axisLeft.y < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
+            float pos = (fabsf(axisright.y) - deadZone) / range;
+            position -= camFront * pos * ((axisright.y < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
             retVal = true;
         }
-        if (fabsf(axisLeft.x) > deadZone)
+        if (fabsf(axisright.x) > deadZone)
         {
-            float pos = (fabsf(axisLeft.x) - deadZone) / range;
-            position += glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * pos * ((axisLeft.x < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
+            float pos = (fabsf(axisright.x) - deadZone) / range;
+            position += glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * pos * ((axisright.x < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
             retVal = true;
         }
 
