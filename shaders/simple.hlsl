@@ -1,16 +1,3 @@
-static const float2 positions[3] = {
-    float2(0.0, -0.5),
-    float2(0.5, 0.5),
-    float2(-0.5, 0.5)
-};
-
-static const float3 colors[3] = {
-    float3(1.0, 0.0, 0.0),
-    float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, 1.0)
-};
-
-
 struct VertexInput
 {
     float3 position : POSITION;
@@ -19,12 +6,20 @@ struct VertexInput
     uint32_t materialId;
 };
 
-struct MaterialInput
+struct Material
 {
-    float4 color;
-    float3 ambient : COLOR0;
-    float3 diffuse : COLOR1;
-    float3 specular : COLOR2;
+    float3 ambient;
+    float3 diffuse;
+    float3 specular;
+    float3 emissive;
+    float optical_density;
+    float shininess;
+    float3 transparency;
+    uint32_t illum;
+    uint32_t texAmbientId;
+    uint32_t texDiffuseId;
+    uint32_t texSpeculaId;
+    uint32_t texNormalId;
 };
 
 struct PS_INPUT
@@ -43,7 +38,7 @@ cbuffer ubo
 }
 Texture2D tex;
 SamplerState gSampler;
-StructuredBuffer<MaterialInput> materials;
+StructuredBuffer<Material> materials;
 
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
@@ -51,7 +46,7 @@ PS_INPUT vertexMain(VertexInput vi)
     PS_INPUT out;
     out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
     out.uv = vi.uv;
-    out.normal = mul((float3x3)modelViewProj, vi.normal);
+    out.normal = mul((float3x3)inverseWorldToView, vi.normal);
     out.materialId = vi.materialId;
 
     return out;
@@ -62,10 +57,20 @@ PS_INPUT vertexMain(VertexInput vi)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-   float4 color = float4(materials[inp.materialId].color.rgb, 1.0f);
    float3 ambient = float3(materials[inp.materialId].ambient.rgb);
    float3 specular = float3(materials[inp.materialId].specular.rgb);
    float3 diffuse = float3(materials[inp.materialId].diffuse.rgb);
+
+
+   float3 emissive = float3(materials[inp.materialId].emissive.rgb);
+   //float optical_density;
+   //float shininess;
+   //float3 transparency;
+   //uint32_t illum;
+   uint32_t texAmbientId = 0;
+   uint32_t texDiffuseId = 0;
+   uint32_t texSpeculaId = 0;
+   uint32_t texNormalId = 0;
 
    return float4(inp.normal, 1.0);
 }

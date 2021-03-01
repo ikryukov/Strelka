@@ -58,13 +58,18 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
 }
 
 
-uint32_t Scene::createMaterial(std::string name, const glm::float4& color,
-                               const glm::float3& ambient, const glm::float3& diffuse,
-                               const glm::float3& specular, glm::float3 ke,
-                               float optical_density, float shininess,
-                               glm::float3 transparency, uint32_t illum,
-                               std::string map_ambient, std::string map_diffuse,
-                               std::string map_specular, std::string map_normal)
+uint32_t Scene::createMaterial(const glm::float3& ambient,
+                               const glm::float3& diffuse,
+                               const glm::float3& specular,
+                               glm::float3 emissive,
+                               float optical_density,
+                               float shininess,
+                               glm::float3 transparency,
+                               uint32_t illum,
+                               uint32_t texAmbientId,
+                               uint32_t texDiffuseId,
+                               uint32_t texSpeculaId,
+                               uint32_t texNormalId)
 {
     Material* material = nullptr;
     uint32_t materialId = -1;
@@ -80,20 +85,18 @@ uint32_t Scene::createMaterial(std::string name, const glm::float4& color,
         mDelMaterial.pop(); // del taken index from stack
         material = &mMaterials[materialId];
     }
-    material->name = std::move(name);
-    material->color = color;
     material->ambient = ambient;
     material->diffuse = diffuse;
     material->specular = specular;
-    material->ke = ke;
+    material->emissive = emissive;
     material->optical_density = optical_density;
     material->shininess = shininess;
     material->transparency = transparency;
     material->illum = illum;
-    material->map_ambient = std::move(map_ambient);
-    material->map_diffuse = std::move(map_diffuse);
-    material->map_specular = std::move(map_specular);
-    material->map_normal = std::move(map_normal);
+    material->texAmbientId = texAmbientId;
+    material->texDiffuseId = texDiffuseId;
+    material->texSpeculaId = texSpeculaId;
+    material->texNormalId = texNormalId;
     return materialId;
 }
 

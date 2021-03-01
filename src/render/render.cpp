@@ -614,7 +614,6 @@ void Render::createVertexBuffer()
         vertices[i].uv = sceneVertices[i].uv;
         vertices[i].normal = sceneVertices[i].normal;
         vertices[i].materialId = sceneVertices[i].materialId;
-//        vertices[i].color = sceneVertices[i].color;
     }
 
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
@@ -639,28 +638,27 @@ void Render::createVertexBuffer()
 void Render::createMaterialBuffer()
 {
     std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
-    // convert to render's vertices
-    materials.resize(sceneMaterials.size());
-
-    for (int i = 0; i < sceneMaterials.size(); ++i)
-    {
-        materials[i].name = sceneMaterials[i].name;
-        materials[i].color = sceneMaterials[i].color;
-        materials[i].ambient = sceneMaterials[i].ambient;
-        materials[i]. diffuse = sceneMaterials[i].diffuse;
-        materials[i].specular = sceneMaterials[i].specular;
-        materials[i].ke = sceneMaterials[i].ke;
-        materials[i].optical_density = sceneMaterials[i].optical_density;
-        materials[i].shininess = sceneMaterials[i].shininess;
-        materials[i].transparency = sceneMaterials[i].transparency;
-        materials[i].illum = sceneMaterials[i].illum;
-        materials[i].map_ambient = sceneMaterials[i].map_ambient;
-        materials[i].map_diffuse = sceneMaterials[i].map_diffuse;
-        materials[i].map_specular = sceneMaterials[i].map_specular;
-        materials[i].map_normal = sceneMaterials[i].map_normal;
-    }
-
-    VkDeviceSize bufferSize = sizeof(materials[0]) * materials.size();
+////     convert to render's vertices
+//    materials.resize(sceneMaterials.size());
+//
+//    for (int i = 0; i < sceneMaterials.size(); ++i)
+//    {
+//        materials[i].ambient = sceneMaterials[i].ambient;
+//        materials[i]. diffuse = sceneMaterials[i].diffuse;
+//        materials[i].specular = sceneMaterials[i].specular;
+//        materials[i].emissive = sceneMaterials[i].emissive;
+//        materials[i].optical_density = sceneMaterials[i].optical_density;
+//        materials[i].shininess = sceneMaterials[i].shininess;
+//        materials[i].transparency = sceneMaterials[i].transparency;
+//        materials[i].illum = sceneMaterials[i].illum;
+//        materials[i].texAmbientId = sceneMaterials[i].texAmbientId;
+//        materials[i].texDiffuseId = sceneMaterials[i].texDiffuseId;
+//        materials[i].texSpeculaId = sceneMaterials[i].texSpeculaId;
+//        materials[i].texNormalId = sceneMaterials[i].texNormalId;
+//    }
+//
+//    VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * materials.size();
+    VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;

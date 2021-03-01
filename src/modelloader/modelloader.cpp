@@ -43,16 +43,8 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                 };
 
                 Scene::Material material{};
-                //                material.color = { attrib.colors[3 * idx.vertex_index + 0], // idx.vertex_index ??
-                //                                   attrib.colors[3 * idx.vertex_index + 1],
-                //                                   attrib.colors[3 * idx.vertex_index + 2],
-                //                                   attrib.colors[3 * idx.vertex_index + 3] };
-                //                material.color =glm::float4(1.0);// {0.0,0.0,0.0,0.0};
-                material.color = { 1.0, 1.0, 1.0, 1.0 };
-
                 if (!MTL_PATH.empty())
                 {
-                    material.name = materials[shape.mesh.material_ids[f]].name;
 
                     material.ambient = { materials[shape.mesh.material_ids[f]].ambient[0],
                                          materials[shape.mesh.material_ids[f]].ambient[1],
@@ -66,9 +58,9 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                                           materials[shape.mesh.material_ids[f]].specular[1],
                                           materials[shape.mesh.material_ids[f]].specular[2] };
 
-                    material.ke = { materials[shape.mesh.material_ids[f]].emission[0],
-                                    materials[shape.mesh.material_ids[f]].emission[1],
-                                    materials[shape.mesh.material_ids[f]].emission[2] };
+                    material.emissive = { materials[shape.mesh.material_ids[f]].emission[0],
+                                          materials[shape.mesh.material_ids[f]].emission[1],
+                                          materials[shape.mesh.material_ids[f]].emission[2] };
 
                     material.optical_density = materials[shape.mesh.material_ids[f]].ior;
 
@@ -80,21 +72,22 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                     material.illum = materials[shape.mesh.material_ids[f]].illum;
 
-                    material.map_ambient = materials[shape.mesh.material_ids[f]].ambient_texname;
+                    material.texAmbientId = 0;
 
-                    material.map_diffuse = materials[shape.mesh.material_ids[f]].diffuse_texname;
+                    material.texDiffuseId = 0;
 
-                    material.map_specular = materials[shape.mesh.material_ids[f]].specular_texname;
+                    material.texSpeculaId = 0;
 
-                    material.map_normal = materials[shape.mesh.material_ids[f]].normal_texname;
+                    material.texNormalId = 0;
                 }
-                uint32_t matId = mScene.createMaterial(material.name, material.color,
-                                                       material.ambient, material.diffuse,
-                                                       material.specular, material.ke,
+
+
+                uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
+                                                       material.specular, material.emissive,
                                                        material.optical_density, material.shininess,
                                                        material.transparency, material.illum,
-                                                       material.map_ambient, material.map_diffuse,
-                                                       material.map_specular, material.map_normal);
+                                                       material.texAmbientId, material.texDiffuseId,
+                                                       material.texSpeculaId, material.texNormalId);
                 /// <summary>);
                 vertex.materialId = matId;
 
