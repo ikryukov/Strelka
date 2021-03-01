@@ -50,7 +50,7 @@ void Render::initVulkan()
 
     mPass.setFrameBufferFormat(swapChainImageFormat);
     mPass.setDepthBufferFormat(findDepthFormat());
-    mPass.setTextureImageView(textureImageView);
+    mPass.setTextureImageView(textureImageView[0]);
     mPass.setTextureSampler(textureSampler);
 
     mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
@@ -68,8 +68,18 @@ void Render::mainLoop()
     {
         glfwPollEvents();
         drawFrame();
+        //updating texture test
+        /* k++;
+        if (k == 100)
+        {
+            mPass.setTextureImageView(textureImageView[nums]);
+            k = 0;
+            if (nums == 0)
+                nums = 1;
+            else
+                nums = 0;
+        }*/
     }
-
     vkDeviceWaitIdle(device);
 }
 
@@ -91,9 +101,13 @@ void Render::cleanupSwapChain()
 
     vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
-void Render::textureDestroy() {
-     //vkDestroyImage(device, tex.textureImage, nullptr);
-   //  vkFreeMemory(device, tex.textureImageMemory, nullptr);
+
+void Render::textureDestroy()
+{
+    vkDestroyImage(device, tex.textureImage, nullptr);
+    vkDestroyImage(device, tex1.textureImage, nullptr);
+    vkFreeMemory(device, tex.textureImageMemory, nullptr);
+    vkFreeMemory(device, tex1.textureImageMemory, nullptr);
 }
 
 void Render::cleanup()
@@ -441,12 +455,12 @@ VkFormat Render::findDepthFormat()
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-void Render::textureManager() {
+void Render::textureManager()
+{
+    tex = createTextureImage(TEXTURE_PATH);
+    tex1 = createTextureImage(TEXTURE_PATH2);
 
-    Texture tex = createTextureImage(TEXTURE_PATH);
-    Texture tex2 = createTextureImage(TEXTURE_PATH2);
-
-    createTextureImageView(tex2);
+    createTextureImageView(tex1);
     createTextureImageView(tex);
     createTextureSampler();
 }
@@ -483,12 +497,12 @@ Render::Texture Render::createTextureImage(std::string texture_path)
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
 
-    return Texture{textureImage, texWidth, texHeight, textureImageMemory};
+    return Texture{ textureImage, texWidth, texHeight, textureImageMemory };
 }
 
-void Render::createTextureImageView(Texture tex)
+void Render::createTextureImageView(Texture tex3)
 {
-    textureImageView.push_back(createImageView(tex.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
+    textureImageView.push_back(createImageView(tex3.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
 }
 
 void Render::createTextureSampler()
@@ -832,7 +846,7 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
-  
+
     static auto prevTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();

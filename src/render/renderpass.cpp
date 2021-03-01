@@ -303,7 +303,7 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = mTextureImageView[0];
+        imageInfo.imageView = mTextureImageView;
 
         VkDescriptorImageInfo samplerInfo{};
         samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -341,8 +341,17 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
-    if (needDesciptorSetUpdate)
+    if (needDesciptorSetUpdate && imageviewcounter < 3)
+    {
+        imageviewcounter++;
         updateDescriptorSets(imageIndex);
+    }
+    else
+    {
+        imageviewcounter = 0;
+        needDesciptorSetUpdate = false;
+    }
+
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mRenderPass;
@@ -436,10 +445,10 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
     createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
 }
 
-void RenderPass::setTextureImageView(std::vector<VkImageView> textureImageView)
+void RenderPass::setTextureImageView(VkImageView textureImageView)
 {
-    for (int i = 0; i < textureImageView.size(); ++i)
-        mTextureImageView.push_back(textureImageView[i]);
+    mTextureImageView = textureImageView;
+    imageviewcounter = 0;
     needDesciptorSetUpdate = true;
 }
 
@@ -457,7 +466,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
 
     VkDescriptorImageInfo imageInfo{};
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = mTextureImageView[1]; //??
+    imageInfo.imageView = mTextureImageView; //??
 
     VkDescriptorImageInfo samplerInfo{};
     samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -490,7 +499,6 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     descriptorWrites[2].pImageInfo = &samplerInfo;
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-    needDesciptorSetUpdate = false;
 }
 
 } // namespace nevk

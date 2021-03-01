@@ -22,7 +22,6 @@ private:
     VkRenderPass mRenderPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
     VkDevice mDevice;
-    bool needDesciptorSetUpdate;
     void updateDescriptorSets(uint32_t descSetIndex);
 
     VkShaderModule mVS, mPS;
@@ -32,7 +31,6 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
-    std::vector<VkImageView> mTextureImageView;
     VkSampler mTextureSampler;
 
     void createRenderPass();
@@ -100,6 +98,12 @@ private:
     VkShaderModule createShaderModule(const char* code, const uint32_t codeSize);
 
 public:
+    int imageviewcounter = 0;
+
+    VkImageView mTextureImageView;
+
+    bool needDesciptorSetUpdate;
+
     void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
 
     void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
@@ -114,7 +118,7 @@ public:
         mDepthBufferFormat = format;
     }
 
-    void setTextureImageView(std::vector<VkImageView> textureImageView);
+    void setTextureImageView(VkImageView textureImageView);
     void setTextureSampler(VkSampler textureSampler);
 
     void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
@@ -142,7 +146,6 @@ public:
 
     RenderPass(/* args */);
     ~RenderPass();
-
     void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);
 };
 } // namespace nevk

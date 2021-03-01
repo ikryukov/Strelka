@@ -135,9 +135,6 @@ private:
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
-
-   // VkImage textureImage;
-   // VkDeviceMemory textureImageMemory;
     std::vector<VkImageView> textureImageView;
     VkSampler textureSampler;
 
@@ -210,6 +207,8 @@ private:
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
         nevk::Scene& scene = app->getScene();
         Camera& camera = scene.getCamera();
+        auto apppass = reinterpret_cast<nevk::RenderPass*>(glfwGetWindowUserPointer(window)); // ??
+        nevk::RenderPass apppass2; // ??
 
         const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
         switch (key)
@@ -236,6 +235,10 @@ private:
         }
         case GLFW_KEY_E: {
             camera.keys.back = keyState;
+            break;
+        }
+        case GLFW_KEY_V: { //???
+            apppass->setTextureImageView(app->textureImageView[1]);
         }
         default:
             break;
@@ -358,12 +361,13 @@ private:
 
     void textureManager();
 
-    struct Texture {
+    struct Texture
+    {
         VkImage textureImage;
         int texWidth;
         int texHeight;
         VkDeviceMemory textureImageMemory;
-    };
+    } tex, tex1;
 
     Texture createTextureImage(std::string texture_path);
 
@@ -388,6 +392,10 @@ private:
                        });
         return ret;
     }
+
+    //for checks
+    //int k = 0;
+    //int nums = 1;
 
     void loadModel()
     {
