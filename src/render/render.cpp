@@ -644,11 +644,20 @@ void Render::createMaterialBuffer()
 
     for (int i = 0; i < sceneMaterials.size(); ++i)
     {
+        materials[i].name = sceneMaterials[i].name;
         materials[i].color = sceneMaterials[i].color;
-        materials[i].ka = sceneMaterials[i].ka;
-        materials[i]. kd = sceneMaterials[i].kd;
-        materials[i].ks = sceneMaterials[i].ks;
-//        materials[i].textureId = sceneMaterials[i].textureId;
+        materials[i].ambient = sceneMaterials[i].ambient;
+        materials[i]. diffuse = sceneMaterials[i].diffuse;
+        materials[i].specular = sceneMaterials[i].specular;
+        materials[i].ke = sceneMaterials[i].ke;
+        materials[i].optical_density = sceneMaterials[i].optical_density;
+        materials[i].shininess = sceneMaterials[i].shininess;
+        materials[i].transparency = sceneMaterials[i].transparency;
+        materials[i].illum = sceneMaterials[i].illum;
+        materials[i].map_ambient = sceneMaterials[i].map_ambient;
+        materials[i].map_diffuse = sceneMaterials[i].map_diffuse;
+        materials[i].map_specular = sceneMaterials[i].map_specular;
+        materials[i].map_normal = sceneMaterials[i].map_normal;
     }
 
     VkDeviceSize bufferSize = sizeof(materials[0]) * materials.size();

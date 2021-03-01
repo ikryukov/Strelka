@@ -36,7 +36,7 @@ private:
     std::set<uint32_t> mDirtyInstances;
 
 public:
-      struct Vertex
+    struct Vertex
     {
         glm::float3 pos;
         glm::float3 normal;
@@ -46,11 +46,20 @@ public:
 
     struct Material
     {
+        std::string name; //  newmtl material_1 (name)
         glm::float4 color;
-        glm::float3 ka;
-        glm::float3 kd;
-        glm::float3 ks;
-//        uint32_t textureId;
+        glm::float3 ambient; // Ka
+        glm::float3 diffuse; // Kd
+        glm::float3 specular;  // Ks
+        glm::float3 ke; // Ke
+        float optical_density; // Ni
+        float shininess; // Ns 16 --  блеск материала
+        glm::float3 transparency; //  d 1 -- прозрачность/непрозрачность
+        uint32_t illum; // illum 2 -- модель освещения
+        std::string map_ambient;
+        std::string map_diffuse; // map_kd
+        std::string map_specular;
+        std::string map_normal; // map_Bump
     };
 
     std::vector<Vertex> mVertices;
@@ -102,8 +111,13 @@ public:
     /// </summary>
     /// <param name="color">Color</param>
     /// <returns>Nothing</returns>
-//    uint32_t createMaterial(const glm::float4& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks, uint32_t textureId);
-    uint32_t createMaterial(const glm::float4& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks);
+    uint32_t createMaterial(std::string name, const glm::float4& color,
+                            const glm::float3& ambient, const glm::float3& diffuse,
+                            const glm::float3& specular, glm::float3 ke,
+                            float optical_density, float shininess,
+                            glm::float3 transparency, uint32_t illum,
+                            std::string map_ambient, std::string map_diffuse,
+                            std::string map_specular, std::string map_normal);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>

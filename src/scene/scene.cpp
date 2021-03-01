@@ -1,5 +1,7 @@
 #include "scene.h"
 
+#include <utility>
+
 namespace nevk
 {
 
@@ -23,12 +25,12 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     mesh->mIndex = mIndices.size(); // Index of 1st index in index buffer
     mesh->mCount = ib.size(); // amount of indices in mesh
 
-    const uint32_t ibOffset = mIndices.size();  // adjust indices for global index buffer
+    const uint32_t ibOffset = mIndices.size(); // adjust indices for global index buffer
     for (int i = 0; i < ib.size(); ++i)
     {
         mIndices.push_back(ibOffset + ib[i]);
     }
-    mVertices.insert(mVertices.end(), vb.begin(), vb.end());  // copy vertices
+    mVertices.insert(mVertices.end(), vb.begin(), vb.end()); // copy vertices
     return meshId;
 }
 
@@ -38,7 +40,7 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     uint32_t instId = -1;
     if (mDelInstances.empty())
     {
-        instId = mInstances.size();  // add instance to storage
+        instId = mInstances.size(); // add instance to storage
         mInstances.push_back({});
         inst = &mInstances.back();
     }
@@ -55,8 +57,14 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     return instId;
 }
 
-//uint32_t Scene::createMaterial(const glm::float4& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks, const uint32_t textureId)
-uint32_t Scene::createMaterial(const glm::float4& color, const glm::float3& ka, const glm::float3& kd, const glm::float3& ks)
+
+uint32_t Scene::createMaterial(std::string name, const glm::float4& color,
+                               const glm::float3& ambient, const glm::float3& diffuse,
+                               const glm::float3& specular, glm::float3 ke,
+                               float optical_density, float shininess,
+                               glm::float3 transparency, uint32_t illum,
+                               std::string map_ambient, std::string map_diffuse,
+                               std::string map_specular, std::string map_normal)
 {
     Material* material = nullptr;
     uint32_t materialId = -1;
@@ -72,11 +80,20 @@ uint32_t Scene::createMaterial(const glm::float4& color, const glm::float3& ka, 
         mDelMaterial.pop(); // del taken index from stack
         material = &mMaterials[materialId];
     }
+    material->name = std::move(name);
     material->color = color;
-    material->ka = ka;
-    material->kd = kd;
-    material->ks = ks;
-//    material->textureId = textureId;
+    material->ambient = ambient;
+    material->diffuse = diffuse;
+    material->specular = specular;
+    material->ke = ke;
+    material->optical_density = optical_density;
+    material->shininess = shininess;
+    material->transparency = transparency;
+    material->illum = illum;
+    material->map_ambient = std::move(map_ambient);
+    material->map_diffuse = std::move(map_diffuse);
+    material->map_specular = std::move(map_specular);
+    material->map_normal = std::move(map_normal);
     return materialId;
 }
 
