@@ -39,6 +39,7 @@ cbuffer ubo
 }
 Texture2D tex;
 SamplerState gSampler;
+StructuredBuffer<MaterialInput> materials;
 
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
@@ -58,7 +59,6 @@ PS_INPUT vertexMain(VertexInput vi)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-   StructuredBuffer<MaterialInput> materials;
    float4 color = float4(materials[inp.materialId].color.rgb, 1.0f);
    float3 ka = float3(materials[inp.materialId].ka.rgb);
    float3 ks= float3(materials[inp.materialId].ks.rgb);
