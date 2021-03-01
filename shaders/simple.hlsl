@@ -36,6 +36,8 @@ struct PS_INPUT
 cbuffer ubo
 {
     float4x4 modelViewProj;
+    float4x4 worldToView;
+    float4x4 inverseWorldToView;
 }
 Texture2D tex;
 SamplerState gSampler;
@@ -47,8 +49,7 @@ PS_INPUT vertexMain(VertexInput vi)
     PS_INPUT out;
     out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
     out.uv = vi.uv;
-    out.normal = vi.normal;
-    //out.normal = normalize(mul(modelViewProj,float3(vi.normal, 1.0f)));
+    out.normal = mul((float3x3)modelViewProj, vi.normal);
     out.materialId = vi.materialId;
 
     return out;
