@@ -63,10 +63,11 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 
 
    float3 emissive = float3(materials[inp.materialId].emissive.rgb);
-   //float optical_density;
-   //float shininess;
-   //float3 transparency;
-   //uint32_t illum;
+   float optical_density = float(materials[inp.materialId].optical_density);
+   float shininess = float(materials[inp.materialId].shininess);
+   float3 transparency = float3(materials[inp.materialId].transparency.rgb);
+   uint32_t illum = 2;
+
    uint32_t texAmbientId = 0;
    uint32_t texDiffuseId = 0;
    uint32_t texSpeculaId = 0;

@@ -13,6 +13,8 @@ private:
     struct UniformBufferObject
     {
         alignas(16) glm::mat4 modelViewProj;
+        alignas(16) glm::mat4 worldToView;
+        alignas(16) glm::mat4 inverseWorldToView;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;

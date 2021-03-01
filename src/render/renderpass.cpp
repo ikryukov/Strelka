@@ -400,6 +400,10 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage)
 
     ubo.modelViewProj = proj * view * model;
 
+    ubo.inverseWorldToView = transpose(inverse(proj * view * ubo.worldToView));
+
+
+
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
