@@ -19,18 +19,10 @@ struct VertexInput
 
 struct MaterialInput
 {
-    float4 color : COLOR;
+    float4 color;
     float3 ka : COLOR0;
     float3 kd : COLOR1;
     float3 ks : COLOR2;
-};
-
-struct M_INPUT
-{
-    float4 color;
-    float3 ka;
-    float3 kd;
-    float3 ks;
 };
 
 struct PS_INPUT
@@ -55,22 +47,22 @@ PS_INPUT vertexMain(VertexInput vi)
     out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
     out.uv = vi.uv;
     out.normal = vi.normal;
+    //out.normal = normalize(mul(modelViewProj,float3(vi.normal, 1.0f)));
     out.materialId = vi.materialId;
-    //out.materialId = 0;
 
     return out;
 }
 
+
 // Fragment Shader
 [shader("fragment")]
-float4 fragmentMain(PS_INPUT inp, M_INPUT m_inp) : SV_TARGET
+float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    StructuredBuffer<MaterialInput> materials;
-    MaterialInput mater = materials[materialId];
-    m_inp.color = mater.color;
-    m_inp.ka = mater.ka;
-    m_inp.ks = mater.ks;
-    m_inp.kd = mater.kd;
+   StructuredBuffer<MaterialInput> materials;
+   float4 color = float4(materials[inp.materialId].color.rgb, 1.0f);
+   float3 ka = float3(materials[inp.materialId].ka.rgb);
+   float3 ks= float3(materials[inp.materialId].ks.rgb);
+   float3 kd = float3(materials[inp.materialId].kd.rgb);
 
-    return float4(inp.normal, 1.0);
+   return float4(inp.normal, 1.0);
 }
