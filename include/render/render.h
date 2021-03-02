@@ -288,7 +288,7 @@ private:
 
         if (camera.mouseButtons.left)
         {
-          camera.rotate(dx, dy);
+          camera.rotate(-dx, -dy);
         }
         if (camera.mouseButtons.right)
         {
