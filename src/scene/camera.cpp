@@ -1,15 +1,16 @@
 #include <scene/glm-wrapper.hpp>
+
+#include <glm/gtx/quaternion.hpp>
 #include "camera.h"
 
 void Camera::updateViewMatrix()
 {
-    glm::quat q = rotation;
-    q.x *= -1.0f;
-    q.y *= -1.0f;
-    q.z *= 1.0f;
-    glm::mat4 rotM = mat4_cast(q);
+
+   
+    glm::mat4 rotM = toMat4(rotation);
 
     glm::float4x4 transM = glm::translate(glm::float4x4(1.0f), position * glm::float3(1.0f, 1.0f, -1.0f));
+
 
     if (type == CameraType::firstperson)
     {
@@ -64,12 +65,25 @@ void Camera::setRotation(glm::quat rotation)
 
 void Camera::rotate(float rightAngle, float upAngle)
 {
-    glm::float3 front = glm::normalize( glm::float3(0.0, 0.0f, 1.0)* rotation);
-    glm::float3 right = glm::normalize(glm::cross(glm::float3(0.0, 1.0f, 0.0), front));
-    glm::float3 up = glm::normalize(glm::cross(right, front));
-    rotation *= glm::angleAxis(glm::radians(upAngle), right);
-    rotation *= glm::angleAxis(glm::radians(rightAngle), -up);
+    m_accumupAngle += upAngle;
 
+    if (m_accumupAngle > 90.0f)
+    {
+        upAngle = 90.0f - (m_accumupAngle - upAngle);
+        m_accumupAngle = 90.0f;
+    }
+
+    if (m_accumupAngle < -90.0f)
+    {
+        upAngle = -90.0f - (m_accumupAngle - upAngle);
+        m_accumupAngle = -90.0f;
+    }
+    
+    glm::quat q = glm::angleAxis(glm::radians(rightAngle), glm::float3(0.0, -1.0f, 0.0));
+    rotation = q * rotation;
+
+    q = glm::angleAxis(glm::radians(upAngle), glm::float3(1.0f, 0.0f, 0.0f));
+    rotation = rotation * q;
     rotation = glm::normalize(rotation);
     updateViewMatrix();
 }
@@ -94,7 +108,7 @@ void Camera::update(float deltaTime)
         if (moving())
         {
             float moveSpeed = deltaTime * movementSpeed;
-            glm::float3 front = glm::normalize(glm::float3(0.0, 0.0f, 1.0) * rotation);
+            glm::float3 front = glm::normalize(rotation * glm::float3(0.0, 0.0f, 1.0));
             glm::float3 right = glm::normalize(glm::cross(glm::float3(0.0, 1.0f, 0.0), front));
             glm::float3 up = glm::normalize(glm::cross(right, front));
             if (keys.up)

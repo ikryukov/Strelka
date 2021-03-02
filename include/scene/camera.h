@@ -25,6 +25,8 @@ public:
     glm::quat rotation;
     glm::float3 position;
 
+    float  m_accumupAngle;
+
     float rotationSpeed;
     float movementSpeed;
 

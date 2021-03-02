@@ -392,6 +392,7 @@ private:
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f}));
+        camera.m_accumupAngle = 0.0f;
     }
 
     void createVertexBuffer();
