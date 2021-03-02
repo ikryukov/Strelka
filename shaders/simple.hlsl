@@ -12,7 +12,7 @@ struct Material
     float3 diffuse;
     float3 specular;
     float3 emissive;
-    float optical_density;
+    float opticalDensity;
     float shininess;
     float3 transparency;
     uint32_t illum;
@@ -63,7 +63,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 
 
    float3 emissive = float3(materials[inp.materialId].emissive.rgb);
-   float optical_density = float(materials[inp.materialId].optical_density);
+   float opticalDensity = float(materials[inp.materialId].opticalDensity);
    float shininess = float(materials[inp.materialId].shininess);
    float3 transparency = float3(materials[inp.materialId].transparency.rgb);
    uint32_t illum = 2;

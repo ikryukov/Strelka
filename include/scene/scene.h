@@ -48,16 +48,16 @@ public:
     {
         glm::float3 ambient; // Ka
         glm::float3 diffuse; // Kd
-        glm::float3 specular;  // Ks
+        glm::float3 specular; // Ks
         glm::float3 emissive; // Ke
-        float optical_density; // Ni
+        float opticalDensity; // Ni
         float shininess; // Ns 16 --  блеск материала
         glm::float3 transparency; //  d 1 -- прозрачность/непрозрачность
         uint32_t illum; // illum 2 -- модель освещения
-        uint32_t texAmbientId; // map_ambient !!!!!!!!!!!!! map_kd
-        uint32_t texDiffuseId; // map_diffuse !!!!!!!!!!!!!
-        uint32_t texSpeculaId; // map_specular !!!!!!!!!!!!!
-        uint32_t texNormalId; // map_normal; !!!!!!!!!!!!!!!  map_Bump
+        uint32_t texAmbientId; // map_ambient
+        uint32_t texDiffuseId; // map_diffuse
+        uint32_t texSpeculaId; // map_specular
+        uint32_t texNormalId; // map_normal - map_Bump
     };
 
     std::vector<Vertex> mVertices;
@@ -113,7 +113,7 @@ public:
                             const glm::float3& diffuse,
                             const glm::float3& specular,
                             glm::float3 emissive,
-                            float optical_density,
+                            float opticalDensity,
                             float shininess,
                             glm::float3 transparency,
                             uint32_t illum,

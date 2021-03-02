@@ -62,7 +62,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                                           materials[shape.mesh.material_ids[f]].emission[1],
                                           materials[shape.mesh.material_ids[f]].emission[2] };
 
-                    material.optical_density = materials[shape.mesh.material_ids[f]].ior;
+                    material.opticalDensity = materials[shape.mesh.material_ids[f]].ior;
 
                     material.shininess = materials[shape.mesh.material_ids[f]].shininess;
 
@@ -84,11 +84,10 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                 uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
                                                        material.specular, material.emissive,
-                                                       material.optical_density, material.shininess,
+                                                       material.opticalDensity, material.shininess,
                                                        material.transparency, material.illum,
                                                        material.texAmbientId, material.texDiffuseId,
                                                        material.texSpeculaId, material.texNormalId);
-                /// <summary>);
                 vertex.materialId = matId;
 
                 _indices.push_back(static_cast<uint32_t>(_vertices.size()));

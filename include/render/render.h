@@ -41,12 +41,6 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
 const std::string TEXTURE_PATH = R"(C:\NEED\NeVK\misc\red-brick-wall.jpg)";
-//const std::string MTL_PATH = "misc/";
-//const std::string MODEL_PATH = "misc/san-miguel-low-poly.obj";
-//const std::string TEXTURE_PATH = "misc/white.jpg";
-//const std::string MTL_PATH = "misc/san-miguel-low-poly.mtl";
-//const std::string MODEL_PATH = "misc/viking_room.obj";
-//const std::string TEXTURE_PATH = "misc/viking_room.png";
 const std::string MTL_PATH = "";
 
 const std::vector<const char*> validationLayers = {
@@ -65,275 +59,274 @@ const bool enableValidationLayers = true;
 
 static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
-  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-  if (func != nullptr)
-  {
-    return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-  }
-  else
-  {
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-  }
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr)
+    {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    }
+    else
+    {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
 }
 
 static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
 {
-  auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-  if (func != nullptr)
-  {
-    func(instance, debugMessenger, pAllocator);
-  }
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr)
+    {
+        func(instance, debugMessenger, pAllocator);
+    }
 }
 
 struct QueueFamilyIndices
 {
-  std::optional<uint32_t> graphicsFamily;
-  std::optional<uint32_t> presentFamily;
+    std::optional<uint32_t> graphicsFamily;
+    std::optional<uint32_t> presentFamily;
 
-  bool isComplete()
-  {
-    return graphicsFamily.has_value() && presentFamily.has_value();
-  }
+    bool isComplete()
+    {
+        return graphicsFamily.has_value() && presentFamily.has_value();
+    }
 };
 
 struct SwapChainSupportDetails
 {
-  VkSurfaceCapabilitiesKHR capabilities;
-  std::vector<VkSurfaceFormatKHR> formats;
-  std::vector<VkPresentModeKHR> presentModes;
+    VkSurfaceCapabilitiesKHR capabilities;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
 };
 
 class Render
 {
- public:
-  void run()
-  {
-    initWindow();
-    initVulkan();
-    mainLoop();
-    cleanup();
-  }
-
- private:
-  GLFWwindow* window;
-  ImGui_ImplVulkan_InitInfo init_info{};
-
-  VkInstance instance;
-  VkDebugUtilsMessengerEXT debugMessenger;
-  VkSurfaceKHR surface;
-
-  VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-  VkDevice device;
-
-  VkQueue graphicsQueue;
-  VkQueue presentQueue;
-
-  VkSwapchainKHR swapChain;
-  std::vector<VkImage> swapChainImages;
-  VkFormat swapChainImageFormat;
-  VkExtent2D swapChainExtent;
-  std::vector<VkImageView> swapChainImageViews;
-  std::vector<VkFramebuffer> swapChainFramebuffers;
-  VkFormat mFrameBufferFormat;
-
-  VkImage depthImage;
-  VkDeviceMemory depthImageMemory;
-  VkImageView depthImageView;
-
-  VkImage textureImage;
-  VkDeviceMemory textureImageMemory;
-  VkImageView textureImageView;
-  VkSampler textureSampler;
-
-  nevk::ResourceManager* mResManager;
-
-  nevk::RenderPass mPass;
-
-  std::vector<nevk::Scene::Vertex> vertices;
-//  std::vector<nevk::Scene::Material> materials;
-  std::vector<uint32_t> indices;
-  VkBuffer vertexBuffer;
-  VkDeviceMemory vertexBufferMemory;
-  VkBuffer materialBuffer;
-  VkDeviceMemory materialBufferMemory;
-  VkBuffer indexBuffer;
-  VkDeviceMemory indexBufferMemory;
-
-  VkDescriptorPool descriptorPool;
-
-  struct FrameData
-  {
-    VkCommandBuffer cmdBuffer;
-    VkCommandPool cmdPool;
-    VkFence inFlightFence;
-    VkFence imagesInFlight;
-    VkSemaphore renderFinished;
-    VkSemaphore imageAvailable;
-  };
-  FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
-
-  FrameData& getCurrentFrameData()
-  {
-    return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
-  }
-
-  FrameData& getFrameData(uint32_t idx)
-  {
-    return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
-  }
-
-  size_t mCurrentFrame = 0;
-
-  bool framebufferResized = false;
-
-  nevk::Ui mUi;
-  nevk::ShaderManager mShaderManager;
-  nevk::Scene mScene;
-
-  void initWindow()
-  {
-    glfwInit();
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-    window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
-    //        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example",  glfwGetPrimaryMonitor(), nullptr);  // for full screen
-    glfwSetWindowUserPointer(window, this);
-    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-    glfwSetKeyCallback(window, keyCallback);
-  }
-
-  static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
-  {
-    auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    app->framebufferResized = true;
-  }
-
-  static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-  {
-    auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
+public:
+    void run()
     {
-      // app->createGraphicsPipeline();
-      // app->createCommandBuffers();
-      // std::cout << "Shaders were reloaded";
+        initWindow();
+        initVulkan();
+        mainLoop();
+        cleanup();
     }
-  }
 
-  void initVulkan();
+private:
+    GLFWwindow* window;
+    ImGui_ImplVulkan_InitInfo init_info{};
 
-  void mainLoop();
+    VkInstance instance;
+    VkDebugUtilsMessengerEXT debugMessenger;
+    VkSurfaceKHR surface;
 
-  void cleanupSwapChain();
+    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+    VkDevice device;
 
-  void cleanup();
+    VkQueue graphicsQueue;
+    VkQueue presentQueue;
 
-  void recreateSwapChain();
+    VkSwapchainKHR swapChain;
+    std::vector<VkImage> swapChainImages;
+    VkFormat swapChainImageFormat;
+    VkExtent2D swapChainExtent;
+    std::vector<VkImageView> swapChainImageViews;
+    std::vector<VkFramebuffer> swapChainFramebuffers;
+    VkFormat mFrameBufferFormat;
 
-  void createInstance();
+    VkImage depthImage;
+    VkDeviceMemory depthImageMemory;
+    VkImageView depthImageView;
 
-  void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
+    VkImageView textureImageView;
+    VkSampler textureSampler;
 
-  void setupDebugMessenger();
+    nevk::ResourceManager* mResManager;
 
-  void createSurface();
+    nevk::RenderPass mPass;
 
-  void pickPhysicalDevice();
+    std::vector<nevk::Scene::Vertex> vertices;
+    //  std::vector<nevk::Scene::Material> materials;
+    std::vector<uint32_t> indices;
+    VkBuffer vertexBuffer;
+    VkDeviceMemory vertexBufferMemory;
+    VkBuffer materialBuffer;
+    VkDeviceMemory materialBufferMemory;
+    VkBuffer indexBuffer;
+    VkDeviceMemory indexBufferMemory;
 
-  void createLogicalDevice();
+    VkDescriptorPool descriptorPool;
 
-  void createSwapChain();
+    struct FrameData
+    {
+        VkCommandBuffer cmdBuffer;
+        VkCommandPool cmdPool;
+        VkFence inFlightFence;
+        VkFence imagesInFlight;
+        VkSemaphore renderFinished;
+        VkSemaphore imageAvailable;
+    };
+    FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
 
-  void createImageViews();
+    FrameData& getCurrentFrameData()
+    {
+        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
+    }
 
-  void createCommandPool();
+    FrameData& getFrameData(uint32_t idx)
+    {
+        return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
+    }
 
-  void createDepthResources();
+    size_t mCurrentFrame = 0;
 
-  VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+    bool framebufferResized = false;
 
-  VkFormat findDepthFormat();
+    nevk::Ui mUi;
+    nevk::ShaderManager mShaderManager;
+    nevk::Scene mScene;
 
-  bool hasStencilComponent(VkFormat format)
-  {
-    return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
-  }
+    void initWindow()
+    {
+        glfwInit();
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-  void createTextureImage();
+        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
+        glfwSetWindowUserPointer(window, this);
+        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+        glfwSetKeyCallback(window, keyCallback);
+    }
 
-  void createTextureImageView();
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
+    {
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        app->framebufferResized = true;
+    }
 
-  void createTextureSampler();
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+    {
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
+        {
+            // app->createGraphicsPipeline();
+            // app->createCommandBuffers();
+            // std::cout << "Shaders were reloaded";
+        }
+    }
 
-  VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+    void initVulkan();
 
-  void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+    void mainLoop();
 
-  void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+    void cleanupSwapChain();
 
-  std::vector<nevk::Scene::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
-  {
-    std::vector<nevk::Scene::Vertex> ret(params.size());
-    std::transform(params.begin(), params.end(), ret.begin(),
-                   [](auto& value) {
-                     return nevk::Scene::Vertex{ value.pos, value.normal, value.uv, value.materialId };
-                   });
-    return ret;
-  }
+    void cleanup();
 
-  void loadModel()
-  {
-    nevk::Model testmodel;
-    testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
-    vertices = convertVerticesToRender(testmodel.getVertices());
-    indices = testmodel.getIndices();
-  }
+    void recreateSwapChain();
 
-  void createVertexBuffer();
+    void createInstance();
 
-  void createMaterialBuffer();
+    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
-  void createIndexBuffer();
+    void setupDebugMessenger();
 
-  void createDescriptorPool();
+    void createSurface();
 
-  VkCommandBuffer beginSingleTimeCommands();
+    void pickPhysicalDevice();
 
-  void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+    void createLogicalDevice();
 
-  void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+    void createSwapChain();
 
-  uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    void createImageViews();
 
-  void recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex);
+    void createCommandPool();
 
-  void createCommandBuffers();
+    void createDepthResources();
 
-  void createSyncObjects();
+    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
-  void drawFrame();
+    VkFormat findDepthFormat();
 
-  VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+    bool hasStencilComponent(VkFormat format)
+    {
+        return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
+    }
 
-  VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+    void createTextureImage();
 
-  VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+    void createTextureImageView();
 
-  SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+    void createTextureSampler();
 
-  bool isDeviceSuitable(VkPhysicalDevice device);
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
-  bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
-  QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
-  std::vector<const char*> getRequiredExtensions();
+    std::vector<nevk::Scene::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
+    {
+        std::vector<nevk::Scene::Vertex> ret(params.size());
+        std::transform(params.begin(), params.end(), ret.begin(),
+                       [](auto& value) {
+                           return nevk::Scene::Vertex{ value.pos, value.normal, value.uv, value.materialId };
+                       });
+        return ret;
+    }
 
-  bool checkValidationLayerSupport();
+    void loadModel()
+    {
+        nevk::Model testmodel;
+        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
+        vertices = convertVerticesToRender(testmodel.getVertices());
+        indices = testmodel.getIndices();
+    }
 
-  static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
-  {
-    std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+    void createVertexBuffer();
 
-    return VK_FALSE;
-  }
+    void createMaterialBuffer();
+
+    void createIndexBuffer();
+
+    void createDescriptorPool();
+
+    VkCommandBuffer beginSingleTimeCommands();
+
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+
+    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
+    void recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex);
+
+    void createCommandBuffers();
+
+    void createSyncObjects();
+
+    void drawFrame();
+
+    VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+
+    VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
+
+    VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+    SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
+
+    bool isDeviceSuitable(VkPhysicalDevice device);
+
+    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
+
+    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+
+    std::vector<const char*> getRequiredExtensions();
+
+    bool checkValidationLayerSupport();
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    {
+        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+        return VK_FALSE;
+    }
 };

@@ -62,7 +62,7 @@ uint32_t Scene::createMaterial(const glm::float3& ambient,
                                const glm::float3& diffuse,
                                const glm::float3& specular,
                                glm::float3 emissive,
-                               float optical_density,
+                               float opticalDensity,
                                float shininess,
                                glm::float3 transparency,
                                uint32_t illum,
@@ -89,7 +89,7 @@ uint32_t Scene::createMaterial(const glm::float3& ambient,
     material->diffuse = diffuse;
     material->specular = specular;
     material->emissive = emissive;
-    material->optical_density = optical_density;
+    material->opticalDensity = opticalDensity;
     material->shininess = shininess;
     material->transparency = transparency;
     material->illum = illum;

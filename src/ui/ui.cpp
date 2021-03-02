@@ -244,11 +244,6 @@ void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 
     // Submit command buffer
     vkCmdEndRenderPass(commandBuffer);
-
-//    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-//    {
-//        throw std::runtime_error("failed to record command buffer!");
-//    }
 }
 
 void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat)
@@ -260,7 +255,7 @@ void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat frameb
     attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     VkAttachmentReference color_attachment = {};
     color_attachment.attachment = 0;

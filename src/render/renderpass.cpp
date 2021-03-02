@@ -194,7 +194,7 @@ void RenderPass::createRenderPass()
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = mDepthBufferFormat;
@@ -401,7 +401,6 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage)
     ubo.modelViewProj = proj * view * model;
 
     ubo.inverseWorldToView = transpose(inverse(proj * view * ubo.worldToView));
-
 
 
     void* data;

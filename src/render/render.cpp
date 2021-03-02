@@ -640,6 +640,9 @@ void Render::createMaterialBuffer()
     std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
+    if (bufferSize == 0){
+        return;
+    }
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
