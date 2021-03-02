@@ -1,6 +1,5 @@
 #include <stdexcept>
 #include <utility>
-#include <string>
 #include "ui.h"
 
 namespace nevk
@@ -51,20 +50,22 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
 {
     wd.Width = width;
     wd.Height = height;
+
     mFrameBufferFormat = framebufferFormat;
     createVkRenderPass(init_info, framebufferFormat);
+
     mInitInfo = init_info;
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext(); // this initializes the core structures of imgui
+    ImGui::CreateContext(); //this initializes the core structures of imgui
 
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(width, height);
     io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
     (void)io;
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -72,7 +73,7 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
-    // set debug callback
+    // Set debug callback
     init_info.CheckVkResultFn = check_vk_result;
     bool ret = ImGui_ImplVulkan_Init(&init_info, wd.RenderPass);
 
@@ -208,9 +209,6 @@ void Ui::updateUI(GLFWwindow* window)
 
     if (ImGui::Button("Change"))
     {
-        // this code gets if user clicks on the button
-        // yes, you could have written if(ImGui::InputText(...))
-        // but I do this to show how buttons work :)
         glfwSetWindowTitle(window, windowTitle);
     }
     ImGui::End(); // end window
@@ -247,10 +245,10 @@ void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)
     // Submit command buffer
     vkCmdEndRenderPass(commandBuffer);
 
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to record command buffer!");
-    }
+//    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+//    {
+//        throw std::runtime_error("failed to record command buffer!");
+//    }
 }
 
 void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat)
@@ -258,7 +256,7 @@ void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat frameb
     VkAttachmentDescription attachment = {};
     attachment.format = framebufferFormat;
     attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE; //wd.ClearEnable ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;

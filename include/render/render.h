@@ -150,7 +150,7 @@ class Render
   nevk::RenderPass mPass;
 
   std::vector<nevk::Scene::Vertex> vertices;
-  std::vector<nevk::Scene::Material> materials;
+//  std::vector<nevk::Scene::Material> materials;
   std::vector<uint32_t> indices;
   VkBuffer vertexBuffer;
   VkDeviceMemory vertexBufferMemory;

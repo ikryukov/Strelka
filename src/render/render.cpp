@@ -638,26 +638,7 @@ void Render::createVertexBuffer()
 void Render::createMaterialBuffer()
 {
     std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
-////     convert to render's vertices
-//    materials.resize(sceneMaterials.size());
-//
-//    for (int i = 0; i < sceneMaterials.size(); ++i)
-//    {
-//        materials[i].ambient = sceneMaterials[i].ambient;
-//        materials[i]. diffuse = sceneMaterials[i].diffuse;
-//        materials[i].specular = sceneMaterials[i].specular;
-//        materials[i].emissive = sceneMaterials[i].emissive;
-//        materials[i].optical_density = sceneMaterials[i].optical_density;
-//        materials[i].shininess = sceneMaterials[i].shininess;
-//        materials[i].transparency = sceneMaterials[i].transparency;
-//        materials[i].illum = sceneMaterials[i].illum;
-//        materials[i].texAmbientId = sceneMaterials[i].texAmbientId;
-//        materials[i].texDiffuseId = sceneMaterials[i].texDiffuseId;
-//        materials[i].texSpeculaId = sceneMaterials[i].texSpeculaId;
-//        materials[i].texNormalId = sceneMaterials[i].texNormalId;
-//    }
-//
-//    VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * materials.size();
+
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
 
     VkBuffer stagingBuffer;
@@ -666,7 +647,7 @@ void Render::createMaterialBuffer()
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, materials.data(), (size_t)bufferSize);
+    memcpy(data, sceneMaterials.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,  materialBuffer,   materialBufferMemory);
@@ -876,10 +857,10 @@ void Render::drawFrame()
 
     recordCommandBuffer(cmdBuff, imageIndex);
 
-    //    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
-    //    {
-    //        throw std::runtime_error("failed to record command buffer!");
-    //    }
+    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to record command buffer!");
+    }
 
     if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
     {
@@ -1119,7 +1100,6 @@ bool Render::checkValidationLayerSupport()
         {
             if (strcmp(layerName, layerProperties.layerName) == 0)
             {
-                layerFound = true;
                 layerFound = true;
                 break;
             }
