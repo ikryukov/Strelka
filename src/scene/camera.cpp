@@ -7,18 +7,18 @@ void Camera::updateViewMatrix()
 {
 
    
-    glm::mat4 rotM = toMat4(rotation);
+   // glm::mat4 rotM = toMat4(rotation);
 
-    glm::float4x4 transM = glm::translate(glm::float4x4(1.0f), position * glm::float3(1.0f, 1.0f, -1.0f));
+    glm::float4x4 transM = glm::translate(glm::float4x4(1.0f), -position);
 
 
     if (type == CameraType::firstperson)
     {
-        matrices.view = rotM * transM;
+        matrices.view = transM;
     }
     else
     {
-        matrices.view = transM * rotM;
+       // matrices.view = transM * rotM;
     }
     updated = true;
 }
@@ -79,7 +79,7 @@ void Camera::rotate(float rightAngle, float upAngle)
         m_accumupAngle = -90.0f;
     }
     
-    glm::quat q = glm::angleAxis(glm::radians(rightAngle), glm::float3(0.0, -1.0f, 0.0));
+    glm::quat q = glm::angleAxis(glm::radians(rightAngle), glm::float3(0.0, 1.0f, 0.0));
     rotation = q * rotation;
 
     q = glm::angleAxis(glm::radians(upAngle), glm::float3(1.0f, 0.0f, 0.0f));
@@ -108,9 +108,9 @@ void Camera::update(float deltaTime)
         if (moving())
         {
             float moveSpeed = deltaTime * movementSpeed;
-            glm::float3 front = glm::normalize(rotation * glm::float3(0.0, 0.0f, 1.0));
-            glm::float3 right = glm::normalize(glm::cross(glm::float3(0.0, 1.0f, 0.0), front));
-            glm::float3 up = glm::normalize(glm::cross(right, front));
+            glm::float3 front = glm::float3(0.0f, 0.0f, -1.0f);
+            glm::float3 right = glm::float3(1.0f, 0.0f, 0.0f);
+            glm::float3 up = glm::float3(0.0f, 1.0f, 0.0f);
             if (keys.up)
                 position += up * moveSpeed;
             if (keys.down)
@@ -120,9 +120,9 @@ void Camera::update(float deltaTime)
             if (keys.right)
                 position -= right * moveSpeed;
             if (keys.forward)
-                position -= front * moveSpeed;
-            if (keys.back)
                 position += front * moveSpeed;
+            if (keys.back)
+                position -= front * moveSpeed;
             updateViewMatrix();
         }
     }
