@@ -61,6 +61,7 @@ void Render::initVulkan()
 
     loadModel();
     createVertexBuffer();
+    createMaterialBuffer();
     createIndexBuffer();
 }
 
@@ -112,6 +113,9 @@ void Render::cleanup()
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
 
+    vkDestroyBuffer(device, materialBuffer, nullptr);
+    vkFreeMemory(device, materialBufferMemory, nullptr);
+
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
 
@@ -159,8 +163,6 @@ void Render::recreateSwapChain()
 
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(init_info, swapChainImageViews, width, height);
-    Camera& camera = mScene.getCamera();
-    camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 }
 
 void Render::createInstance()
@@ -609,8 +611,9 @@ void Render::createVertexBuffer()
     for (int i = 0; i < sceneVertices.size(); ++i)
     {
         vertices[i].pos = sceneVertices[i].pos;
-        vertices[i].texCoord = sceneVertices[i].uv;
-        vertices[i].color = sceneVertices[i].color;
+        vertices[i].uv = sceneVertices[i].uv;
+        vertices[i].normal = sceneVertices[i].normal;
+        vertices[i].materialId = sceneVertices[i].materialId;
     }
 
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
@@ -627,6 +630,32 @@ void Render::createVertexBuffer()
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+
+    vkDestroyBuffer(device, stagingBuffer, nullptr);
+    vkFreeMemory(device, stagingBufferMemory, nullptr);
+}
+
+void Render::createMaterialBuffer()
+{
+    std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
+
+    VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
+    if (bufferSize == 0){
+        return;
+    }
+
+    VkBuffer stagingBuffer;
+    VkDeviceMemory stagingBufferMemory;
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+    void* data;
+    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, sceneMaterials.data(), (size_t)bufferSize);
+    vkUnmapMemory(device, stagingBufferMemory);
+
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,  materialBuffer,   materialBufferMemory);
+
+    copyBuffer(stagingBuffer, materialBuffer, bufferSize);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -814,18 +843,9 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
-  
-    static auto prevTime = std::chrono::high_resolution_clock::now();
 
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    double deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
-    prevTime = currentTime;
-
-    Camera& cam = getScene().getCamera();
-    cam.update(deltaTime);
-
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
     mUi.updateUI(window);
+    mPass.updateUniformBuffer(imageIndex);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);
@@ -836,9 +856,14 @@ void Render::drawFrame()
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
+    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo); ////////////
 
     recordCommandBuffer(cmdBuff, imageIndex);
+
+    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to record command buffer!");
+    }
 
     if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
     {
