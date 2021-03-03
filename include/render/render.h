@@ -359,7 +359,7 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    void textureManager();
+    void loadTexture(std::string texture_path, VkCommandBuffer cmd);
 
     struct Texture
     {
@@ -367,9 +367,9 @@ private:
         int texWidth;
         int texHeight;
         VkDeviceMemory textureImageMemory;
-    } tex, tex1;
+    }tex;
 
-    Texture createTextureImage(std::string texture_path);
+    Texture createTextureImage(std::string texture_path, VkCommandBuffer cmd);
 
     void createTextureImageView(Texture tex);
 
@@ -379,9 +379,9 @@ private:
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd);
 
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkCommandBuffer cmd);
 
     std::vector<nevk::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
     {

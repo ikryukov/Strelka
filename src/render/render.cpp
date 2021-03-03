@@ -31,7 +31,11 @@ void Render::initVulkan()
     createSyncObjects();
 
     createDepthResources();
-    textureManager();
+    loadModel();
+
+    VkCommandBuffer cmd = beginSingleTimeCommands();
+    loadTexture(TEXTURE_PATH, cmd);
+    endSingleTimeCommands(cmd);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
 
@@ -57,7 +61,6 @@ void Render::initVulkan()
 
     mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
-    loadModel();
     createVertexBuffer();
     createIndexBuffer();
 }
@@ -105,9 +108,7 @@ void Render::cleanupSwapChain()
 void Render::textureDestroy()
 {
     vkDestroyImage(device, tex.textureImage, nullptr);
-    vkDestroyImage(device, tex1.textureImage, nullptr);
     vkFreeMemory(device, tex.textureImageMemory, nullptr);
-    vkFreeMemory(device, tex1.textureImageMemory, nullptr);
 }
 
 void Render::cleanup()
@@ -455,17 +456,16 @@ VkFormat Render::findDepthFormat()
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-void Render::textureManager()
+void Render::loadTexture(std::string texture_path, VkCommandBuffer cmd)
 {
-    tex = createTextureImage(TEXTURE_PATH);
-    tex1 = createTextureImage(TEXTURE_PATH2);
+    tex = createTextureImage(texture_path, cmd);
 
-    createTextureImageView(tex1);
     createTextureImageView(tex);
+
     createTextureSampler();
 }
 
-Render::Texture Render::createTextureImage(std::string texture_path)
+Render::Texture Render::createTextureImage(std::string texture_path, VkCommandBuffer cmd)
 {
     int texWidth, texHeight, texChannels;
     VkImage textureImage;
@@ -477,6 +477,7 @@ Render::Texture Render::createTextureImage(std::string texture_path)
     {
         throw std::runtime_error("failed to load texture image!");
     }
+
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
@@ -490,9 +491,9 @@ Render::Texture Render::createTextureImage(std::string texture_path)
 
     mResManager->createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd);
+    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), cmd);
+    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -553,9 +554,9 @@ VkImageView Render::createImageView(VkImage image, VkFormat format, VkImageAspec
     return imageView;
 }
 
-void Render::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void Render::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd)
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = cmd;
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -602,12 +603,12 @@ void Render::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout
         0, nullptr,
         1, &barrier);
 
-    endSingleTimeCommands(commandBuffer);
+   // endSingleTimeCommands(commandBuffer);
 }
 
-void Render::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+void Render::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkCommandBuffer cmd)
 {
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = cmd;
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -626,7 +627,7 @@ void Render::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-    endSingleTimeCommands(commandBuffer);
+  //  endSingleTimeCommands(commandBuffer);
 }
 
 void Render::createVertexBuffer()
