@@ -73,5 +73,4 @@ public:
     void setTranslation(glm::float3 translation);
     void translate(glm::float3 delta);
     void update(float deltaTime);
-    bool updatePad(glm::float2 axisLeft, glm::float2 axisRight, float deltaTime);
 };
