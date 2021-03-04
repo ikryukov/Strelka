@@ -166,11 +166,6 @@ private:
     };
     FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
 
-    FrameData& getCurrentFrameData()
-    {
-        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
-    }
-
     FrameData& getFrameData(uint32_t idx)
     {
         return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
@@ -328,5 +323,103 @@ private:
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
         return VK_FALSE;
+    }
+
+public:
+    void setWindow()
+    {
+        initWindow();
+    }
+    void setInstance()
+    {
+        createInstance();
+    }
+    void setDebugMessenger()
+    {
+        setupDebugMessenger();
+    }
+    void setSurface()
+    {
+        createSurface();
+    }
+    void setPhysicalDevice()
+    {
+        pickPhysicalDevice();
+    }
+    void setLogicalDevice()
+    {
+        createLogicalDevice();
+    }
+    void setSwapChain()
+    {
+        createSwapChain();
+    }
+    void setImageViews()
+    {
+        createImageViews();
+    }
+    void setDescriptorPool()
+    {
+        createDescriptorPool();
+    }
+    void setCommandPool()
+    {
+        createCommandPool();
+    }
+    void setCommandBuffers()
+    {
+        createCommandBuffers();
+    }
+    void setSyncObjects()
+    {
+        createSyncObjects();
+    }
+    VkPhysicalDevice getPhysicalDevice()
+    {
+        return physicalDevice;
+    }
+    QueueFamilyIndices getQueueFamilies(VkPhysicalDevice mdevice)
+    {
+        return findQueueFamilies(mdevice);
+    }
+    VkDescriptorPool getDescriptorPool()
+    {
+        return descriptorPool;
+    }
+    VkDevice getDevice()
+    {
+        return device;
+    }
+    VkInstance getInstance()
+    {
+        return instance;
+    }
+    VkQueue getGraphicsQueue()
+    {
+        return graphicsQueue;
+    }
+    VkFormat getSwapChainImageFormat()
+    {
+        return swapChainImageFormat;
+    }
+    GLFWwindow* getWindow()
+    {
+        return window;
+    }
+    FrameData& getCurrentFrameData()
+    {
+        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
+    }
+    FrameData* getFramesData()
+    {
+        return mFramesData;
+    }
+    VkExtent2D getSwapChainExtent()
+    {
+        return swapChainExtent;
+    }
+    std::vector<VkImageView>& getSwapChainImageViews()
+    {
+        return swapChainImageViews;
     }
 };
