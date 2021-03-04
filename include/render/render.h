@@ -10,10 +10,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
-#define STB_IMAGE_STATIC
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
@@ -34,6 +30,7 @@
 #include <scene/scene.h>
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
+#include <texturemanager/texturemanager.h>
 #include <ui/ui.h>
 
 const uint32_t WIDTH = 800;
@@ -41,8 +38,13 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
+
 const std::string TEXTURE_PATH = "misc/brickwall.png";
 const std::string TEXTURE_PATH2 = "misc/container.jpg";
+const std::string TEXTURE_PATH3 = "misc/viking_room.png";
+const std::string TEXTURE_PATH4 = "misc/white.jpg";
+const std::string TEXTURE_PATH5 = "misc/textures/awesomeface.png";
+
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -135,11 +137,9 @@ private:
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
-    std::vector<VkImageView> textureImageView;
-    VkSampler textureSampler;
 
     nevk::ResourceManager* mResManager;
-
+    nevk::TextureManager* mTexManager;
     nevk::RenderPass mPass;
 
     std::vector<nevk::Vertex> vertices;
@@ -201,7 +201,6 @@ private:
         mScene.updateCameraParams(width, height);
     }
 
-
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
@@ -235,10 +234,6 @@ private:
         }
         case GLFW_KEY_E: {
             camera.keys.back = keyState;
-            break;
-        }
-        case GLFW_KEY_V: { //???
-            apppass->setTextureImageView(app->textureImageView[1]);
         }
         default:
             break;
@@ -359,30 +354,6 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    void loadTexture(std::string texture_path);
-
-    struct Texture
-    {
-        VkImage textureImage;
-        int texWidth;
-        int texHeight;
-        VkDeviceMemory textureImageMemory;
-    }tex;
-
-    Texture createTextureImage(std::string texture_path);
-
-    void createTextureImageView(Texture tex);
-
-    void createTextureSampler();
-
-    void textureDestroy();
-
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-
     std::vector<nevk::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
     {
         std::vector<nevk::Vertex> ret(params.size());
@@ -394,8 +365,8 @@ private:
     }
 
     //for checks
-    //int k = 0;
-    //int nums = 1;
+    int k = 0;
+    int nums = 1;
 
     void loadModel()
     {
