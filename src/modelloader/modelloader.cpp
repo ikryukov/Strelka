@@ -88,7 +88,16 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                                                        material.transparency, material.illum,
                                                        material.texAmbientId, material.texDiffuseId,
                                                        material.texSpeculaId, material.texNormalId);
-                vertex.materialId = matId;
+
+                std::string matName = materials[shape.mesh.material_ids[f]].name;
+                std::unordered_map<std::string , uint32_t > unMat{};
+
+                if (unMat.count(matName) == 0){
+                    unMat[matName] = vertex.materialId;
+                    vertex.materialId = matId;
+                } else{
+                    vertex.materialId = unMat[matName];
+                }
 
                 _indices.push_back(static_cast<uint32_t>(_vertices.size()));
                 _vertices.push_back(vertex);
