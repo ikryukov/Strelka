@@ -16,11 +16,6 @@ struct Mesh
     uint32_t mCount; // amount of indices in mesh
 };
 
-struct Material
-{
-    glm::float4 color;
-};
-
 struct Instance
 {
     glm::mat4 transform;
@@ -44,12 +39,25 @@ public:
     struct Vertex
     {
         glm::float3 pos;
-        glm::float3 color;
-        glm::float3 ka;
-        glm::float3 kd;
-        glm::float3 ks;
+        glm::float3 normal;
         glm::float2 uv;
-       // std::string material;
+        uint32_t materialId;
+    };
+
+    struct Material
+    {
+        glm::float3 ambient; // Ka
+        glm::float3 diffuse; // Kd
+        glm::float3 specular; // Ks
+        glm::float3 emissive; // Ke
+        float opticalDensity; // Ni
+        float shininess; // Ns 16 --  блеск материала
+        glm::float3 transparency; //  d 1 -- прозрачность/непрозрачность
+        uint32_t illum; // illum 2 -- модель освещения
+        uint32_t texAmbientId; // map_ambient
+        uint32_t texDiffuseId; // map_diffuse
+        uint32_t texSpeculaId; // map_specular
+        uint32_t texNormalId; // map_normal - map_Bump
     };
 
     std::vector<Vertex> mVertices;
@@ -59,9 +67,7 @@ public:
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
 
-    Scene()
-    {
-    }
+    Scene() = default;
 
     ~Scene() = default;
 
@@ -73,13 +79,15 @@ public:
     {
         return mIndices;
     }
+
+    std::vector<Material>& getMaterials()
+    {
+        return mMaterials;
+    }
+
     Camera& getCamera()
     {
         return mCamera;
-    }
-    void updateCameraParams(int width, int height)
-    {
-        mCamera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
     }
     /// <summary>
     /// Create Mesh geometry
@@ -101,7 +109,18 @@ public:
     /// </summary>
     /// <param name="color">Color</param>
     /// <returns>Nothing</returns>
-    uint32_t createMaterial(const glm::float4& color);
+    uint32_t createMaterial(const glm::float3& ambient,
+                            const glm::float3& diffuse,
+                            const glm::float3& specular,
+                            glm::float3 emissive,
+                            float opticalDensity,
+                            float shininess,
+                            glm::float3 transparency,
+                            uint32_t illum,
+                            uint32_t texAmbientId,
+                            uint32_t texDiffuseId,
+                            uint32_t texSpeculaId,
+                            uint32_t texNormalId);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>

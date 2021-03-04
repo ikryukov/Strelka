@@ -25,7 +25,6 @@
 #include <unordered_map>
 
 #include <shadermanager/ShaderManager.h>
-#include "vertex.h"
 #include "renderpass.h"
 #include <scene/scene.h>
 #include <modelloader/modelloader.h>
@@ -142,10 +141,13 @@ private:
     nevk::TextureManager* mTexManager;
     nevk::RenderPass mPass;
 
-    std::vector<nevk::Vertex> vertices;
+    std::vector<nevk::Scene::Vertex> vertices;
+    //  std::vector<nevk::Scene::Material> materials;
     std::vector<uint32_t> indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
+    VkBuffer materialBuffer;
+    VkDeviceMemory materialBufferMemory;
     VkBuffer indexBuffer;
     VkDeviceMemory indexBufferMemory;
 
@@ -184,135 +186,28 @@ private:
     {
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
         window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         glfwSetKeyCallback(window, keyCallback);
-        glfwSetMouseButtonCallback(window, mouseButtonCallback);
-        glfwSetCursorPosCallback(window, handleMouseMoveCallback);
-        glfwSetScrollCallback(window, scrollCallback);
     }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
         app->framebufferResized = true;
-        nevk::Scene& mScene = app->getScene();
-        mScene.updateCameraParams(width, height);
     }
 
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& scene = app->getScene();
-        Camera& camera = scene.getCamera();
-        auto apppass = reinterpret_cast<nevk::RenderPass*>(glfwGetWindowUserPointer(window)); // ??
-        nevk::RenderPass apppass2; // ??
-
-        const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
-        switch (key)
+        if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
         {
-        case GLFW_KEY_W: {
-            camera.keys.down = keyState;
-            break;
+            // app->createGraphicsPipeline();
+            // app->createCommandBuffers();
+            // std::cout << "Shaders were reloaded";
         }
-        case GLFW_KEY_S: {
-            camera.keys.up = keyState;
-            break;
-        }
-        case GLFW_KEY_A: {
-            camera.keys.left = keyState;
-            break;
-        }
-        case GLFW_KEY_D: {
-            camera.keys.right = keyState;
-            break;
-        }
-        case GLFW_KEY_Q: {
-            camera.keys.forward = keyState;
-            break;
-        }
-        case GLFW_KEY_E: {
-            camera.keys.back = keyState;
-        }
-        default:
-            break;
-        }
-    }
-
-    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
-    {
-        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& scene = app->getScene();
-        Camera& camera = scene.getCamera();
-        if (button == GLFW_MOUSE_BUTTON_RIGHT)
-        {
-            if (action == GLFW_PRESS)
-            {
-                camera.mouseButtons.right = true;
-            }
-            else if (action == GLFW_RELEASE)
-            {
-                camera.mouseButtons.right = false;
-            }
-        }
-        else if (button == GLFW_MOUSE_BUTTON_LEFT)
-        {
-            if (action == GLFW_PRESS)
-            {
-                camera.mouseButtons.left = true;
-            }
-            else if (action == GLFW_RELEASE)
-            {
-                camera.mouseButtons.left = false;
-            }
-        }
-    }
-
-    static void handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
-    {
-        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& scene = app->getScene();
-        Camera& camera = scene.getCamera();
-        const float dx = camera.mousePos.x - xpos;
-        const float dy = camera.mousePos.y - ypos;
-        // Uncomment after Imgui merge
-        // ImGuiIO& io = ImGui::GetIO();
-        // bool handled = io.WantCaptureMouse;
-        // if (handled)
-        // {
-        //     mousePos = glm::vec2((float)x, (float)y);
-        //     return;
-        // }
-
-        if (camera.mouseButtons.left)
-        {
-            camera.rotate(glm::float3(dy * camera.rotationSpeed, -dx * camera.rotationSpeed, 0.0f));
-        }
-        if (camera.mouseButtons.right)
-        {
-            camera.translate(glm::float3(-0.0f, 0.0f, dy * .005f * camera.movementSpeed));
-        }
-        if (camera.mouseButtons.middle)
-        {
-            camera.translate(glm::float3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-        }
-        camera.mousePos = glm::float2((float)xpos, (float)ypos);
-    }
-
-    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-    {
-        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& mScene = app->getScene();
-        Camera& mCamera = mScene.getCamera();
-
-        mCamera.translate(glm::vec3(0.0f, 0.0f,
-                                    -yoffset * mCamera.movementSpeed));
-    }
-
-    nevk::Scene& getScene()
-    {
-        return this->mScene;
     }
 
     void initVulkan();
@@ -354,12 +249,12 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    std::vector<nevk::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
+    std::vector<nevk::Scene::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
     {
-        std::vector<nevk::Vertex> ret(params.size());
+        std::vector<nevk::Scene::Vertex> ret(params.size());
         std::transform(params.begin(), params.end(), ret.begin(),
                        [](auto& value) {
-                           return nevk::Vertex{ value.pos, value.color, value.ka, value.kd, value.ks, value.uv };
+                           return nevk::Scene::Vertex{ value.pos, value.normal, value.uv, value.materialId };
                        });
         return ret;
     }
@@ -374,18 +269,11 @@ private:
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
         vertices = convertVerticesToRender(testmodel.getVertices());
         indices = testmodel.getIndices();
-
-        Camera& camera = mScene.getCamera();
-        camera.type = Camera::CameraType::firstperson;
-
-        camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
-        camera.rotationSpeed = 0.25f;
-        camera.movementSpeed = 1.0f;
-        camera.setPosition({ 0.0f, 0.0f, 1.0f });
-        camera.setRotation({ 0.0f, 0.0f, 0.0f });
     }
 
     void createVertexBuffer();
+
+    void createMaterialBuffer();
 
     void createIndexBuffer();
 
@@ -424,5 +312,100 @@ private:
         std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
 
         return VK_FALSE;
+    }
+
+public:
+    void setWindow()
+    {
+        initWindow();
+    }
+    void setInstance()
+    {
+        createInstance();
+    }
+    void setDebugMessenger()
+    {
+        setupDebugMessenger();
+    }
+    void setSurface()
+    {
+        createSurface();
+    }
+    void setPhysicalDevice()
+    {
+        pickPhysicalDevice();
+    }
+    void setLogicalDevice()
+    {
+        createLogicalDevice();
+    }
+    void setSwapChain()
+    {
+        createSwapChain();
+    }
+    void setImageViews()
+    {
+        createImageViews();
+    }
+    void setDescriptorPool()
+    {
+        createDescriptorPool();
+    }
+    void setCommandPool()
+    {
+        createCommandPool();
+    }
+    void setCommandBuffers()
+    {
+        createCommandBuffers();
+    }
+    void setSyncObjects()
+    {
+        createSyncObjects();
+    }
+    VkPhysicalDevice getPhysicalDevice()
+    {
+        return physicalDevice;
+    }
+    QueueFamilyIndices getQueueFamilies(VkPhysicalDevice mdevice)
+    {
+        return findQueueFamilies(mdevice);
+    }
+    VkDescriptorPool getDescriptorPool()
+    {
+        return descriptorPool;
+    }
+    VkDevice getDevice()
+    {
+        return device;
+    }
+    VkInstance getInstance()
+    {
+        return instance;
+    }
+    VkQueue getGraphicsQueue()
+    {
+        return graphicsQueue;
+    }
+    VkFormat getSwapChainImageFormat()
+    {
+        return swapChainImageFormat;
+    }
+    GLFWwindow* getWindow()
+    {
+        return window;
+    }
+
+    FrameData* getFramesData()
+    {
+        return mFramesData;
+    }
+    VkExtent2D getSwapChainExtent()
+    {
+        return swapChainExtent;
+    }
+    std::vector<VkImageView>& getSwapChainImageViews()
+    {
+        return swapChainImageViews;
     }
 };

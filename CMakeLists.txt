@@ -99,7 +99,6 @@ target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 
 # Render lib
 set(RENDER_SOURCES
-        include/render/vertex.h
         include/render/render.h
         include/render/renderpass.h
         src/render/render.cpp
