@@ -22,20 +22,18 @@ void Render::initVulkan()
     uint32_t vertShaderCodeSize = 0;
     mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
 
-    mResManager = new nevk::ResourceManager(device, physicalDevice);
-
     createDescriptorPool();
-
     createCommandPool();
+
+    mResManager = new nevk::ResourceManager(device, physicalDevice, getCurrentFrameData().cmdPool, graphicsQueue);
+
     createCommandBuffers();
     createSyncObjects();
 
     createDepthResources();
     loadModel();
 
-    VkCommandBuffer cmd = beginSingleTimeCommands();
-    loadTexture(TEXTURE_PATH, cmd);
-    endSingleTimeCommands(cmd);
+    loadTexture(TEXTURE_PATH);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
 
@@ -456,16 +454,16 @@ VkFormat Render::findDepthFormat()
         VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-void Render::loadTexture(std::string texture_path, VkCommandBuffer cmd)
+void Render::loadTexture(std::string texture_path)
 {
-    tex = createTextureImage(texture_path, cmd);
+    tex = createTextureImage(texture_path);
 
     createTextureImageView(tex);
 
     createTextureSampler();
 }
 
-Render::Texture Render::createTextureImage(std::string texture_path, VkCommandBuffer cmd)
+Render::Texture Render::createTextureImage(std::string texture_path)
 {
     int texWidth, texHeight, texChannels;
     VkImage textureImage;
@@ -491,9 +489,9 @@ Render::Texture Render::createTextureImage(std::string texture_path, VkCommandBu
 
     mResManager->createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, cmd);
-    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight), cmd);
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, cmd);
+    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -554,9 +552,9 @@ VkImageView Render::createImageView(VkImage image, VkFormat format, VkImageAspec
     return imageView;
 }
 
-void Render::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd)
+void Render::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
 {
-    VkCommandBuffer commandBuffer = cmd;
+    VkCommandBuffer commandBuffer = mResManager->beginSingleTimeCommands();
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -603,12 +601,12 @@ void Render::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout
         0, nullptr,
         1, &barrier);
 
-   // endSingleTimeCommands(commandBuffer);
+    mResManager->endSingleTimeCommands(commandBuffer);
 }
 
-void Render::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkCommandBuffer cmd)
+void Render::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
 {
-    VkCommandBuffer commandBuffer = cmd;
+    VkCommandBuffer commandBuffer = mResManager->beginSingleTimeCommands();
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -627,7 +625,7 @@ void Render::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, u
 
     vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-  //  endSingleTimeCommands(commandBuffer);
+    mResManager->endSingleTimeCommands(commandBuffer);
 }
 
 void Render::createVertexBuffer()
@@ -659,7 +657,7 @@ void Render::createVertexBuffer()
 
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
-    copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+    mResManager->copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -688,7 +686,7 @@ void Render::createIndexBuffer()
 
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
-    copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+    mResManager->copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -721,53 +719,6 @@ void Render::createDescriptorPool()
     {
         throw std::runtime_error("failed to create descriptor pool!");
     }
-}
-
-VkCommandBuffer Render::beginSingleTimeCommands()
-{
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-
-    allocInfo.commandPool = getCurrentFrameData().cmdPool;
-    allocInfo.commandBufferCount = 1;
-
-    VkCommandBuffer commandBuffer;
-    vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
-
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-    return commandBuffer;
-}
-
-void Render::endSingleTimeCommands(VkCommandBuffer commandBuffer)
-{
-    vkEndCommandBuffer(commandBuffer);
-
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &commandBuffer;
-
-    vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    vkQueueWaitIdle(graphicsQueue);
-
-    vkFreeCommandBuffers(device, getCurrentFrameData().cmdPool, 1, &commandBuffer);
-}
-
-void Render::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
-{
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands();
-
-    VkBufferCopy copyRegion{};
-    copyRegion.size = size;
-    vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-    endSingleTimeCommands(commandBuffer);
 }
 
 uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)

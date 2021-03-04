@@ -359,7 +359,7 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    void loadTexture(std::string texture_path, VkCommandBuffer cmd);
+    void loadTexture(std::string texture_path);
 
     struct Texture
     {
@@ -369,7 +369,7 @@ private:
         VkDeviceMemory textureImageMemory;
     }tex;
 
-    Texture createTextureImage(std::string texture_path, VkCommandBuffer cmd);
+    Texture createTextureImage(std::string texture_path);
 
     void createTextureImageView(Texture tex);
 
@@ -379,9 +379,9 @@ private:
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, VkCommandBuffer cmd);
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
 
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, VkCommandBuffer cmd);
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
 
     std::vector<nevk::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
     {
@@ -419,12 +419,6 @@ private:
     void createIndexBuffer();
 
     void createDescriptorPool();
-
-    VkCommandBuffer beginSingleTimeCommands();
-
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
