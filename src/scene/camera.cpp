@@ -5,7 +5,7 @@
 
 void Camera::updateViewMatrix()
 {
-    glm::mat4 rotM = glm::mat4_cast(mOrientation);
+    glm::mat4 rotM = mat4_cast(mOrientation);
     glm::float4x4 transM = glm::translate(glm::float4x4(1.0f), -position);
     if (type == CameraType::firstperson)
     {
@@ -76,7 +76,7 @@ void Camera::setRotation(glm::quat rotation)
 void Camera::rotate(float rightAngle, float upAngle)
 {
     glm::quat a = glm::angleAxis(glm::radians(upAngle), glm::float3(1.0f, 0.0f, 0.0f));
-    glm::quat b = glm::angleAxis(glm::radians(rightAngle), glm::float3(0.0, 1.0f, 0.0));
+    glm::quat b = glm::angleAxis(glm::radians(rightAngle), glm::float3(0.0f, 0.1f, 0.0f));
     mOrientation = glm::normalize(a * mOrientation * b);
     updateViewMatrix();
 }
