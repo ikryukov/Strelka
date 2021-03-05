@@ -163,6 +163,9 @@ void Render::recreateSwapChain()
 
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(init_info, swapChainImageViews, width, height);
+
+    Camera& camera = mScene.getCamera();
+    camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 }
 
 void Render::createInstance()
@@ -854,10 +857,10 @@ void Render::drawFrame()
 
     cam.update(deltaTime);
     
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
 
     mUi.updateUI(window);
-    mPass.updateUniformBuffer(imageIndex);
+
+    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);

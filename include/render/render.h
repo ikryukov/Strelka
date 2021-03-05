@@ -40,8 +40,8 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
-const std::string TEXTURE_PATH = R"(C:\NEED\NeVK\misc\red-brick-wall.jpg)";
-const std::string MTL_PATH = "";
+const std::string TEXTURE_PATH = "misc/white.jpg";
+const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -188,6 +188,9 @@ private:
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         glfwSetKeyCallback(window, keyCallback);
+        glfwSetMouseButtonCallback(window, mouseButtonCallback);
+        glfwSetCursorPosCallback(window, handleMouseMoveCallback);
+        glfwSetScrollCallback(window, scrollCallback);
     }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
@@ -285,13 +288,28 @@ private:
 
         if (camera.mouseButtons.left)
         {
-          camera.rotate(-dx, -dy);
+            camera.rotate(-dx, -dy);
         }
         if (camera.mouseButtons.right)
         {
-          camera.translate(glm::float3(-0.0f, 0.0f, -dy * .005f * camera.movementSpeed)); 
-
+            camera.translate(glm::float3(-0.0f, 0.0f, -dy * .005f * camera.movementSpeed));
         }
+    }
+
+    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+    {
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        nevk::Scene& mScene = app->getScene();
+        Camera& mCamera = mScene.getCamera();
+
+        mCamera.translate(glm::vec3(0.0f, 0.0f,
+                                    -yoffset * mCamera.movementSpeed));
+    }
+
+
+    nevk::Scene& getScene()
+    {
+        return this->mScene;
     }
 
     void initVulkan();
@@ -368,8 +386,7 @@ private:
         camera.rotationSpeed = 0.25f;
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
-        camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f}));
-        camera.m_accumupAngle = 0.0f;
+        camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
     }
 
     void createVertexBuffer();
