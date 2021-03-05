@@ -1,56 +1,77 @@
-static const float2 positions[3] = {
-    float2(0.0, -0.5),
-    float2(0.5, 0.5),
-    float2(-0.5, 0.5)
+struct VertexInput
+{
+    float3 position : POSITION;
+    float3 normal;
+    float2 uv;
+    uint32_t materialId;
 };
 
-static const float3 colors[3] = {
-    float3(1.0, 0.0, 0.0),
-    float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, 1.0)
-};
-struct AssembledVertex
+struct Material
 {
-    float3  position : POSITION;
-    float3  ka   : COLOR0;
-    float3  ks   : COLOR1;
-    float3  kd   : COLOR2;
-    float2  uv;
+    float3 ambient;
+    float3 diffuse;
+    float3 specular;
+    float3 emissive;
+    float opticalDensity;
+    float shininess;
+    float3 transparency;
+    uint32_t illum;
+    uint32_t texAmbientId;
+    uint32_t texDiffuseId;
+    uint32_t texSpeculaId;
+    uint32_t texNormalId;
+};
+
+struct PS_INPUT
+{
+    float4 pos : SV_POSITION;
+    float3 normal;
+    float2 uv;
+    nointerpolation uint32_t materialId;
 };
 
 cbuffer ubo
 {
     float4x4 modelViewProj;
+    float4x4 worldToView;
+    float4x4 inverseWorldToView;
 }
-
 Texture2D tex;
 SamplerState gSampler;
-
-struct PS_INPUT
-{
-    float4 pos : SV_POSITION;
-    float4 ka;
-    float4 ks;
-    float4 kd;
-    float2 uv;
-};
+StructuredBuffer<Material> materials;
 
 [shader("vertex")]
-PS_INPUT vertexMain(AssembledVertex av)
+PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
-    out.pos = mul(modelViewProj, float4(av.position, 1.0f));
-    out.ka = float4(av.ka.rgb, 1.0f);
-    out.ks = float4(av.ks.rgb, 1.0f);
-    out.kd = float4(av.kd.rgb, 1.0f);
-    out.uv = av.uv;
+    out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
+    out.uv = vi.uv;
+    out.normal = mul((float3x3)inverseWorldToView, vi.normal);
+    out.materialId = vi.materialId;
 
     return out;
 }
+
 
 // Fragment Shader
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    return inp.ka + (inp.ks + inp.kd) * tex.Sample(gSampler, inp.uv);
+   float3 ambient = float3(materials[inp.materialId].ambient.rgb);
+   float3 specular = float3(materials[inp.materialId].specular.rgb);
+   float3 diffuse = float3(materials[inp.materialId].diffuse.rgb);
+
+
+   float3 emissive = float3(materials[inp.materialId].emissive.rgb);
+   float opticalDensity = float(materials[inp.materialId].opticalDensity);
+   float shininess = float(materials[inp.materialId].shininess);
+   float3 transparency = float3(materials[inp.materialId].transparency.rgb);
+   uint32_t illum = 2;
+
+   uint32_t texAmbientId = 0;
+   uint32_t texDiffuseId = 0;
+   uint32_t texSpeculaId = 0;
+   uint32_t texNormalId = 0;
+
+   return float4(inp.normal, 1.0);
 }
