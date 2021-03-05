@@ -22,13 +22,14 @@ public:
     };
     CameraType type = CameraType::firstperson;
 
-    glm::float3 rotation;
+    glm::quat mOrientation;
     glm::float3 position;
 
     float rotationSpeed;
     float movementSpeed;
 
     bool updated = false;
+    glm::float3 directionVector;
 
     struct MouseButtons
     {
@@ -44,6 +45,7 @@ public:
         glm::float4x4 perspective;
         glm::float4x4 view;
     } matrices;
+       
 
     struct
     {
@@ -55,16 +57,18 @@ public:
         bool back = false;
     } keys;
 
+    glm::float3 getFront();
+    glm::float3 getUp();
+    glm::float3 getRight();
     bool moving();
     float getNearClip();
     float getFarClip();
     void setPerspective(float fov, float aspect, float znear, float zfar);
     void updateAspectRatio(float aspect);
     void setPosition(glm::float3 position);
-    void setRotation(glm::float3 rotation);
-    void rotate(glm::float3 delta);
+    void setRotation(glm::quat rotation);
+    void rotate(float, float);
     void setTranslation(glm::float3 translation);
     void translate(glm::float3 delta);
     void update(float deltaTime);
-    bool updatePad(glm::float2 axisLeft, glm::float2 axisRight, float deltaTime);
 };

@@ -1,17 +1,12 @@
 #include <scene/glm-wrapper.hpp>
+
+#include <glm/gtx/quaternion.hpp>
 #include "camera.h"
 
 void Camera::updateViewMatrix()
 {
-    glm::float4x4 rotM = glm::float4x4(1.0f);
-    glm::float4x4 transM;
-
-    rotM = glm::rotate(rotM, glm::radians(rotation.x), glm::float3(1.0f, 0.0f, 0.0f));
-    rotM = glm::rotate(rotM, glm::radians(rotation.y), glm::float3(0.0f, 1.0f, 0.0f));
-    rotM = glm::rotate(rotM, glm::radians(rotation.z), glm::float3(0.0f, 0.0f, 1.0f));
-
-    transM = glm::translate(glm::float4x4(1.0f), position * glm::float3(1.0f, 1.0f, -1.0f));
-
+    glm::mat4 rotM = mat4_cast(mOrientation);
+    glm::float4x4 transM = glm::translate(glm::float4x4(1.0f), -position);
     if (type == CameraType::firstperson)
     {
         matrices.view = rotM * transM;
@@ -21,6 +16,21 @@ void Camera::updateViewMatrix()
         matrices.view = transM * rotM;
     }
     updated = true;
+}
+
+glm::float3 Camera::getFront()
+{
+   return glm::conjugate(mOrientation)* glm::float3(0.0f, 0.0f, -1.0f);
+}
+
+glm::float3 Camera::getUp()
+{
+  return glm::conjugate(mOrientation) * glm::float3(0.0f, 1.0f, 0.0f);
+}
+
+glm::float3 Camera::getRight()
+{
+  return glm::conjugate(mOrientation) * glm::float3(1.0f, 0.0f, 0.0f);
 }
 
 bool Camera::moving()
@@ -38,12 +48,12 @@ float Camera::getFarClip()
     return zfar;
 }
 
-void Camera::setPerspective(float fov, float aspect, float znear, float zfar)
+void Camera::setPerspective(float _fov, float _aspect, float _znear, float _zfar)
 {
-    this->fov = fov;
-    this->znear = znear;
-    this->zfar = zfar;
-    matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+    fov = _fov;
+    znear = _znear;
+    zfar = _zfar;
+    matrices.perspective = glm::perspective(glm::radians(fov), _aspect, znear, zfar);
 }
 
 void Camera::updateAspectRatio(float aspect)
@@ -51,33 +61,35 @@ void Camera::updateAspectRatio(float aspect)
     matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
 }
 
-void Camera::setPosition(glm::float3 position)
+void Camera::setPosition(glm::float3 _position)
 {
-    this->position = position;
+    position = _position;
     updateViewMatrix();
 }
 
-void Camera::setRotation(glm::float3 rotation)
+void Camera::setRotation(glm::quat rotation)
 {
-    this->rotation = rotation;
+    mOrientation = rotation;
     updateViewMatrix();
 }
 
-void Camera::rotate(glm::float3 delta)
+void Camera::rotate(float rightAngle, float upAngle)
 {
-    this->rotation += delta;
+    glm::quat a = glm::angleAxis(glm::radians(upAngle), glm::float3(1.0f, 0.0f, 0.0f));
+    glm::quat b = glm::angleAxis(glm::radians(rightAngle), glm::float3(0.0f, 1.0f, 0.0f));
+    mOrientation = glm::normalize(a * mOrientation * b);
     updateViewMatrix();
 }
 
 void Camera::setTranslation(glm::float3 translation)
 {
-    this->position = translation;
+    position = translation;
     updateViewMatrix();
 }
 
 void Camera::translate(glm::float3 delta)
 {
-    this->position += delta;
+    position += glm::conjugate(mOrientation) * delta;
     updateViewMatrix();
 }
 
@@ -88,90 +100,21 @@ void Camera::update(float deltaTime)
     {
         if (moving())
         {
-            glm::float3 camFront;
-            camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
-            camFront.y = sin(glm::radians(rotation.x));
-            camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
-            camFront = glm::normalize(camFront);
-
-            float moveSpeed = deltaTime * movementSpeed;
-
+          float moveSpeed = deltaTime * movementSpeed;
             if (keys.up)
-                position += camFront * moveSpeed;
+                position += getUp() * moveSpeed;
             if (keys.down)
-                position -= camFront * moveSpeed;
+                position -= getUp() * moveSpeed;
             if (keys.left)
-                position -= glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+                position -= getRight() * moveSpeed;
             if (keys.right)
-                position += glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * moveSpeed;
+                position += getRight() * moveSpeed;
             if (keys.forward)
-              position += glm::normalize(glm::cross( camFront, glm::float3(1.0f, 0.0f, 0.0f))) * moveSpeed;
+                position += getFront() * moveSpeed;
             if (keys.back)
-              position -= glm::normalize(glm::cross(camFront, glm::float3(1.0f, 0.0f, 0.0f))) * moveSpeed;
+                position -= getFront() * moveSpeed;
             updateViewMatrix();
         }
     }
 }
 
-// Update camera passing separate axis data (gamepad)
-// Returns true if view or position has been changed
-bool Camera::updatePad(glm::float2 axisLeft, glm::float2 axisRight, float deltaTime)
-{
-    bool retVal = false;
-
-    if (type == CameraType::firstperson)
-    {
-        // Use the common console thumbstick layout
-        // Left = view, right = move
-
-        const float deadZone = 0.0015f;
-        const float range = 1.0f - deadZone;
-
-        glm::float3 camFront;
-        camFront.x = -cos(glm::radians(rotation.x)) * sin(glm::radians(rotation.y));
-        camFront.y = sin(glm::radians(rotation.x));
-        camFront.z = cos(glm::radians(rotation.x)) * cos(glm::radians(rotation.y));
-        camFront = glm::normalize(camFront);
-
-        float moveSpeed = deltaTime * movementSpeed * 2.0f;
-        float rotSpeed = deltaTime * rotationSpeed * 50.0f;
-
-        // Move
-        if (fabsf(axisLeft.y) > deadZone)
-        {
-            float pos = (fabsf(axisLeft.y) - deadZone) / range;
-            position -= camFront * pos * ((axisLeft.y < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
-            retVal = true;
-        }
-        if (fabsf(axisLeft.x) > deadZone)
-        {
-            float pos = (fabsf(axisLeft.x) - deadZone) / range;
-            position += glm::normalize(glm::cross(camFront, glm::float3(0.0f, 1.0f, 0.0f))) * pos * ((axisLeft.x < 0.0f) ? -1.0f : 1.0f) * moveSpeed;
-            retVal = true;
-        }
-
-        // Rotate
-        if (fabsf(axisRight.x) > deadZone)
-        {
-            float pos = (fabsf(axisRight.x) - deadZone) / range;
-            rotation.y += pos * ((axisRight.x < 0.0f) ? -1.0f : 1.0f) * rotSpeed;
-            retVal = true;
-        }
-        if (fabsf(axisRight.y) > deadZone)
-        {
-            float pos = (fabsf(axisRight.y) - deadZone) / range;
-            rotation.x -= pos * ((axisRight.y < 0.0f) ? -1.0f : 1.0f) * rotSpeed;
-            retVal = true;
-        }
-    }
-    else
-    {
-        // todo: move code from example base class for look-at
-    }
-
-    if (retVal)
-    {
-        updateViewMatrix();
-    }
-    return retVal;
-}
