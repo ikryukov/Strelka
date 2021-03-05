@@ -203,114 +203,106 @@ private:
 
     static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
-      auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-      nevk::Scene& scene = app->getScene();
-      Camera& camera = scene.getCamera();
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        nevk::Scene& scene = app->getScene();
+        Camera& camera = scene.getCamera();
 
-      const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
-      switch (key)
-      {
-      case GLFW_KEY_W: {
-        camera.keys.forward = keyState;
-        break;
-      }
-      case GLFW_KEY_S: {
-        camera.keys.back = keyState;
-        break;
-      }
-      case GLFW_KEY_A: {
-        camera.keys.left = keyState;
-        break;
-      }
-      case GLFW_KEY_D: {
-        camera.keys.right = keyState;
-        break;
-      }
-      case GLFW_KEY_Q: {
-        camera.keys.up = keyState;
-        break;
-      }
-      case GLFW_KEY_E: {
-        camera.keys.down = keyState;
-      }
-      default:
-        break;
-      }
+        const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
+        switch (key)
+        {
+        case GLFW_KEY_W: {
+            camera.keys.forward = keyState;
+            break;
+        }
+        case GLFW_KEY_S: {
+            camera.keys.back = keyState;
+            break;
+        }
+        case GLFW_KEY_A: {
+            camera.keys.left = keyState;
+            break;
+        }
+        case GLFW_KEY_D: {
+            camera.keys.right = keyState;
+            break;
+        }
+        case GLFW_KEY_Q: {
+            camera.keys.up = keyState;
+            break;
+        }
+        case GLFW_KEY_E: {
+            camera.keys.down = keyState;
+        }
+        default:
+            break;
+        }
     }
 
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     {
-      auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-      nevk::Scene& scene = app->getScene();
-      Camera& camera = scene.getCamera();
-      if (button == GLFW_MOUSE_BUTTON_RIGHT)
-      {
-        if (action == GLFW_PRESS)
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        nevk::Scene& scene = app->getScene();
+        Camera& camera = scene.getCamera();
+        if (button == GLFW_MOUSE_BUTTON_RIGHT)
         {
-          camera.mouseButtons.right = true;
+            if (action == GLFW_PRESS)
+            {
+                camera.mouseButtons.right = true;
+            }
+            else if (action == GLFW_RELEASE)
+            {
+                camera.mouseButtons.right = false;
+            }
         }
-        else if (action == GLFW_RELEASE)
+        else if (button == GLFW_MOUSE_BUTTON_LEFT)
         {
-          camera.mouseButtons.right = false;
+            if (action == GLFW_PRESS)
+            {
+                camera.mouseButtons.left = true;
+            }
+            else if (action == GLFW_RELEASE)
+            {
+                camera.mouseButtons.left = false;
+            }
         }
-      }
-      else if (button == GLFW_MOUSE_BUTTON_LEFT)
-      {
-        if (action == GLFW_PRESS)
-        {
-          camera.mouseButtons.left = true;
-        }
-        else if (action == GLFW_RELEASE)
-        {
-          camera.mouseButtons.left = false;
-        }
-      }
     }
 
     static void handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
     {
-      auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-      nevk::Scene& scene = app->getScene();
-      Camera& camera = scene.getCamera();
-      const float dx = camera.mousePos.x - xpos;
-      const float dy = camera.mousePos.y - ypos;
-      // Uncomment after Imgui merge
-      // ImGuiIO& io = ImGui::GetIO();
-      // bool handled = io.WantCaptureMouse;
-      // if (handled)
-      // {
-      //     mousePos = glm::vec2((float)x, (float)y);
-      //     return;
-      // }
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        nevk::Scene& scene = app->getScene();
+        Camera& camera = scene.getCamera();
+        const float dx = camera.mousePos.x - xpos;
+        const float dy = camera.mousePos.y - ypos;
 
-      if (camera.mouseButtons.left)
-      {
-        camera.rotate(-dx, -dy);
-      }
-      if (camera.mouseButtons.right)
-      {
-        camera.translate(glm::float3(-0.0f, 0.0f, -dy * .005f * camera.movementSpeed));
-      }
-      if (camera.mouseButtons.middle)
-      {
-        camera.translate(glm::float3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-      }
-      camera.mousePos = glm::float2((float)xpos, (float)ypos);
+        if (camera.mouseButtons.left)
+        {
+            camera.rotate(-dx, -dy);
+        }
+        if (camera.mouseButtons.right)
+        {
+            camera.translate(glm::float3(-0.0f, 0.0f, -dy * .005f * camera.movementSpeed));
+        }
+        if (camera.mouseButtons.middle)
+        {
+            camera.translate(glm::float3(-dx * 0.01f, -dy * 0.01f, 0.0f));
+        }
+        camera.mousePos = glm::float2((float)xpos, (float)ypos);
     }
 
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     {
-      auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-      nevk::Scene& mScene = app->getScene();
-      Camera& mCamera = mScene.getCamera();
+        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+        nevk::Scene& mScene = app->getScene();
+        Camera& mCamera = mScene.getCamera();
 
-      mCamera.translate(glm::vec3(0.0f, 0.0f,
-        -yoffset * mCamera.movementSpeed));
+        mCamera.translate(glm::vec3(0.0f, 0.0f,
+                                    -yoffset * mCamera.movementSpeed));
     }
 
     nevk::Scene& getScene()
     {
-      return this->mScene;
+        return this->mScene;
     }
 
     void initVulkan();
