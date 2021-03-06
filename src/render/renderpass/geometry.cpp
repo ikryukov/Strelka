@@ -1,4 +1,4 @@
-#include "renderpass.h"
+#include "renderpass/geometry.h"
 #include <stdexcept>
 #include <array>
 #include <chrono>
@@ -12,15 +12,15 @@
 
 namespace nevk
 {
-RenderPass::RenderPass(/* args */)
+GeometryPass::GeometryPass(/* args */)
 {
 }
 
-RenderPass::~RenderPass()
+GeometryPass::~GeometryPass()
 {
 }
 
-void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height)
+void GeometryPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -142,7 +142,7 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
     }
 }
 
-void RenderPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
+void GeometryPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
     mFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -169,23 +169,7 @@ void RenderPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImag
     }
 }
 
-VkShaderModule RenderPass::createShaderModule(const char* code, const uint32_t codeSize)
-{
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = codeSize;
-    createInfo.pCode = (uint32_t*)code;
-
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(mDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create shader module!");
-    }
-
-    return shaderModule;
-}
-
-void RenderPass::createRenderPass()
+void GeometryPass::createRenderPass()
 {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = mFrameBufferFormat;
@@ -245,7 +229,7 @@ void RenderPass::createRenderPass()
     }
 }
 
-void RenderPass::createDescriptorSetLayout()
+void GeometryPass::createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -280,7 +264,7 @@ void RenderPass::createDescriptorSetLayout()
     }
 }
 
-void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
+void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, mDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -340,7 +324,40 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
     }
 }
 
-void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
+void GeometryPass::createShaderModules()
+{
+    uint32_t vertId = mShaderManager->loadShader(mShaderName.c_str(), "vertexMain", false);
+    uint32_t fragId = mShaderManager->loadShader(mShaderName.c_str(), "fragmentMain", true);
+
+    const char* vertShaderCode = nullptr;
+    uint32_t vertShaderCodeSize = 0;
+    mShaderManager->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+
+    const char* fragShaderCode = nullptr;
+    uint32_t fragShaderCodeSize = 0;
+    mShaderManager->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+
+    mVS = createModule(vertShaderCode, vertShaderCodeSize);
+    mPS = createModule(fragShaderCode, fragShaderCodeSize);
+}
+
+VkShaderModule GeometryPass::createModule(const char* code, const uint32_t codeSize)
+{
+    VkShaderModuleCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    createInfo.codeSize = codeSize;
+    createInfo.pCode = (uint32_t*)code;
+
+    VkShaderModule shaderModule;
+    if (vkCreateShaderModule(mDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create shader module!");
+    }
+
+    return shaderModule;
+}
+
+void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -382,7 +399,7 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
     vkCmdEndRenderPass(cmd);
 }
 
-void RenderPass::createUniformBuffers()
+void GeometryPass::createUniformBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -391,11 +408,11 @@ void RenderPass::createUniformBuffers()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        mResMngr->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+        mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view)
+void GeometryPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view)
 {
     float time = 0;
 
@@ -412,7 +429,7 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
 }
 
-void RenderPass::onDestroy()
+void GeometryPass::onDestroy()
 {
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
@@ -426,7 +443,7 @@ void RenderPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
+void GeometryPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
     mWidth = width;
     mHeight = height;
@@ -445,12 +462,12 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
     createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
 }
 
-void RenderPass::setTextureImageView(VkImageView textureImageView)
+void GeometryPass::setTextureImageView(VkImageView textureImageView)
 {
     mTextureImageView = textureImageView;
 }
 
-void RenderPass::setTextureSampler(VkSampler textureSampler)
+void GeometryPass::setTextureSampler(VkSampler textureSampler)
 {
     mTextureSampler = textureSampler;
 }

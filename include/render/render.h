@@ -29,7 +29,7 @@
 #include <unordered_map>
 
 #include <shadermanager/ShaderManager.h>
-#include "renderpass.h"
+#include "renderpass/geometry.h"
 #include <scene/scene.h>
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -139,10 +139,6 @@ private:
     VkImageView textureImageView;
     VkSampler textureSampler;
 
-    nevk::ResourceManager* mResManager;
-
-    nevk::RenderPass mPass;
-
     std::vector<nevk::Scene::Vertex> vertices;
     //  std::vector<nevk::Scene::Material> materials;
     std::vector<uint32_t> indices;
@@ -175,8 +171,11 @@ private:
 
     bool framebufferResized = false;
 
+    nevk::ResourceManager* mResManager;
+    nevk::ShaderManager* mShaderManager;
+
+    nevk::GeometryPass mGeometry;
     nevk::Ui mUi;
-    nevk::ShaderManager mShaderManager;
     nevk::Scene mScene;
 
     void initWindow()

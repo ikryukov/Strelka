@@ -100,9 +100,9 @@ target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 # Render lib
 set(RENDER_SOURCES
         include/render/render.h
-        include/render/renderpass.h
+        include/render/renderpass/geometry.h
         src/render/render.cpp
-        src/render/renderpass.cpp
+        src/render/renderpass/geometry.cpp
         )
 set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})

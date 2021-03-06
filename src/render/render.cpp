@@ -11,32 +11,26 @@ void Render::initVulkan()
     createSwapChain();
     createImageViews();
 
-    uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
-    uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", true);
-
-    const char* fragShaderCode = nullptr;
-    uint32_t fragShaderCodeSize = 0;
-    mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
-
-    const char* vertShaderCode = nullptr;
-    uint32_t vertShaderCodeSize = 0;
-    mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
-
     mResManager = new nevk::ResourceManager(device, physicalDevice);
+    mShaderManager = new nevk::ShaderManager();
 
     createDescriptorPool();
-
     createCommandPool();
     createCommandBuffers();
     createSyncObjects();
-
     createDepthResources();
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
 
-    QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
+    mGeometry.setFrameBufferFormat(swapChainImageFormat);
+    mGeometry.setDepthBufferFormat(findDepthFormat());
+    mGeometry.setTextureImageView(textureImageView);
+    mGeometry.setTextureSampler(textureSampler);
+    mGeometry.init(device, descriptorPool, mResManager, mShaderManager, swapChainExtent.width, swapChainExtent.height);
+    mGeometry.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
+    QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
     //    ImGui_ImplVulkan_InitInfo init_info{};
     init_info.DescriptorPool = descriptorPool;
     init_info.Device = device;
@@ -50,14 +44,6 @@ void Render::initVulkan()
     mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
 
-    mPass.setFrameBufferFormat(swapChainImageFormat);
-    mPass.setDepthBufferFormat(findDepthFormat());
-    mPass.setTextureImageView(textureImageView);
-    mPass.setTextureSampler(textureSampler);
-
-    mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
-
-    mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
     loadModel();
     createVertexBuffer();
@@ -99,7 +85,7 @@ void Render::cleanup()
 {
     cleanupSwapChain();
 
-    mPass.onDestroy();
+    mGeometry.onDestroy();
     mUi.onDestroy();
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -161,7 +147,7 @@ void Render::recreateSwapChain()
     createImageViews();
     createDepthResources();
 
-    mPass.onResize(swapChainImageViews, depthImageView, width, height);
+    mGeometry.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(init_info, swapChainImageViews, width, height);
 
     Camera& camera = mScene.getCamera();
@@ -787,7 +773,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mPass.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mGeometry.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 
@@ -857,7 +843,7 @@ void Render::drawFrame()
 
     cam.update(deltaTime);
     
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
+    mGeometry.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
     mUi.updateUI(window);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;

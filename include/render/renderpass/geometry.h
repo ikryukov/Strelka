@@ -4,14 +4,39 @@
 #include <vector>
 #include <array>
 #include <resourcemanager.h>
-
-
+#include <shadermanager/ShaderManager.h>
+#include <string>
 
 namespace nevk
 {
-class RenderPass
+
+class GeometryPass
 {
 private:
+    static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
+
+    VkDevice mDevice;
+    VkRenderPass mRenderPass;
+    VkPipeline mPipeline;
+    VkPipelineLayout mPipelineLayout;
+
+    std::string mShaderName;
+    VkShaderModule mVS, mPS;
+
+    ResourceManager* mResManager;
+    ShaderManager* mShaderManager;
+
+    //===================================
+    // Descriptor declaration
+    VkDescriptorPool mDescriptorPool;
+    VkDescriptorSetLayout mDescriptorSetLayout;
+    std::vector<VkDescriptorSet> mDescriptorSets;
+
+    std::vector<VkBuffer> uniformBuffers;
+    std::vector<VkDeviceMemory> uniformBuffersMemory;
+
+    //===================================
+    // Descriptor layouts
     struct UniformBufferObject
     {
         alignas(16) glm::mat4 modelViewProj;
@@ -19,38 +44,17 @@ private:
         alignas(16) glm::mat4 inverseWorldToView;
     };
 
-    static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
-    VkPipeline mPipeline;
-    VkPipelineLayout mPipelineLayout;
-    VkRenderPass mRenderPass;
-    VkDescriptorSetLayout mDescriptorSetLayout;
-    VkDevice mDevice;
-
-    VkShaderModule mVS, mPS;
-
-    ResourceManager* mResMngr;
-    VkDescriptorPool mDescriptorPool;
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
-
     VkImageView mTextureImageView;
     VkSampler mTextureSampler;
 
-    void createRenderPass();
-
-    void createDescriptorSetLayout();
-    void createDescriptorSets(VkDescriptorPool& descriptorPool);
-
-    void createUniformBuffers();
-
-    std::vector<VkDescriptorSet> mDescriptorSets;
-
+    //===================================
+    // Framebuffer
     std::vector<VkFramebuffer> mFrameBuffers;
-
     VkFormat mFrameBufferFormat;
-
     VkFormat mDepthBufferFormat;
     uint32_t mWidth, mHeight;
+
+    //===================================
 
     static VkVertexInputBindingDescription getBindingDescription()
     {
@@ -95,10 +99,18 @@ private:
         return attributeDescriptions;
     }
 
-    VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
+    void createRenderPass();
+    void createDescriptorSetLayout();
+    void createDescriptorSets(VkDescriptorPool& descriptorPool);
+    void createUniformBuffers();
+    void createShaderModules();
+    void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
+
+    VkShaderModule createModule(const char* code, uint32_t codeSize);
 
 public:
-    void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
+    GeometryPass(/* args */);
+    ~GeometryPass();
 
     void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
 
@@ -115,15 +127,20 @@ public:
     void setTextureImageView(VkImageView textureImageView);
     void setTextureSampler(VkSampler textureSampler);
 
-    void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
+    void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
+    void onDestroy();
+
+    void init(VkDevice& device, VkDescriptorPool descpool, ResourceManager* resMngr, ShaderManager* shMngr, uint32_t width, uint32_t height)
     {
+        mShaderName = std::string("shaders/geometry.hlsl");
         mDevice = device;
-        mResMngr = resMngr;
+        mResManager = resMngr;
+        mShaderManager = shMngr;
         mDescriptorPool = descpool;
         mWidth = width;
         mHeight = height;
-        mVS = createShaderModule(vsCode, vsCodeSize);
-        mPS = createShaderModule(psCode, psCodeSize);
+
+        createShaderModules();
         createUniformBuffers();
 
         createRenderPass();
@@ -132,15 +149,7 @@ public:
         createGraphicsPipeline(mVS, mPS, width, height);
     }
 
-    void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
-
-    void onDestroy();
-
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view);
-
-    RenderPass(/* args */);
-    ~RenderPass();
-
     void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view);
 };
 } // namespace nevk

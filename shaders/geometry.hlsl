@@ -30,6 +30,8 @@ struct PS_INPUT
     nointerpolation uint32_t materialId;
 };
 
+//===================================
+// Descriptor layouts
 cbuffer ubo
 {
     float4x4 modelViewProj;
@@ -38,6 +40,8 @@ cbuffer ubo
 }
 Texture2D tex;
 SamplerState gSampler;
+//===================================
+
 StructuredBuffer<Material> materials;
 
 [shader("vertex")]
@@ -52,15 +56,12 @@ PS_INPUT vertexMain(VertexInput vi)
     return out;
 }
 
-
-// Fragment Shader
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
    float3 ambient = float3(materials[inp.materialId].ambient.rgb);
    float3 specular = float3(materials[inp.materialId].specular.rgb);
    float3 diffuse = float3(materials[inp.materialId].diffuse.rgb);
-
 
    float3 emissive = float3(materials[inp.materialId].emissive.rgb);
    float opticalDensity = float(materials[inp.materialId].opticalDensity);
