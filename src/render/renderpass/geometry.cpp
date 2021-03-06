@@ -238,21 +238,6 @@ void GeometryPass::createDescriptorSetLayout()
     uboLayoutBinding.pImmutableSamplers = nullptr;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    //VkDescriptorSetLayoutBinding texLayoutBinding{};
-    //texLayoutBinding.binding = 1;
-    //texLayoutBinding.descriptorCount = 1;
-    //texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    //texLayoutBinding.pImmutableSamplers = nullptr;
-    //texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    //VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    //samplerLayoutBinding.binding = 2;
-    //samplerLayoutBinding.descriptorCount = 1;
-    //samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    //samplerLayoutBinding.pImmutableSamplers = nullptr;
-    //samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    //std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding };
     std::array<VkDescriptorSetLayoutBinding, 1> bindings = { uboLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -287,15 +272,6 @@ void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
-        //VkDescriptorImageInfo imageInfo{};
-        //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        //imageInfo.imageView = mTextureImageView;
-
-        //VkDescriptorImageInfo samplerInfo{};
-        //samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        //samplerInfo.sampler = mTextureSampler;
-
-        //std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
         std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -305,22 +281,6 @@ void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[0].descriptorCount = 1;
         descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-        //descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        //descriptorWrites[1].dstSet = mDescriptorSets[i];
-        //descriptorWrites[1].dstBinding = 1;
-        //descriptorWrites[1].dstArrayElement = 0;
-        //descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        //descriptorWrites[1].descriptorCount = 1;
-        //descriptorWrites[1].pImageInfo = &imageInfo;
-
-        //descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        //descriptorWrites[2].dstSet = mDescriptorSets[i];
-        //descriptorWrites[2].dstBinding = 2;
-        //descriptorWrites[2].dstArrayElement = 0;
-        //descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        //descriptorWrites[2].descriptorCount = 1;
-        //descriptorWrites[2].pImageInfo = &samplerInfo;
 
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -459,15 +419,5 @@ void GeometryPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& d
     createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
     createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
 }
-
-//void GeometryPass::setTextureImageView(VkImageView textureImageView)
-//{
-//    mTextureImageView = textureImageView;
-//}
-//
-//void GeometryPass::setTextureSampler(VkSampler textureSampler)
-//{
-//    mTextureSampler = textureSampler;
-//}
 
 } // namespace nevk
