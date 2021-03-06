@@ -49,7 +49,7 @@ IndentCaseLabels: false
 IndentPPDirectives: AfterHash
 IndentFunctionDeclarationAfterType: false
 IndentWidth: 4
-SortIncludes: false
+SortIncludes: true
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex:           '<[[:alnum:]_.]+>'
