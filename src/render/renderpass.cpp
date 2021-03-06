@@ -52,11 +52,12 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
+    // Fix view port: vulkan specific to handle right hand coordinates
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = 0.0f;
+    viewport.y = (float)height;
     viewport.width = (float)width;
-    viewport.height = (float)height;
+    viewport.height = -(float)height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
@@ -251,7 +252,7 @@ void RenderPass::createDescriptorSetLayout()
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.pImmutableSamplers = nullptr;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
@@ -359,6 +360,15 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
 
+    VkViewport viewport{};
+    viewport.x = 0;
+    viewport.y = (float)height;
+    viewport.width = (float)width;
+    viewport.height = -(float)height;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+
     VkBuffer vertexBuffers[] = { vertexBuffer };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
@@ -392,10 +402,9 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     UniformBufferObject ubo{};
     glm::float4x4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     glm::float4x4 proj = perspective;
-    proj[1][1] *= -1;
 
     ubo.modelViewProj = proj * view * model;
-    ubo.inverseWorldToView = transpose(inverse(proj * view * ubo.worldToView));
+    ubo.inverseWorldToView = transpose(inverse(ubo.worldToView));
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
