@@ -25,10 +25,15 @@ void Render::initVulkan()
 
     mGeometry.setFrameBufferFormat(swapChainImageFormat);
     mGeometry.setDepthBufferFormat(findDepthFormat());
-    mGeometry.setTextureImageView(textureImageView);
-    mGeometry.setTextureSampler(textureSampler);
     mGeometry.init(device, descriptorPool, mResManager, mShaderManager, swapChainExtent.width, swapChainExtent.height);
     mGeometry.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
+    mTAA.setFrameBufferFormat(swapChainImageFormat);
+    mTAA.setDepthBufferFormat(findDepthFormat());
+    mTAA.setTextureImageView(textureImageView);
+    mTAA.setTextureSampler(textureSampler);
+    mTAA.init(device, descriptorPool, mResManager, mShaderManager, swapChainExtent.width, swapChainExtent.height);
+    mTAA.createFrameBuffers(depthImageView, swapChainExtent.width, swapChainExtent.height);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
     //    ImGui_ImplVulkan_InitInfo init_info{};
@@ -86,6 +91,7 @@ void Render::cleanup()
     cleanupSwapChain();
 
     mGeometry.onDestroy();
+    mTAA.onDestroy();
     mUi.onDestroy();
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -148,6 +154,7 @@ void Render::recreateSwapChain()
     createDepthResources();
 
     mGeometry.onResize(swapChainImageViews, depthImageView, width, height);
+    mTAA.onResize(swapChainImages, depthImageView, width, height);
     mUi.onResize(init_info, swapChainImageViews, width, height);
 
     Camera& camera = mScene.getCamera();
@@ -774,6 +781,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mGeometry.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mTAA.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 

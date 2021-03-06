@@ -1,4 +1,4 @@
-#include "renderpass/geometry.h"
+#include "renderpass/taa.h"
 #include <stdexcept>
 #include <array>
 #include <chrono>
@@ -12,15 +12,15 @@
 
 namespace nevk
 {
-GeometryPass::GeometryPass(/* args */)
+TAA::TAA(/* args */)
 {
 }
 
-GeometryPass::~GeometryPass()
+TAA::~TAA()
 {
 }
 
-void GeometryPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height)
+void TAA::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -142,14 +142,46 @@ void GeometryPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkSh
     }
 }
 
-void GeometryPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
+VkImageView TAA::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
 {
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = image;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = format;
+    viewInfo.subresourceRange.aspectMask = aspectFlags;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    VkImageView imageView;
+    if (vkCreateImageView(mDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create texture image view!");
+    }
+
+    return imageView;
+}
+
+void TAA::createFrameBuffers(VkImageView& depthImageView, uint32_t width, uint32_t height)
+{
+    mImages.resize(MAX_FRAMES_IN_FLIGHT);
+    mImagesMemory.resize(MAX_FRAMES_IN_FLIGHT);
+    mImagesView.resize(MAX_FRAMES_IN_FLIGHT);
     mFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
+        mResManager->createImage(mWidth, mHeight, VK_FORMAT_R8G8B8A8_SRGB,
+                                                  VK_IMAGE_TILING_OPTIMAL,
+                                                  VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                  mImages[i], mImagesMemory[i]);
+        mImagesView[i] = createImageView(mImages[i], mFrameBufferFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+
         std::array<VkImageView, 2> attachments = {
-            imageViews[i],
+            mImagesView[i],
             depthImageView
         };
 
@@ -169,7 +201,7 @@ void GeometryPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkIm
     }
 }
 
-void GeometryPass::createRenderPass()
+void TAA::createRenderPass()
 {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = mFrameBufferFormat;
@@ -178,7 +210,7 @@ void GeometryPass::createRenderPass()
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentDescription depthAttachment{};
@@ -229,31 +261,23 @@ void GeometryPass::createRenderPass()
     }
 }
 
-void GeometryPass::createDescriptorSetLayout()
+void TAA::createDescriptorSetLayout()
 {
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.pImmutableSamplers = nullptr;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    VkDescriptorSetLayoutBinding texLayoutBinding{};
+    texLayoutBinding.binding = 0;
+    texLayoutBinding.descriptorCount = 1;
+    texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    texLayoutBinding.pImmutableSamplers = nullptr;
+    texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    //VkDescriptorSetLayoutBinding texLayoutBinding{};
-    //texLayoutBinding.binding = 1;
-    //texLayoutBinding.descriptorCount = 1;
-    //texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    //texLayoutBinding.pImmutableSamplers = nullptr;
-    //texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding = 1;
+    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    //VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    //samplerLayoutBinding.binding = 2;
-    //samplerLayoutBinding.descriptorCount = 1;
-    //samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    //samplerLayoutBinding.pImmutableSamplers = nullptr;
-    //samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    //std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding };
-    std::array<VkDescriptorSetLayoutBinding, 1> bindings = { uboLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { texLayoutBinding, samplerLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -265,7 +289,7 @@ void GeometryPass::createDescriptorSetLayout()
     }
 }
 
-void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
+void TAA::createDescriptorSets(VkDescriptorPool& descriptorPool)
 {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, mDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -282,51 +306,37 @@ void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = uniformBuffers[i];
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = mTextureImageView;
 
-        //VkDescriptorImageInfo imageInfo{};
-        //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        //imageInfo.imageView = mTextureImageView;
+        VkDescriptorImageInfo samplerInfo{};
+        samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        samplerInfo.sampler = mTextureSampler;
 
-        //VkDescriptorImageInfo samplerInfo{};
-        //samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        //samplerInfo.sampler = mTextureSampler;
-
-        //std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
-        std::array<VkWriteDescriptorSet, 1> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = mDescriptorSets[i];
         descriptorWrites[0].dstBinding = 0;
         descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &bufferInfo;
+        descriptorWrites[0].pImageInfo = &imageInfo;
 
-        //descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        //descriptorWrites[1].dstSet = mDescriptorSets[i];
-        //descriptorWrites[1].dstBinding = 1;
-        //descriptorWrites[1].dstArrayElement = 0;
-        //descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        //descriptorWrites[1].descriptorCount = 1;
-        //descriptorWrites[1].pImageInfo = &imageInfo;
-
-        //descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        //descriptorWrites[2].dstSet = mDescriptorSets[i];
-        //descriptorWrites[2].dstBinding = 2;
-        //descriptorWrites[2].dstArrayElement = 0;
-        //descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        //descriptorWrites[2].descriptorCount = 1;
-        //descriptorWrites[2].pImageInfo = &samplerInfo;
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = mDescriptorSets[i];
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pImageInfo = &samplerInfo;
 
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 
-void GeometryPass::createShaderModules()
+void TAA::createShaderModules()
 {
     uint32_t vertId = mShaderManager->loadShader(mShaderName.c_str(), "vertexMain", false);
     uint32_t fragId = mShaderManager->loadShader(mShaderName.c_str(), "fragmentMain", true);
@@ -343,7 +353,7 @@ void GeometryPass::createShaderModules()
     mPS = createModule(fragShaderCode, fragShaderCodeSize);
 }
 
-VkShaderModule GeometryPass::createModule(const char* code, const uint32_t codeSize)
+VkShaderModule TAA::createModule(const char* code, const uint32_t codeSize)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -359,7 +369,7 @@ VkShaderModule GeometryPass::createModule(const char* code, const uint32_t codeS
     return shaderModule;
 }
 
-void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
+void TAA::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -382,53 +392,22 @@ void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer 
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
-    VkBuffer vertexBuffers[] = { vertexBuffer };
-    VkDeviceSize offsets[] = { 0 };
-
     vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
     vkCmdSetViewport(cmd, 0, 1, &viewport);
-    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
-    vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
-    vkCmdDrawIndexed(cmd, indicesCount, 1, 0, 0, 0);
+    vkCmdDraw(cmd, 0, 0, 0, 0);
 
     vkCmdEndRenderPass(cmd);
 }
 
-void GeometryPass::createUniformBuffers()
+void TAA::onDestroy()
 {
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-    uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (auto& imageView : mImagesView)
     {
-        mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+        vkDestroyImageView(mDevice, imageView, nullptr);
     }
-}
-
-void GeometryPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view)
-{
-    float time = 0;
-
-    UniformBufferObject ubo{};
-    glm::float4x4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    glm::float4x4 proj = perspective;
-
-    ubo.modelViewProj = proj * view * model;
-    ubo.inverseWorldToView = transpose(inverse(ubo.worldToView));
-
-    void* data;
-    vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
-}
-
-void GeometryPass::onDestroy()
-{
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
@@ -441,10 +420,15 @@ void GeometryPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void GeometryPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
+void TAA::onResize(std::vector<VkImage>& images, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
     mWidth = width;
     mHeight = height;
+
+    for (auto& imageView : mImagesView)
+    {
+        vkDestroyImageView(mDevice, imageView, nullptr);
+    }
 
     for (auto& framebuffer : mFrameBuffers)
     {
@@ -457,17 +441,17 @@ void GeometryPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& d
 
     createRenderPass();
     createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
-    createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
+    createFrameBuffers(depthImageView, mWidth, mHeight);
 }
 
-//void GeometryPass::setTextureImageView(VkImageView textureImageView)
-//{
-//    mTextureImageView = textureImageView;
-//}
-//
-//void GeometryPass::setTextureSampler(VkSampler textureSampler)
-//{
-//    mTextureSampler = textureSampler;
-//}
+void TAA::setTextureImageView(VkImageView textureImageView)
+{
+    mTextureImageView = textureImageView;
+}
+
+void TAA::setTextureSampler(VkSampler textureSampler)
+{
+    mTextureSampler = textureSampler;
+}
 
 } // namespace nevk

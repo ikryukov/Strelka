@@ -30,6 +30,7 @@
 
 #include <shadermanager/ShaderManager.h>
 #include "renderpass/geometry.h"
+#include "renderpass/taa.h"
 #include <scene/scene.h>
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -40,7 +41,7 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
-const std::string TEXTURE_PATH = "misc/white.jpg";
+const std::string TEXTURE_PATH = "misc/textures/brickwall.png";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -123,9 +124,9 @@ private:
     VkQueue presentQueue;
 
     VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
+    std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
     VkFormat mFrameBufferFormat;
@@ -175,6 +176,7 @@ private:
     nevk::ShaderManager* mShaderManager;
 
     nevk::GeometryPass mGeometry;
+    nevk::TAA mTAA;
     nevk::Ui mUi;
     nevk::Scene mScene;
 
