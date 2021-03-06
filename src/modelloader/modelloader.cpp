@@ -72,13 +72,13 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                     material.illum = materials[shape.mesh.material_ids[f]].illum;
 
-                    material.texAmbientId = 0;
+                    material.texAmbientId = mTexManager->loadTexture(materials[shape.mesh.material_ids[f]].ambient_texname);
 
-                    material.texDiffuseId = 0;
+                    material.texDiffuseId = mTexManager->loadTexture(materials[shape.mesh.material_ids[f]].diffuse_texname);
 
-                    material.texSpeculaId = 0;
+                    material.texSpecularId = mTexManager->loadTexture(materials[shape.mesh.material_ids[f]].specular_texname);
 
-                    material.texNormalId = 0;
+                    material.texNormalId = mTexManager->loadTexture(materials[shape.mesh.material_ids[f]].bump_texname);
                 }
 
 
@@ -87,15 +87,18 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                                                        material.opticalDensity, material.shininess,
                                                        material.transparency, material.illum,
                                                        material.texAmbientId, material.texDiffuseId,
-                                                       material.texSpeculaId, material.texNormalId);
+                                                       material.texSpecularId, material.texNormalId);
 
                 std::string matName = materials[shape.mesh.material_ids[f]].name;
-                std::unordered_map<std::string , uint32_t > unMat{};
+                std::unordered_map<std::string, uint32_t> unMat{};
 
-                if (unMat.count(matName) == 0){
+                if (unMat.count(matName) == 0)
+                {
                     unMat[matName] = vertex.materialId;
                     vertex.materialId = matId;
-                } else{
+                }
+                else
+                {
                     vertex.materialId = unMat[matName];
                 }
 

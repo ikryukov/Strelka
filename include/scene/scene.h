@@ -56,7 +56,7 @@ public:
         uint32_t illum; // illum 2 -- модель освещения
         uint32_t texAmbientId; // map_ambient
         uint32_t texDiffuseId; // map_diffuse
-        uint32_t texSpeculaId; // map_specular
+        uint32_t texSpecularId; // map_specular
         uint32_t texNormalId; // map_normal - map_Bump
     };
 

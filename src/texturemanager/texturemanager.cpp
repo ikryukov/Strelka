@@ -1,11 +1,28 @@
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+
 #include <texturemanager.h>
+#include <stb_image.h>
 
-void nevk::TextureManager::loadTexture(std::string texture_path) {
-    Texture tex = createTextureImage(texture_path);
-    textures.push_back(tex);
+int nevk::TextureManager::loadTexture(std::string texture_path)
+{
+    if (texture_path == "")
+    {
+        return 0;
+    }
 
-    createTextureImageView(tex);
-    createTextureSampler();
+    if (nameID.count(texture_path) == 0)
+    {
+        nameID[texture_path] = textures.size();
+
+        Texture tex = createTextureImage(texture_path);
+        textures.push_back(tex);
+
+        createTextureImageView(tex);
+        createTextureSampler();
+    }
+
+    return nameID.find(texture_path)->second;
 }
 
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(std::string texture_path)
@@ -172,4 +189,3 @@ void nevk::TextureManager::copyBufferToImage(VkBuffer buffer, VkImage image, uin
 
     mResManager->endSingleTimeCommands(commandBuffer);
 }
-

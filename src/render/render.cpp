@@ -32,13 +32,8 @@ void Render::initVulkan()
     createSyncObjects();
 
     createDepthResources();
-    loadModel();
-
-    mTexManager->loadTexture(TEXTURE_PATH);
-    mTexManager->loadTexture(TEXTURE_PATH2);
-    mTexManager->loadTexture(TEXTURE_PATH3);
-    mTexManager->loadTexture(TEXTURE_PATH4);
-    mTexManager->loadTexture(TEXTURE_PATH5);
+    model = new nevk::Model(mTexManager);
+    loadModel(*model);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
 

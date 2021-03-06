@@ -68,7 +68,7 @@ uint32_t Scene::createMaterial(const glm::float3& ambient,
                                uint32_t illum,
                                uint32_t texAmbientId,
                                uint32_t texDiffuseId,
-                               uint32_t texSpeculaId,
+                               uint32_t texSpecularId,
                                uint32_t texNormalId)
 {
     Material* material = nullptr;
@@ -95,7 +95,7 @@ uint32_t Scene::createMaterial(const glm::float3& ambient,
     material->illum = illum;
     material->texAmbientId = texAmbientId;
     material->texDiffuseId = texDiffuseId;
-    material->texSpeculaId = texSpeculaId;
+    material->texSpecularId = texSpecularId;
     material->texNormalId = texNormalId;
     return materialId;
 }

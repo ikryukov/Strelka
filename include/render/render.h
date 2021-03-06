@@ -37,13 +37,6 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
-
-const std::string TEXTURE_PATH = "misc/brickwall.png";
-const std::string TEXTURE_PATH2 = "misc/container.jpg";
-const std::string TEXTURE_PATH3 = "misc/viking_room.png";
-const std::string TEXTURE_PATH4 = "misc/white.jpg";
-const std::string TEXTURE_PATH5 = "misc/textures/awesomeface.png";
-
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -140,6 +133,7 @@ private:
     nevk::ResourceManager* mResManager;
     nevk::TextureManager* mTexManager;
     nevk::RenderPass mPass;
+    nevk::Model* model;
 
     std::vector<nevk::Scene::Vertex> vertices;
     //  std::vector<nevk::Scene::Material> materials;
@@ -263,9 +257,8 @@ private:
     int k = 0;
     int nums = 1;
 
-    void loadModel()
+    void loadModel(nevk::Model& testmodel)
     {
-        nevk::Model testmodel;
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
         vertices = convertVerticesToRender(testmodel.getVertices());
         indices = testmodel.getIndices();

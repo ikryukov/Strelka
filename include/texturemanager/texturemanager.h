@@ -2,10 +2,7 @@
 #include <vulkan/vulkan.h>
 #include <iostream>
 #include <vector>
-
-#define STB_IMAGE_STATIC
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
+#include <unordered_map>
 
 #include <resourcemanager/resourcemanager.h>
 
@@ -31,16 +28,14 @@ public:
         int texWidth;
         int texHeight;
         VkDeviceMemory textureImageMemory;
-    } ;
+    };
 
+    std::unordered_map<std::string , uint32_t > nameID{};
     std::vector<Texture> textures;
     std::vector<VkImageView> textureImageView;
     VkSampler textureSampler;
 
-    const std::string TEXTURE_PATH = "misc/cat.png";
-    const std::string TEXTURE_PATH2 = "misc/viking_room.png";
-
-    void loadTexture(std::string texture_path);
+    int loadTexture(std::string texture_path);
 
     Texture createTextureImage(std::string texture_path);
     void createTextureImageView(Texture texture);
