@@ -36,7 +36,8 @@ cbuffer ubo
     float4x4 worldToView;
     float4x4 inverseWorldToView;
 }
-Texture2D tex;
+
+Texture2D textures[128];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
 
@@ -68,11 +69,11 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float3 transparency = float3(materials[inp.materialId].transparency.rgb);
    uint32_t illum = 2;
 
-   uint32_t texAmbientId = 0;
-   uint32_t texDiffuseId = 0;
-   uint32_t texSpeculaId = 0;
-   uint32_t texNormalId = 0;
+   uint32_t texAmbientId = materials[inp.materialId].texAmbientId;
+   uint32_t texDiffuseId = materials[inp.materialId].texDiffuseId;
+   uint32_t texSpecularId = materials[inp.materialId].texSpeculaId;
+   uint32_t texNormalId = materials[inp.materialId].texNormalId;
 
-   return  tex.Sample(gSampler, inp.uv);
+   return  textures[0].Sample(gSampler, inp.uv);
    //return float4(abs(inp.normal), 1.0);
 }

@@ -36,7 +36,7 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/SM2LP.obj";
+const std::string MODEL_PATH = "misc/cube.obj";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -136,7 +136,6 @@ private:
     nevk::Model* model;
 
     std::vector<nevk::Scene::Vertex> vertices;
-    //  std::vector<nevk::Scene::Material> materials;
     std::vector<uint32_t> indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;

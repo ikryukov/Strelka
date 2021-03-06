@@ -100,7 +100,7 @@ private:
 public:
     int imageviewcounter = 0;
 
-    VkImageView mTextureImageView;
+    std::vector<VkImageView> mTextureImageView;
 
     bool needDesciptorSetUpdate;
 
@@ -118,7 +118,7 @@ public:
         mDepthBufferFormat = format;
     }
 
-    void setTextureImageView(VkImageView textureImageView);
+    void setTextureImageView(std::vector<VkImageView> textureImageView);
     void setTextureSampler(VkSampler textureSampler);
 
     void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)

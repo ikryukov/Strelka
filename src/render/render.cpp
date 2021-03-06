@@ -52,7 +52,7 @@ void Render::initVulkan()
 
     mPass.setFrameBufferFormat(swapChainImageFormat);
     mPass.setDepthBufferFormat(findDepthFormat());
-    mPass.setTextureImageView(mTexManager->textureImageView[0]);
+    mPass.setTextureImageView(mTexManager->textureImageView);
     mPass.setTextureSampler(mTexManager->textureSampler);
 
     mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
@@ -71,7 +71,7 @@ void Render::mainLoop()
         glfwPollEvents();
         drawFrame();
         //updating texture test
-         k++;
+       /* k++;
         if (k == 100)
         {
             mPass.setTextureImageView(mTexManager->textureImageView[nums]);
@@ -80,7 +80,7 @@ void Render::mainLoop()
                 nums = 0;
             else
                 ++nums;
-        }
+        }*/
     }
 
     vkDeviceWaitIdle(device);
