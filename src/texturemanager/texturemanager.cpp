@@ -13,15 +13,15 @@ int nevk::TextureManager::loadTexture(std::string texture_path)
     {
         return 0;
     }
-    if (nameID.count(texture_path) == 0)
-    {
-        
+
 #ifdef __APPLE__
-        texture_path = "misc/" + texture_path;
-        if (texture_path.find(backslash) < texture_path.size())
-            texture_path.replace(texture_path.find(backslash), backslash.length(), fslash);
+    texture_path = "misc/" + texture_path;
+    if (texture_path.find(backslash) < texture_path.size())
+        texture_path.replace(texture_path.find(backslash), backslash.length(), fslash);
 #endif
 
+    if (nameID.count(texture_path) == 0)
+    {
         nameID[texture_path] = textures.size();
 
         Texture tex = createTextureImage(texture_path);
