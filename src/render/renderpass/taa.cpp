@@ -72,6 +72,12 @@ void TAA::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModul
     viewportState.scissorCount = 1;
     viewportState.pScissors = &scissor;
 
+    VkDynamicState state = VK_DYNAMIC_STATE_VIEWPORT;
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = 1;
+    dynamicState.pDynamicStates = &state;
+
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.depthClampEnable = VK_FALSE;
@@ -131,6 +137,7 @@ void TAA::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModul
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = mPipelineLayout;
     pipelineInfo.renderPass = mRenderPass;
     pipelineInfo.subpass = 0;
@@ -210,8 +217,8 @@ void TAA::createRenderPass()
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = mDepthBufferFormat;

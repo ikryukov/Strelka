@@ -72,6 +72,12 @@ void GeometryPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkSh
     viewportState.scissorCount = 1;
     viewportState.pScissors = &scissor;
 
+    VkDynamicState state = VK_DYNAMIC_STATE_VIEWPORT;
+    VkPipelineDynamicStateCreateInfo dynamicState{};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = 1;
+    dynamicState.pDynamicStates = &state;
+
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     rasterizer.depthClampEnable = VK_FALSE;
@@ -131,6 +137,7 @@ void GeometryPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkSh
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = mPipelineLayout;
     pipelineInfo.renderPass = mRenderPass;
     pipelineInfo.subpass = 0;
