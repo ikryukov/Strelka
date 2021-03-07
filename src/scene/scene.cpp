@@ -97,6 +97,7 @@ uint32_t Scene::createMaterial(const glm::float3& ambient,
     material->texDiffuseId = texDiffuseId;
     material->texSpecularId = texSpecularId;
     material->texNormalId = texNormalId;
+
     return materialId;
 }
 

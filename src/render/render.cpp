@@ -35,6 +35,7 @@ void Render::initVulkan()
     model = new nevk::Model(mTexManager);
     loadModel(*model);
 
+    createMaterialBuffer();
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
 
     //    ImGui_ImplVulkan_InitInfo init_info{};
@@ -49,19 +50,18 @@ void Render::initVulkan()
 
     mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
-
     mPass.setFrameBufferFormat(swapChainImageFormat);
     mPass.setDepthBufferFormat(findDepthFormat());
     mPass.setTextureImageView(mTexManager->textureImageView);
     mPass.setTextureSampler(mTexManager->textureSampler);
 
+    mPass.setMaterialBuffer(materialBuffer);
     mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
     mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
-    createVertexBuffer();
-    createMaterialBuffer();
     createIndexBuffer();
+    createVertexBuffer();
 }
 
 void Render::mainLoop()
@@ -70,17 +70,6 @@ void Render::mainLoop()
     {
         glfwPollEvents();
         drawFrame();
-        //updating texture test
-       /* k++;
-        if (k == 100)
-        {
-            mPass.setTextureImageView(mTexManager->textureImageView[nums]);
-            k = 0;
-            if (nums == mTexManager->textureImageView.size() - 1)
-                nums = 0;
-            else
-                ++nums;
-        }*/
     }
 
     vkDeviceWaitIdle(device);

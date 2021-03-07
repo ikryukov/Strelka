@@ -1,7 +1,8 @@
 #include "renderpass.h"
-#include <stdexcept>
+
 #include <array>
 #include <chrono>
+#include <stdexcept>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -256,7 +257,7 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = 500;
+    texLayoutBinding.descriptorCount = mTextureImageView.size();
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -268,7 +269,14 @@ void RenderPass::createDescriptorSetLayout()
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding };
+    VkDescriptorSetLayoutBinding materialLayoutBinding{};
+    materialLayoutBinding.binding = 3;
+    materialLayoutBinding.descriptorCount = 1;
+    materialLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    materialLayoutBinding.pImmutableSamplers = nullptr;
+    materialLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, materialLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -313,7 +321,12 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         samplerInfo.sampler = mTextureSampler;
 
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+        VkDescriptorBufferInfo materialInfo{};
+        materialInfo.buffer = mMaterialBuffer;
+        materialInfo.offset = 0;
+        materialInfo.range = 0;
+
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = mDescriptorSets[i];
@@ -338,6 +351,14 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
         descriptorWrites[2].descriptorCount = 1;
         descriptorWrites[2].pImageInfo = &samplerInfo;
+
+        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3].dstSet = mDescriptorSets[i];
+        descriptorWrites[3].dstBinding = 3;
+        descriptorWrites[3].dstArrayElement = 0;
+        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrites[3].descriptorCount = 1;
+        descriptorWrites[3].pBufferInfo = &materialInfo;
 
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -471,6 +492,11 @@ void RenderPass::setTextureSampler(VkSampler textureSampler)
     mTextureSampler = textureSampler;
 }
 
+void RenderPass::setMaterialBuffer(VkBuffer materialBuffer)
+{
+    mMaterialBuffer = materialBuffer;
+}
+
 void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
 {
     VkDescriptorBufferInfo bufferInfo{};
@@ -489,7 +515,12 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     samplerInfo.sampler = mTextureSampler;
 
-    std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+    VkDescriptorBufferInfo materialInfo{};
+    materialInfo.buffer = mMaterialBuffer;
+    materialInfo.range = 0;
+    materialInfo.offset = 0;
+
+    std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
     descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[0].dstSet = mDescriptorSets[descSetIndex];
@@ -515,7 +546,16 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     descriptorWrites[2].descriptorCount = 1;
     descriptorWrites[2].pImageInfo = &samplerInfo;
 
+    descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[3].dstSet = mDescriptorSets[descSetIndex];
+    descriptorWrites[3].dstBinding = 3;
+    descriptorWrites[3].dstArrayElement = 0;
+    descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[3].descriptorCount = 1;
+    descriptorWrites[3].pBufferInfo = &materialInfo;
+
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+
 }
 
 } // namespace nevk

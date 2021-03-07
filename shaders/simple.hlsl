@@ -18,7 +18,7 @@ struct Material
     uint32_t illum;
     uint32_t texAmbientId;
     uint32_t texDiffuseId;
-    uint32_t texSpeculaId;
+    uint32_t texSpecularId;
     uint32_t texNormalId;
 };
 
@@ -62,7 +62,6 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float3 specular = float3(materials[inp.materialId].specular.rgb);
    float3 diffuse = float3(materials[inp.materialId].diffuse.rgb);
 
-
    float3 emissive = float3(materials[inp.materialId].emissive.rgb);
    float opticalDensity = float(materials[inp.materialId].opticalDensity);
    float shininess = float(materials[inp.materialId].shininess);
@@ -71,9 +70,9 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 
    uint32_t texAmbientId = materials[inp.materialId].texAmbientId;
    uint32_t texDiffuseId = materials[inp.materialId].texDiffuseId;
-   uint32_t texSpecularId = materials[inp.materialId].texSpeculaId;
+   uint32_t texSpecularId = materials[inp.materialId].texSpecularId;
    uint32_t texNormalId = materials[inp.materialId].texNormalId;
 
-   return  textures[0].Sample(gSampler, inp.uv);
+   return  textures[texDiffuseId].Sample(gSampler, inp.uv);
    //return float4(abs(inp.normal), 1.0);
 }

@@ -358,10 +358,6 @@ private:
         return ret;
     }
 
-    //for checks
-    int k = 0;
-    int nums = 1;
-
     void loadModel(nevk::Model& testmodel)
     {
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
