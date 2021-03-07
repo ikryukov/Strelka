@@ -33,7 +33,7 @@ void Render::initVulkan()
     mTAA.setTextureImageView(textureImageView);
     mTAA.setTextureSampler(textureSampler);
     mTAA.init(device, descriptorPool, mResManager, mShaderManager, swapChainExtent.width, swapChainExtent.height);
-    mTAA.createFrameBuffers(depthImageView, swapChainExtent.width, swapChainExtent.height);
+    mTAA.createFrameBuffers(swapChainExtent.width, swapChainExtent.height);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
     //    ImGui_ImplVulkan_InitInfo init_info{};
@@ -154,7 +154,7 @@ void Render::recreateSwapChain()
     createDepthResources();
 
     mGeometry.onResize(swapChainImageViews, depthImageView, width, height);
-    mTAA.onResize(swapChainImages, depthImageView, width, height);
+    mTAA.onResize(width, height);
     mUi.onResize(init_info, swapChainImageViews, width, height);
 
     Camera& camera = mScene.getCamera();

@@ -38,14 +38,10 @@ void TAA::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModul
 
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-    auto bindingDescription = getBindingDescription();
-    auto attributeDescriptions = getAttributeDescriptions();
-
-    vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
-    vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
+    vertexInputInfo.vertexBindingDescriptionCount = 0;
+    vertexInputInfo.vertexAttributeDescriptionCount = 0;
+    vertexInputInfo.pVertexBindingDescriptions = nullptr;
+    vertexInputInfo.pVertexAttributeDescriptions = nullptr;
 
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -84,7 +80,7 @@ void TAA::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModul
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = VK_CULL_MODE_FRONT_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -171,7 +167,7 @@ VkImageView TAA::createImageView(VkImage image, VkFormat format, VkImageAspectFl
     return imageView;
 }
 
-void TAA::createFrameBuffers(VkImageView& depthImageView, uint32_t width, uint32_t height)
+void TAA::createFrameBuffers(uint32_t width, uint32_t height)
 {
     mImages.resize(MAX_FRAMES_IN_FLIGHT);
     mImagesMemory.resize(MAX_FRAMES_IN_FLIGHT);
@@ -187,9 +183,8 @@ void TAA::createFrameBuffers(VkImageView& depthImageView, uint32_t width, uint32
                                                   mImages[i], mImagesMemory[i]);
         mImagesView[i] = createImageView(mImages[i], mFrameBufferFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 
-        std::array<VkImageView, 2> attachments = {
+        std::array<VkImageView, 1> attachments = {
             mImagesView[i],
-            depthImageView
         };
 
         VkFramebufferCreateInfo framebufferInfo{};
@@ -220,29 +215,14 @@ void TAA::createRenderPass()
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-    VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = mDepthBufferFormat;
-    depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-    VkAttachmentReference depthAttachmentRef{};
-    depthAttachmentRef.attachment = 1;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &colorAttachmentRef;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -252,7 +232,7 @@ void TAA::createRenderPass()
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-    std::array<VkAttachmentDescription, 2> attachments = { colorAttachment, depthAttachment };
+    std::array<VkAttachmentDescription, 1> attachments = { colorAttachment };
     VkRenderPassCreateInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
     renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
@@ -404,7 +384,7 @@ void TAA::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
     vkCmdSetViewport(cmd, 0, 1, &viewport);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
-    vkCmdDraw(cmd, 0, 0, 0, 0);
+    vkCmdDraw(cmd, 3, 1, 0, 0);
 
     vkCmdEndRenderPass(cmd);
 }
@@ -427,7 +407,7 @@ void TAA::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void TAA::onResize(std::vector<VkImage>& images, VkImageView& depthImageView, uint32_t width, uint32_t height)
+void TAA::onResize(uint32_t width, uint32_t height)
 {
     mWidth = width;
     mHeight = height;
@@ -448,7 +428,7 @@ void TAA::onResize(std::vector<VkImage>& images, VkImageView& depthImageView, ui
 
     createRenderPass();
     createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
-    createFrameBuffers(depthImageView, mWidth, mHeight);
+    createFrameBuffers(mWidth, mHeight);
 }
 
 void TAA::setTextureImageView(VkImageView textureImageView)

@@ -38,8 +38,6 @@ cbuffer ubo
     float4x4 worldToView;
     float4x4 inverseWorldToView;
 }
-//Texture2D gTexture;
-//SamplerState gSampler;
 //===================================
 
 StructuredBuffer<Material> materials;

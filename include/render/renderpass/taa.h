@@ -54,49 +54,6 @@ private:
 
     //===================================
 
-    static VkVertexInputBindingDescription getBindingDescription()
-    {
-        VkVertexInputBindingDescription bindingDescription{};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(Scene::Vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-        return bindingDescription;
-    }
-
-    static std::vector<VkVertexInputAttributeDescription> getAttributeDescriptions()
-    {
-        std::vector<VkVertexInputAttributeDescription> attributeDescriptions = {};
-
-        VkVertexInputAttributeDescription attributeDescription;
-
-        attributeDescription.binding = 0;
-        attributeDescription.location = 0;
-        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription.offset = offsetof(Scene::Vertex, pos);
-        attributeDescriptions.emplace_back(attributeDescription);
-
-        attributeDescription.binding = 0;
-        attributeDescription.location = 1;
-        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription.offset = offsetof(Scene::Vertex, normal);
-        attributeDescriptions.emplace_back(attributeDescription);
-
-        attributeDescription.binding = 0;
-        attributeDescription.location = 2;
-        attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
-        attributeDescription.offset = offsetof(Scene::Vertex, uv);
-        attributeDescriptions.emplace_back(attributeDescription);
-
-        attributeDescription.binding = 0;
-        attributeDescription.location = 3;
-        attributeDescription.format = VK_FORMAT_R32_UINT;
-        attributeDescription.offset = offsetof(Scene::Vertex, materialId);
-        attributeDescriptions.emplace_back(attributeDescription);
-
-        return attributeDescriptions;
-    }
-
     void createRenderPass();
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
@@ -124,10 +81,10 @@ public:
     void setTextureSampler(VkSampler textureSampler);
 
     void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
-    void onResize(std::vector<VkImage>& images, VkImageView& depthImageView, uint32_t width, uint32_t height);
+    void onResize(uint32_t width, uint32_t height);
     void onDestroy();
 
-    void createFrameBuffers(VkImageView& depthImageView, uint32_t width, uint32_t height);
+    void createFrameBuffers(uint32_t width, uint32_t height);
     void init(VkDevice& device, VkDescriptorPool descpool, ResourceManager* resMngr, ShaderManager* shMngr, uint32_t width, uint32_t height)
     {
         mShaderName = std::string("shaders/taa.hlsl");
