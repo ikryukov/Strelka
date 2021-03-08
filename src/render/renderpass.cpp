@@ -310,7 +310,7 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
-        VkDescriptorImageInfo imageInfo[mTextureImageView.size()];
+        std::vector<VkDescriptorImageInfo> imageInfo(mTextureImageView.size());
         for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
         {
             imageInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -324,7 +324,7 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         VkDescriptorBufferInfo materialInfo{};
         materialInfo.buffer = mMaterialBuffer;
         materialInfo.offset = 0;
-        materialInfo.range = 0;
+        materialInfo.range = VK_WHOLE_SIZE;
 
         std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
@@ -342,7 +342,7 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descriptorWrites[1].descriptorCount = mTextureImageView.size();
-        descriptorWrites[1].pImageInfo = imageInfo;
+        descriptorWrites[1].pImageInfo = imageInfo.data();
 
         descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[2].dstSet = mDescriptorSets[i];
@@ -504,7 +504,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
-    VkDescriptorImageInfo imageInfo[mTextureImageView.size()];
+    std::vector<VkDescriptorImageInfo> imageInfo(mTextureImageView.size());
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
         imageInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -517,7 +517,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
 
     VkDescriptorBufferInfo materialInfo{};
     materialInfo.buffer = mMaterialBuffer;
-    materialInfo.range = 0;
+    materialInfo.range = VK_WHOLE_SIZE;
     materialInfo.offset = 0;
 
     std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
@@ -536,7 +536,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     descriptorWrites[1].dstArrayElement = 0;
     descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     descriptorWrites[1].descriptorCount = mTextureImageView.size();
-    descriptorWrites[1].pImageInfo = imageInfo;
+    descriptorWrites[1].pImageInfo = imageInfo.data();
 
     descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[2].dstSet = mDescriptorSets[descSetIndex];

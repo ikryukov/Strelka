@@ -46,18 +46,20 @@ public:
 
     struct Material
     {
-        glm::float3 ambient; // Ka
-        glm::float3 diffuse; // Kd
-        glm::float3 specular; // Ks
-        glm::float3 emissive; // Ke
+        glm::float4 ambient; // Ka
+        glm::float4 diffuse; // Kd
+        glm::float4 specular; // Ks
+        glm::float4 emissive; // Ke
+        glm::float4 transparency; //  d 1 -- прозрачность/непрозрачность
         float opticalDensity; // Ni
         float shininess; // Ns 16 --  блеск материала
-        glm::float3 transparency; //  d 1 -- прозрачность/непрозрачность
         uint32_t illum; // illum 2 -- модель освещения
-        uint32_t texAmbientId; // map_ambient
         uint32_t texDiffuseId; // map_diffuse
+
+        uint32_t texAmbientId; // map_ambient
         uint32_t texSpecularId; // map_specular
         uint32_t texNormalId; // map_normal - map_Bump
+        uint32_t pad;
     };
 
     std::vector<Vertex> mVertices;

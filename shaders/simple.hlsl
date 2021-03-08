@@ -8,18 +8,20 @@ struct VertexInput
 
 struct Material
 {
-    float3 ambient;
-    float3 diffuse;
-    float3 specular;
-    float3 emissive;
-    float opticalDensity;
-    float shininess;
-    float3 transparency;
-    uint32_t illum;
-    uint32_t texAmbientId;
-    uint32_t texDiffuseId;
-    uint32_t texSpecularId;
-    uint32_t texNormalId;
+  float4 ambient; // Ka
+  float4 diffuse; // Kd
+  float4 specular; // Ks
+  float4 emissive; // Ke
+  float4 transparency; //  d 1 -- прозрачность/непрозрачность
+  float opticalDensity; // Ni
+  float shininess; // Ns 16 --  блеск материала
+  uint32_t illum; // illum 2 -- модель освещения
+  uint32_t texDiffuseId; // map_diffuse
+
+  uint32_t texAmbientId; // map_ambient
+  uint32_t texSpecularId; // map_specular
+  uint32_t texNormalId; // map_normal - map_Bump
+  uint32_t pad;
 };
 
 struct PS_INPUT
@@ -37,7 +39,7 @@ cbuffer ubo
     float4x4 inverseWorldToView;
 }
 
-Texture2D textures[128];
+Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
 
@@ -73,6 +75,5 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    uint32_t texSpecularId = materials[inp.materialId].texSpecularId;
    uint32_t texNormalId = materials[inp.materialId].texNormalId;
 
-   return  textures[texDiffuseId].Sample(gSampler, inp.uv);
-   //return float4(abs(inp.normal), 1.0);
+   return textures[texDiffuseId].Sample(gSampler, inp.uv);
 }

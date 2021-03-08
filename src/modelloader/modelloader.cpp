@@ -15,6 +15,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
         throw std::runtime_error(warn + err);
     }
 
+    std::unordered_map<std::string, uint32_t> unMat{};
     for (auto& shape : shapes)
     {
         size_t index_offset = 0;
@@ -48,19 +49,19 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                     material.ambient = { materials[shape.mesh.material_ids[f]].ambient[0],
                                          materials[shape.mesh.material_ids[f]].ambient[1],
-                                         materials[shape.mesh.material_ids[f]].ambient[2] };
+                                         materials[shape.mesh.material_ids[f]].ambient[2], 1.0f };
 
                     material.diffuse = { materials[shape.mesh.material_ids[f]].diffuse[0],
                                          materials[shape.mesh.material_ids[f]].diffuse[1],
-                                         materials[shape.mesh.material_ids[f]].diffuse[2] };
+                                         materials[shape.mesh.material_ids[f]].diffuse[2], 1.0f };
 
                     material.specular = { materials[shape.mesh.material_ids[f]].specular[0],
                                           materials[shape.mesh.material_ids[f]].specular[1],
-                                          materials[shape.mesh.material_ids[f]].specular[2] };
+                                          materials[shape.mesh.material_ids[f]].specular[2], 1.0f };
 
                     material.emissive = { materials[shape.mesh.material_ids[f]].emission[0],
                                           materials[shape.mesh.material_ids[f]].emission[1],
-                                          materials[shape.mesh.material_ids[f]].emission[2] };
+                                          materials[shape.mesh.material_ids[f]].emission[2], 1.0f };
 
                     material.opticalDensity = materials[shape.mesh.material_ids[f]].ior;
 
@@ -68,7 +69,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                     material.transparency = { materials[shape.mesh.material_ids[f]].transmittance[0],
                                               materials[shape.mesh.material_ids[f]].transmittance[1],
-                                              materials[shape.mesh.material_ids[f]].transmittance[2] };
+                                              materials[shape.mesh.material_ids[f]].transmittance[2], 1.0f };
 
                     material.illum = materials[shape.mesh.material_ids[f]].illum;
 
@@ -81,20 +82,16 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                     material.texNormalId = mTexManager->loadTexture(materials[shape.mesh.material_ids[f]].bump_texname);
                 }
 
-
-                uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
-                                                       material.specular, material.emissive,
-                                                       material.opticalDensity, material.shininess,
-                                                       material.transparency, material.illum,
-                                                       material.texAmbientId, material.texDiffuseId,
-                                                       material.texSpecularId, material.texNormalId);
-
                 std::string matName = materials[shape.mesh.material_ids[f]].name;
-                std::unordered_map<std::string, uint32_t> unMat{};
-
                 if (unMat.count(matName) == 0)
                 {
-                    unMat[matName] = vertex.materialId;
+                    uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
+                                                           material.specular, material.emissive,
+                                                           material.opticalDensity, material.shininess,
+                                                           material.transparency, material.illum,
+                                                           material.texAmbientId, material.texDiffuseId,
+                                                           material.texSpecularId, material.texNormalId);
+                    unMat[matName] = matId;
                     vertex.materialId = matId;
                 }
                 else
