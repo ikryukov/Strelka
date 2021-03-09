@@ -129,7 +129,6 @@ private:
     std::vector<VkImage> swapChainImages;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
-    VkFormat mFrameBufferFormat;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -139,6 +138,11 @@ private:
     VkDeviceMemory textureImageMemory;
     VkImageView textureImageView;
     VkSampler textureSampler;
+
+    VkImage geometryImage;
+    VkDeviceMemory geometryImageMemory;
+    VkImageView geometryImageView;
+    VkSampler geometrySampler;
 
     std::vector<nevk::Scene::Vertex> vertices;
     //  std::vector<nevk::Scene::Material> materials;
@@ -354,10 +358,12 @@ private:
     }
 
     void createTextureImage();
-
     void createTextureImageView();
-
     void createTextureSampler();
+
+    void createGeometryImage();
+    void createGeometryImageView();
+    void createGeometrySampler();
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
 

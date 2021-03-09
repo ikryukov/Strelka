@@ -38,6 +38,8 @@ cbuffer ubo
     float4x4 worldToView;
     float4x4 inverseWorldToView;
 }
+Texture2D gTexture;
+SamplerState gSampler;
 //===================================
 
 StructuredBuffer<Material> materials;
@@ -72,6 +74,5 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     uint32_t texSpeculaId = 0;
     uint32_t texNormalId = 0;
 
-    return float4(abs(inp.normal), 1.0f);
-    //return float4(gTexture.Sample(gSampler, inp.uv));
+    return float4(abs(inp.normal), 1.0f) * float4(gTexture.Sample(gSampler, inp.uv));
 }

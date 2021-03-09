@@ -19,21 +19,27 @@ void Render::initVulkan()
     createCommandBuffers();
     createSyncObjects();
     createDepthResources();
+
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
 
+    createGeometryImage();
+    createGeometryImageView();
+    createGeometrySampler();
+
     mGeometry.setFrameBufferFormat(swapChainImageFormat);
     mGeometry.setDepthBufferFormat(findDepthFormat());
+    mGeometry.setTextureImageView(textureImageView);
+    mGeometry.setTextureSampler(textureSampler);
     mGeometry.init(device, descriptorPool, mResManager, mShaderManager, swapChainExtent.width, swapChainExtent.height);
-    mGeometry.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+    mGeometry.createFrameBuffer(geometryImageView, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
     mTAA.setFrameBufferFormat(swapChainImageFormat);
-    mTAA.setDepthBufferFormat(findDepthFormat());
-    mTAA.setTextureImageView(textureImageView);
-    mTAA.setTextureSampler(textureSampler);
+    mTAA.setSampledImageView(geometryImageView);
+    mTAA.setSampledImageSampler(geometrySampler);
     mTAA.init(device, descriptorPool, mResManager, mShaderManager, swapChainExtent.width, swapChainExtent.height);
-    mTAA.createFrameBuffers(swapChainExtent.width, swapChainExtent.height);
+    mTAA.createFrameBuffers(swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
     //    ImGui_ImplVulkan_InitInfo init_info{};
@@ -102,6 +108,9 @@ void Render::cleanup()
     vkDestroyImage(device, textureImage, nullptr);
     vkFreeMemory(device, textureImageMemory, nullptr);
 
+    vkDestroyImage(device, geometryImage, nullptr);
+    vkFreeMemory(device, geometryImageMemory, nullptr);
+
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
 
@@ -153,8 +162,8 @@ void Render::recreateSwapChain()
     createImageViews();
     createDepthResources();
 
-    mGeometry.onResize(swapChainImageViews, depthImageView, width, height);
-    mTAA.onResize(width, height);
+    mGeometry.onResize(geometryImageView, depthImageView, width, height);
+    mTAA.onResize(swapChainImageViews, width, height);
     mUi.onResize(init_info, swapChainImageViews, width, height);
 
     Camera& camera = mScene.getCamera();
@@ -500,6 +509,46 @@ void Render::createTextureSampler()
     }
 }
 
+void Render::createGeometryImage()
+{
+    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, swapChainImageFormat,
+                             VK_IMAGE_TILING_OPTIMAL,
+                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                             geometryImage, geometryImageMemory);
+}
+
+void Render::createGeometryImageView()
+{
+    geometryImageView = createImageView(geometryImage, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+}
+
+void Render::createGeometrySampler()
+{
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+    if (vkCreateSampler(device, &samplerInfo, nullptr, &geometrySampler) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create texture sampler!");
+    }
+}
+
 VkImageView Render::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
 {
     VkImageViewCreateInfo viewInfo{};
@@ -781,7 +830,48 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mGeometry.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
+
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.image = geometryImage;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
+    barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    vkCmdPipelineBarrier(
+    cmd,
+    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+    0,
+    0, nullptr,
+    0, nullptr,
+    1, &barrier);
+
     mTAA.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+
+    //barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    //barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    //barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    //barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+    //vkCmdPipelineBarrier(
+    //cmd,
+    //VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+    //VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+    //0,
+    //0, nullptr,
+    //0, nullptr,
+    //1, &barrier);
+
     mUi.render(cmd, imageIndex);
 }
 

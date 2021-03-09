@@ -167,24 +167,14 @@ VkImageView TAA::createImageView(VkImage image, VkFormat format, VkImageAspectFl
     return imageView;
 }
 
-void TAA::createFrameBuffers(uint32_t width, uint32_t height)
+void TAA::createFrameBuffers(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
 {
-    mImages.resize(MAX_FRAMES_IN_FLIGHT);
-    mImagesMemory.resize(MAX_FRAMES_IN_FLIGHT);
-    mImagesView.resize(MAX_FRAMES_IN_FLIGHT);
     mFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        mResManager->createImage(mWidth, mHeight, VK_FORMAT_R8G8B8A8_SRGB,
-                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                  VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                                  mImages[i], mImagesMemory[i]);
-        mImagesView[i] = createImageView(mImages[i], mFrameBufferFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-
         std::array<VkImageView, 1> attachments = {
-            mImagesView[i],
+            imageViews[i],
         };
 
         VkFramebufferCreateInfo framebufferInfo{};
@@ -213,7 +203,7 @@ void TAA::createRenderPass()
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
@@ -250,12 +240,12 @@ void TAA::createRenderPass()
 
 void TAA::createDescriptorSetLayout()
 {
-    VkDescriptorSetLayoutBinding texLayoutBinding{};
-    texLayoutBinding.binding = 0;
-    texLayoutBinding.descriptorCount = 1;
-    texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    texLayoutBinding.pImmutableSamplers = nullptr;
-    texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    VkDescriptorSetLayoutBinding sampledImageLayoutBinding{};
+    sampledImageLayoutBinding.binding = 0;
+    sampledImageLayoutBinding.descriptorCount = 1;
+    sampledImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    sampledImageLayoutBinding.pImmutableSamplers = nullptr;
+    sampledImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 1;
@@ -264,7 +254,7 @@ void TAA::createDescriptorSetLayout()
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { texLayoutBinding, samplerLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { sampledImageLayoutBinding, samplerLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -293,13 +283,13 @@ void TAA::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = mTextureImageView;
+        VkDescriptorImageInfo sampledImageInfo{};
+        sampledImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        sampledImageInfo.imageView = mSampledImageView;
 
         VkDescriptorImageInfo samplerInfo{};
         samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        samplerInfo.sampler = mTextureSampler;
+        samplerInfo.sampler = mSampledImageSampler;
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
@@ -309,7 +299,7 @@ void TAA::createDescriptorSets(VkDescriptorPool& descriptorPool)
         descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pImageInfo = &imageInfo;
+        descriptorWrites[0].pImageInfo = &sampledImageInfo;
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = mDescriptorSets[i];
@@ -391,31 +381,23 @@ void TAA::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t
 
 void TAA::onDestroy()
 {
-    for (auto& imageView : mImagesView)
+    for (auto& frameBuff : mFrameBuffers)
     {
-        vkDestroyImageView(mDevice, imageView, nullptr);
+        vkDestroyFramebuffer(mDevice, frameBuff, nullptr);
     }
+
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
     vkDestroyShaderModule(mDevice, mVS, nullptr);
     vkDestroyShaderModule(mDevice, mPS, nullptr);
-    for (auto& frameBuff : mFrameBuffers)
-    {
-        vkDestroyFramebuffer(mDevice, frameBuff, nullptr);
-    }
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void TAA::onResize(uint32_t width, uint32_t height)
+void TAA::onResize(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
 {
     mWidth = width;
     mHeight = height;
-
-    for (auto& imageView : mImagesView)
-    {
-        vkDestroyImageView(mDevice, imageView, nullptr);
-    }
 
     for (auto& framebuffer : mFrameBuffers)
     {
@@ -428,17 +410,7 @@ void TAA::onResize(uint32_t width, uint32_t height)
 
     createRenderPass();
     createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
-    createFrameBuffers(mWidth, mHeight);
-}
-
-void TAA::setTextureImageView(VkImageView textureImageView)
-{
-    mTextureImageView = textureImageView;
-}
-
-void TAA::setTextureSampler(VkSampler textureSampler)
-{
-    mTextureSampler = textureSampler;
+    createFrameBuffers(imageViews, mWidth, mHeight);
 }
 
 } // namespace nevk

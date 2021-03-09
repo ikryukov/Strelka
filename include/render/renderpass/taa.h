@@ -36,21 +36,14 @@ private:
 
     //===================================
     // Descriptor layouts
-    VkImageView mTextureImageView;
-    VkSampler mTextureSampler;
+    VkImageView mSampledImageView;
+    VkSampler mSampledImageSampler;
 
     //===================================
     // Framebuffer
     std::vector<VkFramebuffer> mFrameBuffers;
     VkFormat mFrameBufferFormat;
-    VkFormat mDepthBufferFormat;
     uint32_t mWidth, mHeight;
-
-    //===================================
-
-    std::vector<VkImage> mImages;
-    std::vector<VkDeviceMemory> mImagesMemory;
-    std::vector<VkImageView> mImagesView;
 
     //===================================
 
@@ -72,19 +65,21 @@ public:
         mFrameBufferFormat = format;
     }
 
-    void setDepthBufferFormat(VkFormat format)
+    void setSampledImageView(VkImageView imageView)
     {
-        mDepthBufferFormat = format;
+        mSampledImageView = imageView;
     }
 
-    void setTextureImageView(VkImageView textureImageView);
-    void setTextureSampler(VkSampler textureSampler);
+    void setSampledImageSampler(VkSampler imageSampler)
+    {
+        mSampledImageSampler = imageSampler;
+    }
 
     void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
-    void onResize(uint32_t width, uint32_t height);
+    void onResize(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void onDestroy();
 
-    void createFrameBuffers(uint32_t width, uint32_t height);
+    void createFrameBuffers(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void init(VkDevice& device, VkDescriptorPool descpool, ResourceManager* resMngr, ShaderManager* shMngr, uint32_t width, uint32_t height)
     {
         mShaderName = std::string("shaders/taa.hlsl");

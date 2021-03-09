@@ -45,10 +45,12 @@ private:
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseWorldToView;
     };
+    VkImageView mTextureImageView;
+    VkSampler mTextureSampler;
 
     //===================================
     // Framebuffer
-    std::vector<VkFramebuffer> mFrameBuffers;
+    VkFramebuffer mFrameBuffer;
     VkFormat mFrameBufferFormat;
     VkFormat mDepthBufferFormat;
     uint32_t mWidth, mHeight;
@@ -121,12 +123,22 @@ public:
         mDepthBufferFormat = format;
     }
 
+    void setTextureImageView(VkImageView textureImageView)
+    {
+        mTextureImageView = textureImageView;
+    }
+
+    void setTextureSampler(VkSampler textureSampler)
+    {
+        mTextureSampler = textureSampler;
+    }
+
     void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);
     void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view);
-    void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
+    void onResize(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height);
     void onDestroy();
 
-    void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
+    void createFrameBuffer(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height);
     void init(VkDevice& device, VkDescriptorPool descpool, ResourceManager* resMngr, ShaderManager* shMngr, uint32_t width, uint32_t height)
     {
         mShaderName = std::string("shaders/geometry.hlsl");
