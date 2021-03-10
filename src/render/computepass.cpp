@@ -121,7 +121,10 @@ void ComputePass::createDescriptorSets(VkDescriptorPool& descriptorPool)
     {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
+}
 
+void ComputePass::updateDescriptorSets()
+{
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         VkDescriptorBufferInfo bufferInfo{};
@@ -244,6 +247,7 @@ void ComputePass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize
     createUniformBuffers();
     createDescriptorSetLayout();
     createDescriptorSets(mDescriptorPool);
+    updateDescriptorSets();
     createComputePipeline(mCS);
 }
 
