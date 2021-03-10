@@ -12,35 +12,36 @@
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-#include <algorithm>
-#include <vector>
-#include <cstring>
-#include <cstdlib>
-#include <cstdint>
-#include <optional>
-#include <chrono>
-#include <set>
-#include <array>
-#include <unordered_map>
-
-#include <shadermanager/ShaderManager.h>
+#include "computepass.h"
 #include "renderpass.h"
-#include <scene/scene.h>
+
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
+#include <scene/scene.h>
+#include <shadermanager/ShaderManager.h>
 #include <ui/ui.h>
+
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <optional>
+#include <set>
+#include <stb_image.h>
+#include <stdexcept>
+#include <unordered_map>
+#include <vector>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
-const std::string TEXTURE_PATH = "misc/white.jpg";
+const std::string TEXTURE_PATH = "misc/red-brick-wall.jpg";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -134,6 +135,10 @@ private:
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
 
+    VkImage textureCompImage;
+    VkDeviceMemory textureCompImageMemory;
+    VkImageView textureCompImageView;
+
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
     VkImageView textureImageView;
@@ -142,6 +147,7 @@ private:
     nevk::ResourceManager* mResManager;
 
     nevk::RenderPass mPass;
+    nevk::ComputePass mComputePass;
 
     std::vector<nevk::Scene::Vertex> vertices;
     //  std::vector<nevk::Scene::Material> materials;

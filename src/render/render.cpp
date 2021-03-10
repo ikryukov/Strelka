@@ -11,8 +11,9 @@ void Render::initVulkan()
     createSwapChain();
     createImageViews();
 
-    uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
-    uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", true);
+    uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+    uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+    uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
 
     const char* fragShaderCode = nullptr;
     uint32_t fragShaderCodeSize = 0;
@@ -21,6 +22,10 @@ void Render::initVulkan()
     const char* vertShaderCode = nullptr;
     uint32_t vertShaderCodeSize = 0;
     mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+
+    const char* csShaderCode = nullptr;
+    uint32_t csShaderCodeSize = 0;
+    mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
 
     mResManager = new nevk::ResourceManager(device, physicalDevice);
 
@@ -58,6 +63,19 @@ void Render::initVulkan()
     mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
     mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
+    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_TILING_OPTIMAL,
+                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                             textureCompImage, textureCompImageMemory);
+    transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    textureCompImageView = createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    
+    mComputePass.setOutputImageView(textureCompImageView);
+    mComputePass.setTextureImageView(textureImageView);
+    mComputePass.setTextureSampler(textureSampler);
+    mComputePass.init(device, csShaderCode, csShaderCodeSize, descriptorPool, mResManager);
 
     loadModel();
     createVertexBuffer();
@@ -565,6 +583,15 @@ void Render::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
+    // TODO: need to verify!
+    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_GENERAL)
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+    }
     else
     {
         throw std::invalid_argument("unsupported layout transition!");
@@ -788,6 +815,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mPass.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 
