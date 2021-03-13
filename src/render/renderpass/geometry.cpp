@@ -1,6 +1,5 @@
 #include "renderpass/geometry.h"
 #include <stdexcept>
-#include <array>
 #include <chrono>
 
 #define GLM_FORCE_RADIANS
@@ -280,7 +279,10 @@ void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
     {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
+}
 
+void GeometryPass::updateDescriptorSets()
+{
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         VkDescriptorBufferInfo bufferInfo{};
@@ -293,7 +295,6 @@ void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         imageInfo.imageView = mTextureImageView;
 
         VkDescriptorImageInfo samplerInfo{};
-        samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         samplerInfo.sampler = mTextureSampler;
 
         std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
@@ -305,7 +306,7 @@ void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrites[0].descriptorCount = 1;
         descriptorWrites[0].pBufferInfo = &bufferInfo;
-   
+
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = mDescriptorSets[i];
         descriptorWrites[1].dstBinding = 1;
@@ -328,19 +329,29 @@ void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void GeometryPass::createShaderModules()
 {
-    uint32_t vertId = mShaderManager->loadShader(mShaderName.c_str(), "vertexMain", false);
-    uint32_t fragId = mShaderManager->loadShader(mShaderName.c_str(), "fragmentMain", true);
+    VkShaderModule oldVS = mVS, oldPS = mPS;
+    try
+    {
+        uint32_t vertId = mShaderManager->loadShader(mShaderName.c_str(), "vertexMain", false);
+        uint32_t fragId = mShaderManager->loadShader(mShaderName.c_str(), "fragmentMain", true);
 
-    const char* vertShaderCode = nullptr;
-    uint32_t vertShaderCodeSize = 0;
-    mShaderManager->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+        const char* vertShaderCode = nullptr;
+        uint32_t vertShaderCodeSize = 0;
+        mShaderManager->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
 
-    const char* fragShaderCode = nullptr;
-    uint32_t fragShaderCodeSize = 0;
-    mShaderManager->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+        const char* fragShaderCode = nullptr;
+        uint32_t fragShaderCodeSize = 0;
+        mShaderManager->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
 
-    mVS = createModule(vertShaderCode, vertShaderCodeSize);
-    mPS = createModule(fragShaderCode, fragShaderCodeSize);
+        mVS = createModule(vertShaderCode, vertShaderCodeSize);
+        mPS = createModule(fragShaderCode, fragShaderCodeSize);
+    }
+    catch (std::exception& error)
+    {
+        mVS = oldVS;
+        mPS = oldPS;
+        std::cerr << error.what();
+    }
 }
 
 VkShaderModule GeometryPass::createModule(const char* code, const uint32_t codeSize)
@@ -442,8 +453,8 @@ void GeometryPass::onResize(VkImageView& imageView, VkImageView& depthImageView,
 {
     mWidth = width;
     mHeight = height;
-
-   vkDestroyFramebuffer(mDevice, mFrameBuffer, nullptr);
+     
+    vkDestroyFramebuffer(mDevice, mFrameBuffer, nullptr);
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);

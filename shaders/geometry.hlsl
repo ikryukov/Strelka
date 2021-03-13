@@ -31,7 +31,7 @@ struct PS_INPUT
 };
 
 //===================================
-// Descriptor layouts
+// Descriptor layout variables
 cbuffer ubo
 {
     float4x4 modelViewProj;

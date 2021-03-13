@@ -1,14 +1,5 @@
 #include "renderpass/taa.h"
 #include <stdexcept>
-#include <array>
-#include <chrono>
-
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/hash.hpp>
 
 namespace nevk
 {
@@ -145,28 +136,6 @@ void TAA::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModul
     }
 }
 
-VkImageView TAA::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
-{
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = image;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = format;
-    viewInfo.subresourceRange.aspectMask = aspectFlags;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-
-    VkImageView imageView;
-    if (vkCreateImageView(mDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create texture image view!");
-    }
-
-    return imageView;
-}
-
 void TAA::createFrameBuffers(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
 {
     mFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -198,7 +167,7 @@ void TAA::createRenderPass()
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = mFrameBufferFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -280,16 +249,18 @@ void TAA::createDescriptorSets(VkDescriptorPool& descriptorPool)
     {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
+}
 
+void TAA::updateDescriptorSets()
+{
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        VkDescriptorImageInfo sampledImageInfo{};
-        sampledImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        sampledImageInfo.imageView = mSampledImageView;
+        VkDescriptorImageInfo colorImageInfo{};
+        colorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        colorImageInfo.imageView = mColorImageView;
 
         VkDescriptorImageInfo samplerInfo{};
-        samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        samplerInfo.sampler = mSampledImageSampler;
+        samplerInfo.sampler = mSampler;
 
         std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
@@ -299,7 +270,7 @@ void TAA::createDescriptorSets(VkDescriptorPool& descriptorPool)
         descriptorWrites[0].dstArrayElement = 0;
         descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pImageInfo = &sampledImageInfo;
+        descriptorWrites[0].pImageInfo = &colorImageInfo;
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = mDescriptorSets[i];
@@ -315,19 +286,28 @@ void TAA::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void TAA::createShaderModules()
 {
-    uint32_t vertId = mShaderManager->loadShader(mShaderName.c_str(), "vertexMain", false);
-    uint32_t fragId = mShaderManager->loadShader(mShaderName.c_str(), "fragmentMain", true);
+    VkShaderModule oldVS = mVS, oldPS = mPS;
+    try
+    {
+        uint32_t vertId = mShaderManager->loadShader(mShaderName.c_str(), "vertexMain", false);
+        uint32_t fragId = mShaderManager->loadShader(mShaderName.c_str(), "fragmentMain", true);
 
-    const char* vertShaderCode = nullptr;
-    uint32_t vertShaderCodeSize = 0;
-    mShaderManager->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+        const char* vertShaderCode = nullptr;
+        uint32_t vertShaderCodeSize = 0;
+        mShaderManager->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
 
-    const char* fragShaderCode = nullptr;
-    uint32_t fragShaderCodeSize = 0;
-    mShaderManager->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+        const char* fragShaderCode = nullptr;
+        uint32_t fragShaderCodeSize = 0;
+        mShaderManager->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
 
-    mVS = createModule(vertShaderCode, vertShaderCodeSize);
-    mPS = createModule(fragShaderCode, fragShaderCodeSize);
+        mVS = createModule(vertShaderCode, vertShaderCodeSize);
+        mPS = createModule(fragShaderCode, fragShaderCodeSize);
+    }
+    catch (std::exception& error) {
+        mVS = oldVS;
+        mPS = oldPS;
+        std::cerr << error.what();
+    }
 }
 
 VkShaderModule TAA::createModule(const char* code, const uint32_t codeSize)
@@ -348,18 +328,12 @@ VkShaderModule TAA::createModule(const char* code, const uint32_t codeSize)
 
 void TAA::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-    clearValues[1].depthStencil = { 1.0f, 0 };
-
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mRenderPass;
     renderPassInfo.framebuffer = mFrameBuffers[imageIndex % MAX_FRAMES_IN_FLIGHT];
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { width, height };
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
 
     VkViewport viewport{};
     viewport.x = 0;

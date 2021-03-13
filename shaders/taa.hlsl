@@ -5,7 +5,7 @@ struct PS_INPUT
 };
 
 //===================================
-// Descriptor layouts
+// Descriptor layout variables
 Texture2D gTexture;
 SamplerState gSampler;
 //===================================
@@ -16,7 +16,7 @@ PS_INPUT vertexMain(uint VertexID: SV_VertexID)
     PS_INPUT out;
 
     out.uv = float2((VertexID << 1) & 2, VertexID & 2);
-    out.pos = float4(out.uv * float2(1.0f, -1.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
+    out.pos = float4(out.uv * float2(2.0f, -2.0f) + float2(-1.0f, 1.0f), 0.0f, 1.0f);
 
     return out;
 }

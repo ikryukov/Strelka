@@ -241,6 +241,11 @@ private:
         default:
             break;
         }
+
+        if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
+        {
+            app->mTAA.reloadShader();
+        }
     }
 
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)

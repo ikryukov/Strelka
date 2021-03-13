@@ -38,7 +38,7 @@ private:
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
     //===================================
-    // Descriptor layouts
+    // Descriptor layout variables
     struct UniformBufferObject
     {
         alignas(16) glm::mat4 modelViewProj;
@@ -101,12 +101,12 @@ private:
     }
 
     void createRenderPass();
+    void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
+    
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
     void createUniformBuffers();
     void createShaderModules();
-    void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
-
     VkShaderModule createModule(const char* code, uint32_t codeSize);
 
 public:
@@ -133,8 +133,19 @@ public:
         mTextureSampler = textureSampler;
     }
 
-    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);
+    void reloadShader()
+    {
+        vkDeviceWaitIdle(mDevice);
+        vkDestroyPipeline(mDevice, mPipeline, nullptr);
+        vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
+        createShaderModules();
+        createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
+    }
+
+    void updateDescriptorSets();
     void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view);
+
+    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);
     void onResize(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height);
     void onDestroy();
 
@@ -155,6 +166,7 @@ public:
         createRenderPass();
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
+        updateDescriptorSets();
         createGraphicsPipeline(mVS, mPS, width, height);
     }
 };

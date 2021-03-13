@@ -27,25 +27,22 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     int entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, entryPointName, stage);
     const SlangResult compileRes = spCompile(slangRequest);
 
-    if (auto diagnostics = spGetDiagnosticOutput(slangRequest))
-        printf("%s\n", diagnostics);
+    auto diagnostics = spGetDiagnosticOutput(slangRequest);
     if (SLANG_FAILED(compileRes))
     {
         spDestroyCompileRequest(slangRequest);
-        return ShaderDesc();
+        throw std::runtime_error(diagnostics);
     }
 
     size_t dataSize = 0;
     void const* data = spGetEntryPointCode(slangRequest, entryPointIndex, &dataSize);
     if (!data)
-        return ShaderDesc();
+        throw std::runtime_error(diagnostics);
 
     ShaderDesc desc{};
-
     desc.fileName = std::string(fileName);
     desc.entryPointName = std::string(entryPointName);
     desc.isPixel = isPixel;
-
     desc.code.resize(dataSize);
     memcpy(&desc.code[0], data, dataSize);
     desc.codeSize = dataSize;

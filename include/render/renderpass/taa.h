@@ -35,9 +35,10 @@ private:
     std::vector<VkDescriptorSet> mDescriptorSets;
 
     //===================================
-    // Descriptor layouts
-    VkImageView mSampledImageView;
-    VkSampler mSampledImageSampler;
+    // Descriptor layout
+    VkImageView mColorImageView;
+    VkImageView mPrevColorImageView;
+    VkSampler mSampler;
 
     //===================================
     // Framebuffer
@@ -48,12 +49,11 @@ private:
     //===================================
 
     void createRenderPass();
+    void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
+    
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
     void createShaderModules();
-    void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
-
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
     VkShaderModule createModule(const char* code, uint32_t codeSize);
 
 public:
@@ -67,13 +67,24 @@ public:
 
     void setSampledImageView(VkImageView imageView)
     {
-        mSampledImageView = imageView;
+        mColorImageView = imageView;
     }
 
     void setSampledImageSampler(VkSampler imageSampler)
     {
-        mSampledImageSampler = imageSampler;
+        mSampler = imageSampler;
     }
+
+    void reloadShader()
+    {
+        vkDeviceWaitIdle(mDevice);
+        vkDestroyPipeline(mDevice, mPipeline, nullptr);
+        vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
+        createShaderModules();
+        createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
+    }
+
+    void updateDescriptorSets();
 
     void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
     void onResize(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
@@ -94,6 +105,7 @@ public:
         createRenderPass();
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
+        updateDescriptorSets();
         createGraphicsPipeline(mVS, mPS, width, height);
     }
 };
