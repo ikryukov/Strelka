@@ -10,7 +10,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
-#include <iostream>
 
 namespace nevk
 {
@@ -401,8 +400,6 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
 
     if (ubo.lightDirect != glm::float4(lightX, lightY, lightZ, 0.0f))
       ubo.lightDirect = glm::float4(lightX, lightY, lightZ, 0.0f);
-
-    std::cout << "***************" << ubo.lightDirect.x << ubo.lightDirect.y << ubo.lightDirect.z << "***************";
   
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
