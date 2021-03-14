@@ -19,15 +19,20 @@ namespace nevk
 class Ui
 {
 public:
+    float lightX;
+    float lightY;
+    float lightZ;
     Ui()
     {
+        this->lightX = 0.0f;
+        this->lightY = 0.0f;
+        this->lightZ = 0.0f;
     }
 
     ~Ui()
     {
         ImGui::DestroyContext();
     }
-
     bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
     void updateUI(GLFWwindow* window);
     void render(VkCommandBuffer commandBuffer, uint32_t imageIndex);

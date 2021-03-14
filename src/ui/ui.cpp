@@ -201,16 +201,12 @@ void Ui::updateUI(GLFWwindow* window)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    char windowTitle[255] = "Just do it!";
-    ImGui::Begin("Sample window"); // begin window
+    ImGui::Begin("Light Settings:"); // begin window
 
-    // Window title text edit
-    ImGui::InputText("Window title", windowTitle, 255);
+    ImGui::SliderFloat("coordinate X", &lightX, 0.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Y", &lightY, 0.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Z", &lightZ, 0.0f, 1.0f);
 
-    if (ImGui::Button("Change"))
-    {
-        glfwSetWindowTitle(window, windowTitle);
-    }
     ImGui::End(); // end window
 }
 

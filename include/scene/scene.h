@@ -60,6 +60,11 @@ public:
         uint32_t texNormalId; // map_normal - map_Bump
     };
 
+    struct Light
+    {
+
+    };
+
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
 

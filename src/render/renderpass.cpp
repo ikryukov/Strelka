@@ -10,6 +10,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
+#include <iostream>
+
 namespace nevk
 {
 RenderPass::RenderPass(/* args */)
@@ -385,7 +387,7 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, float lightX, float lightY, float lightZ)
 {
     float time = 0;
 
@@ -397,10 +399,16 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     ubo.modelViewProj = proj * view * model;
     ubo.inverseWorldToView = transpose(inverse(proj * view * ubo.worldToView));
 
+    if (ubo.lightDirect != glm::float4(lightX, lightY, lightZ, 0.0f))
+      ubo.lightDirect = glm::float4(lightX, lightY, lightZ, 0.0f);
+
+    std::cout << "***************" << ubo.lightDirect.x << ubo.lightDirect.y << ubo.lightDirect.z << "***************";
+  
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
     vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
+
 }
 
 void RenderPass::onDestroy()

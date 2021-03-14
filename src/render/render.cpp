@@ -857,7 +857,7 @@ void Render::drawFrame()
 
     cam.update(deltaTime);
     
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
+    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, mUi.lightX, mUi.lightY, mUi.lightZ);
     mUi.updateUI(window);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
