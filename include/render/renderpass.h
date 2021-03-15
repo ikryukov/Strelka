@@ -14,6 +14,7 @@ class RenderPass
 private:
     struct UniformBufferObject
     {
+        alignas(16) glm::mat4 modelToWorld;
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseWorldToView;
