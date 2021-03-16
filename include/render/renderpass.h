@@ -18,6 +18,7 @@ private:
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseWorldToView;
+        alignas(16) glm::float3 CameraPos;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;

@@ -53,7 +53,8 @@ PS_INPUT vertexMain(VertexInput vi)
     PS_INPUT out;
     out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
     out.uv = vi.uv;
-    out.normal = mul(vi.normal, (float3x3)modelToWorld);
+    out.normal = mul((float3x3)inverseWorldToView, vi.normal);
+    //out.normal = mul(vi.normal, (float3x3)modelToWorld);
     out.normal = normalize(out.normal); ////// NEW
     out.materialId = vi.materialId;
     out.wPos = mul(vi.position, (float3x3)modelToWorld);
