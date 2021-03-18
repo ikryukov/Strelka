@@ -20,6 +20,11 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
         size_t index_offset = 0;
         for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++)
         {
+            tinyobj::index_t idx0 = shape.mesh.indices[f + 0];
+            tinyobj::index_t idx1 = shape.mesh.indices[f + 1];
+            tinyobj::index_t idx2 = shape.mesh.indices[f + 2];
+
+
             int fv = shape.mesh.num_face_vertices[f];
             for (size_t v = 0; v < fv; v++)
             {
@@ -31,16 +36,43 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                     attrib.vertices[3 * idx.vertex_index + 2]
                 };
 
-                vertex.uv = {
-                    attrib.texcoords[2 * idx.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]
-                };
+                if (attrib.texcoords.empty())
+                {
+                    vertex.uv = {
+                        0.0f, 0.0f
+                    };
+                }
+                else
+                {
+                    if ((idx0.texcoord_index < 0) || (idx1.texcoord_index < 0) ||
+                        (idx2.texcoord_index < 0))
+                    {
+                        vertex.uv = {
+                            0.0f, 0.0f
+                        };
+                    }
+                    else
+                        vertex.uv = {
+                            attrib.texcoords[2 * idx.texcoord_index + 0],
+                            1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]
+                        };
+                }
 
-                vertex.normal = {
-                    attrib.normals[3 * idx.normal_index + 0],
-                    attrib.normals[3 * idx.normal_index + 1],
-                    attrib.normals[3 * idx.normal_index + 2]
-                };
+
+                if (attrib.normals.empty())
+                {
+                    vertex.normal = {
+                        0.0f, 0.0f, 0.0f
+                    };
+                }
+                else
+                {
+                    vertex.normal = {
+                        attrib.normals[3 * idx.normal_index + 0],
+                        attrib.normals[3 * idx.normal_index + 1],
+                        attrib.normals[3 * idx.normal_index + 2]
+                    };
+                }
 
                 Scene::Material material{};
                 if (!MTL_PATH.empty())
@@ -90,12 +122,15 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                                                        material.texSpeculaId, material.texNormalId);
 
                 std::string matName = materials[shape.mesh.material_ids[f]].name;
-                std::unordered_map<std::string , uint32_t > unMat{};
+                std::unordered_map<std::string, uint32_t> unMat{};
 
-                if (unMat.count(matName) == 0){
+                if (unMat.count(matName) == 0)
+                {
                     unMat[matName] = vertex.materialId;
                     vertex.materialId = matId;
-                } else{
+                }
+                else
+                {
                     vertex.materialId = unMat[matName];
                 }
 

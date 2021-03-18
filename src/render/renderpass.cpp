@@ -405,12 +405,13 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
 
     ubo.modelToWorld = model;
     ubo.modelViewProj = proj * view * model;
+
+
+    ubo.worldToView = view;
+
+  /////
     ubo.inverseWorldToView = transpose(inverse(ubo.worldToView));
     //ubo.inverseWorldToView = inverse(ubo.worldToView);
-
-//  var worldInverseMatrix = m4.inverse(worldMatrix);
-//  var worldInverseTransposeMatrix = m4.transpose(worldInverseMatrix);
-
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);

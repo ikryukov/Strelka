@@ -39,9 +39,18 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/cube.obj";
+//const std::string MODEL_PATH = "misc/cube.obj";
+//const std::string TEXTURE_PATH = "misc/white.jpg";
+//const std::string MTL_PATH = "misc/";
+
+const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
 const std::string TEXTURE_PATH = "misc/white.jpg";
 const std::string MTL_PATH = "misc/";
+
+
+//const std::string MODEL_PATH = "misc/san-miguel-low-poly.obj";
+//const std::string TEXTURE_PATH = "misc/white.jpg";
+//const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
