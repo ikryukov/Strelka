@@ -7,18 +7,16 @@
 std::string backslash = "\\";
 std::string fslash = "/";
 
-int nevk::TextureManager::loadTexture(std::string texture_path)
+int nevk::TextureManager::loadTexture(std::string& texture_path, const std::string& MTL_PATH)
 {
     if (texture_path == "")
     {
         return 0;
     }
 
-#ifdef __APPLE__
-    texture_path = "misc/" + texture_path;
+    texture_path = MTL_PATH + texture_path;
     if (texture_path.find(backslash) < texture_path.size())
         texture_path.replace(texture_path.find(backslash), backslash.length(), fslash);
-#endif
 
     if (nameID.count(texture_path) == 0)
     {
