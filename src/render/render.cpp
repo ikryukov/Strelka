@@ -24,14 +24,14 @@ void Render::initVulkan()
     createTextureImageView();
     createTextureSampler();
 
-    createGeometryColorImage();
-    createGeometryColorImageView();
+    createGeometryColorImages();
+    createGeometryColorImageViews();
     createGeometrySampler();
 
     nevk::GeometryPassInitInfo mGeometryInfo;
     mGeometryInfo.device = device;
     mGeometryInfo.descriptorPool = descriptorPool;
-    mGeometryInfo.colorImageView = geometryColorImageView;
+    mGeometryInfo.colorImageViews = geometryColorImageViews;
     mGeometryInfo.depthImageView = geometryDepthImageView;
     mGeometryInfo.imageWidth = swapChainExtent.width;
     mGeometryInfo.imageHeight = swapChainExtent.height;
@@ -52,7 +52,7 @@ void Render::initVulkan()
     mTAAInfo.resourceManager = mResourceManager;
     mTAAInfo.shaderManager = mShaderManager;
     mTAA.setFrameBufferFormat(swapChainImageFormat);
-    mTAA.setTextureImageView(geometryColorImageView);
+    mTAA.setTextureImageViews(geometryColorImageViews);
     mTAA.setTextureSampler(geometrySampler);
     mTAA.init(mTAAInfo);
 
@@ -120,9 +120,12 @@ void Render::cleanup()
     vkFreeMemory(device, textureImageMemory, nullptr);
 
     vkDestroySampler(device, geometrySampler, nullptr);
-    vkDestroyImageView(device, geometryColorImageView, nullptr);
-    vkDestroyImage(device, geometryColorImage, nullptr);
-    vkFreeMemory(device, geometryColorImageMemory, nullptr);
+    for (auto geometryColorImageView : geometryColorImageViews)
+        vkDestroyImageView(device, geometryColorImageView, nullptr);
+    for (auto geometryColorImage : geometryColorImages)
+        vkDestroyImage(device, geometryColorImage, nullptr);
+    for (auto geometryColorImageMemory : geometryColorImagesMemory)
+        vkFreeMemory(device, geometryColorImageMemory, nullptr);
 
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
@@ -174,18 +177,18 @@ void Render::recreateSwapChain()
     createSwapChainImageViews();
     createDepthResources();
 
-    vkDestroySampler(device, geometrySampler, nullptr);
-    vkDestroyImageView(device, geometryColorImageView, nullptr);
-    vkDestroyImage(device, geometryColorImage, nullptr);
-    vkFreeMemory(device, geometryColorImageMemory, nullptr);
-    createGeometryColorImage();
-    createGeometryColorImageView();
-    createGeometrySampler();
+    for (auto geometryColorImageView : geometryColorImageViews)
+        vkDestroyImageView(device, geometryColorImageView, nullptr);
+    for (auto geometryColorImage : geometryColorImages)
+        vkDestroyImage(device, geometryColorImage, nullptr);
+    for (auto geometryColorImageMemory : geometryColorImagesMemory)
+        vkFreeMemory(device, geometryColorImageMemory, nullptr);
+    createGeometryColorImages();
+    createGeometryColorImageViews();
 
-    mGeometry.onResize(geometryColorImageView, geometryDepthImageView, width, height);
+    mGeometry.onResize(geometryColorImageViews, geometryDepthImageView, width, height);
 
-    mTAA.setTextureImageView(geometryColorImageView);
-    mTAA.setTextureSampler(geometrySampler);
+    mTAA.setTextureImageViews(geometryColorImageViews);
     mTAA.updateDescriptorSets();
     mTAA.onResize(swapChainImageViews, width, height);
 
@@ -537,18 +540,23 @@ void Render::createTextureSampler()
     }
 }
 
-void Render::createGeometryColorImage()
+void Render::createGeometryColorImages()
 {
-    mResourceManager->createImage(swapChainExtent.width, swapChainExtent.height, swapChainImageFormat,
-                                  VK_IMAGE_TILING_OPTIMAL,
-                                  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                  geometryColorImage, geometryColorImageMemory);
+    geometryColorImages.resize(2);
+    geometryColorImagesMemory.resize(2);
+    for (uint32_t i = 0; i < 2; ++i)
+        mResourceManager->createImage(swapChainExtent.width, swapChainExtent.height, swapChainImageFormat,
+                                      VK_IMAGE_TILING_OPTIMAL,
+                                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                      geometryColorImages[i], geometryColorImagesMemory[i]);
 }
 
-void Render::createGeometryColorImageView()
+void Render::createGeometryColorImageViews()
 {
-    geometryColorImageView = createImageView(geometryColorImage, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+    geometryColorImageViews.resize(2);
+    for (uint32_t i = 0; i < 2; ++i)
+        geometryColorImageViews[i] = createImageView(geometryColorImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Render::createGeometrySampler()
@@ -856,13 +864,16 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
     throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
+void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t swapChainImageIndex)
 {
-    mGeometry.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
+    swapChainImageIndex = swapChainImageIndex % MAX_FRAMES_IN_FLIGHT;
+    uint32_t geometryImageIndex = mCurrentFrame % 2;
+
+    mGeometry.record(cmd, vertexBuffer, indexBuffer, indices.size(), geometryImageIndex);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.image = geometryColorImage;
+    barrier.image = geometryColorImages[geometryImageIndex];
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -870,12 +881,10 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
-
     barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
     vkCmdPipelineBarrier(
         cmd,
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -885,9 +894,11 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         0, nullptr,
         1, &barrier);
 
-    mTAA.record(cmd, imageIndex);
+    mTAA.setTextureImageViews(geometryColorImageViews, geometryImageIndex);
+    mTAA.updateDescriptorSets();
+    mTAA.record(cmd, swapChainImageIndex);
 
-    mUi.render(cmd, imageIndex);
+    mUi.render(cmd, swapChainImageIndex);
 }
 
 void Render::createCommandBuffers()
@@ -933,8 +944,8 @@ void Render::drawFrame()
 
     vkWaitForFences(device, 1, &currFrame.inFlightFence, VK_TRUE, UINT64_MAX);
 
-    uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, currFrame.imageAvailable, VK_NULL_HANDLE, &imageIndex);
+    uint32_t swapChainImageIndex;
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, currFrame.imageAvailable, VK_NULL_HANDLE, &swapChainImageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -953,13 +964,12 @@ void Render::drawFrame()
     prevTime = currentTime;
 
     Camera& cam = getScene().getCamera();
-
     cam.update(deltaTime);
 
-    mGeometry.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
+    mGeometry.updateUniformBuffer(swapChainImageIndex, cam.matrices.perspective, cam.matrices.view);
     mUi.updateUI(window);
 
-    VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
+    VkCommandBuffer& cmdBuff = getFrameData(swapChainImageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);
 
     VkCommandBufferBeginInfo cmdBeginInfo = {};
@@ -970,18 +980,18 @@ void Render::drawFrame()
 
     vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo); ////////////
 
-    recordCommandBuffer(cmdBuff, imageIndex);
+    recordCommandBuffer(cmdBuff, swapChainImageIndex);
 
     if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to record command buffer!");
     }
 
-    if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
+    if (getFrameData(swapChainImageIndex).imagesInFlight != VK_NULL_HANDLE)
     {
-        vkWaitForFences(device, 1, &getFrameData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
+        vkWaitForFences(device, 1, &getFrameData(swapChainImageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
     }
-    getFrameData(imageIndex).imagesInFlight = currFrame.inFlightFence;
+    getFrameData(swapChainImageIndex).imagesInFlight = currFrame.inFlightFence;
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -991,7 +1001,6 @@ void Render::drawFrame()
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
-
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmdBuff;
 
@@ -1008,15 +1017,13 @@ void Render::drawFrame()
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
     VkSwapchainKHR swapChains[] = { swapChain };
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
-
-    presentInfo.pImageIndices = &imageIndex;
+    presentInfo.pImageIndices = &swapChainImageIndex;
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
@@ -1030,7 +1037,7 @@ void Render::drawFrame()
         throw std::runtime_error("failed to present swap chain image!");
     }
 
-    mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    ++mCurrentFrame;
 }
 
 VkSurfaceFormatKHR Render::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

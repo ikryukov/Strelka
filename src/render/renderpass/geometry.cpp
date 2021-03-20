@@ -290,26 +290,29 @@ void GeometryPass::updateDescriptorSets()
     }
 }
 
-void GeometryPass::createFrameBuffer(VkImageView& imageView, VkImageView& depthImageView)
+void GeometryPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView)
 {
-    mFrameBuffers.resize(1);
-    std::array<VkImageView, 2> attachments = {
-        imageView,
-        depthImageView
-    };
-
-    VkFramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = mRenderPass;
-    framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    framebufferInfo.pAttachments = attachments.data();
-    framebufferInfo.width = mWidth;
-    framebufferInfo.height = mHeight;
-    framebufferInfo.layers = 1;
-
-    if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFrameBuffers[0]) != VK_SUCCESS)
+    mFrameBuffers.resize(2);
+    for (uint32_t i = 0; i < 2; ++i)
     {
-        throw std::runtime_error("failed to create framebuffer!");
+        std::array<VkImageView, 2> attachments = {
+            imageViews[i],
+            depthImageView
+        };
+
+        VkFramebufferCreateInfo framebufferInfo{};
+        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebufferInfo.renderPass = mRenderPass;
+        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+        framebufferInfo.pAttachments = attachments.data();
+        framebufferInfo.width = mWidth;
+        framebufferInfo.height = mHeight;
+        framebufferInfo.layers = 1;
+
+        if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFrameBuffers[i]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create framebuffer!");
+        }
     }
 }
 
@@ -343,7 +346,7 @@ void GeometryPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x
     vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
 }
 
-void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
+void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t imageIndex)
 {
     std::array<VkClearValue, 2> clearValues{};
     clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
@@ -352,17 +355,17 @@ void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mRenderPass;
-    renderPassInfo.framebuffer = mFrameBuffers[0];
+    renderPassInfo.framebuffer = mFrameBuffers[imageIndex % 2];
     renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = { width, height };
+    renderPassInfo.renderArea.extent = { mWidth, mHeight };
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
     VkViewport viewport{};
     viewport.x = 0;
-    viewport.y = (float)height;
-    viewport.width = (float)width;
-    viewport.height = -(float)height;
+    viewport.y = (float)mHeight;
+    viewport.width = (float)mWidth;
+    viewport.height = -(float)mHeight;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
@@ -381,7 +384,7 @@ void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer 
     vkCmdEndRenderPass(cmd);
 }
 
-void GeometryPass::onResize(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height)
+void GeometryPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
     mWidth = width;
     mHeight = height;
@@ -394,7 +397,7 @@ void GeometryPass::onResize(VkImageView& imageView, VkImageView& depthImageView,
 
     createRenderPass();
     createGraphicsPipeline();
-    createFrameBuffer(imageView, depthImageView);
+    createFrameBuffers(imageViews, depthImageView);
 }
 
 } // namespace nevk

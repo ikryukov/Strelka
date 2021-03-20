@@ -134,9 +134,9 @@ private:
     VkImageView textureImageView;
     VkSampler textureSampler;
 
-    VkImage geometryColorImage;
-    VkDeviceMemory geometryColorImageMemory;
-    VkImageView geometryColorImageView;
+    std::vector<VkImage> geometryColorImages;
+    std::vector<VkDeviceMemory> geometryColorImagesMemory;
+    std::vector<VkImageView> geometryColorImageViews;
     VkSampler geometrySampler;
 
     VkImage geometryDepthImage;
@@ -365,8 +365,8 @@ private:
     void createTextureSampler();
 
     void createDepthResources();
-    void createGeometryColorImage();
-    void createGeometryColorImageView();
+    void createGeometryColorImages();
+    void createGeometryColorImageViews();
     void createGeometrySampler();
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
@@ -417,7 +417,7 @@ private:
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-    void recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex);
+    void recordCommandBuffer(VkCommandBuffer& cmd, uint32_t swapChainImageIndex);
 
     void createCommandBuffers();
 

@@ -61,9 +61,10 @@ public:
         mFrameBufferFormat = format;
     }
 
-    void setTextureImageView(VkImageView imageView)
+    void setTextureImageViews(std::vector<VkImageView>& imageViews, uint32_t imageIndex = 0)
     {
-        mColorImageView = imageView;
+        mColorImageView = imageViews[imageIndex % 2];
+        mPrevColorImageView = imageViews[(imageIndex + 1) % 2];
     }
 
     void setTextureSampler(VkSampler imageSampler)

@@ -7,6 +7,7 @@ struct PS_INPUT
 //===================================
 // Descriptor layout variables
 Texture2D gTexture;
+Texture2D gPrevTexture;
 SamplerState gSampler;
 //===================================
 
@@ -24,5 +25,6 @@ PS_INPUT vertexMain(uint VertexID: SV_VertexID)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    return float4(gTexture.Sample(gSampler, inp.uv));
+    //return float4(gTexture.Sample(gSampler, inp.uv));
+    return float4(gTexture.Sample(gSampler, inp.uv)) + float4(gPrevTexture.Sample(gSampler, inp.uv));
 }

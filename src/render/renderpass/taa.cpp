@@ -66,14 +66,23 @@ void TAA::createDescriptorSetLayout()
     sampledImageLayoutBinding.pImmutableSamplers = nullptr;
     sampledImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
+    VkDescriptorSetLayoutBinding prevSampledImageLayoutBinding{};
+    prevSampledImageLayoutBinding.binding = 1;
+    prevSampledImageLayoutBinding.descriptorCount = 1;
+    prevSampledImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    prevSampledImageLayoutBinding.pImmutableSamplers = nullptr;
+    prevSampledImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 1;
+    samplerLayoutBinding.binding = 2;
     samplerLayoutBinding.descriptorCount = 1;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { sampledImageLayoutBinding, samplerLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { sampledImageLayoutBinding,
+                                                             prevSampledImageLayoutBinding,
+                                                             samplerLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -87,16 +96,21 @@ void TAA::createDescriptorSetLayout()
 
 void TAA::updateDescriptorSets()
 {
+    vkDeviceWaitIdle(mDevice);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         VkDescriptorImageInfo colorImageInfo{};
         colorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         colorImageInfo.imageView = mColorImageView;
 
+        VkDescriptorImageInfo prevColorImageInfo{};
+        prevColorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        prevColorImageInfo.imageView = mPrevColorImageView;
+
         VkDescriptorImageInfo samplerInfo{};
         samplerInfo.sampler = mSampler;
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = mDescriptorSets[i];
@@ -110,9 +124,17 @@ void TAA::updateDescriptorSets()
         descriptorWrites[1].dstSet = mDescriptorSets[i];
         descriptorWrites[1].dstBinding = 1;
         descriptorWrites[1].dstArrayElement = 0;
-        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &samplerInfo;
+        descriptorWrites[1].pImageInfo = &prevColorImageInfo;
+
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = mDescriptorSets[i];
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pImageInfo = &samplerInfo;
 
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }

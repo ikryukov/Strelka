@@ -9,7 +9,7 @@ struct GeometryPassInitInfo
 {
     VkDevice device;
     VkDescriptorPool descriptorPool;
-    VkImageView colorImageView;
+    std::vector<VkImageView> colorImageViews;
     VkImageView depthImageView;
     uint32_t imageWidth;
     uint32_t imageHeight;
@@ -46,7 +46,7 @@ private:
     void createGraphicsPipeline() override;
     void createDescriptorSetLayout() override;
 
-    void createFrameBuffer(VkImageView& imageView, VkImageView& depthImageView);
+    void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView);
     void createUniformBuffers();
 
 public:
@@ -56,8 +56,8 @@ public:
     void updateDescriptorSets() override;
 
     void updateUniformBuffer(uint32_t imageIndex, const glm::float4x4& perspective, const glm::float4x4& view);
-    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);
-    void onResize(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height);
+    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t imageIndex);
+    void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
     void init(GeometryPassInitInfo& info)
     {
         mShaderName = std::string("shaders/geometry.hlsl");
@@ -77,7 +77,7 @@ public:
 
         createRenderPass();
         createGraphicsPipeline();
-        createFrameBuffer(info.colorImageView, info.depthImageView);
+        createFrameBuffers(info.colorImageViews, info.depthImageView);
     }
 
     void setDepthBufferFormat(VkFormat format)

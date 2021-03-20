@@ -27,6 +27,8 @@ void RenderPass::createShaderModules()
         //    vkDestroyShaderModule(mDevice, oldVS, nullptr);
         //    vkDestroyShaderModule(mDevice, oldPS, nullptr);
         //}
+
+        std::cout << "Shader was loaded successfully" << std::endl;
     }
     catch (std::exception& error)
     {
