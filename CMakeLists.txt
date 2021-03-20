@@ -100,10 +100,14 @@ target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 # Render lib
 set(RENDER_SOURCES
         include/render/render.h
+        include/render/renderpass/renderpass.h
         include/render/renderpass/geometry.h
+        include/render/renderpass/fullscreenpass.h
         include/render/renderpass/taa.h
         src/render/render.cpp
+        src/render/renderpass/renderpass.cpp
         src/render/renderpass/geometry.cpp
+        src/render/renderpass/fullscreenpass.cpp
         src/render/renderpass/taa.cpp
         )
 set(RENDERLIB_NAME render)

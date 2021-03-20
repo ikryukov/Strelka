@@ -1,6 +1,7 @@
 #include "renderpass/geometry.h"
-#include <stdexcept>
+
 #include <chrono>
+#include <stdexcept>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -19,18 +20,18 @@ GeometryPass::~GeometryPass()
 {
 }
 
-void GeometryPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height)
+void GeometryPass::createGraphicsPipeline()
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.module = mVertexShader;
     vertShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
     fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.module = mPixelShader;
     fragShaderStageInfo.pName = "main";
 
     VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
@@ -54,15 +55,15 @@ void GeometryPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkSh
     // Fix view port: vulkan specific to handle right hand coordinates
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = (float)height;
-    viewport.width = (float)width;
-    viewport.height = -(float)height;
+    viewport.y = (float)mHeight;
+    viewport.width = (float)mWidth;
+    viewport.height = -(float)mHeight;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
     scissor.offset = { 0, 0 };
-    scissor.extent = { width, height };
+    scissor.extent = { mWidth, mHeight };
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -145,28 +146,6 @@ void GeometryPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkSh
     if (vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create graphics pipeline!");
-    }
-}
-
-void GeometryPass::createFrameBuffer(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height)
-{
-    std::array<VkImageView, 2> attachments = {
-        imageView,
-        depthImageView
-    };
-
-    VkFramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = mRenderPass;
-    framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-    framebufferInfo.pAttachments = attachments.data();
-    framebufferInfo.width = width;
-    framebufferInfo.height = height;
-    framebufferInfo.layers = 1;
-
-    if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFrameBuffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create framebuffer!");
     }
 }
 
@@ -265,22 +244,6 @@ void GeometryPass::createDescriptorSetLayout()
     }
 }
 
-void GeometryPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
-{
-    std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, mDescriptorSetLayout);
-    VkDescriptorSetAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = descriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts = layouts.data();
-
-    mDescriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(mDevice, &allocInfo, mDescriptorSets.data()) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to allocate descriptor sets!");
-    }
-}
-
 void GeometryPass::updateDescriptorSets()
 {
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
@@ -327,47 +290,57 @@ void GeometryPass::updateDescriptorSets()
     }
 }
 
-void GeometryPass::createShaderModules()
+void GeometryPass::createFrameBuffer(VkImageView& imageView, VkImageView& depthImageView)
 {
-    VkShaderModule oldVS = mVS, oldPS = mPS;
-    try
+    mFrameBuffers.resize(1);
+    std::array<VkImageView, 2> attachments = {
+        imageView,
+        depthImageView
+    };
+
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = mRenderPass;
+    framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    framebufferInfo.pAttachments = attachments.data();
+    framebufferInfo.width = mWidth;
+    framebufferInfo.height = mHeight;
+    framebufferInfo.layers = 1;
+
+    if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFrameBuffers[0]) != VK_SUCCESS)
     {
-        uint32_t vertId = mShaderManager->loadShader(mShaderName.c_str(), "vertexMain", false);
-        uint32_t fragId = mShaderManager->loadShader(mShaderName.c_str(), "fragmentMain", true);
-
-        const char* vertShaderCode = nullptr;
-        uint32_t vertShaderCodeSize = 0;
-        mShaderManager->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
-
-        const char* fragShaderCode = nullptr;
-        uint32_t fragShaderCodeSize = 0;
-        mShaderManager->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
-
-        mVS = createModule(vertShaderCode, vertShaderCodeSize);
-        mPS = createModule(fragShaderCode, fragShaderCodeSize);
-    }
-    catch (std::exception& error)
-    {
-        mVS = oldVS;
-        mPS = oldPS;
-        std::cerr << error.what();
+        throw std::runtime_error("failed to create framebuffer!");
     }
 }
 
-VkShaderModule GeometryPass::createModule(const char* code, const uint32_t codeSize)
+void GeometryPass::createUniformBuffers()
 {
-    VkShaderModuleCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-    createInfo.codeSize = codeSize;
-    createInfo.pCode = (uint32_t*)code;
+    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
-    VkShaderModule shaderModule;
-    if (vkCreateShaderModule(mDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+    uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        throw std::runtime_error("failed to create shader module!");
+        mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
     }
+}
 
-    return shaderModule;
+void GeometryPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view)
+{
+    float time = 0;
+
+    UniformBufferObject ubo{};
+    glm::float4x4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::float4x4 proj = perspective;
+
+    ubo.modelViewProj = proj * view * model;
+    ubo.inverseWorldToView = transpose(inverse(ubo.worldToView));
+
+    void* data;
+    vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
+    memcpy(data, &ubo, sizeof(ubo));
+    vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
 }
 
 void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
@@ -379,7 +352,7 @@ void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mRenderPass;
-    renderPassInfo.framebuffer = mFrameBuffer;
+    renderPassInfo.framebuffer = mFrameBuffers[0];
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { width, height };
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
@@ -408,60 +381,20 @@ void GeometryPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer 
     vkCmdEndRenderPass(cmd);
 }
 
-void GeometryPass::createUniformBuffers()
-{
-    VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-
-    uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
-    }
-}
-
-void GeometryPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view)
-{
-    float time = 0;
-
-    UniformBufferObject ubo{};
-    glm::float4x4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    glm::float4x4 proj = perspective;
-
-    ubo.modelViewProj = proj * view * model;
-    ubo.inverseWorldToView = transpose(inverse(ubo.worldToView));
-
-    void* data;
-    vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
-    memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
-}
-
-void GeometryPass::onDestroy()
-{
-    vkDestroyPipeline(mDevice, mPipeline, nullptr);
-    vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
-    vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
-    vkDestroyShaderModule(mDevice, mVS, nullptr);
-    vkDestroyShaderModule(mDevice, mPS, nullptr);
-    vkDestroyFramebuffer(mDevice, mFrameBuffer, nullptr);
-    vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
-}
-
 void GeometryPass::onResize(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
     mWidth = width;
     mHeight = height;
-     
-    vkDestroyFramebuffer(mDevice, mFrameBuffer, nullptr);
+
+    for (auto frameBuffer : mFrameBuffers)
+        vkDestroyFramebuffer(mDevice, frameBuffer, nullptr);
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
     createRenderPass();
-    createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
-    createFrameBuffer(imageView, depthImageView, mWidth, mHeight);
+    createGraphicsPipeline();
+    createFrameBuffer(imageView, depthImageView);
 }
 
 } // namespace nevk

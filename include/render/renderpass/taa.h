@@ -1,112 +1,74 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
-#include <resourcemanager.h>
-#include <shadermanager/ShaderManager.h>
-#include <scene/scene.h>
-
-#include <vector>
-#include <array>
-#include <string>
+#include "renderpass/fullscreenpass.h"
 
 namespace nevk
 {
 
-class TAA
+struct TaaPassInitInfo
+{
+    VkDevice device;
+    VkDescriptorPool descriptorPool;
+    std::vector<VkImageView> colorImageViews;
+    uint32_t imageWidth;
+    uint32_t imageHeight;
+    ResourceManager* resourceManager;
+    ShaderManager* shaderManager;
+};
+
+class TAA : public FullScreenPass
 {
 private:
-    static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
-
-    VkDevice mDevice;
-    VkRenderPass mRenderPass;
-    VkPipeline mPipeline;
-    VkPipelineLayout mPipelineLayout;
-
-    std::string mShaderName;
-    VkShaderModule mVS, mPS;
-
-    ResourceManager* mResManager;
-    ShaderManager* mShaderManager;
-
     //===================================
-    // Descriptor handlers
-    VkDescriptorPool mDescriptorPool;
-    VkDescriptorSetLayout mDescriptorSetLayout;
-    std::vector<VkDescriptorSet> mDescriptorSets;
-
-    //===================================
-    // Descriptor layout
+    // Descriptor layout variables
     VkImageView mColorImageView;
     VkImageView mPrevColorImageView;
     VkSampler mSampler;
 
     //===================================
-    // Framebuffer
-    std::vector<VkFramebuffer> mFrameBuffers;
-    VkFormat mFrameBufferFormat;
-    uint32_t mWidth, mHeight;
 
-    //===================================
-
-    void createRenderPass();
-    void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
-    
-    void createDescriptorSetLayout();
-    void createDescriptorSets(VkDescriptorPool& descriptorPool);
-    void createShaderModules();
-    VkShaderModule createModule(const char* code, uint32_t codeSize);
+    void createRenderPass() override;
+    void createDescriptorSetLayout() override;
 
 public:
     TAA(/* args */);
     ~TAA();
+
+    void updateDescriptorSets() override;
+    void init(TaaPassInitInfo& info)
+    {
+        mShaderName = std::string("shaders/taa.hlsl");
+        mDevice = info.device;
+        mDescriptorPool = info.descriptorPool;
+        mWidth = info.imageWidth;
+        mHeight = info.imageHeight;
+        mResourceManager = info.resourceManager;
+        mShaderManager = info.shaderManager;
+
+        createShaderModules();
+
+        createDescriptorSetLayout();
+        createDescriptorSets(mDescriptorPool);
+        updateDescriptorSets();
+
+        createRenderPass();
+        createGraphicsPipeline();
+        createFrameBuffers(info.colorImageViews);
+    }
 
     void setFrameBufferFormat(VkFormat format)
     {
         mFrameBufferFormat = format;
     }
 
-    void setSampledImageView(VkImageView imageView)
+    void setTextureImageView(VkImageView imageView)
     {
         mColorImageView = imageView;
     }
 
-    void setSampledImageSampler(VkSampler imageSampler)
+    void setTextureSampler(VkSampler imageSampler)
     {
         mSampler = imageSampler;
-    }
-
-    void reloadShader()
-    {
-        vkDeviceWaitIdle(mDevice);
-        vkDestroyPipeline(mDevice, mPipeline, nullptr);
-        vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
-        createShaderModules();
-        createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
-    }
-
-    void updateDescriptorSets();
-
-    void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
-    void onResize(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
-    void onDestroy();
-
-    void createFrameBuffers(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
-    void init(VkDevice& device, VkDescriptorPool descpool, ResourceManager* resMngr, ShaderManager* shMngr, uint32_t width, uint32_t height)
-    {
-        mShaderName = std::string("shaders/taa.hlsl");
-        mDevice = device;
-        mResManager = resMngr;
-        mShaderManager = shMngr;
-        mDescriptorPool = descpool;
-        mWidth = width;
-        mHeight = height;
-
-        createShaderModules();
-        createRenderPass();
-        createDescriptorSetLayout();
-        createDescriptorSets(mDescriptorPool);
-        updateDescriptorSets();
-        createGraphicsPipeline(mVS, mPS, width, height);
     }
 };
 } // namespace nevk

@@ -9,9 +9,9 @@ void Render::initVulkan()
     pickPhysicalDevice();
     createLogicalDevice();
     createSwapChain();
-    createImageViews();
+    createSwapChainImageViews();
 
-    mResManager = new nevk::ResourceManager(device, physicalDevice);
+    mResourceManager = new nevk::ResourceManager(device, physicalDevice);
     mShaderManager = new nevk::ShaderManager();
 
     createDescriptorPool();
@@ -24,37 +24,49 @@ void Render::initVulkan()
     createTextureImageView();
     createTextureSampler();
 
-    createGeometryImage();
-    createGeometryImageView();
+    createGeometryColorImage();
+    createGeometryColorImageView();
     createGeometrySampler();
 
+    nevk::GeometryPassInitInfo mGeometryInfo;
+    mGeometryInfo.device = device;
+    mGeometryInfo.descriptorPool = descriptorPool;
+    mGeometryInfo.colorImageView = geometryColorImageView;
+    mGeometryInfo.depthImageView = geometryDepthImageView;
+    mGeometryInfo.imageWidth = swapChainExtent.width;
+    mGeometryInfo.imageHeight = swapChainExtent.height;
+    mGeometryInfo.resourceManager = mResourceManager;
+    mGeometryInfo.shaderManager = mShaderManager;
     mGeometry.setFrameBufferFormat(swapChainImageFormat);
     mGeometry.setDepthBufferFormat(findDepthFormat());
     mGeometry.setTextureImageView(textureImageView);
     mGeometry.setTextureSampler(textureSampler);
-    mGeometry.init(device, descriptorPool, mResManager, mShaderManager, swapChainExtent.width, swapChainExtent.height);
-    mGeometry.createFrameBuffer(geometryImageView, depthImageView, swapChainExtent.width, swapChainExtent.height);
+    mGeometry.init(mGeometryInfo);
 
+    nevk::TaaPassInitInfo mTAAInfo;
+    mTAAInfo.device = device;
+    mTAAInfo.descriptorPool = descriptorPool;
+    mTAAInfo.colorImageViews = swapChainImageViews;
+    mTAAInfo.imageWidth = swapChainExtent.width;
+    mTAAInfo.imageHeight = swapChainExtent.height;
+    mTAAInfo.resourceManager = mResourceManager;
+    mTAAInfo.shaderManager = mShaderManager;
     mTAA.setFrameBufferFormat(swapChainImageFormat);
-    mTAA.setSampledImageView(geometryImageView);
-    mTAA.setSampledImageSampler(geometrySampler);
-    mTAA.init(device, descriptorPool, mResManager, mShaderManager, swapChainExtent.width, swapChainExtent.height);
-    mTAA.createFrameBuffers(swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
+    mTAA.setTextureImageView(geometryColorImageView);
+    mTAA.setTextureSampler(geometrySampler);
+    mTAA.init(mTAAInfo);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
-    //    ImGui_ImplVulkan_InitInfo init_info{};
-    init_info.DescriptorPool = descriptorPool;
-    init_info.Device = device;
-    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
-    init_info.Instance = instance;
-    init_info.MinImageCount = 2;
-    init_info.PhysicalDevice = physicalDevice;
-    init_info.Queue = graphicsQueue;
-    init_info.QueueFamily = indicesFamily.graphicsFamily.value();
-
-    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
+    UiPassInitInfo.DescriptorPool = descriptorPool;
+    UiPassInitInfo.Device = device;
+    UiPassInitInfo.ImageCount = MAX_FRAMES_IN_FLIGHT;
+    UiPassInitInfo.Instance = instance;
+    UiPassInitInfo.MinImageCount = 2;
+    UiPassInitInfo.PhysicalDevice = physicalDevice;
+    UiPassInitInfo.Queue = graphicsQueue;
+    UiPassInitInfo.QueueFamily = indicesFamily.graphicsFamily.value();
+    mUi.init(UiPassInitInfo, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
-
 
     loadModel();
     createVertexBuffer();
@@ -75,9 +87,9 @@ void Render::mainLoop()
 
 void Render::cleanupSwapChain()
 {
-    vkDestroyImageView(device, depthImageView, nullptr);
-    vkDestroyImage(device, depthImage, nullptr);
-    vkFreeMemory(device, depthImageMemory, nullptr);
+    vkDestroyImageView(device, geometryDepthImageView, nullptr);
+    vkDestroyImage(device, geometryDepthImage, nullptr);
+    vkFreeMemory(device, geometryDepthImageMemory, nullptr);
 
     for (auto& framebuffer : swapChainFramebuffers)
     {
@@ -104,12 +116,13 @@ void Render::cleanup()
 
     vkDestroySampler(device, textureSampler, nullptr);
     vkDestroyImageView(device, textureImageView, nullptr);
-
     vkDestroyImage(device, textureImage, nullptr);
     vkFreeMemory(device, textureImageMemory, nullptr);
 
-    vkDestroyImage(device, geometryImage, nullptr);
-    vkFreeMemory(device, geometryImageMemory, nullptr);
+    vkDestroySampler(device, geometrySampler, nullptr);
+    vkDestroyImageView(device, geometryColorImageView, nullptr);
+    vkDestroyImage(device, geometryColorImage, nullptr);
+    vkFreeMemory(device, geometryColorImageMemory, nullptr);
 
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
@@ -157,14 +170,26 @@ void Render::recreateSwapChain()
     vkDeviceWaitIdle(device);
 
     cleanupSwapChain();
-
     createSwapChain();
-    createImageViews();
+    createSwapChainImageViews();
     createDepthResources();
 
-    mGeometry.onResize(geometryImageView, depthImageView, width, height);
+    vkDestroySampler(device, geometrySampler, nullptr);
+    vkDestroyImageView(device, geometryColorImageView, nullptr);
+    vkDestroyImage(device, geometryColorImage, nullptr);
+    vkFreeMemory(device, geometryColorImageMemory, nullptr);
+    createGeometryColorImage();
+    createGeometryColorImageView();
+    createGeometrySampler();
+
+    mGeometry.onResize(geometryColorImageView, geometryDepthImageView, width, height);
+
+    mTAA.setTextureImageView(geometryColorImageView);
+    mTAA.setTextureSampler(geometrySampler);
+    mTAA.updateDescriptorSets();
     mTAA.onResize(swapChainImageViews, width, height);
-    mUi.onResize(init_info, swapChainImageViews, width, height);
+
+    mUi.onResize(UiPassInitInfo, swapChainImageViews, width, height);
 
     Camera& camera = mScene.getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
@@ -382,10 +407,9 @@ void Render::createSwapChain()
     swapChainExtent = extent;
 }
 
-void Render::createImageViews()
+void Render::createSwapChainImageViews()
 {
     swapChainImageViews.resize(swapChainImages.size());
-
     for (uint32_t i = 0; i < swapChainImages.size(); i++)
     {
         swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -414,8 +438,12 @@ void Render::createDepthResources()
 {
     VkFormat depthFormat = findDepthFormat();
 
-    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-    depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    mResourceManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat,
+                                  VK_IMAGE_TILING_OPTIMAL,
+                                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                  geometryDepthImage, geometryDepthImageMemory);
+    geometryDepthImageView = createImageView(geometryDepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 VkFormat Render::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
@@ -459,7 +487,7 @@ void Render::createTextureImage()
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    mResourceManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
@@ -468,7 +496,7 @@ void Render::createTextureImage()
 
     stbi_image_free(pixels);
 
-    mResManager->createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+    mResourceManager->createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
     transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
@@ -509,18 +537,18 @@ void Render::createTextureSampler()
     }
 }
 
-void Render::createGeometryImage()
+void Render::createGeometryColorImage()
 {
-    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, swapChainImageFormat,
-                             VK_IMAGE_TILING_OPTIMAL,
-                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                             geometryImage, geometryImageMemory);
+    mResourceManager->createImage(swapChainExtent.width, swapChainExtent.height, swapChainImageFormat,
+                                  VK_IMAGE_TILING_OPTIMAL,
+                                  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                  geometryColorImage, geometryColorImageMemory);
 }
 
-void Render::createGeometryImageView()
+void Render::createGeometryColorImageView()
 {
-    geometryImageView = createImageView(geometryImage, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+    geometryColorImageView = createImageView(geometryColorImage, swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Render::createGeometrySampler()
@@ -665,14 +693,14 @@ void Render::createVertexBuffer()
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, vertices.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
 
@@ -685,20 +713,21 @@ void Render::createMaterialBuffer()
     std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
-    if (bufferSize == 0){
+    if (bufferSize == 0)
+    {
         return;
     }
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, sceneMaterials.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,  materialBuffer,   materialBufferMemory);
+    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, materialBuffer, materialBufferMemory);
 
     copyBuffer(stagingBuffer, materialBuffer, bufferSize);
 
@@ -720,14 +749,14 @@ void Render::createIndexBuffer()
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, indices.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
     copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
@@ -833,7 +862,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.image = geometryImage;
+    barrier.image = geometryColorImage;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -848,29 +877,15 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
     vkCmdPipelineBarrier(
-    cmd,
-    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-    0,
-    0, nullptr,
-    0, nullptr,
-    1, &barrier);
+        cmd,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier);
 
-    mTAA.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
-
-    //barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    //barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    //barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    //vkCmdPipelineBarrier(
-    //cmd,
-    //VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-    //VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-    //0,
-    //0, nullptr,
-    //0, nullptr,
-    //1, &barrier);
+    mTAA.record(cmd, imageIndex);
 
     mUi.render(cmd, imageIndex);
 }
@@ -930,7 +945,7 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
- 
+
     static auto prevTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -940,7 +955,7 @@ void Render::drawFrame()
     Camera& cam = getScene().getCamera();
 
     cam.update(deltaTime);
-    
+
     mGeometry.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
     mUi.updateUI(window);
 

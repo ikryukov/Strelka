@@ -12,29 +12,29 @@
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-#include <algorithm>
-#include <vector>
-#include <cstring>
-#include <cstdlib>
-#include <cstdint>
-#include <optional>
-#include <chrono>
-#include <set>
-#include <array>
-#include <unordered_map>
-
-#include <shadermanager/ShaderManager.h>
 #include "renderpass/geometry.h"
 #include "renderpass/taa.h"
-#include <scene/scene.h>
+
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
+#include <scene/scene.h>
+#include <shadermanager/ShaderManager.h>
 #include <ui/ui.h>
+
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <optional>
+#include <set>
+#include <stb_image.h>
+#include <stdexcept>
+#include <unordered_map>
+#include <vector>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -111,7 +111,6 @@ public:
 
 private:
     GLFWwindow* window;
-    ImGui_ImplVulkan_InitInfo init_info{};
 
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
@@ -130,19 +129,19 @@ private:
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
-    VkImageView depthImageView;
-
     VkImage textureImage;
     VkDeviceMemory textureImageMemory;
     VkImageView textureImageView;
     VkSampler textureSampler;
 
-    VkImage geometryImage;
-    VkDeviceMemory geometryImageMemory;
-    VkImageView geometryImageView;
+    VkImage geometryColorImage;
+    VkDeviceMemory geometryColorImageMemory;
+    VkImageView geometryColorImageView;
     VkSampler geometrySampler;
+
+    VkImage geometryDepthImage;
+    VkDeviceMemory geometryDepthImageMemory;
+    VkImageView geometryDepthImageView;
 
     std::vector<nevk::Scene::Vertex> vertices;
     //  std::vector<nevk::Scene::Material> materials;
@@ -176,8 +175,10 @@ private:
 
     bool framebufferResized = false;
 
-    nevk::ResourceManager* mResManager;
+    nevk::ResourceManager* mResourceManager;
     nevk::ShaderManager* mShaderManager;
+
+    ImGui_ImplVulkan_InitInfo UiPassInitInfo{};
 
     nevk::GeometryPass mGeometry;
     nevk::TAA mTAA;
@@ -245,6 +246,7 @@ private:
         if (key == GLFW_KEY_F9 && action == GLFW_PRESS)
         {
             app->mTAA.reloadShader();
+            app->mGeometry.reloadShader();
         }
     }
 
@@ -327,11 +329,8 @@ private:
 
     void mainLoop();
 
-    void cleanupSwapChain();
-
     void cleanup();
 
-    void recreateSwapChain();
 
     void createInstance();
 
@@ -346,12 +345,11 @@ private:
     void createLogicalDevice();
 
     void createSwapChain();
-
-    void createImageViews();
+    void createSwapChainImageViews();
+    void cleanupSwapChain();
+    void recreateSwapChain();
 
     void createCommandPool();
-
-    void createDepthResources();
 
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
@@ -366,8 +364,9 @@ private:
     void createTextureImageView();
     void createTextureSampler();
 
-    void createGeometryImage();
-    void createGeometryImageView();
+    void createDepthResources();
+    void createGeometryColorImage();
+    void createGeometryColorImageView();
     void createGeometrySampler();
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
@@ -482,7 +481,7 @@ public:
     }
     void setImageViews()
     {
-        createImageViews();
+        createSwapChainImageViews();
     }
     void setDescriptorPool()
     {
