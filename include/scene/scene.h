@@ -62,7 +62,7 @@ public:
 
     struct Light
     {
-
+      glm::float4 direction;
     };
 
     std::vector<Vertex> mVertices;
