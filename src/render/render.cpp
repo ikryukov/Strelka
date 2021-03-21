@@ -894,7 +894,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t swapChainImageIn
         0, nullptr,
         1, &barrier);
 
-    mTAA.setTextureImageViews(geometryColorImageViews, geometryImageIndex);
+    mTAA.setTextureImageViews(geometryColorImageViews, mCurrentFrame);
     mTAA.updateDescriptorSets();
     mTAA.record(cmd, swapChainImageIndex);
 

@@ -331,10 +331,13 @@ void GeometryPass::createUniformBuffers()
 
 void GeometryPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view)
 {
-    float time = 0;
+    static auto prevTime = std::chrono::high_resolution_clock::now();
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
 
     UniformBufferObject ubo{};
-    glm::float4x4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::float4x4 model = glm::rotate(glm::mat4(1.0f), 75 * deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     glm::float4x4 proj = perspective;
 
     ubo.modelViewProj = proj * view * model;
