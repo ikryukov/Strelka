@@ -203,9 +203,9 @@ void Ui::updateUI(GLFWwindow* window)
 
     ImGui::Begin("Light Settings:"); // begin window
 
-    ImGui::SliderFloat("coordinate X", &lightX, 0.0f, 100.0f);
-    ImGui::SliderFloat("coordinate Y", &lightY, 0.0f, 100.0f);
-    ImGui::SliderFloat("coordinate Z", &lightZ, 0.0f, 100.0f);
+    ImGui::SliderFloat("coordinate X", &lightX, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Y", &lightY, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Z", &lightZ, -1.0f, 1.0f);
 
     ImGui::End(); // end window
 }
