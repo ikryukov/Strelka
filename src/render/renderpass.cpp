@@ -268,7 +268,14 @@ void RenderPass::createDescriptorSetLayout()
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding };
+    VkDescriptorSetLayoutBinding materialLayoutBinding{};
+    materialLayoutBinding.binding = 3;
+    materialLayoutBinding.descriptorCount = 1;
+    materialLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    materialLayoutBinding.pImmutableSamplers = nullptr;
+    materialLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, materialLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -310,7 +317,12 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         samplerInfo.sampler = mTextureSampler;
 
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+        VkDescriptorBufferInfo materialInfo{};
+        materialInfo.buffer = mMaterialBuffer;
+        materialInfo.offset = 0;
+        materialInfo.range = VK_WHOLE_SIZE;
+
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = mDescriptorSets[i];
@@ -326,7 +338,7 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
+        descriptorWrites[1].pImageInfo =  &imageInfo;
 
         descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[2].dstSet = mDescriptorSets[i];
@@ -336,7 +348,16 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         descriptorWrites[2].descriptorCount = 1;
         descriptorWrites[2].pImageInfo = &samplerInfo;
 
+        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3].dstSet = mDescriptorSets[i];
+        descriptorWrites[3].dstBinding = 3;
+        descriptorWrites[3].dstArrayElement = 0;
+        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrites[3].descriptorCount = 1;
+        descriptorWrites[3].pBufferInfo = &materialInfo;
+
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+
     }
 }
 
@@ -395,7 +416,7 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float3& camPos)
 {
     float time = 0;
 
@@ -405,13 +426,9 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
 
     ubo.modelToWorld = model;
     ubo.modelViewProj = proj * view * model;
-
-
+    ubo.CameraPos = camPos;
     ubo.worldToView = view;
-
-  /////
-    ubo.inverseWorldToView = transpose(inverse(ubo.worldToView));
-    //ubo.inverseWorldToView = inverse(ubo.worldToView);
+    ubo.inverseWorldToView = transpose(inverse(ubo.modelToWorld));
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -460,6 +477,11 @@ void RenderPass::setTextureImageView(VkImageView textureImageView)
 void RenderPass::setTextureSampler(VkSampler textureSampler)
 {
     mTextureSampler = textureSampler;
+}
+
+void RenderPass::setMaterialBuffer(VkBuffer materialBuffer)
+{
+    mMaterialBuffer = materialBuffer;
 }
 
 } // namespace nevk

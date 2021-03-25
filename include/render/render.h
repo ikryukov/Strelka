@@ -149,11 +149,9 @@ private:
     VkSampler textureSampler;
 
     nevk::ResourceManager* mResManager;
-
     nevk::RenderPass mPass;
 
     std::vector<nevk::Scene::Vertex> vertices;
-    //  std::vector<nevk::Scene::Material> materials;
     std::vector<uint32_t> indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;

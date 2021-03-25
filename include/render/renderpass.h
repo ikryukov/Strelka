@@ -100,6 +100,8 @@ private:
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
 
 public:
+    VkBuffer mMaterialBuffer;
+
     void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
 
     void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
@@ -116,6 +118,7 @@ public:
 
     void setTextureImageView(VkImageView textureImageView);
     void setTextureSampler(VkSampler textureSampler);
+    void setMaterialBuffer(VkBuffer materialBuffer);
 
     void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
     {
@@ -138,7 +141,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float3& camPos);
 
     RenderPass(/* args */);
     ~RenderPass();
