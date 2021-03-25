@@ -2,6 +2,23 @@
 
 namespace nevk
 {
+glm::float1 packUV(const glm::float2& uv)
+{
+    unsigned int packed = (unsigned int)((uv.x + 1.0f) * 127.99999f);
+    packed += (unsigned int)((uv.y) * 127.99999f) << 8;
+
+    return *((glm::float1*)(&packed));
+}
+
+glm::float1 packNormal(const glm::float3& normal)
+{
+    unsigned int packed = (unsigned int)((normal.x + 1.0f) * 127.99999f);
+    packed += (unsigned int)((normal.y) * 127.99999f) << 8;
+    packed += (unsigned int)((normal.z + 1.0f) * 127.99999f) << 16;
+
+    return *((glm::float1*)(&packed));
+}
+
 bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
 {
     tinyobj::attrib_t attrib;
@@ -32,16 +49,18 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                     attrib.vertices[3 * idx.vertex_index + 2]
                 };
 
-                vertex.uv = {
+                glm::float2 uv = {
                     attrib.texcoords[2 * idx.texcoord_index + 0],
                     1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]
                 };
 
-                vertex.normal = {
-                    attrib.normals[3 * idx.normal_index + 0],
-                    attrib.normals[3 * idx.normal_index + 1],
-                    attrib.normals[3 * idx.normal_index + 2]
-                };
+                vertex.uv = packUV(uv);
+
+                glm::float3 normal = {attrib.normals[3 * idx.normal_index + 0],
+                                      attrib.normals[3 * idx.normal_index + 1],
+                                      attrib.normals[3 * idx.normal_index + 2]};
+
+                vertex.normal = packNormal(normal);
 
                 Scene::Material material{};
                 if (!MTL_PATH.empty())

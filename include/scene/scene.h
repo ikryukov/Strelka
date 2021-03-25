@@ -20,7 +20,7 @@ struct Instance
 {
     glm::mat4 transform;
     uint32_t mMeshId;
-    uint32_t mMaterialId;
+    uint16_t mMaterialId;
 };
 
 class Scene
@@ -39,9 +39,9 @@ public:
     struct Vertex
     {
         glm::float3 pos;
-        glm::float3 normal;
-        glm::float2 uv;
-        uint32_t materialId;
+        glm::float1 uv;
+        glm::float1 normal;
+        uint16_t materialId;
     };
 
     struct Material

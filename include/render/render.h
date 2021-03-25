@@ -353,7 +353,7 @@ private:
         std::vector<nevk::Scene::Vertex> ret(params.size());
         std::transform(params.begin(), params.end(), ret.begin(),
                        [](auto& value) {
-                           return nevk::Scene::Vertex{ value.pos, value.normal, value.uv, value.materialId };
+                           return nevk::Scene::Vertex{ value.pos, value.uv, value.normal, value.materialId };
                        });
         return ret;
     }
