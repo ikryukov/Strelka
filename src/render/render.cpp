@@ -35,6 +35,11 @@ void Render::initVulkan()
     createTextureImageView();
     createTextureSampler();
 
+    loadModel();
+    createVertexBuffer();
+    createMaterialBuffer();
+    createIndexBuffer();
+
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
 
     //    ImGui_ImplVulkan_InitInfo init_info{};
@@ -60,10 +65,10 @@ void Render::initVulkan()
 
     mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
-    loadModel();
-    createVertexBuffer();
-    createMaterialBuffer();
-    createIndexBuffer();
+//    loadModel();
+//    createVertexBuffer();
+//    createMaterialBuffer();
+//    createIndexBuffer();
 }
 
 void Render::mainLoop()

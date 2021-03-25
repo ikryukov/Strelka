@@ -80,19 +80,23 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                     material.ambient = { materials[shape.mesh.material_ids[f]].ambient[0],
                                          materials[shape.mesh.material_ids[f]].ambient[1],
-                                         materials[shape.mesh.material_ids[f]].ambient[2] };
+                                         materials[shape.mesh.material_ids[f]].ambient[2],
+                                         materials[shape.mesh.material_ids[f]].ambient[3] };
 
                     material.diffuse = { materials[shape.mesh.material_ids[f]].diffuse[0],
                                          materials[shape.mesh.material_ids[f]].diffuse[1],
-                                         materials[shape.mesh.material_ids[f]].diffuse[2] };
+                                         materials[shape.mesh.material_ids[f]].ambient[2],
+                                         materials[shape.mesh.material_ids[f]].ambient[3] };
 
                     material.specular = { materials[shape.mesh.material_ids[f]].specular[0],
                                           materials[shape.mesh.material_ids[f]].specular[1],
-                                          materials[shape.mesh.material_ids[f]].specular[2] };
+                                          materials[shape.mesh.material_ids[f]].specular[2],
+                                          materials[shape.mesh.material_ids[f]].specular[3] };
 
                     material.emissive = { materials[shape.mesh.material_ids[f]].emission[0],
                                           materials[shape.mesh.material_ids[f]].emission[1],
-                                          materials[shape.mesh.material_ids[f]].emission[2] };
+                                          materials[shape.mesh.material_ids[f]].emission[2],
+                                          materials[shape.mesh.material_ids[f]].emission[3] };
 
                     material.opticalDensity = materials[shape.mesh.material_ids[f]].ior;
 
@@ -100,7 +104,8 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                     material.transparency = { materials[shape.mesh.material_ids[f]].transmittance[0],
                                               materials[shape.mesh.material_ids[f]].transmittance[1],
-                                              materials[shape.mesh.material_ids[f]].transmittance[2] };
+                                              materials[shape.mesh.material_ids[f]].transmittance[2],
+                                              materials[shape.mesh.material_ids[f]].transmittance[3] };
 
                     material.illum = materials[shape.mesh.material_ids[f]].illum;
 
@@ -112,7 +117,6 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                     material.texNormalId = 0;
                 }
-
 
                 uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
                                                        material.specular, material.emissive,

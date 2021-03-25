@@ -8,14 +8,14 @@ struct VertexInput
 
 struct Material
 {
-    float3 ambient;
-    float3 diffuse;
-    float3 specular;
-    float3 emissive;
-    float3 transparency;
-    float opticalDensity;
-    float shininess;
-    uint32_t illum;
+    float4 ambient; // Ka
+    float4 diffuse; // Kd
+    float4 specular; // Ks
+    float4 emissive; // Ke
+    float4 transparency; //  d 1 -- прозрачность/непрозрачность
+    float opticalDensity; // Ni
+    float shininess; // Ns 16 --  блеск материала
+    uint32_t illum; // illum 2 -- модель освещения
     uint32_t texAmbientId;
     uint32_t texDiffuseId;
     uint32_t texSpeculaId;
@@ -88,13 +88,10 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float3 lightPos = float3(100.0f,100.0f,100.0f);
    float3 N = normalize(inp.normal);
    float3 L = normalize(lightPos - inp.wPos);
-   float diffuse = saturate(dot(L, N));
-   //float diffuse = diffuseLambert(L, N);
+   float diffuse = diffuseLambert(L, N);
 
    float3 R = reflect(-L, N);
    float3 V = normalize(CameraPos - inp.wPos);
-   float specular = pow(saturate(dot(R, V)), 30);
-   //float specular = specularPhong(R, V);
-
+   float specular = specularPhong(R, V);
    return float4(diffuse + specular, 1.0f);
 }

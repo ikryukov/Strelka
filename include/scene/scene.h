@@ -46,11 +46,11 @@ public:
 
     struct Material
     {
-        glm::float3 ambient; // Ka
-        glm::float3 diffuse; // Kd
-        glm::float3 specular; // Ks
-        glm::float3 emissive; // Ke
-        glm::float3 transparency; //  d 1 -- прозрачность/непрозрачность
+        glm::float4 ambient; // Ka
+        glm::float4 diffuse; // Kd
+        glm::float4 specular; // Ks
+        glm::float4 emissive; // Ke
+        glm::float4 transparency; //  d 1 -- прозрачность/непрозрачность
         float opticalDensity; // Ni
         float shininess; // Ns 16 --  блеск материала
         uint32_t illum; // illum 2 -- модель освещения
@@ -114,13 +114,13 @@ public:
     /// </summary>
     /// <param name="color">Color</param>
     /// <returns>Nothing</returns>
-    uint32_t createMaterial(const glm::float3& ambient,
-                            const glm::float3& diffuse,
-                            const glm::float3& specular,
-                            glm::float3 emissive,
+    uint32_t createMaterial(const glm::float4& ambient,
+                            const glm::float4& diffuse,
+                            const glm::float4& specular,
+                            glm::float4 emissive,
                             float opticalDensity,
                             float shininess,
-                            glm::float3 transparency,
+                            glm::float4 transparency,
                             uint32_t illum,
                             uint32_t texAmbientId,
                             uint32_t texDiffuseId,

@@ -58,13 +58,13 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
 }
 
 
-uint32_t Scene::createMaterial(const glm::float3& ambient,
-                               const glm::float3& diffuse,
-                               const glm::float3& specular,
-                               glm::float3 emissive,
+uint32_t Scene::createMaterial(const glm::float4& ambient,
+                               const glm::float4& diffuse,
+                               const glm::float4& specular,
+                               glm::float4 emissive,
                                float opticalDensity,
                                float shininess,
-                               glm::float3 transparency,
+                               glm::float4 transparency,
                                uint32_t illum,
                                uint32_t texAmbientId,
                                uint32_t texDiffuseId,
