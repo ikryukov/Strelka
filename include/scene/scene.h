@@ -50,9 +50,9 @@ public:
         glm::float3 diffuse; // Kd
         glm::float3 specular; // Ks
         glm::float3 emissive; // Ke
+        glm::float3 transparency; //  d 1 -- прозрачность/непрозрачность
         float opticalDensity; // Ni
         float shininess; // Ns 16 --  блеск материала
-        glm::float3 transparency; //  d 1 -- прозрачность/непрозрачность
         uint32_t illum; // illum 2 -- модель освещения
         uint32_t texAmbientId; // map_ambient
         uint32_t texDiffuseId; // map_diffuse

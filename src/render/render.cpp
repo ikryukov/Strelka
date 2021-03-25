@@ -9,7 +9,6 @@ void Render::initVulkan()
     pickPhysicalDevice();
     createLogicalDevice();
     createSwapChain();
-    createImageViews();
 
     uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
     uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", true);
@@ -22,11 +21,12 @@ void Render::initVulkan()
     uint32_t vertShaderCodeSize = 0;
     mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
 
+    createDescriptorPool();
+    createCommandPool();
+
     mResManager = new nevk::ResourceManager(device, physicalDevice);
 
-    createDescriptorPool();
-
-    createCommandPool();
+    createImageViews();
     createCommandBuffers();
     createSyncObjects();
 
@@ -55,6 +55,7 @@ void Render::initVulkan()
     mPass.setTextureImageView(textureImageView);
     mPass.setTextureSampler(textureSampler);
 
+    mPass.setMaterialBuffer(materialBuffer);
     mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
     mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
