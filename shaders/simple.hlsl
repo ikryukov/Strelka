@@ -56,9 +56,9 @@ PS_INPUT vertexMain(VertexInput vi)
     return out;
 }
 
-float diffuseLambert(float3 n, float3 l)
+float3 diffuseLambert(float3 diffuse_c, float3 n, float3 l)
 {
-    return saturate(dot(l, n));
+    return diffuse_c * saturate(dot(l, n));
 }
 
 float specularPhong(float3 r, float3 v)
@@ -72,7 +72,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
    // float3 ambient = float3(materials[inp.materialId].ambient.rgb);
    // float3 specular = float3(materials[inp.materialId].specular.rgb);
-   // float3 diffuse = float3(materials[inp.materialId].diffuse.rgb);
+   float3 diffuse_c = float3(materials[inp.materialId].diffuse.rgb);
 
    float3 emissive = float3(materials[inp.materialId].emissive.rgb);
    float opticalDensity = float(materials[inp.materialId].opticalDensity);
@@ -88,7 +88,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float3 lightPos = float3(100.0f,100.0f,100.0f);
    float3 N = normalize(inp.normal);
    float3 L = normalize(lightPos - inp.wPos);
-   float diffuse = diffuseLambert(L, N);
+   float3 diffuse = diffuseLambert(diffuse_c , L, N);
 
    float3 R = reflect(-L, N);
    float3 V = normalize(CameraPos - inp.wPos);
