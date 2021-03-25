@@ -3,7 +3,10 @@
 
 #include <texturemanager.h>
 #include <stb_image.h>
+#include <filesystem>
+#include <iostream>
 
+namespace fs = std::filesystem;
 std::string backslash = "\\";
 std::string fslash = "/";
 
@@ -14,22 +17,23 @@ int nevk::TextureManager::loadTexture(std::string& texture_path, const std::stri
         return 0;
     }
 
-    texture_path = MTL_PATH + texture_path;
+    texture_path = MTL_PATH + fslash + texture_path;
     if (texture_path.find(backslash) < texture_path.size())
         texture_path.replace(texture_path.find(backslash), backslash.length(), fslash);
+    fs::path path = texture_path;
 
-    if (nameID.count(texture_path) == 0)
+    if (nameID.count(path) == 0)
     {
-        nameID[texture_path] = textures.size();
+        nameID[path] = textures.size();
 
-        Texture tex = createTextureImage(texture_path);
+        Texture tex = createTextureImage(path);
         textures.push_back(tex);
 
         createTextureImageView(tex);
         createTextureSampler();
     }
 
-    return nameID.find(texture_path)->second;
+    return nameID.find(path)->second;
 }
 
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(std::string texture_path)
