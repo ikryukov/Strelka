@@ -66,6 +66,7 @@ public:
     void setPerspective(float fov, float aspect, float znear, float zfar);
     void updateAspectRatio(float aspect);
     void setPosition(glm::float3 position);
+    glm::float3 getPosition();
     void setRotation(glm::quat rotation);
     void rotate(float, float);
     void setTranslation(glm::float3 translation);

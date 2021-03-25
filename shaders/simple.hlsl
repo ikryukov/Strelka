@@ -95,5 +95,6 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float3 V = normalize(CameraPos - inp.wPos);
    float specular = pow(saturate(dot(R, V)), 30);
    //float specular = specularPhong(R, V);
+
    return float4(diffuse + specular, 1.0f);
 }

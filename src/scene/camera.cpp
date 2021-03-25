@@ -67,6 +67,11 @@ void Camera::setPosition(glm::float3 _position)
     updateViewMatrix();
 }
 
+glm::float3 Camera::getPosition()
+{
+    return position;
+}
+
 void Camera::setRotation(glm::quat rotation)
 {
     mOrientation = rotation;
