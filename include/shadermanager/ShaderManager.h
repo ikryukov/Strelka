@@ -12,10 +12,16 @@ namespace nevk
 class ShaderManager
 {
 public:
+    enum class Stage
+    {
+        eVertex,
+        ePixel,
+        eCompute
+    };
     ShaderManager();
     ~ShaderManager();
 
-    uint32_t loadShader(const char* fileName, const char* entryPointName, bool isPixel = false);
+    uint32_t loadShader(const char* fileName, const char* entryPointName, Stage stage);
     void reloadAllShaders();
     bool getShaderCode(uint32_t id, const char*& code, uint32_t& size);
 
@@ -24,7 +30,7 @@ private:
     {
         std::string fileName;
         std::string entryPointName;
-        bool isPixel = false;
+        Stage stage;
         slang::ShaderReflection* slangReflection;
         SlangCompileRequest* slangRequest;
         std::vector<char> code;
@@ -35,6 +41,6 @@ private:
     SlangSession* mSlangSession = nullptr;
     std::vector<ShaderDesc> mShaderDescs;
 
-    ShaderDesc compileShader(const char* fileName, const char* entryPointName, bool isPixel = false);
+    ShaderDesc compileShader(const char* fileName, const char* entryPointName, Stage stage);
 };
 } // namespace nevk
