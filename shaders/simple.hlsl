@@ -45,21 +45,21 @@ StructuredBuffer<Material> materials;
 
 float3 unpackNormal(float val)
 {
-   float3 normals;
-   normals.z = (int(val) >> 20) / 127.99999f - 1.0f;
-   normals.y = ((int(val) - ((int)((normals.z + 1.0f) * 127.99999f) << 20)) >> 10 ) / 127.99999f;
-   normals.x = ((int(val) - ((int)((normals.z + 1.0f) * 127.99999f) << 20) - ((int)((normals.y) * 127.99999f) << 10)) /  127.99999f - 1.0f);
+   float3 normal;
+   normal.z = (((uint32_t)(val) & 0xfff00000) >> 20) / 511.99999f * 2.0f - 1.0f;
+   normal.y = (((uint32_t)(val) & 0x000ffc00) >> 10) / 511.99999f * 2.0f - 1.0f;
+   normal.x = ((uint32_t)(val) & 0x000003ff) / 511.99999f * 2.0f - 1.0f;
 
-   return normals;
+   return normal;
 }
 
 float2 unpackUV(float val)
 {
-   float2 uvs;
-   uvs.y = (int(val) >> 16) / 127.99999f;
-   uvs.x = ((int(val) - (int)(uvs.y * 127.99999f)) << 16) / 127.99999f ;
+   float2 uv;
+   uv.y = (((uint32_t)(val) & 0xffff0000) >> 16) / 16383.99999f - 1.0f;
+   uv.x = ((uint32_t)(val) & 0x0000ffff) / 16383.99999f - 1.0f;
 
-   return uvs;
+   return uv;
 }
 
 [shader("vertex")]

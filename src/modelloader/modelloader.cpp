@@ -4,19 +4,19 @@ namespace nevk
 {
 glm::float1 packUV(const glm::float2& uv)
 {
-    unsigned int packed = (unsigned int)((uv.x + 1.0f) * 127.99999f);
-    packed += (unsigned int)((uv.y) * 127.99999f) << 16;
+    int32_t packed = (uint32_t)((uv.x + 1.0f) * 16383.99999f);
+    packed += (uint32_t)((uv.y + 1.0f) * 16383.99999f) << 16;
 
-    return *((glm::float1*)(&packed));
+    return (glm::float1)packed;
 }
 
 glm::float1 packNormal(const glm::float3& normal)
 {
-    unsigned int packed = (unsigned int)((normal.x + 1.0f) * 127.99999f);
-    packed += (unsigned int)((normal.y) * 127.99999f) << 10;
-    packed += (unsigned int)((normal.z + 1.0f) * 127.99999f) << 20;
+    uint32_t packed = (uint32_t)((normal.x + 1.0f) / 2.0f * 511.99999f);
+    packed += (uint32_t)((normal.y + 1.0f) / 2.0f * 511.99999f) << 10;
+    packed += (uint32_t)((normal.z + 1.0f) / 2.0f * 511.99999f) << 20;
 
-    return *((glm::float1*)(&packed));
+    return (glm::float1)packed;
 }
 
 bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
