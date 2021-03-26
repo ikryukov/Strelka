@@ -1,8 +1,8 @@
 struct VertexInput
 {
     float3 position : POSITION;
-    float3 normal;
-    float2 uv;
+    float normal;
+    float uv;
     uint32_t materialId;
 };
 
@@ -43,18 +43,36 @@ Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
 
+float3 unpackNormal(float val)
+{
+   float3 normals;
+   normals.z = (int(val) >> 20) / 127.99999f - 1.0f;
+   normals.y = ((int(val) - ((int)((normals.z + 1.0f) * 127.99999f) << 20)) >> 10 ) / 127.99999f;
+   normals.x = ((int(val) - ((int)((normals.z + 1.0f) * 127.99999f) << 20) - ((int)((normals.y) * 127.99999f) << 10)) /  127.99999f - 1.0f);
+
+   return normals;
+}
+
+float2 unpackUV(float val)
+{
+   float2 uvs;
+   uvs.y = (int(val) >> 16) / 127.99999f;
+   uvs.x = ((int(val) - (int)(uvs.y * 127.99999f)) << 16) / 127.99999f ;
+
+   return uvs;
+}
+
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
     out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
-    out.uv = vi.uv;
-    out.normal = mul((float3x3)inverseWorldToView, vi.normal);
+    out.uv = unpackUV(vi.uv);
+    out.normal = mul((float3x3)inverseWorldToView, unpackNormal(vi.normal));
     out.materialId = vi.materialId;
 
     return out;
 }
-
 
 // Fragment Shader
 [shader("fragment")]

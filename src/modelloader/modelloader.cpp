@@ -5,7 +5,7 @@ namespace nevk
 glm::float1 packUV(const glm::float2& uv)
 {
     unsigned int packed = (unsigned int)((uv.x + 1.0f) * 127.99999f);
-    packed += (unsigned int)((uv.y) * 127.99999f) << 8;
+    packed += (unsigned int)((uv.y) * 127.99999f) << 16;
 
     return *((glm::float1*)(&packed));
 }
@@ -13,8 +13,8 @@ glm::float1 packUV(const glm::float2& uv)
 glm::float1 packNormal(const glm::float3& normal)
 {
     unsigned int packed = (unsigned int)((normal.x + 1.0f) * 127.99999f);
-    packed += (unsigned int)((normal.y) * 127.99999f) << 8;
-    packed += (unsigned int)((normal.z + 1.0f) * 127.99999f) << 16;
+    packed += (unsigned int)((normal.y) * 127.99999f) << 10;
+    packed += (unsigned int)((normal.z + 1.0f) * 127.99999f) << 20;
 
     return *((glm::float1*)(&packed));
 }
