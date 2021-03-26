@@ -466,6 +466,7 @@ void Render::createVertexBuffer()
 {
     std::vector<nevk::Scene::Vertex>& sceneVertices = mScene.getVertices();
     // convert to render's vertices
+    vertices.resize(sceneVertices.size());
     for (int i = 0; i < sceneVertices.size(); ++i)
     {
         vertices[i].pos = sceneVertices[i].pos;
