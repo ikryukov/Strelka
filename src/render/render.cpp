@@ -467,7 +467,6 @@ void Render::createVertexBuffer()
     std::vector<nevk::Scene::Vertex>& sceneVertices = mScene.getVertices();
     // convert to render's vertices
     vertices.resize(sceneVertices.size());
-
     for (int i = 0; i < sceneVertices.size(); ++i)
     {
         vertices[i].pos = sceneVertices[i].pos;
@@ -477,7 +476,6 @@ void Render::createVertexBuffer()
     }
 
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);

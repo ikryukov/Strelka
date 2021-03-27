@@ -7,29 +7,28 @@
 std::string backslash = "\\";
 std::string fslash = "/";
 
-int nevk::TextureManager::loadTexture(std::string& texture_path, const std::string& MTL_PATH)
+int nevk::TextureManager::loadTexture(const std::string& texture_path, const std::string& MTL_PATH)
 {
     if (texture_path == "")
     {
         return 0;
     }
+    std::string path = MTL_PATH + fslash + texture_path;
 
-    texture_path = MTL_PATH + texture_path;
-    if (texture_path.find(backslash) < texture_path.size())
-        texture_path.replace(texture_path.find(backslash), backslash.length(), fslash);
+    if (path.find(backslash) < path.size())
+        path.replace(path.find(backslash), backslash.length(), fslash);
 
-    if (nameID.count(texture_path) == 0)
+    if (nameID.count(path) == 0)
     {
-        nameID[texture_path] = textures.size();
-
-        Texture tex = createTextureImage(texture_path);
+        nameID[path] = textures.size();
+        Texture tex = createTextureImage(path);
         textures.push_back(tex);
 
         createTextureImageView(tex);
         createTextureSampler();
     }
 
-    return nameID.find(texture_path)->second;
+    return nameID.find(path)->second;
 }
 
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(std::string texture_path)

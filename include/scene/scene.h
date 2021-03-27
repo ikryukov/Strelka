@@ -39,9 +39,9 @@ public:
     struct Vertex
     {
         glm::float3 pos;
-        glm::float3 normal;
-        glm::float2 uv;
-        uint32_t materialId;
+        uint32_t normal;
+        uint32_t uv;
+        uint16_t materialId;
     };
 
     struct Material

@@ -35,7 +35,7 @@ public:
     std::vector<VkImageView> textureImageView;
     VkSampler textureSampler;
 
-    int loadTexture(std::string& texture_path, const std::string& MTL_PATH);
+    int loadTexture(const std::string& texture_path, const std::string& MTL_PATH);
 
     Texture createTextureImage(std::string texture_path);
     void createTextureImageView(Texture texture);
