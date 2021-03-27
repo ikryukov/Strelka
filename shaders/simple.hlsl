@@ -56,8 +56,8 @@ float3 unpackNormal(float val)
 float2 unpackUV(float val)
 {
    float2 uv;
-   uv.y = (((uint32_t)(val) & 0xffff0000) >> 16) / 16383.99999f - 1.0f;
-   uv.x = ((uint32_t)(val) & 0x0000ffff) / 16383.99999f - 1.0f;
+   uv.y = (((uint32_t)(val) & 0xffff0000) >> 16) / 16383.99999f * 2.0f - 1.0f;
+   uv.x = ((uint32_t)(val) & 0x0000ffff) / 16383.99999f * 2.0f  - 1.0f;
 
    return uv;
 }

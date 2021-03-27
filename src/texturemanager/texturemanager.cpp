@@ -20,20 +20,19 @@ int nevk::TextureManager::loadTexture(std::string& texture_path, const std::stri
     texture_path = MTL_PATH + fslash + texture_path;
     if (texture_path.find(backslash) < texture_path.size())
         texture_path.replace(texture_path.find(backslash), backslash.length(), fslash);
-    fs::path path = texture_path;
 
-    if (nameID.count(path) == 0)
+    if (nameID.count(texture_path) == 0)
     {
-        nameID[path] = textures.size();
+        nameID[texture_path] = textures.size();
 
-        Texture tex = createTextureImage(path);
+        Texture tex = createTextureImage(texture_path);
         textures.push_back(tex);
 
         createTextureImageView(tex);
         createTextureSampler();
     }
 
-    return nameID.find(path)->second;
+    return nameID.find(texture_path)->second;
 }
 
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(std::string texture_path)
