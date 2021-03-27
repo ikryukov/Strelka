@@ -46,8 +46,8 @@ StructuredBuffer<Material> materials;
 float3 unpackNormal(uint32_t val)
 {
    float3 normal;
-   normal.z = (val & 0xfff00000) >> 20) / 511.99999f * 2.0f - 1.0f;
-   normal.y = (val & 0x000ffc00) >> 10) / 511.99999f * 2.0f - 1.0f;
+   normal.z = ((val & 0xfff00000) >> 20) / 511.99999f * 2.0f - 1.0f;
+   normal.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 2.0f - 1.0f;
    normal.x = (val & 0x000003ff) / 511.99999f * 2.0f - 1.0f;
 
    return normal;
@@ -56,7 +56,7 @@ float3 unpackNormal(uint32_t val)
 float2 unpackUV(uint32_t val)
 {
    float2 uv;
-   uv.y = (val & 0xffff0000) >> 16) / 16383.99999f * 2.0f - 1.0f;
+   uv.y = ((val & 0xffff0000) >> 16) / 16383.99999f * 2.0f - 1.0f;
    uv.x = (val & 0x0000ffff) / 16383.99999f * 2.0f  - 1.0f;
 
    return uv;
