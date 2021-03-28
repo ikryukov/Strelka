@@ -10,33 +10,38 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-#include <algorithm>
-#include <vector>
-#include <cstring>
-#include <cstdlib>
-#include <cstdint>
-#include <optional>
-#include <chrono>
-#include <set>
-#include <array>
-#include <unordered_map>
-
-#include <shadermanager/ShaderManager.h>
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+#include "computepass.h"
 #include "renderpass.h"
-#include <scene/scene.h>
+
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
-#include <texturemanager/texturemanager.h>
+#include <scene/scene.h>
+#include <shadermanager/ShaderManager.h>
 #include <ui/ui.h>
+
+#include <algorithm>
+#include <array>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <optional>
+#include <set>
+#include <stb_image.h>
+#include <stdexcept>
+#include <unordered_map>
+#include <vector>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
+const std::string TEXTURE_PATH = "misc/red-brick-wall.jpg";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -130,10 +135,20 @@ private:
     VkDeviceMemory depthImageMemory;
     VkImageView depthImageView;
 
+    VkImage textureCompImage;
+    VkDeviceMemory textureCompImageMemory;
+    VkImageView textureCompImageView;
+
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
+    VkImageView textureImageView;
+    VkSampler textureSampler;
+
     nevk::ResourceManager* mResManager;
     nevk::TextureManager* mTexManager;
     nevk::RenderPass mPass;
     nevk::Model* model;
+    nevk::ComputePass mComputePass;
 
     std::vector<nevk::Scene::Vertex> vertices;
     std::vector<uint32_t> indices;

@@ -10,8 +10,9 @@ void Render::initVulkan()
     createLogicalDevice();
     createSwapChain();
 
-    uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", false);
-    uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", true);
+    uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+    uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+    uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
 
     const char* fragShaderCode = nullptr;
     uint32_t fragShaderCodeSize = 0;
@@ -20,6 +21,12 @@ void Render::initVulkan()
     const char* vertShaderCode = nullptr;
     uint32_t vertShaderCodeSize = 0;
     mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+
+    const char* csShaderCode = nullptr;
+    uint32_t csShaderCodeSize = 0;
+    mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
+
+    mResManager = new nevk::ResourceManager(device, physicalDevice);
 
     createDescriptorPool();
     createCommandPool();
@@ -60,7 +67,20 @@ void Render::initVulkan()
 
     mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
-    createIndexBuffer();
+    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_TILING_OPTIMAL,
+                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                             textureCompImage, textureCompImageMemory);
+    transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    textureCompImageView = createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    mComputePass.setOutputImageView(textureCompImageView);
+    mComputePass.setTextureImageView(textureImageView);
+    mComputePass.setTextureSampler(textureSampler);
+    mComputePass.init(device, csShaderCode, csShaderCodeSize, descriptorPool, mResManager);
+
+    loadModel();
     createVertexBuffer();
 }
 
@@ -284,7 +304,7 @@ void Render::createLogicalDevice()
         queueCreateInfo.pQueuePriorities = &queuePriority;
         queueCreateInfos.push_back(queueCreateInfo);
     }
-    
+
     {
         VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
         indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
@@ -596,6 +616,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mPass.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 
