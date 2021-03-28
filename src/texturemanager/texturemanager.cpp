@@ -30,7 +30,7 @@ int nevk::TextureManager::loadTexture(const std::string& texture_path, const std
     return nameID.find(path)->second;
 }
 
-nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std::string &texture_path)
+nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std::string& texture_path)
 {
     int texWidth, texHeight, texChannels;
     VkImage textureImage;
@@ -66,7 +66,7 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std
 }
 
 
-void nevk::TextureManager::createTextureImageView(Texture &texture)
+void nevk::TextureManager::createTextureImageView(Texture& texture)
 {
     textureImageView.push_back(createImageView(texture.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
 }

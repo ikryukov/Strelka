@@ -555,7 +555,6 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     descriptorWrites[3].pBufferInfo = &materialInfo;
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-
 }
 
 } // namespace nevk

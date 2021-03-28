@@ -1,4 +1,5 @@
 #include "resourcemanager.h"
+
 #include <stdexcept>
 
 namespace nevk

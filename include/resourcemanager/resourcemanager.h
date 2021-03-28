@@ -15,7 +15,7 @@ private:
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
 public:
-    ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool,  VkQueue graphicsQueue)
+    ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue)
         : mDevice(device),
           mPhysicalDevice(physicalDevice),
           mCommandPool(commandPool),

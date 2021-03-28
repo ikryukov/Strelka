@@ -1,10 +1,10 @@
 #pragma once
-#include <vulkan/vulkan.h>
-#include <iostream>
-#include <vector>
-#include <unordered_map>
-
 #include <resourcemanager/resourcemanager.h>
+#include <vulkan/vulkan.h>
+
+#include <iostream>
+#include <unordered_map>
+#include <vector>
 
 namespace nevk
 {
@@ -30,15 +30,15 @@ public:
         VkDeviceMemory textureImageMemory;
     };
 
-    std::unordered_map<std::string , uint32_t > nameID{};
+    std::unordered_map<std::string, uint32_t> nameID{};
     std::vector<Texture> textures;
     std::vector<VkImageView> textureImageView;
     VkSampler textureSampler;
 
     int loadTexture(const std::string& texture_path, const std::string& MTL_PATH);
 
-    Texture createTextureImage(const std::string &texture_path);
-    void createTextureImageView(Texture &texture);
+    Texture createTextureImage(const std::string& texture_path);
+    void createTextureImageView(Texture& texture);
     void createTextureSampler();
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
@@ -49,8 +49,10 @@ public:
     {
         vkDestroySampler(mDevice, textureSampler, nullptr);
 
-        for (VkImageView& image_view : textureImageView) {
-            if (image_view != VK_NULL_HANDLE) {
+        for (VkImageView& image_view : textureImageView)
+        {
+            if (image_view != VK_NULL_HANDLE)
+            {
                 vkDestroyImageView(mDevice, image_view, nullptr);
             }
         }

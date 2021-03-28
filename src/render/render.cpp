@@ -516,7 +516,8 @@ void Render::createMaterialBuffer()
     std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
-    if (bufferSize == 0){
+    if (bufferSize == 0)
+    {
         return;
     }
 
@@ -529,7 +530,7 @@ void Render::createMaterialBuffer()
     memcpy(data, sceneMaterials.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,  materialBuffer, materialBufferMemory);
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, materialBuffer, materialBufferMemory);
 
     mResManager->copyBuffer(stagingBuffer, materialBuffer, bufferSize);
 
@@ -673,7 +674,7 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
- 
+
     static auto prevTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
@@ -683,7 +684,7 @@ void Render::drawFrame()
     Camera& cam = getScene().getCamera();
 
     cam.update(deltaTime);
-    
+
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
     mUi.updateUI(window);
 

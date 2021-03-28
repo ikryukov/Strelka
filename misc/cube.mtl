@@ -2,28 +2,28 @@ newmtl white
 Ka 0 0 0
 Kd 1 1 1
 Ks 0 0 0
-map_Kd brickwall.png
+map_Kd textures/brickwall.png
 
 newmtl red
 Ka 0 0 0
 Kd 1 0 0
 Ks 0 0 0
-map_Kd brickwall.png
+map_Kd textures/brickwall.png
 
 newmtl green
 Ka 0 0 0
 Kd 0 1 0
 Ks 0 0 0
-map_Kd container.jpg
+map_Kd textures/container.jpg
 
 newmtl blue
 Ka 0 0 0
 Kd 0 0 1
 Ks 0 0 0
-map_Kd viking_room.png
+map_Kd textures/container.jpg
 
 newmtl light
 Ka 20 20 20
 Kd 1 1 1
 Ks 0 0 0
-map_Kd white.jpg
+map_Kd textures/container.jpg
