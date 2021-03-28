@@ -60,10 +60,9 @@ public:
         uint32_t texNormalId; // map_normal - map_Bump
     };
 
-    struct Light
-    {
-      glm::float4 direction;
-    };
+    
+    glm::float4 mLightDirection;
+   
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
