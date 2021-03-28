@@ -183,6 +183,7 @@ private:
     nevk::GeometryPass mGeometry;
     nevk::TAA mTAA;
     nevk::Ui mUi;
+    nevk::FullscreenPass mFullscreen;
     nevk::Scene mScene;
 
     void initWindow()
