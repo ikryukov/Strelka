@@ -9,69 +9,90 @@ void Render::initVulkan()
     pickPhysicalDevice();
     createLogicalDevice();
     createSwapChain();
-    createSwapChainImageViews();
+    createImageViews();
 
-    mResourceManager = new nevk::ResourceManager(device, physicalDevice);
-    mShaderManager = new nevk::ShaderManager();
+    uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+    uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+
+    const char* fragShaderCode = nullptr;
+    uint32_t fragShaderCodeSize = 0;
+    mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+
+    const char* vertShaderCode = nullptr;
+    uint32_t vertShaderCodeSize = 0;
+    mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+
+    mResManager = new nevk::ResourceManager(device, physicalDevice);
 
     createDescriptorPool();
+
     createCommandPool();
     createCommandBuffers();
     createSyncObjects();
-    createDepthResources();
 
+    createDepthResources();
     createTextureImage();
     createTextureImageView();
     createTextureSampler();
 
-    createGeometryColorImages();
-    createGeometryColorImageViews();
-    createGeometrySampler();
-
-    nevk::GeometryPassInitInfo mGeometryInfo;
-    mGeometryInfo.device = device;
-    mGeometryInfo.descriptorPool = descriptorPool;
-    mGeometryInfo.colorImageViews = geometryColorImageViews;
-    mGeometryInfo.depthImageView = geometryDepthImageView;
-    mGeometryInfo.imageWidth = swapChainExtent.width;
-    mGeometryInfo.imageHeight = swapChainExtent.height;
-    mGeometryInfo.resourceManager = mResourceManager;
-    mGeometryInfo.shaderManager = mShaderManager;
-    mGeometry.setFrameBufferFormat(swapChainImageFormat);
-    mGeometry.setDepthBufferFormat(findDepthFormat());
-    mGeometry.setTextureImageView(textureImageView);
-    mGeometry.setTextureSampler(textureSampler);
-    mGeometry.init(mGeometryInfo);
-
-    nevk::TaaPassInitInfo mTAAInfo;
-    mTAAInfo.device = device;
-    mTAAInfo.descriptorPool = descriptorPool;
-    mTAAInfo.colorImageViews = swapChainImageViews;
-    mTAAInfo.imageWidth = swapChainExtent.width;
-    mTAAInfo.imageHeight = swapChainExtent.height;
-    mTAAInfo.resourceManager = mResourceManager;
-    mTAAInfo.shaderManager = mShaderManager;
-    mTAA.setFrameBufferFormat(swapChainImageFormat);
-    mTAA.setTextureImageViews(geometryColorImageViews);
-    mTAA.setTextureSampler(geometrySampler);
-    mTAA.init(mTAAInfo);
-
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
-    UiPassInitInfo.DescriptorPool = descriptorPool;
-    UiPassInitInfo.Device = device;
-    UiPassInitInfo.ImageCount = MAX_FRAMES_IN_FLIGHT;
-    UiPassInitInfo.Instance = instance;
-    UiPassInitInfo.MinImageCount = 2;
-    UiPassInitInfo.PhysicalDevice = physicalDevice;
-    UiPassInitInfo.Queue = graphicsQueue;
-    UiPassInitInfo.QueueFamily = indicesFamily.graphicsFamily.value();
-    mUi.init(UiPassInitInfo, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
+
+    //    ImGui_ImplVulkan_InitInfo init_info{};
+    init_info.DescriptorPool = descriptorPool;
+    init_info.Device = device;
+    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
+    init_info.Instance = instance;
+    init_info.MinImageCount = 2;
+    init_info.PhysicalDevice = physicalDevice;
+    init_info.Queue = graphicsQueue;
+    init_info.QueueFamily = indicesFamily.graphicsFamily.value();
+
+    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
 
-    loadModel();
+    mPass.setFrameBufferFormat(swapChainImageFormat);
+    mPass.setDepthBufferFormat(findDepthFormat());
+    mPass.setTextureImageView(textureImageView);
+    mPass.setTextureSampler(textureSampler);
+
+    mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+
+    mPass.createFrameBuffers(textureImageView, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
+    uint32_t fsFragId = mShaderManager.loadShader("shaders/fullscreen.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+    uint32_t fsVertId = mShaderManager.loadShader("shaders/fullscreen.hlsl", "DefaultVS", nevk::ShaderManager::Stage::eVertex);
+
+    const char* fsFragShaderCode = nullptr;
+    uint32_t fsFragShaderCodeSize = 0;
+    mShaderManager.getShaderCode(fsFragId, fsFragShaderCode, fsFragShaderCodeSize);
+
+    const char* fsVertShaderCode = nullptr;
+    uint32_t fsVertShaderCodeSize = 0;
+    mShaderManager.getShaderCode(fsVertId, fsVertShaderCode, fsVertShaderCodeSize);
+
+    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_TILING_OPTIMAL,
+                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                             textureFullscrImage, textureFullscImageMemory);
+    transitionImageLayout(textureFullscrImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    textureFullscrImageView = createImageView(textureFullscrImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    mFullscreen.setFrameBufferFormat(swapChainImageFormat);
+
+    mFullscreen.setOutputImageView(textureFullscrImageView);
+    mFullscreen.setTextureImageView(textureImageView);
+    mFullscreen.setTextureSampler(textureSampler);
+
+    mFullscreen.init(device, fsVertShaderCode, fsVertShaderCodeSize, fsFragShaderCode, fsFragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+
+    mFullscreen.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
+    loadModel(MODEL_PATH, MTL_PATH);
+
     createVertexBuffer();
-    createMaterialBuffer();
     createIndexBuffer();
+
 }
 
 void Render::mainLoop()
@@ -87,9 +108,9 @@ void Render::mainLoop()
 
 void Render::cleanupSwapChain()
 {
-    vkDestroyImageView(device, geometryDepthImageView, nullptr);
-    vkDestroyImage(device, geometryDepthImage, nullptr);
-    vkFreeMemory(device, geometryDepthImageMemory, nullptr);
+    vkDestroyImageView(device, depthImageView, nullptr);
+    vkDestroyImage(device, depthImage, nullptr);
+    vkFreeMemory(device, depthImageMemory, nullptr);
 
     for (auto& framebuffer : swapChainFramebuffers)
     {
@@ -108,30 +129,20 @@ void Render::cleanup()
 {
     cleanupSwapChain();
 
-    mGeometry.onDestroy();
-    mTAA.onDestroy();
+    mPass.onDestroy();
+    mFullscreen.onDestroy();
     mUi.onDestroy();
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
     vkDestroySampler(device, textureSampler, nullptr);
     vkDestroyImageView(device, textureImageView, nullptr);
+
     vkDestroyImage(device, textureImage, nullptr);
     vkFreeMemory(device, textureImageMemory, nullptr);
 
-    vkDestroySampler(device, geometrySampler, nullptr);
-    for (auto geometryColorImageView : geometryColorImageViews)
-        vkDestroyImageView(device, geometryColorImageView, nullptr);
-    for (auto geometryColorImage : geometryColorImages)
-        vkDestroyImage(device, geometryColorImage, nullptr);
-    for (auto geometryColorImageMemory : geometryColorImagesMemory)
-        vkFreeMemory(device, geometryColorImageMemory, nullptr);
-
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
-
-    vkDestroyBuffer(device, materialBuffer, nullptr);
-    vkFreeMemory(device, materialBufferMemory, nullptr);
 
     vkDestroyBuffer(device, vertexBuffer, nullptr);
     vkFreeMemory(device, vertexBufferMemory, nullptr);
@@ -173,27 +184,14 @@ void Render::recreateSwapChain()
     vkDeviceWaitIdle(device);
 
     cleanupSwapChain();
+
     createSwapChain();
-    createSwapChainImageViews();
+    createImageViews();
     createDepthResources();
 
-    for (auto geometryColorImageView : geometryColorImageViews)
-        vkDestroyImageView(device, geometryColorImageView, nullptr);
-    for (auto geometryColorImage : geometryColorImages)
-        vkDestroyImage(device, geometryColorImage, nullptr);
-    for (auto geometryColorImageMemory : geometryColorImagesMemory)
-        vkFreeMemory(device, geometryColorImageMemory, nullptr);
-    createGeometryColorImages();
-    createGeometryColorImageViews();
-
-    mGeometry.onResize(geometryColorImageViews, geometryDepthImageView, width, height);
-
-    mTAA.setTextureImageViews(geometryColorImageViews);
-    mTAA.updateDescriptorSets();
-    mTAA.onResize(swapChainImageViews, width, height);
-
-    mUi.onResize(UiPassInitInfo, swapChainImageViews, width, height);
-
+    mPass.onResize(textureImageView, depthImageView, width, height);
+    mFullscreen.onResize(swapChainImageViews, depthImageView, width, height);
+    mUi.onResize(init_info, swapChainImageViews, width, height);
     Camera& camera = mScene.getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 }
@@ -410,9 +408,10 @@ void Render::createSwapChain()
     swapChainExtent = extent;
 }
 
-void Render::createSwapChainImageViews()
+void Render::createImageViews()
 {
     swapChainImageViews.resize(swapChainImages.size());
+
     for (uint32_t i = 0; i < swapChainImages.size(); i++)
     {
         swapChainImageViews[i] = createImageView(swapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
@@ -441,12 +440,8 @@ void Render::createDepthResources()
 {
     VkFormat depthFormat = findDepthFormat();
 
-    mResourceManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat,
-                                  VK_IMAGE_TILING_OPTIMAL,
-                                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                  geometryDepthImage, geometryDepthImageMemory);
-    geometryDepthImageView = createImageView(geometryDepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
+    depthImageView = createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 VkFormat Render::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
@@ -490,7 +485,7 @@ void Render::createTextureImage()
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    mResourceManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, imageSize, 0, &data);
@@ -499,19 +494,20 @@ void Render::createTextureImage()
 
     stbi_image_free(pixels);
 
-    mResourceManager->createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+    mResManager->createImage(texWidth, texHeight, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    transitionImageLayout(textureImage, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
-    transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    transitionImageLayout(textureImage, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
+    // VK_IMAGE_USAGE_TRANSFER_DST_BIT
 }
 
 void Render::createTextureImageView()
 {
-    textureImageView = createImageView(textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
+    textureImageView = createImageView(textureImage, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void Render::createTextureSampler()
@@ -535,51 +531,6 @@ void Render::createTextureSampler()
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
     if (vkCreateSampler(device, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create texture sampler!");
-    }
-}
-
-void Render::createGeometryColorImages()
-{
-    geometryColorImages.resize(2);
-    geometryColorImagesMemory.resize(2);
-    for (uint32_t i = 0; i < 2; ++i)
-        mResourceManager->createImage(swapChainExtent.width, swapChainExtent.height, swapChainImageFormat,
-                                      VK_IMAGE_TILING_OPTIMAL,
-                                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                      geometryColorImages[i], geometryColorImagesMemory[i]);
-}
-
-void Render::createGeometryColorImageViews()
-{
-    geometryColorImageViews.resize(2);
-    for (uint32_t i = 0; i < 2; ++i)
-        geometryColorImageViews[i] = createImageView(geometryColorImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-}
-
-void Render::createGeometrySampler()
-{
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-
-    VkSamplerCreateInfo samplerInfo{};
-    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-    samplerInfo.anisotropyEnable = VK_TRUE;
-    samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-    samplerInfo.unnormalizedCoordinates = VK_FALSE;
-    samplerInfo.compareEnable = VK_FALSE;
-    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-    if (vkCreateSampler(device, &samplerInfo, nullptr, &geometrySampler) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create texture sampler!");
     }
@@ -643,6 +594,14 @@ void Render::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
+    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_GENERAL)
+    {
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+    }
     else
     {
         throw std::invalid_argument("unsupported layout transition!");
@@ -692,52 +651,24 @@ void Render::createVertexBuffer()
     for (int i = 0; i < sceneVertices.size(); ++i)
     {
         vertices[i].pos = sceneVertices[i].pos;
-        vertices[i].uv = sceneVertices[i].uv;
-        vertices[i].normal = sceneVertices[i].normal;
-        vertices[i].materialId = sceneVertices[i].materialId;
+        vertices[i].texCoord = sceneVertices[i].uv;
+        vertices[i].color = sceneVertices[i].color;
     }
 
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, vertices.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
 
     copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
-
-    vkDestroyBuffer(device, stagingBuffer, nullptr);
-    vkFreeMemory(device, stagingBufferMemory, nullptr);
-}
-
-void Render::createMaterialBuffer()
-{
-    std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
-
-    VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
-    if (bufferSize == 0)
-    {
-        return;
-    }
-
-    VkBuffer stagingBuffer;
-    VkDeviceMemory stagingBufferMemory;
-    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-    void* data;
-    vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, sceneMaterials.data(), (size_t)bufferSize);
-    vkUnmapMemory(device, stagingBufferMemory);
-
-    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, materialBuffer, materialBufferMemory);
-
-    copyBuffer(stagingBuffer, materialBuffer, bufferSize);
 
     vkDestroyBuffer(device, stagingBuffer, nullptr);
     vkFreeMemory(device, stagingBufferMemory, nullptr);
@@ -757,14 +688,14 @@ void Render::createIndexBuffer()
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
-    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
     memcpy(data, indices.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
-    mResourceManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
 
     copyBuffer(stagingBuffer, indexBuffer, bufferSize);
 
@@ -787,6 +718,14 @@ void Render::createDescriptorPool()
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
         { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
     };
+
+    std::array<VkDescriptorPoolSize, 3> poolSizes{};
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+    poolSizes[2].type = VK_DESCRIPTOR_TYPE_SAMPLER;
+    poolSizes[2].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -864,16 +803,13 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
     throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t swapChainImageIndex)
+void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    swapChainImageIndex = swapChainImageIndex % MAX_FRAMES_IN_FLIGHT;
-    uint32_t geometryImageIndex = mCurrentFrame % 2;
-
-    mGeometry.record(cmd, vertexBuffer, indexBuffer, indices.size(), geometryImageIndex);
+    mPass.record(cmd,  vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.image = geometryColorImages[geometryImageIndex];
+    barrier.image = textureImage;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -881,10 +817,12 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t swapChainImageIn
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
+
     barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
     vkCmdPipelineBarrier(
         cmd,
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -894,11 +832,8 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t swapChainImageIn
         0, nullptr,
         1, &barrier);
 
-    mTAA.setTextureImageViews(geometryColorImageViews, mCurrentFrame);
-    mTAA.updateDescriptorSets();
-    mTAA.record(cmd, swapChainImageIndex);
-
-    mUi.render(cmd, swapChainImageIndex);
+    mFullscreen.record(cmd, 3, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mUi.render(cmd, imageIndex);
 }
 
 void Render::createCommandBuffers()
@@ -944,8 +879,8 @@ void Render::drawFrame()
 
     vkWaitForFences(device, 1, &currFrame.inFlightFence, VK_TRUE, UINT64_MAX);
 
-    uint32_t swapChainImageIndex;
-    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, currFrame.imageAvailable, VK_NULL_HANDLE, &swapChainImageIndex);
+    uint32_t imageIndex;
+    VkResult result = vkAcquireNextImageKHR(device, swapChain, UINT64_MAX, currFrame.imageAvailable, VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -966,10 +901,11 @@ void Render::drawFrame()
     Camera& cam = getScene().getCamera();
     cam.update(deltaTime);
 
-    mGeometry.updateUniformBuffer(swapChainImageIndex, cam.matrices.perspective, cam.matrices.view);
+    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
+    mFullscreen.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view);
     mUi.updateUI(window);
 
-    VkCommandBuffer& cmdBuff = getFrameData(swapChainImageIndex).cmdBuffer;
+    VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);
 
     VkCommandBufferBeginInfo cmdBeginInfo = {};
@@ -978,20 +914,15 @@ void Render::drawFrame()
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo); ////////////
+    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
 
-    recordCommandBuffer(cmdBuff, swapChainImageIndex);
+    recordCommandBuffer(cmdBuff, imageIndex);
 
-    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
+    if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
     {
-        throw std::runtime_error("failed to record command buffer!");
+        vkWaitForFences(device, 1, &getFrameData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
     }
-
-    if (getFrameData(swapChainImageIndex).imagesInFlight != VK_NULL_HANDLE)
-    {
-        vkWaitForFences(device, 1, &getFrameData(swapChainImageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
-    }
-    getFrameData(swapChainImageIndex).imagesInFlight = currFrame.inFlightFence;
+    getFrameData(imageIndex).imagesInFlight = currFrame.inFlightFence;
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1001,6 +932,7 @@ void Render::drawFrame()
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
+
     submitInfo.commandBufferCount = 1;
     submitInfo.pCommandBuffers = &cmdBuff;
 
@@ -1017,13 +949,15 @@ void Render::drawFrame()
 
     VkPresentInfoKHR presentInfo{};
     presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
     VkSwapchainKHR swapChains[] = { swapChain };
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
-    presentInfo.pImageIndices = &swapChainImageIndex;
+
+    presentInfo.pImageIndices = &imageIndex;
 
     result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
@@ -1037,7 +971,7 @@ void Render::drawFrame()
         throw std::runtime_error("failed to present swap chain image!");
     }
 
-    ++mCurrentFrame;
+    mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 VkSurfaceFormatKHR Render::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
