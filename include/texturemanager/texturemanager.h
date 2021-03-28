@@ -37,8 +37,8 @@ public:
 
     int loadTexture(const std::string& texture_path, const std::string& MTL_PATH);
 
-    Texture createTextureImage(std::string texture_path);
-    void createTextureImageView(Texture texture);
+    Texture createTextureImage(const std::string &texture_path);
+    void createTextureImageView(Texture &texture);
     void createTextureSampler();
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
@@ -49,8 +49,10 @@ public:
     {
         vkDestroySampler(mDevice, textureSampler, nullptr);
 
-        for (VkImageView image_view : textureImageView) {
-            vkDestroyImageView(mDevice, image_view, nullptr);
+        for (VkImageView& image_view : textureImageView) {
+            if (image_view != VK_NULL_HANDLE) {
+                vkDestroyImageView(mDevice, image_view, nullptr);
+            }
         }
 
         for (Texture tex : textures)

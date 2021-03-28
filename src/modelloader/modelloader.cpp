@@ -5,7 +5,7 @@ namespace nevk
 uint32_t packUV(const glm::float2& uv)
 {
     int32_t packed = (uint32_t)((uv.x + 1.0f) / 2.0f * 16383.99999f);
-    packed += (uint32_t)((uv.y + 1.0f) / 2.0f  * 16383.99999f) << 16;
+    packed += (uint32_t)((uv.y + 1.0f) / 2.0f * 16383.99999f) << 16;
 
     return packed;
 }
@@ -48,16 +48,12 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                     attrib.vertices[3 * idx.vertex_index + 2]
                 };
 
-                vertex.uv = packUV({
-                    attrib.texcoords[2 * idx.texcoord_index + 0],
-                    1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]
-                });
+                vertex.uv = packUV({ attrib.texcoords[2 * idx.texcoord_index + 0],
+                                     1.0f - attrib.texcoords[2 * idx.texcoord_index + 1] });
 
-                vertex.normal = packNormal({
-                    attrib.normals[3 * idx.normal_index + 0],
-                    attrib.normals[3 * idx.normal_index + 1],
-                    attrib.normals[3 * idx.normal_index + 2]
-                });
+                vertex.normal = packNormal({ attrib.normals[3 * idx.normal_index + 0],
+                                             attrib.normals[3 * idx.normal_index + 1],
+                                             attrib.normals[3 * idx.normal_index + 2] });
 
                 Scene::Material material{};
                 if (!MTL_PATH.empty())
@@ -121,6 +117,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
         }
     }
 
+    mTexManager->createTextureSampler();
     uint32_t meshId = mScene.createMesh(_vertices, _indices);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));

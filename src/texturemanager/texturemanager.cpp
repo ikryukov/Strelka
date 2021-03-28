@@ -1,8 +1,8 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 
-#include <texturemanager.h>
 #include <stb_image.h>
+#include <texturemanager.h>
 
 std::string backslash = "\\";
 std::string fslash = "/";
@@ -25,13 +25,12 @@ int nevk::TextureManager::loadTexture(const std::string& texture_path, const std
         textures.push_back(tex);
 
         createTextureImageView(tex);
-        createTextureSampler();
     }
 
     return nameID.find(path)->second;
 }
 
-nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(std::string texture_path)
+nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std::string &texture_path)
 {
     int texWidth, texHeight, texChannels;
     VkImage textureImage;
@@ -67,7 +66,7 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(std::stri
 }
 
 
-void nevk::TextureManager::createTextureImageView(Texture texture)
+void nevk::TextureManager::createTextureImageView(Texture &texture)
 {
     textureImageView.push_back(createImageView(texture.textureImage, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT));
 }
@@ -156,7 +155,7 @@ void nevk::TextureManager::transitionImageLayout(VkImage image, VkFormat format,
         sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
         destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
-        // TODO: need to verify!
+    // TODO: need to verify!
     else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_GENERAL)
     {
         barrier.srcAccessMask = 0;

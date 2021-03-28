@@ -1,21 +1,21 @@
 #pragma once
 
-#include <tiny_obj_loader.h>
-#include <iostream>
-#include <fstream>
-#include <stdexcept>
-#include <vector>
-#include <cstring>
-#include <cstdlib>
-#include <cstdint>
-#include <optional>
-#include <chrono>
-#include <set>
-#include <array>
-#include <unordered_map>
-
 #include "scene/scene.h"
 #include "texturemanager/texturemanager.h"
+
+#include <array>
+#include <chrono>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <optional>
+#include <set>
+#include <stdexcept>
+#include <tiny_obj_loader.h>
+#include <unordered_map>
+#include <vector>
 
 namespace nevk
 {
@@ -28,7 +28,8 @@ private:
     nevk::TextureManager* mTexManager;
 
 public:
-    explicit Model(nevk::TextureManager* texManager) : mTexManager(texManager) {};
+    explicit Model(nevk::TextureManager* texManager)
+        : mTexManager(texManager){};
 
     bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
 
@@ -41,6 +42,5 @@ public:
     {
         return _indices;
     }
-
 };
 } // namespace nevk
