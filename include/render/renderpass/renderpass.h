@@ -1,72 +1,153 @@
 #pragma once
-
-#include <resourcemanager/resourcemanager.h>
-#include <scene/scene.h>
-#include <shadermanager/ShaderManager.h>
 #include <vulkan/vulkan.h>
-
-#include <array>
-#include <string>
+#include "vertex.h"
 #include <vector>
+#include <array>
+#include <resourcemanager.h>
+#include <glm/gtx/compatibility.hpp>
 
 namespace nevk
 {
-
 class RenderPass
 {
+private:
+
+    VkFormat mFrameBufferFormat;
+    VkFormat mDepthBufferFormat;
+
+    static VkVertexInputBindingDescription getBindingDescription()
+    {
+        VkVertexInputBindingDescription bindingDescription{};
+        bindingDescription.binding = 0;
+        bindingDescription.stride = sizeof(Vertex);
+        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
+        return bindingDescription;
+    }
+
+    static std::array<VkVertexInputAttributeDescription, 6> getAttributeDescriptions()
+    {
+        std::array<VkVertexInputAttributeDescription, 6> attributeDescriptions{};
+
+        attributeDescriptions[0].binding = 0;
+        attributeDescriptions[0].location = 0;
+        attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[0].offset = offsetof(Vertex, pos);
+
+        attributeDescriptions[1].binding = 0;
+        attributeDescriptions[1].location = 1;
+        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[1].offset = offsetof(Vertex, ka);
+
+        attributeDescriptions[2].binding = 0;
+        attributeDescriptions[2].location = 2;
+        attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[2].offset = offsetof(Vertex, kd);
+
+        attributeDescriptions[3].binding = 0;
+        attributeDescriptions[3].location = 3;
+        attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[3].offset = offsetof(Vertex, ks);
+
+        attributeDescriptions[4].binding = 0;
+        attributeDescriptions[4].location = 4;
+        attributeDescriptions[4].format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescriptions[4].offset = offsetof(Vertex, texCoord);
+
+        attributeDescriptions[5].binding = 0;
+        attributeDescriptions[5].location = 5;
+        attributeDescriptions[5].format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescriptions[5].offset = offsetof(Vertex, color);
+
+        return attributeDescriptions;
+    }
+
+    
+
 protected:
-    static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
+    struct UniformBufferObject
+    {
+        alignas(16) glm::mat4 modelViewProj;
+    };
 
     VkDevice mDevice;
-    VkRenderPass mRenderPass;
+
+    ResourceManager* mResMngr;
+    VkDescriptorPool mDescriptorPool;
+    std::vector<VkDeviceMemory> uniformBuffersMemory;
+    std::vector<VkFramebuffer> mFrameBuffers;
+
+    void createDescriptorSetLayout();
+    void createDescriptorSets(VkDescriptorPool& descriptorPool);
+    void createUniformBuffers();
+
+    static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
     VkPipeline mPipeline;
     VkPipelineLayout mPipelineLayout;
-
-    std::string mShaderName;
-    VkShaderModule mVertexShader, mPixelShader;
-
-    ResourceManager* mResourceManager;
-    ShaderManager* mShaderManager;
-
-    //===================================
-    // Descriptor handlers
-    VkDescriptorPool mDescriptorPool;
+    VkRenderPass mRenderPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
+
     std::vector<VkDescriptorSet> mDescriptorSets;
 
-    //===================================
-    // Framebuffer handlers
-    std::vector<VkFramebuffer> mFrameBuffers;
-    VkFormat mFrameBufferFormat;
+    VkShaderModule mVS, mPS;
+
     uint32_t mWidth, mHeight;
 
-    //===================================
+    std::vector<VkBuffer> uniformBuffers;
 
-    virtual void createRenderPass() = 0;
-    virtual void createGraphicsPipeline() = 0;
-    virtual void createDescriptorSetLayout() = 0;
+    VkImageView mTextureImageView;
+    VkSampler mTextureSampler;
 
-    void createShaderModules();
-    VkShaderModule createModule(const char* code, uint32_t codeSize);
-    void createDescriptorSets(VkDescriptorPool& descriptorPool);
+    void createRenderPass();
+    
+    VkShaderModule createShaderModule(const char* code, const uint32_t codeSize);
 
 public:
-    virtual void updateDescriptorSets() = 0;
-    virtual void onDestroy();
+    void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
 
-    void reloadShader()
-    {
-        vkDeviceWaitIdle(mDevice);
-        vkDestroyPipeline(mDevice, mPipeline, nullptr);
-        vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
-        createShaderModules();
-        createGraphicsPipeline();
-    }
+    void createFrameBuffers(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height);
 
     void setFrameBufferFormat(VkFormat format)
     {
         mFrameBufferFormat = format;
     }
+
+    void setDepthBufferFormat(VkFormat format)
+    {
+        mDepthBufferFormat = format;
+    }
+
+    void setTextureImageView(VkImageView textureImageView);
+    void setTextureSampler(VkSampler textureSampler);
+
+    void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
+    {
+        mDevice = device;
+        mResMngr = resMngr;
+        mDescriptorPool = descpool;
+        mWidth = width;
+        mHeight = height;
+        mVS = createShaderModule(vsCode, vsCodeSize);
+        mPS = createShaderModule(psCode, psCodeSize);
+        createUniformBuffers();
+
+        createRenderPass();
+        createDescriptorSetLayout();
+        createDescriptorSets(mDescriptorPool);
+        createGraphicsPipeline(mVS, mPS, width, height);
+    }
+
+    void onResize(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height);
+
+    void onDestroy();
+
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view);
+
+    RenderPass(/* args */);
+    ~RenderPass();
+
+    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);
 };
+
 
 } // namespace nevk
