@@ -26,8 +26,6 @@ void Render::initVulkan()
     uint32_t csShaderCodeSize = 0;
     mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
 
-    mResManager = new nevk::ResourceManager(device, physicalDevice);
-
     createDescriptorPool();
     createCommandPool();
 
@@ -72,15 +70,15 @@ void Render::initVulkan()
                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                              textureCompImage, textureCompImageMemory);
-    transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    textureCompImageView = createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
     mComputePass.setOutputImageView(textureCompImageView);
-    mComputePass.setTextureImageView(textureImageView);
-    mComputePass.setTextureSampler(textureSampler);
+    mComputePass.setTextureImageView(mTexManager->textureImageView);
+    mComputePass.setTextureSampler(mTexManager->textureSampler);
     mComputePass.init(device, csShaderCode, csShaderCodeSize, descriptorPool, mResManager);
 
-    loadModel();
+    createIndexBuffer();
     createVertexBuffer();
 }
 

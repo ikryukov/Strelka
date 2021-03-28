@@ -41,7 +41,6 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
-const std::string TEXTURE_PATH = "misc/red-brick-wall.jpg";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -138,11 +137,6 @@ private:
     VkImage textureCompImage;
     VkDeviceMemory textureCompImageMemory;
     VkImageView textureCompImageView;
-
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
 
     nevk::ResourceManager* mResManager;
     nevk::TextureManager* mTexManager;
