@@ -13,7 +13,7 @@ ShaderManager::~ShaderManager()
     spDestroySession(mSlangSession);
 }
 
-ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, const char* entryPointName, bool isPixel)
+ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, const char* entryPointName, Stage stage)
 {
     SlangCompileRequest* slangRequest = spCreateCompileRequest(mSlangSession);
 
@@ -23,38 +23,57 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     spSetTargetProfile(slangRequest, targetIndex, profileID);
     int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
     spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, fileName);
-    const SlangStage stage = isPixel ? SLANG_STAGE_FRAGMENT : SLANG_STAGE_VERTEX;
-    int entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, entryPointName, stage);
+
+    SlangStage slangStage = SLANG_STAGE_NONE;
+    switch (stage)
+    {
+    case nevk::ShaderManager::Stage::eVertex:
+        slangStage = SLANG_STAGE_VERTEX;
+        break;
+    case nevk::ShaderManager::Stage::ePixel:
+        slangStage = SLANG_STAGE_PIXEL;
+        break;
+    case nevk::ShaderManager::Stage::eCompute:
+        slangStage = SLANG_STAGE_COMPUTE;
+        break;
+    default:
+        break;
+    }
+
+    int entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, entryPointName, slangStage);
     const SlangResult compileRes = spCompile(slangRequest);
 
-    auto diagnostics = spGetDiagnosticOutput(slangRequest);
+    if (auto diagnostics = spGetDiagnosticOutput(slangRequest))
+        printf("%s\n", diagnostics);
     if (SLANG_FAILED(compileRes))
     {
         spDestroyCompileRequest(slangRequest);
-        throw std::runtime_error(diagnostics);
+        return ShaderDesc();
     }
 
     size_t dataSize = 0;
     void const* data = spGetEntryPointCode(slangRequest, entryPointIndex, &dataSize);
     if (!data)
-        throw std::runtime_error(diagnostics);
+        return ShaderDesc();
 
     ShaderDesc desc{};
+
     desc.fileName = std::string(fileName);
     desc.entryPointName = std::string(entryPointName);
-    desc.isPixel = isPixel;
+    desc.stage = stage;
+
     desc.code.resize(dataSize);
     memcpy(&desc.code[0], data, dataSize);
     desc.codeSize = dataSize;
-    desc.type = stage;
+    desc.type = slangStage;
     desc.slangReflection = (slang::ShaderReflection*)spGetReflection(slangRequest);
     desc.slangRequest = slangRequest;
     //spDestroyCompileRequest(slangRequest);
     return desc;
 }
-uint32_t ShaderManager::loadShader(const char* fileName, const char* entryPointName, bool isPixel)
+uint32_t ShaderManager::loadShader(const char* fileName, const char* entryPointName, Stage stage)
 {
-    ShaderDesc sd = compileShader(fileName, entryPointName, isPixel);
+    ShaderDesc sd = compileShader(fileName, entryPointName, stage);
     uint32_t shaderId = 0;
 
     // Try to reload existing shader
@@ -79,7 +98,9 @@ uint32_t ShaderManager::loadShader(const char* fileName, const char* entryPointN
 void ShaderManager::reloadAllShaders()
 {
     for (const auto& shader : mShaderDescs)
-        loadShader(shader.fileName.c_str(), shader.entryPointName.c_str(), shader.isPixel);
+    {
+        loadShader(shader.fileName.c_str(), shader.entryPointName.c_str(), shader.stage);
+    }
 }
 bool ShaderManager::getShaderCode(uint32_t id, const char*& code, uint32_t& size)
 {
