@@ -41,7 +41,6 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
-const std::string TEXTURE_PATH = "misc/red-brick-wall.jpg";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -139,18 +138,13 @@ private:
     VkDeviceMemory textureCompImageMemory;
     VkImageView textureCompImageView;
 
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
-    VkImageView textureImageView;
-    VkSampler textureSampler;
-
     nevk::ResourceManager* mResManager;
-
+    nevk::TextureManager* mTexManager;
     nevk::RenderPass mPass;
+    nevk::Model* model;
     nevk::ComputePass mComputePass;
 
     std::vector<nevk::Scene::Vertex> vertices;
-    //  std::vector<nevk::Scene::Material> materials;
     std::vector<uint32_t> indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
@@ -171,6 +165,11 @@ private:
         VkSemaphore imageAvailable;
     };
     FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
+
+    FrameData& getCurrentFrameData()
+    {
+        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
+    }
 
     FrameData& getFrameData(uint32_t idx)
     {
@@ -358,18 +357,6 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    void createTextureImage();
-
-    void createTextureImageView();
-
-    void createTextureSampler();
-
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
-
     std::vector<nevk::Scene::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
     {
         std::vector<nevk::Scene::Vertex> ret(params.size());
@@ -380,9 +367,8 @@ private:
         return ret;
     }
 
-    void loadModel()
+    void loadModel(nevk::Model& testmodel)
     {
-        nevk::Model testmodel;
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
         vertices = convertVerticesToRender(testmodel.getVertices());
         indices = testmodel.getIndices();
@@ -403,12 +389,6 @@ private:
     void createIndexBuffer();
 
     void createDescriptorPool();
-
-    VkCommandBuffer beginSingleTimeCommands();
-
-    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
-
-    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
@@ -526,10 +506,7 @@ public:
     {
         return window;
     }
-    FrameData& getCurrentFrameData()
-    {
-        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
-    }
+
     FrameData* getFramesData()
     {
         return mFramesData;
