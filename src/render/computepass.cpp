@@ -9,6 +9,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
+#include <utility>
+
 namespace nevk
 {
 ComputePass::ComputePass(/* args */)
@@ -76,7 +78,7 @@ void ComputePass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = 1;
+    texLayoutBinding.descriptorCount = mTextureImageView.size();
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -132,9 +134,12 @@ void ComputePass::updateDescriptorSets()
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = mTextureImageView;
+        std::vector<VkDescriptorImageInfo> imageInfo(mTextureImageView.size());
+        for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
+        {
+            imageInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo[j].imageView = mTextureImageView[j];
+        }
 
         VkDescriptorImageInfo samplerInfo{};
         samplerInfo.sampler = mTextureSampler;
@@ -158,8 +163,8 @@ void ComputePass::updateDescriptorSets()
         descriptorWrites[1].dstBinding = 1;
         descriptorWrites[1].dstArrayElement = 0;
         descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
+        descriptorWrites[1].descriptorCount = mTextureImageView.size();
+        descriptorWrites[1].pImageInfo = imageInfo.data();
 
         descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[2].dstSet = mDescriptorSets[i];
@@ -223,9 +228,9 @@ void ComputePass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void ComputePass::setTextureImageView(VkImageView textureImageView)
+void ComputePass::setTextureImageView(std::vector<VkImageView> textureImageView)
 {
-    mTextureImageView = textureImageView;
+    mTextureImageView = std::move(textureImageView);
 }
 
 void ComputePass::setOutputImageView(VkImageView imageView)

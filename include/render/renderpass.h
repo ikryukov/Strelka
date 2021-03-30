@@ -1,9 +1,11 @@
 #pragma once
-#include <vulkan/vulkan.h>
 #include <scene/scene.h>
-#include <vector>
+#include <vulkan/vulkan.h>
+
 #include <array>
 #include <resourcemanager.h>
+
+#include <vector>
 
 namespace nevk
 {
@@ -24,6 +26,7 @@ private:
     VkRenderPass mRenderPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
     VkDevice mDevice;
+    void updateDescriptorSets(uint32_t descSetIndex);
 
     VkShaderModule mVS, mPS;
 
@@ -32,7 +35,6 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
-    VkImageView mTextureImageView;
     VkSampler mTextureSampler;
 
     void createRenderPass();
@@ -75,19 +77,19 @@ private:
 
         attributeDescription.binding = 0;
         attributeDescription.location = 1;
-        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescription.format = VK_FORMAT_R32_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, normal);
         attributeDescriptions.emplace_back(attributeDescription);
 
         attributeDescription.binding = 0;
         attributeDescription.location = 2;
-        attributeDescription.format = VK_FORMAT_R32G32_SFLOAT;
+        attributeDescription.format = VK_FORMAT_R32_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, uv);
         attributeDescriptions.emplace_back(attributeDescription);
 
         attributeDescription.binding = 0;
         attributeDescription.location = 3;
-        attributeDescription.format = VK_FORMAT_R32_UINT;
+        attributeDescription.format = VK_FORMAT_R16_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, materialId);
         attributeDescriptions.emplace_back(attributeDescription);
 
@@ -97,6 +99,14 @@ private:
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
 
 public:
+    int imageviewcounter = 0;
+
+    std::vector<VkImageView> mTextureImageView;
+
+    VkBuffer mMaterialBuffer;
+
+    bool needDesciptorSetUpdate;
+
     void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
 
     void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
@@ -111,8 +121,9 @@ public:
         mDepthBufferFormat = format;
     }
 
-    void setTextureImageView(VkImageView textureImageView);
+    void setTextureImageView(std::vector<VkImageView> textureImageView);
     void setTextureSampler(VkSampler textureSampler);
+    void setMaterialBuffer(VkBuffer materialBuffer);
 
     void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
     {
@@ -140,7 +151,6 @@ public:
 
     RenderPass(/* args */);
     ~RenderPass();
-
     void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);
 };
 } // namespace nevk
