@@ -1,7 +1,9 @@
-#include <scene/glm-wrapper.hpp>
+#include "camera.h"
 
 #include <glm/gtx/quaternion.hpp>
-#include "camera.h"
+
+#include <scene/glm-wrapper.hpp>
+
 
 void Camera::updateViewMatrix()
 {
@@ -20,17 +22,17 @@ void Camera::updateViewMatrix()
 
 glm::float3 Camera::getFront()
 {
-   return glm::conjugate(mOrientation)* glm::float3(0.0f, 0.0f, -1.0f);
+    return glm::conjugate(mOrientation) * glm::float3(0.0f, 0.0f, -1.0f);
 }
 
 glm::float3 Camera::getUp()
 {
-  return glm::conjugate(mOrientation) * glm::float3(0.0f, 1.0f, 0.0f);
+    return glm::conjugate(mOrientation) * glm::float3(0.0f, 1.0f, 0.0f);
 }
 
 glm::float3 Camera::getRight()
 {
-  return glm::conjugate(mOrientation) * glm::float3(1.0f, 0.0f, 0.0f);
+    return glm::conjugate(mOrientation) * glm::float3(1.0f, 0.0f, 0.0f);
 }
 
 bool Camera::moving()
@@ -105,7 +107,7 @@ void Camera::update(float deltaTime)
     {
         if (moving())
         {
-          float moveSpeed = deltaTime * movementSpeed;
+            float moveSpeed = deltaTime * movementSpeed;
             if (keys.up)
                 position += getUp() * moveSpeed;
             if (keys.down)
@@ -122,4 +124,3 @@ void Camera::update(float deltaTime)
         }
     }
 }
-

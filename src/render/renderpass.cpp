@@ -395,7 +395,6 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
     memcpy(data, &ubo, sizeof(ubo));
     vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
-
 }
 
 void RenderPass::onDestroy()

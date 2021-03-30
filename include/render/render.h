@@ -43,12 +43,6 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
 const std::string MTL_PATH = "misc/";
 
-//const std::string MODEL_PATH = "misc/cube.obj";
-//const std::string MTL_PATH = "misc/";
-
-//const std::string MODEL_PATH = "misc/san-miguel-low-poly.obj";
-//const std::string MTL_PATH = "misc/";
-
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
@@ -386,7 +380,7 @@ private:
         camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 
         camera.rotationSpeed = 0.0025f;
-      
+
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));

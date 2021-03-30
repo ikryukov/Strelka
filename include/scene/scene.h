@@ -1,11 +1,12 @@
 #pragma once
 
-#include <vector>
-#include <stack>
-#include <set>
-#include <cstdint>
-#include "glm-wrapper.hpp"
 #include "camera.h"
+#include "glm-wrapper.hpp"
+
+#include <cstdint>
+#include <set>
+#include <stack>
+#include <vector>
 
 namespace nevk
 {
@@ -62,9 +63,9 @@ public:
         uint32_t pad;
     };
 
-    
+
     glm::float4 mLightDirection;
-   
+
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;

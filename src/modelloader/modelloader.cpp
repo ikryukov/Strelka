@@ -2,11 +2,11 @@
 
 namespace nevk
 {
+
 uint32_t packUV(const glm::float2& uv)
 {
     int32_t packed = (uint32_t)((uv.x + 1.0f) / 2.0f * 16383.99999f);
     packed += (uint32_t)((uv.y + 1.0f) / 2.0f * 16383.99999f) << 16;
-
     return packed;
 }
 
@@ -15,9 +15,9 @@ uint32_t packNormal(const glm::float3& normal)
     uint32_t packed = (uint32_t)((normal.x + 1.0f) / 2.0f * 511.99999f);
     packed += (uint32_t)((normal.y + 1.0f) / 2.0f * 511.99999f) << 10;
     packed += (uint32_t)((normal.z + 1.0f) / 2.0f * 511.99999f) << 20;
-
     return packed;
 }
+
 bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
 {
     tinyobj::attrib_t attrib;
