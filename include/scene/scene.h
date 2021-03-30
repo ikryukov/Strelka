@@ -1,12 +1,12 @@
 #pragma once
 
-#include "camera.h"
-#include "glm-wrapper.hpp"
-
-#include <cstdint>
-#include <set>
-#include <stack>
 #include <vector>
+#include <stack>
+#include <set>
+#include <cstdint>
+#include "glm-wrapper.hpp"
+#include "camera.h"
+
 
 namespace nevk
 {
