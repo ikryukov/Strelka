@@ -58,7 +58,7 @@ set(SCENELIB_NAME scene)
 add_library(${SCENELIB_NAME} OBJECT ${SCENE_SOURCES})
 target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/scene)
-target_include_directories(${SCENELIB_NAME} PRIVATE external/glm)
+target_include_directories(${SCENELIB_NAME} PUBLIC external/glm)
 
 # UI
 set(UI_SOURCES
@@ -79,6 +79,7 @@ target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ui)
 target_include_directories(${UILIB_NAME} PUBLIC external/imgui/include)
 target_include_directories(${UILIB_NAME} PRIVATE external/glfw/include)
+target_include_directories(${UILIB_NAME} PUBLIC external/glm)
 target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
 ## Vulkan
 target_include_directories(${UILIB_NAME} PUBLIC Vulkan::Vulkan)

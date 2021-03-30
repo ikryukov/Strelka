@@ -4,7 +4,6 @@
 
 #include <array>
 #include <resourcemanager.h>
-
 #include <vector>
 
 namespace nevk
@@ -101,7 +100,6 @@ private:
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
 
 public:
-
     int imageviewcounter = 0;
 
     std::vector<VkImageView> mTextureImageView;
@@ -109,7 +107,7 @@ public:
     VkBuffer mMaterialBuffer;
 
     bool needDesciptorSetUpdate;
-  
+
     void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
 
     void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
@@ -149,7 +147,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float4& camPos);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos);
 
 
     RenderPass(/* args */);
