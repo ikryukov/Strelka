@@ -76,23 +76,20 @@ PS_INPUT vertexMain(VertexInput vi)
     return out;
 }
 
-float3 diffuseLambert(float3 diffuse_c, float3 n, float3 l)
+float3 diffuseLambert(float3 kD, float3 n, float3 l)
 {
-    return diffuse_c * saturate(dot(l, n));
+    return kD * saturate(dot(l, n));
 }
 
-float specularPhong(float3 r, float3 v)
+float3 specularPhong(float3 kS, float3 r, float3 v)
 {
-    return pow(saturate(dot(r, v)), 30);
+    return kS * pow(saturate(dot(r, v)), 30);
 }
 
 // Fragment Shader
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-   float3 diffuse_c = float3(materials[inp.materialId].diffuse.rgb);
-
-
    float3 emissive = float3(materials[inp.materialId].emissive.rgb);
    float opticalDensity = float(materials[inp.materialId].opticalDensity);
    float shininess = float(materials[inp.materialId].shininess);
@@ -104,15 +101,32 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    uint32_t texSpecularId = materials[inp.materialId].texSpecularId;
    uint32_t texNormalId = materials[inp.materialId].texNormalId;
 
+   float3 kA = materials[inp.materialId].ambient.rgb;
+   float3 kD = materials[inp.materialId].diffuse.rgb;
+   float3 kS = materials[inp.materialId].specular.rgb;
+
+   if (texAmbientId != (uint32_t) -1)
+   {
+      kA *= textures[texAmbientId].Sample(gSampler, inp.uv).rgb;
+   }
+   if (texDiffuseId != (uint32_t) -1)
+   {
+      kD *= textures[texDiffuseId].Sample(gSampler, inp.uv).rgb;
+   }
+   if (texSpecularId != (uint32_t) -1)
+   {
+      kS *= textures[texSpecularId].Sample(gSampler, inp.uv).rgb;
+   }
+   
    float3 lightPos = float3(100.0f,100.0f,100.0f);
    float3 N = normalize(inp.normal);
    float3 L = normalize(lightPos - inp.wPos);
-   float3 diffuse = diffuseLambert(diffuse_c , L, N);
+   float3 diffuse = diffuseLambert(kD, L, N);
 
    float3 R = reflect(-L, N);
    float3 V = normalize(CameraPos - inp.wPos);
-   float specular = specularPhong(R, V);
-   return float4(diffuse + specular, 1.0f);
+   float3 specular = specularPhong(kS, R, V);
+   return float4(saturate(kA + diffuse + specular), 1.0f);
 
    //return textures[texDiffuseId].Sample(gSampler, inp.uv);
 }
