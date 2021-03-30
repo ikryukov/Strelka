@@ -68,7 +68,7 @@ uint32_t Scene::createMaterial(const glm::float4& ambient,
                                uint32_t illum,
                                uint32_t texAmbientId,
                                uint32_t texDiffuseId,
-                               uint32_t texSpeculaId,
+                               uint32_t texSpecularId,
                                uint32_t texNormalId)
 {
     Material* material = nullptr;
@@ -85,18 +85,19 @@ uint32_t Scene::createMaterial(const glm::float4& ambient,
         mDelMaterial.pop(); // del taken index from stack
         material = &mMaterials[materialId];
     }
-    material->ambient = ambient;
-    material->diffuse = diffuse;
-    material->specular = specular;
-    material->emissive = emissive;
+    material->ambient = glm::float4(ambient, 1.0f);
+    material->diffuse = glm::float4(diffuse, 1.0f);
+    material->specular = glm::float4(specular, 1.0f);
+    material->emissive = glm::float4(emissive, 1.0f);
     material->opticalDensity = opticalDensity;
     material->shininess = shininess;
-    material->transparency = transparency;
+    material->transparency = glm::float4(transparency, 1.0f);
     material->illum = illum;
     material->texAmbientId = texAmbientId;
     material->texDiffuseId = texDiffuseId;
-    material->texSpeculaId = texSpeculaId;
+    material->texSpecularId = texSpecularId;
     material->texNormalId = texNormalId;
+
     return materialId;
 }
 

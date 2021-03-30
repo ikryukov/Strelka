@@ -39,9 +39,9 @@ public:
     struct Vertex
     {
         glm::float3 pos;
-        glm::float3 normal;
-        glm::float2 uv;
-        uint32_t materialId;
+        uint32_t normal;
+        uint32_t uv;
+        uint16_t materialId;
     };
 
     struct Material
@@ -54,10 +54,12 @@ public:
         float opticalDensity; // Ni
         float shininess; // Ns 16 --  блеск материала
         uint32_t illum; // illum 2 -- модель освещения
-        uint32_t texAmbientId; // map_ambient
         uint32_t texDiffuseId; // map_diffuse
-        uint32_t texSpeculaId; // map_specular
+
+        uint32_t texAmbientId; // map_ambient
+        uint32_t texSpecularId; // map_specular
         uint32_t texNormalId; // map_normal - map_Bump
+        uint32_t pad;
     };
 
     std::vector<Vertex> mVertices;
@@ -89,10 +91,10 @@ public:
     {
         return mCamera;
     }
-  
+
     void updateCameraParams(int width, int height)
     {
-       mCamera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
+        mCamera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
     }
     /// <summary>
     /// Create Mesh geometry
