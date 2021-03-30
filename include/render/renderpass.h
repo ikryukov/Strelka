@@ -4,8 +4,8 @@
 
 #include <array>
 #include <resourcemanager.h>
-#include <vector>
 
+#include <vector>
 
 namespace nevk
 {
@@ -17,6 +17,7 @@ private:
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseWorldToView;
+        alignas(16) glm::float4 lightDirect;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -145,7 +146,8 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, glm::float4& lightDirect);
+
 
     RenderPass(/* args */);
     ~RenderPass();

@@ -41,6 +41,7 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/cube.obj";
+
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -214,6 +215,7 @@ private:
 
         const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
         switch (key)
+
         {
         case GLFW_KEY_W: {
             camera.keys.forward = keyState;
@@ -376,7 +378,9 @@ private:
         camera.type = Camera::CameraType::firstperson;
 
         camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
+
         camera.rotationSpeed = 0.0025f;
+      
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
