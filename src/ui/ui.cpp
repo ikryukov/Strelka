@@ -1,6 +1,7 @@
 #include <stdexcept>
 #include <utility>
 
+
 #include "scene/scene.h"
 #include "ui.h"
 
@@ -195,7 +196,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(GLFWwindow* window, Scene* scene)
+void Ui::updateUI(GLFWwindow* window, Scene& scene)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -205,9 +206,9 @@ void Ui::updateUI(GLFWwindow* window, Scene* scene)
 
     ImGui::Begin("Light Settings:"); // begin window
 
-    ImGui::SliderFloat("coordinate X", &scene->mLightDirection.x, -1.0f, 1.0f);
-    ImGui::SliderFloat("coordinate Y", &scene->mLightDirection.y, -1.0f, 1.0f);
-    ImGui::SliderFloat("coordinate Z", &scene->mLightDirection.z, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
 
     ImGui::End(); // end window
 }
