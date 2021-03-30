@@ -2,11 +2,11 @@
 
 namespace nevk
 {
+
 uint32_t packUV(const glm::float2& uv)
 {
     int32_t packed = (uint32_t)((uv.x + 1.0f) / 2.0f * 16383.99999f);
     packed += (uint32_t)((uv.y + 1.0f) / 2.0f * 16383.99999f) << 16;
-
     return packed;
 }
 
@@ -15,9 +15,9 @@ uint32_t packNormal(const glm::float3& normal)
     uint32_t packed = (uint32_t)((normal.x + 1.0f) / 2.0f * 511.99999f);
     packed += (uint32_t)((normal.y + 1.0f) / 2.0f * 511.99999f) << 10;
     packed += (uint32_t)((normal.z + 1.0f) / 2.0f * 511.99999f) << 20;
-
     return packed;
 }
+
 bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
 {
     tinyobj::attrib_t attrib;
@@ -37,6 +37,11 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
         size_t index_offset = 0;
         for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++)
         {
+            tinyobj::index_t idx0 = shape.mesh.indices[f + 0];
+            tinyobj::index_t idx1 = shape.mesh.indices[f + 1];
+            tinyobj::index_t idx2 = shape.mesh.indices[f + 2];
+
+
             int fv = shape.mesh.num_face_vertices[f];
             for (size_t v = 0; v < fv; v++)
             {
@@ -48,12 +53,34 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                     attrib.vertices[3 * idx.vertex_index + 2]
                 };
 
-                vertex.uv = packUV({ attrib.texcoords[2 * idx.texcoord_index + 0],
-                                     1.0f - attrib.texcoords[2 * idx.texcoord_index + 1] });
+                if (attrib.texcoords.empty())
+                {
+                    vertex.uv = packUV({ 0.0f, 0.0f });
+                }
+                else
+                {
+                    if ((idx0.texcoord_index < 0) || (idx1.texcoord_index < 0) ||
+                        (idx2.texcoord_index < 0))
+                    {
+                        vertex.uv = packUV({ 0.0f, 0.0f });
+                    }
+                    else
+                        vertex.uv = packUV({ attrib.texcoords[2 * idx.texcoord_index + 0],
+                                             1.0f - attrib.texcoords[2 * idx.texcoord_index + 1] });
+                }
 
-                vertex.normal = packNormal({ attrib.normals[3 * idx.normal_index + 0],
-                                             attrib.normals[3 * idx.normal_index + 1],
-                                             attrib.normals[3 * idx.normal_index + 2] });
+
+                if (attrib.normals.empty())
+                {
+                    vertex.normal = packNormal({ 0.0f, 0.0f, 0.0f });
+                }
+                else
+                {
+                    vertex.normal = packNormal({ attrib.normals[3 * idx.normal_index + 0],
+                                                 attrib.normals[3 * idx.normal_index + 1],
+                                                 attrib.normals[3 * idx.normal_index + 2] });
+                }
+
 
                 Scene::Material material{};
                 if (!MTL_PATH.empty())

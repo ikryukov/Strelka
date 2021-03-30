@@ -11,7 +11,8 @@ int nevk::TextureManager::loadTexture(const std::string& texture_path, const std
 {
     if (texture_path == "")
     {
-        return 0;
+        // Nothing to load
+        return -1;
     }
     std::string path = MTL_PATH + fslash + texture_path;
 

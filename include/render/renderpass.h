@@ -4,7 +4,6 @@
 
 #include <array>
 #include <resourcemanager.h>
-
 #include <vector>
 
 namespace nevk
@@ -14,10 +13,12 @@ class RenderPass
 private:
     struct UniformBufferObject
     {
+        alignas(16) glm::mat4 modelToWorld;
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseWorldToView;
         alignas(16) glm::float4 lightDirect;
+        alignas(16) glm::float3 CameraPos;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -146,7 +147,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, glm::float4& lightDirect);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos);
 
 
     RenderPass(/* args */);

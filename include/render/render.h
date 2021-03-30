@@ -40,8 +40,7 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/cube.obj";
-
+const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -141,6 +140,7 @@ private:
 
     nevk::ResourceManager* mResManager;
     nevk::TextureManager* mTexManager;
+
     nevk::RenderPass mPass;
     nevk::Model* model;
     nevk::ComputePass mComputePass;
@@ -380,7 +380,7 @@ private:
         camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 
         camera.rotationSpeed = 0.0025f;
-      
+
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));

@@ -1,11 +1,12 @@
 #pragma once
 
-#include <vector>
-#include <stack>
-#include <set>
-#include <cstdint>
-#include "glm-wrapper.hpp"
 #include "camera.h"
+#include "glm-wrapper.hpp"
+
+#include <cstdint>
+#include <set>
+#include <stack>
+#include <vector>
 
 namespace nevk
 {
@@ -62,9 +63,9 @@ public:
         uint32_t pad;
     };
 
-    
+
     glm::float4 mLightDirection;
-   
+
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
@@ -120,13 +121,13 @@ public:
     /// </summary>
     /// <param name="color">Color</param>
     /// <returns>Nothing</returns>
-    uint32_t createMaterial(const glm::float3& ambient,
-                            const glm::float3& diffuse,
-                            const glm::float3& specular,
-                            glm::float3 emissive,
+    uint32_t createMaterial(const glm::float4& ambient,
+                            const glm::float4& diffuse,
+                            const glm::float4& specular,
+                            const glm::float4& emissive,
                             float opticalDensity,
                             float shininess,
-                            glm::float3 transparency,
+                            const glm::float4& transparency,
                             uint32_t illum,
                             uint32_t texAmbientId,
                             uint32_t texDiffuseId,
