@@ -397,7 +397,7 @@ void RenderPass::createUniformBuffers()
 }
 
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, glm::float4 lightDirect)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, glm::float4* lightDirect)
 
 {
     float time = 0;
@@ -407,7 +407,7 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     glm::float4x4 proj = perspective;
 
     ubo.modelViewProj = proj * view * model;
-    ubo.lightDirect = lightDirect;
+    ubo.lightDirect = *lightDirect;
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
