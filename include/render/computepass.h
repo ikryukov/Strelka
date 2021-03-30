@@ -31,7 +31,7 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
-    std::vector<VkImageView> mTextureImageView;
+    VkImageView mInImageView;
     VkImageView mOutImageView;
     VkSampler mTextureSampler;
 
@@ -52,7 +52,7 @@ public:
     void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
     void onDestroy();
 
-    void setTextureImageView(std::vector<VkImageView> textureImageView);
+    void setInImageView(VkImageView textureImageView);
     void setOutputImageView(VkImageView imageView);
     void setTextureSampler(VkSampler textureSampler);
     void updateUniformBuffer(uint32_t currentImage, const uint32_t width, const uint32_t height);

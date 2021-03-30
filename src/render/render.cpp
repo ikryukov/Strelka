@@ -73,10 +73,10 @@ void Render::initVulkan()
     mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    mComputePass.setOutputImageView(textureCompImageView);
-    mComputePass.setTextureImageView(mTexManager->textureImageView);
-    mComputePass.setTextureSampler(mTexManager->textureSampler);
-    mComputePass.init(device, csShaderCode, csShaderCodeSize, descriptorPool, mResManager);
+    //mComputePass.setOutputImageView(textureCompImageView);
+    //mComputePass.setInImageView();
+    //mComputePass.setTextureSampler(mTexManager->textureSampler);
+    //mComputePass.init(device, csShaderCode, csShaderCodeSize, descriptorPool, mResManager);
 
     createIndexBuffer();
     createVertexBuffer();
@@ -615,7 +615,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mPass.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
-    mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 
