@@ -62,6 +62,10 @@ public:
         uint32_t pad;
     };
 
+    
+    glm::float4 mLightDirection;
+   
+
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
 

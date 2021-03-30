@@ -1,5 +1,8 @@
 #include <stdexcept>
 #include <utility>
+
+
+#include "scene/scene.h"
 #include "ui.h"
 
 namespace nevk
@@ -193,7 +196,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(GLFWwindow* window)
+void Ui::updateUI(GLFWwindow* window, Scene& scene)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -201,16 +204,12 @@ void Ui::updateUI(GLFWwindow* window)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    char windowTitle[255] = "Just do it!";
-    ImGui::Begin("Sample window"); // begin window
+    ImGui::Begin("Light Settings:"); // begin window
 
-    // Window title text edit
-    ImGui::InputText("Window title", windowTitle, 255);
+    ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
 
-    if (ImGui::Button("Change"))
-    {
-        glfwSetWindowTitle(window, windowTitle);
-    }
     ImGui::End(); // end window
 }
 

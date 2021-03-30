@@ -4,8 +4,8 @@
 
 #include <array>
 #include <resourcemanager.h>
-#include <vector>
 
+#include <vector>
 
 namespace nevk
 {
@@ -18,6 +18,7 @@ private:
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseWorldToView;
+        alignas(16) glm::float4 lightDirect;
         alignas(16) glm::float3 CameraPos;
     };
 
@@ -148,7 +149,8 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float3& camPos);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float4& camPos);
+
 
     RenderPass(/* args */);
     ~RenderPass();

@@ -681,13 +681,14 @@ void Render::drawFrame()
     double deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
     prevTime = currentTime;
 
-    Camera& cam = getScene().getCamera();
+    nevk::Scene& scene = getScene();
+    Camera& cam = scene.getCamera();
 
     cam.update(deltaTime);
-    
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, cam.getPosition());
+    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightDirection, cam.getPosition());
 
-    mUi.updateUI(window);
+    mUi.updateUI(window, scene);
+
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);

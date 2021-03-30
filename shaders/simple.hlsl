@@ -39,6 +39,7 @@ cbuffer ubo
     float4x4 modelViewProj;
     float4x4 worldToView;
     float4x4 inverseWorldToView;
+    float4 lightDirect;
     float3 CameraPos;
 }
 
@@ -69,6 +70,7 @@ PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
     out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
+
     out.uv = unpackUV(vi.uv);
     out.normal = mul((float3x3)inverseWorldToView, unpackNormal(vi.normal));
     out.materialId = vi.materialId;
