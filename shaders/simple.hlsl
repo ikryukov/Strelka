@@ -90,8 +90,6 @@ float specularPhong(float3 r, float3 v)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-   // float3 ambient = float3(materials[inp.materialId].ambient.rgb);
-   // float3 specular = float3(materials[inp.materialId].specular.rgb);
    float3 diffuse_c = float3(materials[inp.materialId].diffuse.rgb);
 
 
@@ -116,5 +114,5 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float specular = specularPhong(R, V);
    return float4(diffuse + specular, 1.0f);
 
-  // return textures[texDiffuseId].Sample(gSampler, inp.uv);
+   //return textures[texDiffuseId].Sample(gSampler, inp.uv);
 }

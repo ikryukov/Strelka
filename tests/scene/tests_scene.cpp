@@ -45,7 +45,14 @@ TEST_CASE("test createInstance")
     std::vector<nevk::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
-    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    uint32_t matId = scene.createMaterial(glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          1.0f,
+                                          1.0f,
+                                          glm::float4(1.0),
+                                          0, 0, 0, 0, 0);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
     uint32_t instId = scene.createInstance(meshId, matId, transform);
@@ -58,7 +65,14 @@ TEST_CASE("test createInstance complex")
     std::vector<nevk::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
-    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    uint32_t matId = scene.createMaterial(glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          1.0f,
+                                          1.0f,
+                                          glm::float4(1.0),
+                                          0, 0, 0, 0, 0);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
     uint32_t firstId = scene.createInstance(meshId, matId, transform);
@@ -72,7 +86,14 @@ TEST_CASE("test createInstance complex")
 TEST_CASE("test createMaterial")
 {
     nevk::Scene scene;
-    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    uint32_t matId = scene.createMaterial(glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          1.0f,
+                                          1.0f,
+                                          glm::float4(1.0),
+                                          0, 0, 0, 0, 0);
     CHECK(matId != -1);
 }
 
@@ -80,11 +101,32 @@ TEST_CASE("test createMaterial complex")
 {
     nevk::Scene scene;
 
-    uint32_t matIdFst = scene.createMaterial(glm::float4(1.0));
-    uint32_t matIdSnd = scene.createMaterial(glm::float4(1.0));
+    uint32_t matIdFst = scene.createMaterial(glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             1.0f,
+                                             1.0f,
+                                             glm::float4(1.0),
+                                             0, 0, 0, 0, 0);
+    uint32_t matIdSnd = scene.createMaterial(glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             1.0f,
+                                             1.0f,
+                                             glm::float4(1.0),
+                                             0, 0, 0, 0, 0);
     CHECK(matIdFst != matIdSnd);
     scene.removeMaterial(matIdFst);
-    uint32_t matIdThd = scene.createMaterial(glm::float4(1.0));
+    uint32_t matIdThd = scene.createMaterial(glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             1.0f,
+                                             1.0f,
+                                             glm::float4(1.0),
+                                             0, 0, 0, 0, 0);
     CHECK(matIdFst == matIdThd);
 }
 
@@ -105,7 +147,14 @@ TEST_CASE("test checkInstance")
     std::vector<nevk::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
-    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    uint32_t matId = scene.createMaterial(glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          1.0f,
+                                          1.0f,
+                                          glm::float4(1.0),
+                                          0, 0, 0, 0, 0);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
     uint32_t instId = scene.createInstance(meshId, matId, transform);
@@ -116,7 +165,14 @@ TEST_CASE("test checkInstance")
 TEST_CASE("test checkMaterial")
 {
     nevk::Scene scene;
-    uint32_t matId = scene.createMaterial(glm::float4(1.0));
+    uint32_t matId = scene.createMaterial(glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          glm::float4(1.0),
+                                          1.0f,
+                                          1.0f,
+                                          glm::float4(1.0),
+                                          0, 0, 0, 0, 0);
     CHECK(matId == 0);
     CHECK(scene.mMaterials.size() == 1);
 }

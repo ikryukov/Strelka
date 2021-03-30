@@ -55,48 +55,32 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                 if (attrib.texcoords.empty())
                 {
-                    vertex.uv = {
-                        0.0f, 0.0f
-                    };
+                    vertex.uv = packUV({ 0.0f, 0.0f });
                 }
                 else
                 {
                     if ((idx0.texcoord_index < 0) || (idx1.texcoord_index < 0) ||
                         (idx2.texcoord_index < 0))
                     {
-                        vertex.uv = {
-                            0.0f, 0.0f
-                        };
+                        vertex.uv = packUV({ 0.0f, 0.0f });
                     }
                     else
-                        vertex.uv = {
-                            attrib.texcoords[2 * idx.texcoord_index + 0],
-                            1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]
-                        };
+                        vertex.uv = packUV({ attrib.texcoords[2 * idx.texcoord_index + 0],
+                                             1.0f - attrib.texcoords[2 * idx.texcoord_index + 1] });
                 }
 
 
                 if (attrib.normals.empty())
                 {
-                    vertex.normal = {
-                        0.0f, 0.0f, 0.0f
-                    };
+                    vertex.normal = packNormal({ 0.0f, 0.0f, 0.0f });
                 }
                 else
                 {
-                    vertex.normal = {
-                        attrib.normals[3 * idx.normal_index + 0],
-                        attrib.normals[3 * idx.normal_index + 1],
-                        attrib.normals[3 * idx.normal_index + 2]
-                    };
+                    vertex.normal = packNormal({ attrib.normals[3 * idx.normal_index + 0],
+                                                 attrib.normals[3 * idx.normal_index + 1],
+                                                 attrib.normals[3 * idx.normal_index + 2] });
                 }
-              
-                vertex.uv = packUV({ attrib.texcoords[2 * idx.texcoord_index + 0],
-                                     1.0f - attrib.texcoords[2 * idx.texcoord_index + 1] });
 
-                vertex.normal = packNormal({ attrib.normals[3 * idx.normal_index + 0],
-                                             attrib.normals[3 * idx.normal_index + 1],
-                                             attrib.normals[3 * idx.normal_index + 2] });
 
                 Scene::Material material{};
                 if (!MTL_PATH.empty())
