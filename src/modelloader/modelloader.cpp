@@ -5,8 +5,8 @@ namespace nevk
 
 uint32_t packUV(const glm::float2& uv)
 {
-    int32_t packed = (uint32_t)((uv.x + 1.0f) / 2.0f * 16383.99999f);
-    packed += (uint32_t)((uv.y + 1.0f) / 2.0f * 16383.99999f) << 16;
+    int32_t packed = (uint32_t)((uv.x + 5.0f) / 10.0f * 16383.99999f);
+    packed += (uint32_t)((uv.y + 5.0f) / 10.0f * 16383.99999f) << 16;
     return packed;
 }
 
