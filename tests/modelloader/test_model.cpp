@@ -36,8 +36,9 @@ Render initVK()
     return r;
 }
 
-void initUi(Render *r) {
-     nevk::Ui* mUi = new nevk::Ui();
+void initUi(Render* r)
+{
+    nevk::Ui* mUi = new nevk::Ui();
     QueueFamilyIndices indicesFamily = r->getQueueFamilies(r->getPhysicalDevice());
     ImGui_ImplVulkan_InitInfo init_info{};
     init_info.DescriptorPool = r->getDescriptorPool();
