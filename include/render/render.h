@@ -508,7 +508,6 @@ public:
     {
         return window;
     }
-
     FrameData* getFramesData()
     {
         return mFramesData;
@@ -535,7 +534,7 @@ public:
     }
     nevk::Scene& getScene()
     {
-        return this->mScene;
+        return mScene;
     }
     void setDepthResources()
     {
