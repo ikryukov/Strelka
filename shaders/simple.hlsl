@@ -47,6 +47,7 @@ Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
 
+//  valid range of coordinates [-1; 1]
 float3 unpackNormal(uint32_t val)
 {
    float3 normal;
@@ -57,14 +58,16 @@ float3 unpackNormal(uint32_t val)
    return normal;
 }
 
+//  valid range of coordinates [-5; 5]
 float2 unpackUV(uint32_t val)
 {
    float2 uv;
-   uv.y = ((val & 0xffff0000) >> 16) / 16383.99999f * 2.0f - 1.0f;
-   uv.x = (val & 0x0000ffff) / 16383.99999f * 2.0f  - 1.0f;
+   uv.y = ((val & 0xffff0000) >> 16) / 16383.99999f * 10.0f - 5.0f;
+   uv.x = (val & 0x0000ffff) / 16383.99999f * 10.0f  - 5.0f;
 
    return uv;
 }
+
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
 {
