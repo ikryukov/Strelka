@@ -47,6 +47,7 @@ Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
 
+//  valid range of coordinates [-1; 1]
 float3 unpackNormal(uint32_t val)
 {
    float3 normal;
@@ -57,6 +58,7 @@ float3 unpackNormal(uint32_t val)
    return normal;
 }
 
+//  valid range of coordinates [-5; 5]
 float2 unpackUV(uint32_t val)
 {
    float2 uv;
@@ -65,6 +67,7 @@ float2 unpackUV(uint32_t val)
 
    return uv;
 }
+
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
 {

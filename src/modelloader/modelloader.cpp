@@ -3,6 +3,7 @@
 namespace nevk
 {
 
+//  valid range of coordinates [-5; 5]
 uint32_t packUV(const glm::float2& uv)
 {
     int32_t packed = (uint32_t)((uv.x + 5.0f) / 10.0f * 16383.99999f);
@@ -10,6 +11,7 @@ uint32_t packUV(const glm::float2& uv)
     return packed;
 }
 
+//  valid range of coordinates [-1; 1]
 uint32_t packNormal(const glm::float3& normal)
 {
     uint32_t packed = (uint32_t)((normal.x + 1.0f) / 2.0f * 511.99999f);
