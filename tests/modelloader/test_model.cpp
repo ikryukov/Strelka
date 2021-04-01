@@ -36,9 +36,27 @@ Render initVK()
     return r;
 }
 
+void initUi(Render *r) {
+     nevk::Ui* mUi = new nevk::Ui();
+    QueueFamilyIndices indicesFamily = r->getQueueFamilies(r->getPhysicalDevice());
+    ImGui_ImplVulkan_InitInfo init_info{};
+    init_info.DescriptorPool = r->getDescriptorPool();
+    init_info.Device = r->getDevice();
+    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
+    init_info.Instance = r->getInstance();
+    init_info.MinImageCount = 2;
+    init_info.PhysicalDevice = r->getPhysicalDevice();
+    init_info.Queue = r->getGraphicsQueue();
+    init_info.QueueFamily = indicesFamily.graphicsFamily.value();
+
+    bool init = mUi->init(init_info, r->getSwapChainImageFormat(), r->getWindow(), r->getFramesData()[0].cmdPool, r->getFramesData()[0].cmdBuffer, r->getSwapChainExtent().width, r->getSwapChainExtent().height);
+    bool fonts = mUi->uploadFonts(init_info, r->getFramesData()[0].cmdPool, r->getFramesData()[0].cmdBuffer);
+}
+
 TEST_CASE("load model")
 {
     Render r = initVK();
+    initUi(&r);
 
     nevk::TextureManager* mTexManager = r.getTexManager();
     nevk::Scene mScene;
@@ -60,6 +78,7 @@ TEST_CASE("load model")
 TEST_CASE("load textures")
 {
     Render r = initVK();
+    initUi(&r);
 
     nevk::TextureManager* mTexManager = r.getTexManager();
     nevk::Scene mScene;
