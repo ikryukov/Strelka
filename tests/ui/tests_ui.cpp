@@ -3,7 +3,7 @@
 
 #include <doctest.h>
 
-Render initVK()
+Render initVk()
 {
     Render r;
 
@@ -14,10 +14,15 @@ Render initVK()
     r.setPhysicalDevice();
     r.setLogicalDevice();
     r.setSwapChain();
-    r.setImageViews();
-
     r.setDescriptorPool();
     r.setCommandPool();
+
+    nevk::ResourceManager* mResManager = new nevk::ResourceManager(r.getDevice(), r.getPhysicalDevice(), r.getCurrentFrameData().cmdPool, r.getGraphicsQueue());
+    nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), mResManager);
+    r.setTexManager(mTexManager);
+    r.setResManager(mResManager);
+
+    r.setImageViews();
     r.setCommandBuffers();
     r.setSyncObjects();
 
@@ -27,7 +32,7 @@ Render initVK()
 TEST_CASE("test UI init")
 {
     nevk::Ui* mUi = new nevk::Ui();
-    Render r = initVK();
+    Render r = initVk();
 
     QueueFamilyIndices indicesFamily = r.getQueueFamilies(r.getPhysicalDevice());
     ImGui_ImplVulkan_InitInfo init_info{};
