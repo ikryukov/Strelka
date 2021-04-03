@@ -29,6 +29,32 @@ glm::float2 unpackUV(uint32_t val)
     return uv;
 }
 
+void Model::computeTangent(size_t index_offset) {
+    Scene::Vertex& v0 = _vertices[_indices[index_offset - 3]];
+    Scene::Vertex& v1 = _vertices[_indices[index_offset - 2]];
+    Scene::Vertex& v2 = _vertices[_indices[index_offset - 1]];
+
+    glm::float3 Edge1 = v1.pos - v0.pos;
+    glm::float3 Edge2 = v2.pos - v0.pos;
+
+    float DeltaU1 = unpackUV(v1.uv).x - unpackUV(v0.uv).x;
+    float DeltaV1 = unpackUV(v1.uv).y - unpackUV(v0.uv).y;
+    float DeltaU2 = unpackUV(v2.uv).x - unpackUV(v0.uv).x;
+    float DeltaV2 = unpackUV(v2.uv).y - unpackUV(v0.uv).y;
+
+    float f1 = 1.0f / (DeltaU1 * DeltaV2 - DeltaU2 * DeltaV1);
+
+    glm::float3 Tangent;
+
+    Tangent.x = f1 * (DeltaV2 * Edge1.x - DeltaV1 * Edge2.x);
+    Tangent.y = f1 * (DeltaV2 * Edge1.y - DeltaV1 * Edge2.y);
+    Tangent.z = f1 * (DeltaV2 * Edge1.z - DeltaV1 * Edge2.z);
+
+    v0.tangent += Tangent;
+    v1.tangent += Tangent;
+    v2.tangent += Tangent;
+}
+
 bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
 {
     tinyobj::attrib_t attrib;
@@ -149,30 +175,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                 _vertices.push_back(vertex);
             }
             index_offset += fv;
-
-            Scene::Vertex& v0 = _vertices[_indices[index_offset - 3]];
-            Scene::Vertex& v1 = _vertices[_indices[index_offset - 2]];
-            Scene::Vertex& v2 = _vertices[_indices[index_offset - 1]];
-
-            glm::float3 Edge1 = v1.pos - v0.pos;
-            glm::float3 Edge2 = v2.pos - v0.pos;
-
-            float DeltaU1 = unpackUV(v1.uv).x - unpackUV(v0.uv).x;
-            float DeltaV1 = unpackUV(v1.uv).y - unpackUV(v0.uv).y;
-            float DeltaU2 = unpackUV(v2.uv).x - unpackUV(v0.uv).x;
-            float DeltaV2 = unpackUV(v2.uv).y - unpackUV(v0.uv).y;
-
-            float f1 = 1.0f / (DeltaU1 * DeltaV2 - DeltaU2 * DeltaV1);
-
-            glm::float3 Tangent;
-
-            Tangent.x = f1 * (DeltaV2 * Edge1.x - DeltaV1 * Edge2.x);
-            Tangent.y = f1 * (DeltaV2 * Edge1.y - DeltaV1 * Edge2.y);
-            Tangent.z = f1 * (DeltaV2 * Edge1.z - DeltaV1 * Edge2.z);
-
-            v0.tangent += Tangent;
-            v1.tangent += Tangent;
-            v2.tangent += Tangent;
+            computeTangent(index_offset);
         }
     }
 
