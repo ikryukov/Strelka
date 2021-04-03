@@ -40,7 +40,7 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+const std::string MODEL_PATH = "misc/cube.obj";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -354,7 +354,7 @@ private:
         std::vector<nevk::Scene::Vertex> ret(params.size());
         std::transform(params.begin(), params.end(), ret.begin(),
                        [](auto& value) {
-                           return nevk::Scene::Vertex{ value.pos, value.normal, value.uv, value.materialId };
+                           return nevk::Scene::Vertex{ value.pos, value.tangent, value.normal, value.uv, value.materialId };
                        });
         return ret;
     }

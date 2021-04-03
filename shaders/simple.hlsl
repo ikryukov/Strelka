@@ -1,6 +1,7 @@
 struct VertexInput
 {
     float3 position : POSITION;
+    float3 tangent;
     uint32_t normal;
     uint32_t uv;
     uint16_t materialId;
@@ -27,6 +28,7 @@ struct Material
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
+    float3 tangent;
     float3 normal;
     float3 wPos;
     float2 uv;
@@ -46,6 +48,7 @@ cbuffer ubo
 Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
+// Texture2D gNormalMap; ???
 
 //  valid range of coordinates [-1; 1]
 float3 unpackNormal(uint32_t val)
@@ -78,6 +81,8 @@ PS_INPUT vertexMain(VertexInput vi)
     out.normal = mul((float3x3)inverseWorldToView, unpackNormal(vi.normal));
     out.materialId = vi.materialId;
     out.wPos = mul(vi.position, (float3x3)modelToWorld);
+    out.tangent = mul((float3x3)inverseWorldToView, normalize(vi.tangent));
+
     return out;
 }
 
@@ -91,10 +96,29 @@ float3 specularPhong(float3 kS, float3 r, float3 v)
     return kS * pow(saturate(dot(r, v)), 30);
 }
 
+float3 CalcBumpedNormal(PS_INPUT inp)
+{
+    float3 Normal = normalize(inp.normal);
+    float3 Tangent = normalize(inp.tangent);
+    Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
+
+    float3 Bitangent = cross(Tangent, Normal);
+   // float3 BumpMapNormal = textures[0](gNormalMap, inp.uv).xyz; ???
+   // BumpMapNormal = 2.0 * BumpMapNormal - float3(1.0, 1.0, 1.0);
+
+    float3 NewNormal;
+    float3x3 TBN = float3x3(Tangent, Bitangent, Normal);
+  //  NewNormal = TBN * BumpMapNormal;
+    NewNormal = normalize(NewNormal);
+
+    return NewNormal;
+}
+
 // Fragment Shader
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
+  // float3 Normal = CalcBumpedNormal(inp);
    float3 emissive = float3(materials[inp.materialId].emissive.rgb);
    float opticalDensity = float(materials[inp.materialId].opticalDensity);
    float shininess = float(materials[inp.materialId].shininess);

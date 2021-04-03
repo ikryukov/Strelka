@@ -20,6 +20,15 @@ uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
+glm::float2 unpackUV(uint32_t val)
+{
+    glm::float2 uv;
+    uv.y = ((val & 0xffff0000) >> 16) / 16383.99999f * 10.0f - 5.0f;
+    uv.x = (val & 0x0000ffff) / 16383.99999f * 10.0f - 5.0f;
+
+    return uv;
+}
+
 bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
 {
     tinyobj::attrib_t attrib;
@@ -32,7 +41,6 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     {
         throw std::runtime_error(warn + err);
     }
-
     std::unordered_map<std::string, uint32_t> unMat{};
     for (auto& shape : shapes)
     {
@@ -42,7 +50,6 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
             tinyobj::index_t idx0 = shape.mesh.indices[f + 0];
             tinyobj::index_t idx1 = shape.mesh.indices[f + 1];
             tinyobj::index_t idx2 = shape.mesh.indices[f + 2];
-
 
             int fv = shape.mesh.num_face_vertices[f];
             for (size_t v = 0; v < fv; v++)
@@ -82,7 +89,6 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                                                  attrib.normals[3 * idx.normal_index + 1],
                                                  attrib.normals[3 * idx.normal_index + 2] });
                 }
-
 
                 Scene::Material material{};
                 if (!MTL_PATH.empty())
@@ -143,7 +149,36 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                 _vertices.push_back(vertex);
             }
             index_offset += fv;
+
+            Scene::Vertex& v0 = _vertices[_indices[index_offset - 3]];
+            Scene::Vertex& v1 = _vertices[_indices[index_offset - 2]];
+            Scene::Vertex& v2 = _vertices[_indices[index_offset - 1]];
+
+            glm::float3 Edge1 = v1.pos - v0.pos;
+            glm::float3 Edge2 = v2.pos - v0.pos;
+
+            float DeltaU1 = unpackUV(v1.uv).x - unpackUV(v0.uv).x;
+            float DeltaV1 = unpackUV(v1.uv).y - unpackUV(v0.uv).y;
+            float DeltaU2 = unpackUV(v2.uv).x - unpackUV(v0.uv).x;
+            float DeltaV2 = unpackUV(v2.uv).y - unpackUV(v0.uv).y;
+
+            float f1 = 1.0f / (DeltaU1 * DeltaV2 - DeltaU2 * DeltaV1);
+
+            glm::float3 Tangent;
+
+            Tangent.x = f1 * (DeltaV2 * Edge1.x - DeltaV1 * Edge2.x);
+            Tangent.y = f1 * (DeltaV2 * Edge1.y - DeltaV1 * Edge2.y);
+            Tangent.z = f1 * (DeltaV2 * Edge1.z - DeltaV1 * Edge2.z);
+
+            v0.tangent += Tangent;
+            v1.tangent += Tangent;
+            v2.tangent += Tangent;
         }
+    }
+
+    for (unsigned int i = 0; i < _vertices.size(); ++i)
+    {
+        std::cout << _vertices[i].tangent[0] << " " << _vertices[i].tangent[1] << " " << _vertices[i].tangent[2] << " " << std::endl;
     }
 
     mTexManager->createTextureSampler();
