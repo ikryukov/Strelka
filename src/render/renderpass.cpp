@@ -388,7 +388,7 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     ubo.modelViewProj = proj * view * model;
     ubo.CameraPos = camPos;
     ubo.worldToView = view;
-    ubo.inverseWorldToView = transpose(inverse(ubo.modelToWorld));
+    ubo.inverseModelToWorld = transpose(inverse(ubo.modelToWorld));
     ubo.lightDirect = lightDirect;
 
     void* data;

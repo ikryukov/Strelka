@@ -41,7 +41,7 @@ cbuffer ubo
     float4x4 modelToWorld;
     float4x4 modelViewProj;
     float4x4 worldToView;
-    float4x4 inverseWorldToView;
+    float4x4 inverseModelToWorld;
     float4 lightDirect;
     float3 CameraPos;
 }
@@ -79,10 +79,10 @@ PS_INPUT vertexMain(VertexInput vi)
     out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
 
     out.uv = unpackUV(vi.uv);
-    out.normal = mul((float3x3)inverseWorldToView, unpackNormal(vi.normal));
+    out.normal = mul((float3x3)inverseModelToWorld, unpackNormal(vi.normal));
     out.materialId = vi.materialId;
     out.wPos = mul(vi.position, (float3x3)modelToWorld);
-    out.tangent = mul((float3x3)inverseWorldToView, normalize(vi.tangent));
+    out.tangent = mul((float3x3)inverseModelToWorld, normalize(vi.tangent));
 
     return out;
 }
