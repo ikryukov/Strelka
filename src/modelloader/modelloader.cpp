@@ -3,11 +3,11 @@
 namespace nevk
 {
 
-//  valid range of coordinates [-5; 5]
+//  valid range of coordinates [-6; 6]
 uint32_t packUV(const glm::float2& uv)
 {
-    int32_t packed = (uint32_t)((uv.x + 5.0f) / 10.0f * 16383.99999f);
-    packed += (uint32_t)((uv.y + 5.0f) / 10.0f * 16383.99999f) << 16;
+    int32_t packed = (uint32_t)((uv.x + 6.0f) / 12.0f * 16383.99999f);
+    packed += (uint32_t)((uv.y + 6.0f) / 12.0f * 16383.99999f) << 16;
     return packed;
 }
 
@@ -29,14 +29,15 @@ glm::float2 unpackUV(uint32_t val)
     return uv;
 }
 
-void Model::computeTangent(size_t index_offset) {
+void Model::computeTangent(size_t index_offset)
+{
     Scene::Vertex& v0 = _vertices[_indices[index_offset - 3]];
     Scene::Vertex& v1 = _vertices[_indices[index_offset - 2]];
     Scene::Vertex& v2 = _vertices[_indices[index_offset - 1]];
 
-    glm::vec2& uv0 = unpackUV(v0.uv);
-    glm::vec2& uv1 = unpackUV(v1.uv);
-    glm::vec2& uv2 = unpackUV(v2.uv);
+    glm::float2 uv0 = unpackUV(v0.uv);
+    glm::float2 uv1 = unpackUV(v1.uv);
+    glm::float2 uv2 = unpackUV(v2.uv);
 
     glm::float3 deltaPos1 = v1.pos - v0.pos;
     glm::float3 deltaPos2 = v2.pos - v0.pos;
@@ -45,15 +46,10 @@ void Model::computeTangent(size_t index_offset) {
 
     float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
     glm::vec3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
-    glm::vec3 bitangent = (deltaPos2 * deltaUV1.x - deltaPos1 * deltaUV2.x) * r;
 
     v0.tangent = tangent;
     v1.tangent = tangent;
     v2.tangent = tangent;
-
-    v0.bitangent = bitangent;
-    v1.bitangent = bitangent;
-    v2.bitangent = bitangent;
 }
 
 bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
@@ -77,6 +73,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
             tinyobj::index_t idx0 = shape.mesh.indices[f + 0];
             tinyobj::index_t idx1 = shape.mesh.indices[f + 1];
             tinyobj::index_t idx2 = shape.mesh.indices[f + 2];
+            bool isBumpTex = false;
 
             int fv = shape.mesh.num_face_vertices[f];
             for (size_t v = 0; v < fv; v++)
@@ -121,6 +118,11 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                 if (!MTL_PATH.empty())
                 {
                     std::string matName = materials[shape.mesh.material_ids[f]].name;
+                    std::string bumpTexname = materials[shape.mesh.material_ids[f]].bump_texname;
+                    if (!bumpTexname.empty())
+                    {
+                        isBumpTex = true;
+                    }
                     if (unMat.count(matName) == 0)
                     {
                         material.ambient = { materials[shape.mesh.material_ids[f]].ambient[0],
@@ -176,7 +178,11 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                 _vertices.push_back(vertex);
             }
             index_offset += fv;
-            computeTangent(index_offset);
+
+            if (isBumpTex)
+            {
+                computeTangent(index_offset);
+            }
         }
     }
 

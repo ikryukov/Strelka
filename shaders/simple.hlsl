@@ -2,7 +2,6 @@ struct VertexInput
 {
     float3 position : POSITION;
     float3 tangent;
-    float3 bitangent;
     uint32_t normal;
     uint32_t uv;
     uint16_t materialId;
@@ -30,7 +29,6 @@ struct PS_INPUT
 {
     float4 pos : SV_POSITION;
     float3 tangent;
-    float3 bitangent;
     float3 normal;
     float3 wPos;
     float2 uv;
@@ -50,7 +48,6 @@ cbuffer ubo
 Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
-// Texture2D gNormalMap; ???
 
 //  valid range of coordinates [-1; 1]
 float3 unpackNormal(uint32_t val)
@@ -63,12 +60,12 @@ float3 unpackNormal(uint32_t val)
    return normal;
 }
 
-//  valid range of coordinates [-5; 5]
+//  valid range of coordinates [-6; 6]
 float2 unpackUV(uint32_t val)
 {
    float2 uv;
-   uv.y = ((val & 0xffff0000) >> 16) / 16383.99999f * 10.0f - 5.0f;
-   uv.x = (val & 0x0000ffff) / 16383.99999f * 10.0f  - 5.0f;
+   uv.y = ((val & 0xffff0000) >> 16) / 16383.99999f * 12.0f - 6.0f;
+   uv.x = (val & 0x0000ffff) / 16383.99999f * 12.0f  - 6.0f;
 
    return uv;
 }
@@ -82,7 +79,6 @@ PS_INPUT vertexMain(VertexInput vi)
     out.uv = unpackUV(vi.uv);
     out.normal = mul((float3x3)inverseModelToWorld, unpackNormal(vi.normal));
     out.tangent = mul((float3x3)inverseModelToWorld, normalize(vi.tangent));
-    out.bitangent = mul((float3x3)inverseModelToWorld, normalize(vi.bitangent));
     out.materialId = vi.materialId;
     out.wPos = mul(vi.position, (float3x3)modelToWorld);
 
@@ -164,5 +160,6 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float3 R = reflect(-L, N);
    float3 V = normalize(CameraPos - inp.wPos);
    float3 specular = specularPhong(kS, R, V);
-   return float4(saturate(kA + diffuse + specular), 1.0f);
+
+  return float4(saturate(kA + diffuse + specular), 1.0f);
 }

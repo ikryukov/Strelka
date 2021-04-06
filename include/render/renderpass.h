@@ -84,24 +84,18 @@ private:
 
         attributeDescription.binding = 0;
         attributeDescription.location = 2;
-        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
-        attributeDescription.offset = offsetof(Scene::Vertex, bitangent);
-        attributeDescriptions.emplace_back(attributeDescription);
-
-        attributeDescription.binding = 0;
-        attributeDescription.location = 3;
         attributeDescription.format = VK_FORMAT_R32_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, normal);
         attributeDescriptions.emplace_back(attributeDescription);
 
         attributeDescription.binding = 0;
-        attributeDescription.location = 4;
+        attributeDescription.location = 3;
         attributeDescription.format = VK_FORMAT_R32_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, uv);
         attributeDescriptions.emplace_back(attributeDescription);
 
         attributeDescription.binding = 0;
-        attributeDescription.location = 5;
+        attributeDescription.location = 4;
         attributeDescription.format = VK_FORMAT_R16_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, materialId);
         attributeDescriptions.emplace_back(attributeDescription);
