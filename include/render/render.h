@@ -145,8 +145,7 @@ private:
     nevk::Model* model;
     nevk::ComputePass mComputePass;
 
-    std::vector<nevk::Scene::Vertex> vertices;
-    std::vector<uint32_t> indices;
+    uint32_t indicesCount = 0;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer materialBuffer;
@@ -349,21 +348,9 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    std::vector<nevk::Scene::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
-    {
-        std::vector<nevk::Scene::Vertex> ret(params.size());
-        std::transform(params.begin(), params.end(), ret.begin(),
-                       [](auto& value) {
-                           return nevk::Scene::Vertex{ value.pos, value.tangent, value.normal, value.uv, value.materialId };
-                       });
-        return ret;
-    }
-
     void loadModel(nevk::Model& testmodel)
     {
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
-        vertices = convertVerticesToRender(testmodel.getVertices());
-        indices = testmodel.getIndices();
         Camera& camera = mScene.getCamera();
         camera.type = Camera::CameraType::firstperson;
 

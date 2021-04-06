@@ -34,25 +34,26 @@ void Model::computeTangent(size_t index_offset) {
     Scene::Vertex& v1 = _vertices[_indices[index_offset - 2]];
     Scene::Vertex& v2 = _vertices[_indices[index_offset - 1]];
 
-    glm::float3 Edge1 = v1.pos - v0.pos;
-    glm::float3 Edge2 = v2.pos - v0.pos;
+    glm::vec2& uv0 = unpackUV(v0.uv);
+    glm::vec2& uv1 = unpackUV(v1.uv);
+    glm::vec2& uv2 = unpackUV(v2.uv);
 
-    float DeltaU1 = unpackUV(v1.uv).x - unpackUV(v0.uv).x;
-    float DeltaV1 = unpackUV(v1.uv).y - unpackUV(v0.uv).y;
-    float DeltaU2 = unpackUV(v2.uv).x - unpackUV(v0.uv).x;
-    float DeltaV2 = unpackUV(v2.uv).y - unpackUV(v0.uv).y;
+    glm::float3 deltaPos1 = v1.pos - v0.pos;
+    glm::float3 deltaPos2 = v2.pos - v0.pos;
+    glm::vec2 deltaUV1 = uv1 - uv0;
+    glm::vec2 deltaUV2 = uv2 - uv0;
 
-    float f1 = 1.0f / (DeltaU1 * DeltaV2 - DeltaU2 * DeltaV1);
+    float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+    glm::vec3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
+    glm::vec3 bitangent = (deltaPos2 * deltaUV1.x - deltaPos1 * deltaUV2.x) * r;
 
-    glm::float3 Tangent;
+    v0.tangent = tangent;
+    v1.tangent = tangent;
+    v2.tangent = tangent;
 
-    Tangent.x = f1 * (DeltaV2 * Edge1.x - DeltaV1 * Edge2.x);
-    Tangent.y = f1 * (DeltaV2 * Edge1.y - DeltaV1 * Edge2.y);
-    Tangent.z = f1 * (DeltaV2 * Edge1.z - DeltaV1 * Edge2.z);
-
-    v0.tangent += Tangent;
-    v1.tangent += Tangent;
-    v2.tangent += Tangent;
+    v0.bitangent = bitangent;
+    v1.bitangent = bitangent;
+    v2.bitangent = bitangent;
 }
 
 bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)

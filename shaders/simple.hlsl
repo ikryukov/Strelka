@@ -2,6 +2,7 @@ struct VertexInput
 {
     float3 position : POSITION;
     float3 tangent;
+    float3 bitangent;
     uint32_t normal;
     uint32_t uv;
     uint16_t materialId;

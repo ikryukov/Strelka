@@ -41,6 +41,7 @@ public:
     {
         glm::float3 pos;
         glm::float3 tangent;
+        glm::float3 bitangent;
         uint32_t normal;
         uint32_t uv;
         uint16_t materialId;
