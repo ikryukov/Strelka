@@ -16,7 +16,7 @@ private:
         alignas(16) glm::mat4 modelToWorld;
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
-        alignas(16) glm::mat4 inverseWorldToView;
+        alignas(16) glm::mat4 inverseModelToWorld;
         alignas(16) glm::float4 lightDirect;
         alignas(16) glm::float3 CameraPos;
     };

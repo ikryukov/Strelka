@@ -30,6 +30,7 @@ struct PS_INPUT
 {
     float4 pos : SV_POSITION;
     float3 tangent;
+    float3 bitangent;
     float3 normal;
     float3 wPos;
     float2 uv;
@@ -80,9 +81,10 @@ PS_INPUT vertexMain(VertexInput vi)
 
     out.uv = unpackUV(vi.uv);
     out.normal = mul((float3x3)inverseModelToWorld, unpackNormal(vi.normal));
+    out.tangent = mul((float3x3)inverseModelToWorld, normalize(vi.tangent));
+    out.bitangent = mul((float3x3)inverseModelToWorld, normalize(vi.bitangent));
     out.materialId = vi.materialId;
     out.wPos = mul(vi.position, (float3x3)modelToWorld);
-    out.tangent = mul((float3x3)inverseModelToWorld, normalize(vi.tangent));
 
     return out;
 }
@@ -97,19 +99,19 @@ float3 specularPhong(float3 kS, float3 r, float3 v)
     return kS * pow(saturate(dot(r, v)), 30);
 }
 
-float3 CalcBumpedNormal(PS_INPUT inp)
+float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
 {
     float3 Normal = normalize(inp.normal);
     float3 Tangent = normalize(inp.tangent);
     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
 
     float3 Bitangent = cross(Tangent, Normal);
-   // float3 BumpMapNormal = textures[0](gNormalMap, inp.uv).xyz; ???
-   // BumpMapNormal = 2.0 * BumpMapNormal - float3(1.0, 1.0, 1.0);
+    float3 BumpMapNormal = textures[texId].Sample(gSampler, inp.uv).xyz;
+    BumpMapNormal = normalize(2.0 * BumpMapNormal - float3(1.0, 1.0, 1.0));
 
     float3 NewNormal;
-    float3x3 TBN = float3x3(Tangent, Bitangent, Normal);
-  //  NewNormal = TBN * BumpMapNormal;
+    float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
+    NewNormal = mul(TBN, BumpMapNormal);
     NewNormal = normalize(NewNormal);
 
     return NewNormal;
@@ -147,10 +149,17 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    {
       kS *= textures[texSpecularId].Sample(gSampler, inp.uv).rgb;
    }
-   
-   float3 lightPos = float3(100.0f,100.0f,100.0f);
+
    float3 N = normalize(inp.normal);
-   float3 L = normalize(lightPos - inp.wPos);
+   if (texNormalId != (uint32_t) -1)
+   {
+      N = CalcBumpedNormal(inp, texNormalId);
+   }
+
+   float3 lightPos = float3(100.0f,100.0f,100.0f);
+   
+   //float3 L = normalize(lightPos - inp.wPos);
+   float3 L = normalize(lightDirect.xyz);
    float3 diffuse = diffuseLambert(kD, L, N);
 
    float3 R = reflect(-L, N);

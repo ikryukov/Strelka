@@ -15,6 +15,7 @@ Ka 0 0 0
 Kd 0 1 0
 Ks 0 0 0
 map_Kd textures/container.jpg
+map_Bump textures/bump.png
 
 newmtl blue
 Ka 0 0 0

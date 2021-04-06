@@ -180,11 +180,6 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
         }
     }
 
-    for (unsigned int i = 0; i < _vertices.size(); ++i)
-    {
-        std::cout << _vertices[i].tangent[0] << " " << _vertices[i].tangent[1] << " " << _vertices[i].tangent[2] << " " << std::endl;
-    }
-
     mTexManager->createTextureSampler();
     uint32_t meshId = mScene.createMesh(_vertices, _indices);
     glm::float4x4 transform{ 1.0f };
