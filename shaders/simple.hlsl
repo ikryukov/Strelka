@@ -121,7 +121,6 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-  // float3 Normal = CalcBumpedNormal(inp);
    float3 emissive = float3(materials[inp.materialId].emissive.rgb);
    float opticalDensity = float(materials[inp.materialId].opticalDensity);
    float shininess = float(materials[inp.materialId].shininess);
@@ -166,6 +165,4 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float3 V = normalize(CameraPos - inp.wPos);
    float3 specular = specularPhong(kS, R, V);
    return float4(saturate(kA + diffuse + specular), 1.0f);
-
-   //return textures[texDiffuseId].Sample(gSampler, inp.uv);
 }
