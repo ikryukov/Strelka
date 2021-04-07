@@ -19,6 +19,7 @@ private:
         alignas(16) glm::mat4 inverseModelToWorld;
         alignas(16) glm::float4 lightDirect;
         alignas(16) glm::float3 CameraPos;
+        alignas(16) uint32_t debugView;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -153,7 +154,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos, Scene::DebugView& debugView);
 
 
     RenderPass(/* args */);

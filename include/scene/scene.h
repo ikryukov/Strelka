@@ -64,6 +64,13 @@ public:
         uint32_t pad;
     };
 
+    enum class DebugView
+    {
+        eNone = 0,
+        eNormals,
+    };
+
+    DebugView mDebugViewSettings = DebugView::eNone;
 
     glm::float4 mLightDirection{1.0, 0.0, 0.0, 1.0};
 

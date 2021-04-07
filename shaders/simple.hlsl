@@ -43,6 +43,8 @@ cbuffer ubo
     float4x4 inverseModelToWorld;
     float4 lightDirect;
     float3 CameraPos;
+    float pad;
+    uint32_t debugView;
 }
 
 Texture2D textures[];
@@ -164,13 +166,19 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 
    float3 lightPos = float3(100.0f,100.0f,100.0f);
    
-   //float3 L = normalize(lightPos - inp.wPos);
-   float3 L = normalize(lightDirect.xyz);
+   float3 L = normalize(lightPos - inp.wPos);
+   //float3 L = normalize(lightDirect.xyz);
    float3 diffuse = diffuseLambert(kD, L, N);
 
    float3 R = reflect(-L, N);
    float3 V = normalize(CameraPos - inp.wPos);
    float3 specular = specularPhong(kS, R, V);
+
+   // Normals
+   if (debugView == 1)
+   {
+      return float4(abs(N), 1.0);
+   }
 
    return float4(saturate(kA + diffuse + specular), 1.0f);
 }

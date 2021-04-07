@@ -376,7 +376,7 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos, Scene::DebugView& debugView)
 {
     float time = 0;
 
@@ -390,6 +390,7 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     ubo.worldToView = view;
     ubo.inverseModelToWorld = transpose(inverse(ubo.modelToWorld));
     ubo.lightDirect = lightDirect;
+    ubo.debugView = (uint32_t) debugView;
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);

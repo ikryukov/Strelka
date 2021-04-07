@@ -1,9 +1,9 @@
-#include <stdexcept>
-#include <utility>
-
+#include "ui.h"
 
 #include "scene/scene.h"
-#include "ui.h"
+
+#include <stdexcept>
+#include <utility>
 
 namespace nevk
 {
@@ -209,6 +209,27 @@ void Ui::updateUI(GLFWwindow* window, Scene& scene)
     ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
     ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
     ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
+
+    const char* items[] = { "None", "Normals" };
+    static const char* current_item = items[0];
+
+    if (ImGui::BeginCombo("Debug view", current_item))
+    {
+        for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+        {
+            bool is_selected = (current_item == items[n]);
+            if (ImGui::Selectable(items[n], is_selected))
+            {
+                current_item = items[n];
+                scene.mDebugViewSettings = (Scene::DebugView)n;
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
 
     ImGui::End(); // end window
 }
