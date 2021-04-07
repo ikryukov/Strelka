@@ -15,6 +15,7 @@ class ShaderManager
 public:
     enum class Stage
     {
+        eNone,
         eVertex,
         ePixel,
         eCompute
@@ -31,7 +32,7 @@ private:
     {
         std::string fileName;
         std::string entryPointName;
-        Stage stage;
+        Stage stage = Stage::eNone;
         slang::ShaderReflection* slangReflection;
         SlangCompileRequest* slangRequest;
         std::vector<char> code;

@@ -37,7 +37,7 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
-    VkSampler mTextureSampler;
+    VkSampler mTextureSampler = VK_NULL_HANDLE;
 
     void createRenderPass();
 
