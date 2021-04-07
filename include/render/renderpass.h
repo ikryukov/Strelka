@@ -19,6 +19,7 @@ private:
         alignas(16) glm::mat4 inverseModelToWorld;
         alignas(16) glm::float4 lightPosition;
         alignas(16) glm::float3 CameraPos;
+        float pad;
         alignas(16) uint32_t debugView;
     };
 

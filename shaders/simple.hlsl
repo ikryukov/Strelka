@@ -83,6 +83,10 @@ float3 unpackTangent(uint32_t val)
    return tangent;
 }
 
+float3 srgb_to_linear(float3 c) {
+    return lerp(c / 12.92, pow((c + 0.055) / 1.055, float3(2.4)), step(0.04045, c));
+}
+
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
 {
@@ -93,7 +97,8 @@ PS_INPUT vertexMain(VertexInput vi)
     out.normal = mul((float3x3)inverseModelToWorld, unpackNormal(vi.normal));
     out.tangent = mul((float3x3)inverseModelToWorld, unpackTangent(vi.tangent));
     out.materialId = vi.materialId;
-    out.wPos = mul(vi.position, (float3x3)modelToWorld);
+    float4 wPos = mul(modelToWorld, float4(vi.position, 1.0f));
+    out.wPos = wPos.xyz / wPos.w;
 
     return out;
 }

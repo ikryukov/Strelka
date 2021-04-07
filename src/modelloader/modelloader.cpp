@@ -113,10 +113,11 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                         vertex.uv = packUV({ 0.0f, 0.0f });
                     }
                     else
+                    {
                         vertex.uv = packUV({ attrib.texcoords[2 * idx.texcoord_index + 0],
                                              1.0f - attrib.texcoords[2 * idx.texcoord_index + 1] });
+                    }
                 }
-
 
                 if (attrib.normals.empty())
                 {
