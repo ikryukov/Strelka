@@ -20,6 +20,15 @@ uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
+//  valid range of coordinates [-10; 10]
+uint32_t packTangent(const glm::float3& tangent)
+{
+    uint32_t packed = (uint32_t)((tangent.x + 10.0f) / 20.0f * 511.99999f);
+    packed += (uint32_t)((tangent.y + 10.0f) / 20.0f * 511.99999f) << 10;
+    packed += (uint32_t)((tangent.z + 10.0f) / 20.0f * 511.99999f) << 20;
+    return packed;
+}
+
 glm::float2 unpackUV(uint32_t val)
 {
     glm::float2 uv;
@@ -44,12 +53,22 @@ void Model::computeTangent(size_t index_offset)
     glm::vec2 deltaUV1 = uv1 - uv0;
     glm::vec2 deltaUV2 = uv2 - uv0;
 
-    float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-    glm::vec3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
+    float r;
+    if ((deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x) != 0)
+    {
+        r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+    }
+    else
+    {
+        r = 0.0f;
+    }
 
-    v0.tangent = tangent;
-    v1.tangent = tangent;
-    v2.tangent = tangent;
+    glm::vec3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
+    glm::float1 packedTangent = packTangent(tangent);
+
+    v0.tangent = packedTangent;
+    v1.tangent = packedTangent;
+    v2.tangent = packedTangent;
 }
 
 bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)

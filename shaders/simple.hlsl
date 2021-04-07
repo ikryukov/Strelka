@@ -1,7 +1,7 @@
 struct VertexInput
 {
     float3 position : POSITION;
-    float3 tangent;
+    uint32_t tangent;
     uint32_t normal;
     uint32_t uv;
     uint16_t materialId;
@@ -70,6 +70,17 @@ float2 unpackUV(uint32_t val)
    return uv;
 }
 
+//  valid range of coordinates [-10; 10]
+float3 unpackTangent(uint32_t val)
+{
+   float3 tangent;
+   tangent.z = ((val & 0xfff00000) >> 20) / 511.99999f * 20.0f - 10.0f;
+   tangent.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 20.0f - 10.0f;
+   tangent.x = (val & 0x000003ff) / 511.99999f * 20.0f - 10.0f;
+
+   return tangent;
+}
+
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
 {
@@ -78,7 +89,7 @@ PS_INPUT vertexMain(VertexInput vi)
 
     out.uv = unpackUV(vi.uv);
     out.normal = mul((float3x3)inverseModelToWorld, unpackNormal(vi.normal));
-    out.tangent = mul((float3x3)inverseModelToWorld, normalize(vi.tangent));
+    out.tangent = mul((float3x3)inverseModelToWorld, normalize(unpackTangent(vi.tangent)));
     out.materialId = vi.materialId;
     out.wPos = mul(vi.position, (float3x3)modelToWorld);
 
@@ -161,5 +172,5 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float3 V = normalize(CameraPos - inp.wPos);
    float3 specular = specularPhong(kS, R, V);
 
-   return float4(abs(N), 1.0f);
+   return float4(saturate(kA + diffuse + specular), 1.0f);
 }

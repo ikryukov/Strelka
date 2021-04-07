@@ -78,7 +78,7 @@ private:
 
         attributeDescription.binding = 0;
         attributeDescription.location = 1;
-        attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
+        attributeDescription.format = VK_FORMAT_R32_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, tangent);
         attributeDescriptions.emplace_back(attributeDescription);
 
