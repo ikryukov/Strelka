@@ -52,19 +52,15 @@ void Model::computeTangent(size_t index_offset)
     glm::float3 deltaPos2 = v2.pos - v0.pos;
     glm::vec2 deltaUV1 = uv1 - uv0;
     glm::vec2 deltaUV2 = uv2 - uv0;
-
-    float r;
-    if ((deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x) != 0)
+    
+    glm::vec3 tangent{ 1.0f, 0.0f, 0.0f }; 
+    if (abs(deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x) > 1e-5)
     {
-        r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-    }
-    else
-    {
-        r = 0.0f;
+        float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+        tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
     }
 
-    glm::vec3 tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
-    glm::float1 packedTangent = packTangent(tangent);
+    glm::uint32_t packedTangent = packTangent(tangent);
 
     v0.tangent = packedTangent;
     v1.tangent = packedTangent;
