@@ -91,7 +91,7 @@ PS_INPUT vertexMain(VertexInput vi)
 
     out.uv = unpackUV(vi.uv);
     out.normal = mul((float3x3)inverseModelToWorld, unpackNormal(vi.normal));
-    out.tangent = mul((float3x3)inverseModelToWorld, normalize(unpackTangent(vi.tangent)));
+    out.tangent = mul((float3x3)inverseModelToWorld, unpackTangent(vi.tangent));
     out.materialId = vi.materialId;
     out.wPos = mul(vi.position, (float3x3)modelToWorld);
 
@@ -113,15 +113,13 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
     float3 Normal = normalize(inp.normal);
     float3 Tangent = normalize(inp.tangent);
     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
-
     float3 Bitangent = cross(Tangent, Normal);
-    float3 BumpMapNormal = textures[texId].Sample(gSampler, inp.uv).xyz;
-    BumpMapNormal = normalize(2.0 * BumpMapNormal - float3(1.0, 1.0, 1.0));
 
-    float3 NewNormal;
-    float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
-    NewNormal = mul(TBN, BumpMapNormal);
-    NewNormal = normalize(NewNormal);
+    float3 BumpMapNormal = textures[texId].Sample(gSampler, inp.uv).xyz;
+    BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
+
+    float3x3 TBN = float3x3(Tangent, Bitangent, Normal);
+    float3 NewNormal = normalize(mul(TBN, BumpMapNormal));
 
     return NewNormal;
 }
