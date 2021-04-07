@@ -72,7 +72,7 @@ public:
 
     DebugView mDebugViewSettings = DebugView::eNone;
 
-    glm::float4 mLightDirection{1.0, 0.0, 0.0, 1.0};
+    glm::float4 mLightPosition{1.0, 1.0, 1.0, 1.0};
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;

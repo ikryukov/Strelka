@@ -41,7 +41,7 @@ cbuffer ubo
     float4x4 modelViewProj;
     float4x4 worldToView;
     float4x4 inverseModelToWorld;
-    float4 lightDirect;
+    float4 lightPosition;
     float3 CameraPos;
     float pad;
     uint32_t debugView;
@@ -103,9 +103,9 @@ float3 diffuseLambert(float3 kD, float3 n, float3 l)
     return kD * saturate(dot(l, n));
 }
 
-float3 specularPhong(float3 kS, float3 r, float3 v)
+float3 specularPhong(float3 kS, float3 r, float3 v, float shinessFactor)
 {
-    return kS * pow(saturate(dot(r, v)), 30);
+    return kS * pow(saturate(dot(r, v)), shinessFactor);
 }
 
 float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
@@ -164,15 +164,12 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
       N = CalcBumpedNormal(inp, texNormalId);
    }
 
-   float3 lightPos = float3(100.0f,100.0f,100.0f);
-   
-   float3 L = normalize(lightPos - inp.wPos);
-   //float3 L = normalize(lightDirect.xyz);
+   float3 L = normalize(lightPosition.xyz - inp.wPos);
    float3 diffuse = diffuseLambert(kD, L, N);
 
    float3 R = reflect(-L, N);
    float3 V = normalize(CameraPos - inp.wPos);
-   float3 specular = specularPhong(kS, R, V);
+   float3 specular = specularPhong(kS, R, V, shininess);
 
    // Normals
    if (debugView == 1)

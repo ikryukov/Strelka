@@ -206,9 +206,9 @@ void Ui::updateUI(GLFWwindow* window, Scene& scene)
 
     ImGui::Begin("Light Settings:"); // begin window
 
-    ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
-    ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
-    ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);
+    ImGui::SliderFloat("coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
+    ImGui::SliderFloat("coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
 
     const char* items[] = { "None", "Normals" };
     static const char* current_item = items[0];

@@ -13,7 +13,8 @@ map_Kd textures/brickwall.png
 newmtl green
 Ka 0 0 0
 Kd 1 1 1
-Ks 0 0 0
+Ks 1 1 1
+Ns 16
 map_Kd textures/patio_color.png
 map_Bump textures/patio_bump.png
 
