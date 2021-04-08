@@ -1,9 +1,14 @@
-#include <stdexcept>
-#include <utility>
-
+#include "ui.h"
 
 #include "scene/scene.h"
-#include "ui.h"
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING 	
+
+#include <experimental/filesystem>
+
+#include <iostream>
+#include <stdexcept>
+#include <stdlib.h>
+#include <utility>
 
 namespace nevk
 {
@@ -196,21 +201,31 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(GLFWwindow* window, Scene& scene)
+void Ui::updateUI(GLFWwindow* window, Scene& scene, char* path)
 {
+
+
+    for (std::experimental::filesystem::recursive_directory_iterator it(path), end; it != end; ++it)
+    {
+        if (it->path().extension() == ".obj")
+        {
+            std::cout << *it << std::endl;
+        }
+        
+    }
     ImGuiIO& io = ImGui::GetIO();
 
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
 
-    ImGui::Begin("Light Settings:"); // begin window
+        ImGui::Begin("Light Settings:"); // begin window
 
-    ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
-    ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
-    ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
+        ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
+        ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
+        ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
 
-    ImGui::End(); // end window
+        ImGui::End(); // end window
 }
 
 void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)

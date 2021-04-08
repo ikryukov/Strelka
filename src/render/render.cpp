@@ -687,7 +687,7 @@ void Render::drawFrame()
     cam.update(deltaTime);
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightDirection, cam.getPosition());
 
-    mUi.updateUI(window, scene);
+    mUi.updateUI(window, scene, "C:/Users/Polina/Downloads/NeVK/misc");
 
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
