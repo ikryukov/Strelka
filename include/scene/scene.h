@@ -1,12 +1,12 @@
 #pragma once
 
-#include "camera.h"
-#include "glm-wrapper.hpp"
-
-#include <cstdint>
-#include <set>
-#include <stack>
 #include <vector>
+#include <stack>
+#include <set>
+#include <cstdint>
+#include "glm-wrapper.hpp"
+#include "camera.h"
+
 
 namespace nevk
 {
@@ -56,7 +56,6 @@ public:
         float shininess; // Ns 16 --  блеск материала
         uint32_t illum; // illum 2 -- модель освещения
         uint32_t texDiffuseId; // map_diffuse
-
         uint32_t texAmbientId; // map_ambient
         uint32_t texSpecularId; // map_specular
         uint32_t texNormalId; // map_normal - map_Bump
@@ -125,9 +124,9 @@ public:
                             const glm::float4& diffuse,
                             const glm::float4& specular,
                             const glm::float4& emissive,
+                            const glm::float4& transparency,
                             float opticalDensity,
                             float shininess,
-                            const glm::float4& transparency,
                             uint32_t illum,
                             uint32_t texAmbientId,
                             uint32_t texDiffuseId,

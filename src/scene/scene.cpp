@@ -62,9 +62,9 @@ uint32_t Scene::createMaterial(const glm::float4& ambient,
                                const glm::float4& diffuse,
                                const glm::float4& specular,
                                const glm::float4& emissive,
+                               const glm::float4& transparency,
                                float opticalDensity,
                                float shininess,
-                               const glm::float4& transparency,
                                uint32_t illum,
                                uint32_t texAmbientId,
                                uint32_t texDiffuseId,
@@ -89,9 +89,9 @@ uint32_t Scene::createMaterial(const glm::float4& ambient,
     material->diffuse = diffuse;
     material->specular = specular;
     material->emissive = emissive;
+    material->transparency = transparency;
     material->opticalDensity = opticalDensity;
     material->shininess = shininess;
-    material->transparency = transparency;
     material->illum = illum;
     material->texAmbientId = texAmbientId;
     material->texDiffuseId = texDiffuseId;

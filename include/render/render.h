@@ -167,11 +167,6 @@ private:
     };
     FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
 
-    FrameData& getCurrentFrameData()
-    {
-        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
-    }
-
     FrameData& getFrameData(uint32_t idx)
     {
         return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
@@ -315,11 +310,6 @@ private:
                                     -yoffset * mCamera.movementSpeed));
     }
 
-    nevk::Scene& getScene()
-    {
-        return this->mScene;
-    }
-
     void initVulkan();
 
     void mainLoop();
@@ -384,6 +374,8 @@ private:
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
+
+        testmodel.sortMaterials(camera.getPosition());
     }
 
     void createVertexBuffer();
@@ -458,6 +450,14 @@ public:
     {
         createSwapChain();
     }
+    void setTexManager(nevk::TextureManager* _mTexManager)
+    {
+        mTexManager = _mTexManager;
+    }
+    void setResManager(nevk::ResourceManager* _mResManager)
+    {
+        mResManager = _mResManager;
+    }
     void setImageViews()
     {
         createImageViews();
@@ -510,7 +510,6 @@ public:
     {
         return window;
     }
-
     FrameData* getFramesData()
     {
         return mFramesData;
@@ -522,5 +521,25 @@ public:
     std::vector<VkImageView>& getSwapChainImageViews()
     {
         return swapChainImageViews;
+    }
+    FrameData& getCurrentFrameData()
+    {
+        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
+    }
+    nevk::TextureManager* getTexManager()
+    {
+        return mTexManager;
+    }
+    nevk::ResourceManager* getResManager()
+    {
+        return mResManager;
+    }
+    nevk::Scene& getScene()
+    {
+        return mScene;
+    }
+    void setDepthResources()
+    {
+        createDepthResources();
     }
 };
