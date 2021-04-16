@@ -170,36 +170,33 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     return ret;
 }
 
-bool comp (std::vector<std::map<uint32_t, glm::float3>> a,
-          std::vector<std::map<uint32_t, glm::float3>> b) {
 
-    std::map<uint32_t, glm::float3>::iterator it1 = a[0].begin();
-    std::map<uint32_t, glm::float3>::iterator it2 = b[0].begin();
-
-    glm::vec3 vec1 = glm::make_vec3(it1->second);
-    glm::vec3 vec2 = glm::make_vec3(it2->second);
-    return vec1.x < vec2.x && vec1.y < vec2.y && vec1.z < vec2.z;
-//     glm::all(glm::lessThan(vec1, vec2));
-}
-
-inline bool epsilonEquals(const glm::float3 x,
-                          const glm::float3 y,
-                          const glm::float3 epsilon = glm::float3(1E-5f, 1E-5f, 1E-5f))
+void Model::sortMaterials(glm::float3 camPosition)
 {
-    return abs(x - y) <= epsilon;
+    std::vector<glm::float3> dist;
+
+    for (auto el:_transparent_materials){
+        std::map<uint32_t, glm::float3>::iterator it = el.begin();
+        glm::float3 distToCam = camPosition - it->second;
+        dist.push_back(distToCam);
+    }
+
+    if (dist.size() > 1){
+        int i, j;
+        int n = dist.size();
+        glm::float3 tmp = glm::float3(0.0f, 0.0f, 0.0f);
+
+        for (i = 0; i < n - 1; i++) {
+            for (j = 0; j < n - i - 1; j++) {
+                if ((dist[j].x > dist[j + 1].x) &&
+                    (dist[j].y > dist[j + 1].y) &&
+                    (dist[j].z > dist[j + 1].z)) {
+                    tmp = dist[j + 1];
+                    dist[j + 1] = dist[j];
+                    dist[j] = tmp;
+                }
+            }
+        }
+    }
 }
-
-inline bool epsilonLessThanOrEqualTo(const float x, const float y, const float epsilon = 1E-5f)
-{
-    return x <= y || epsilonEquals(x, y, epsilon);
-}
-
-void Model::sortMaterials(glm::float3 position)
-{
-    std::sort(_transparent_materials.begin(), _transparent_materials.end(), comp);
-    int t = 0;
-}
-
-
-
 } // namespace nevk
