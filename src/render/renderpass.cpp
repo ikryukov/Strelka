@@ -1,8 +1,7 @@
 #include "renderpass.h"
-
+#include <stdexcept>
 #include <array>
 #include <chrono>
-#include <stdexcept>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -10,7 +9,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
-
 
 namespace nevk
 {
@@ -144,14 +142,14 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
     }
 }
 
-void RenderPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
+void RenderPass::createFrameBuffers(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
     mFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         std::array<VkImageView, 2> attachments = {
-            imageViews[i],
+            imageView,
             depthImageView
         };
 
@@ -258,7 +256,7 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = mTextureImageView.size();
+    texLayoutBinding.descriptorCount = 1;
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -270,14 +268,7 @@ void RenderPass::createDescriptorSetLayout()
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    VkDescriptorSetLayoutBinding materialLayoutBinding{};
-    materialLayoutBinding.binding = 3;
-    materialLayoutBinding.descriptorCount = 1;
-    materialLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    materialLayoutBinding.pImmutableSamplers = nullptr;
-    materialLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, materialLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -306,23 +297,51 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        updateDescriptorSets(i);
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = uniformBuffers[i];
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(UniformBufferObject);
+
+        VkDescriptorImageInfo imageInfo{};
+        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfo.imageView = mTextureImageView;
+
+        VkDescriptorImageInfo samplerInfo{};
+        samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        samplerInfo.sampler = mTextureSampler;
+
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = mDescriptorSets[i];
+        descriptorWrites[0].dstBinding = 0;
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = mDescriptorSets[i];
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pImageInfo = &imageInfo;
+
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = mDescriptorSets[i];
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pImageInfo = &samplerInfo;
+
+        vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 
 void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
-    if (needDesciptorSetUpdate && imageviewcounter < 3)
-    {
-        imageviewcounter++;
-        updateDescriptorSets(imageIndex);
-    }
-    else
-    {
-        imageviewcounter = 0;
-        needDesciptorSetUpdate = false;
-    }
-
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mRenderPass;
@@ -376,7 +395,7 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view)
 {
     float time = 0;
 
@@ -384,12 +403,8 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     glm::float4x4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     glm::float4x4 proj = perspective;
 
-    ubo.modelToWorld = model;
     ubo.modelViewProj = proj * view * model;
-    ubo.CameraPos = camPos;
-    ubo.worldToView = view;
-    ubo.inverseWorldToView = transpose(inverse(ubo.modelToWorld));
-    ubo.lightDirect = lightDirect;
+    ubo.inverseWorldToView = transpose(inverse(ubo.worldToView));
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -411,7 +426,7 @@ void RenderPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
+void RenderPass::onResize(VkImageView& imageView, VkImageView& depthImageView, uint32_t width, uint32_t height, uint32_t textureWidth, uint32_t textureHeight)
 {
     mWidth = width;
     mHeight = height;
@@ -427,14 +442,12 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
 
     createRenderPass();
     createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
-    createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
+    createFrameBuffers(imageView, depthImageView, textureWidth, textureHeight);
 }
 
-void RenderPass::setTextureImageView(std::vector<VkImageView> textureImageView)
+void RenderPass::setTextureImageView(VkImageView textureImageView)
 {
     mTextureImageView = textureImageView;
-    imageviewcounter = 0;
-    needDesciptorSetUpdate = true;
 }
 
 void RenderPass::setTextureSampler(VkSampler textureSampler)
@@ -442,83 +455,4 @@ void RenderPass::setTextureSampler(VkSampler textureSampler)
     mTextureSampler = textureSampler;
 }
 
-void RenderPass::setMaterialBuffer(VkBuffer materialBuffer)
-{
-    mMaterialBuffer = materialBuffer;
-}
-
-void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
-{
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = uniformBuffers[descSetIndex];
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(UniformBufferObject);
-
-    std::vector<VkDescriptorImageInfo> imageInfo(mTextureImageView.size());
-    for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
-    {
-        imageInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo[j].imageView = mTextureImageView[j];
-    }
-
-    VkDescriptorImageInfo samplerInfo{};
-    samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    samplerInfo.sampler = mTextureSampler;
-
-    VkDescriptorBufferInfo materialInfo{};
-    materialInfo.buffer = mMaterialBuffer;
-    materialInfo.offset = 0;
-    materialInfo.range = VK_WHOLE_SIZE;
-
-    std::vector<VkWriteDescriptorSet> descriptorWrites{};
-
-    {
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
-        descriptorWrite.dstBinding = 0;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;
-        descriptorWrites.push_back(descriptorWrite);
-    }
-
-    if (!mTextureImageView.empty())
-    {
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
-        descriptorWrite.dstBinding = 1;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = mTextureImageView.size();
-        descriptorWrite.pImageInfo = imageInfo.data();
-        descriptorWrites.push_back(descriptorWrite);
-    }
-    {
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
-        descriptorWrite.dstBinding = 2;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &samplerInfo;
-        descriptorWrites.push_back(descriptorWrite);
-    }
-    {
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
-        descriptorWrite.dstBinding = 3;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &materialInfo;
-        descriptorWrites.push_back(descriptorWrite);
-    }
-
-    vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-}
 } // namespace nevk
