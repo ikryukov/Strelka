@@ -14,6 +14,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "computepass.h"
 #include "renderpass.h"
+#include "tonemap.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -40,7 +41,8 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+const std::string MODEL_PATH = "misc/cube.obj";
+const std::string TEXTURE_PATH = "misc/red-brick-wall.jpg";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -138,14 +140,26 @@ private:
     VkDeviceMemory textureCompImageMemory;
     VkImageView textureCompImageView;
 
+    VkImage textureTmapImage;
+    VkDeviceMemory textureTmapImageMemory;
+    VkImageView textureTmapImageView;
+
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
+
+    int texWidth, texHeight;
+    VkImageView textureImageView;
+
+    VkSampler textureSampler;
+
     nevk::ResourceManager* mResManager;
-    nevk::TextureManager* mTexManager;
 
     nevk::RenderPass mPass;
-    nevk::Model* model;
+    nevk::Tonemap mTonemapPass;
     nevk::ComputePass mComputePass;
 
     std::vector<nevk::Scene::Vertex> vertices;
+    //  std::vector<nevk::Scene::Material> materials;
     std::vector<uint32_t> indices;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
@@ -210,7 +224,6 @@ private:
 
         const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
         switch (key)
-
         {
         case GLFW_KEY_W: {
             camera.keys.forward = keyState;
@@ -310,6 +323,11 @@ private:
                                     -yoffset * mCamera.movementSpeed));
     }
 
+    nevk::Scene& getScene()
+    {
+        return this->mScene;
+    }
+
     void initVulkan();
 
     void mainLoop();
@@ -318,7 +336,7 @@ private:
 
     void cleanup();
 
-    void recreateSwapChain();
+    void Render::recreateSwapChain();
 
     void createInstance();
 
@@ -349,6 +367,18 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
+    void createTextureImage();
+
+    void createTextureImageView();
+
+    void createTextureSampler();
+
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+
     std::vector<nevk::Scene::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
     {
         std::vector<nevk::Scene::Vertex> ret(params.size());
@@ -359,8 +389,9 @@ private:
         return ret;
     }
 
-    void loadModel(nevk::Model& testmodel)
+    void loadModel()
     {
+        nevk::Model testmodel;
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
         vertices = convertVerticesToRender(testmodel.getVertices());
         indices = testmodel.getIndices();
@@ -368,9 +399,7 @@ private:
         camera.type = Camera::CameraType::firstperson;
 
         camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
-
         camera.rotationSpeed = 0.0025f;
-
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
@@ -383,6 +412,12 @@ private:
     void createIndexBuffer();
 
     void createDescriptorPool();
+
+    VkCommandBuffer beginSingleTimeCommands();
+
+    void endSingleTimeCommands(VkCommandBuffer commandBuffer);
+
+    void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
@@ -448,14 +483,6 @@ public:
     {
         createSwapChain();
     }
-    void setTexManager(nevk::TextureManager* _mTexManager)
-    {
-        mTexManager = _mTexManager;
-    }
-    void setResManager(nevk::ResourceManager* _mResManager)
-    {
-        mResManager = _mResManager;
-    }
     void setImageViews()
     {
         createImageViews();
@@ -508,6 +535,10 @@ public:
     {
         return window;
     }
+    FrameData& getCurrentFrameData()
+    {
+        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
+    }
     FrameData* getFramesData()
     {
         return mFramesData;
@@ -519,25 +550,5 @@ public:
     std::vector<VkImageView>& getSwapChainImageViews()
     {
         return swapChainImageViews;
-    }
-    FrameData& getCurrentFrameData()
-    {
-        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
-    }
-    nevk::TextureManager* getTexManager()
-    {
-        return mTexManager;
-    }
-    nevk::ResourceManager* getResManager()
-    {
-        return mResManager;
-    }
-    nevk::Scene& getScene()
-    {
-        return mScene;
-    }
-    void setDepthResources()
-    {
-        createDepthResources();
     }
 };
