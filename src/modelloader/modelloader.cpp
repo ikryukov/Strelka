@@ -1,5 +1,7 @@
 #include "modelloader.h"
+
 #include <glm/gtc/type_ptr.hpp>
+
 #include <algorithm>
 
 namespace nevk
@@ -36,6 +38,8 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     }
 
     std::unordered_map<std::string, uint32_t> unMat{};
+    bool transparent = false;
+    int count = 0;
     for (auto& shape : shapes)
     {
         size_t index_offset = 0;
@@ -44,7 +48,6 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
             tinyobj::index_t idx0 = shape.mesh.indices[f + 0];
             tinyobj::index_t idx1 = shape.mesh.indices[f + 1];
             tinyobj::index_t idx2 = shape.mesh.indices[f + 2];
-
 
             int fv = shape.mesh.num_face_vertices[f];
             for (size_t v = 0; v < fv; v++)
@@ -84,7 +87,6 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                                                  attrib.normals[3 * idx.normal_index + 1],
                                                  attrib.normals[3 * idx.normal_index + 2] });
                 }
-
 
                 Scene::Material material{};
                 if (!MTL_PATH.empty())
@@ -137,13 +139,15 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                         bool tr_illum = std::find(_transparent_illums.begin(), _transparent_illums.end(), material.illum) != _transparent_illums.end();
                         if (tr_illum)
                         {
-                            std::map<uint32_t, glm::float3> indM_pos;
-                            indM_pos[matId] = vertex.pos;
-                            _transparent_materials.push_back(indM_pos);
+                            //                            std::map<uint32_t, glm::float3> indM_pos;
+                            //                            indM_pos[matId] = vertex.pos;
+                            //                            _transparent_materials.push_back(indM_pos);
+                            transparent = true;
                         }
                         else
                         {
-                            _opaque_materials.push_back(matId);
+                            //                            _opaque_materials.push_back(matId);
+                            transparent = false;
                         }
 
                         unMat[matName] = matId;
@@ -154,11 +158,29 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                         vertex.materialId = unMat[matName];
                     }
                 }
-
                 _indices.push_back(static_cast<uint32_t>(_vertices.size()));
                 _vertices.push_back(vertex);
+
+                _inds.push_back(static_cast<uint32_t>(_vertices.size()));
+                _verts.push_back(vertex); // обнулять!!!
             }
             index_offset += fv;
+        }
+        if (transparent)
+        {
+            std::map<int, std::vector<Scene::Vertex>> tmp;
+            tmp[count++] = _verts;
+            _transparent_objects.push_back(tmp);
+            std::vector<Scene::Vertex> v;
+            _verts = v;
+        }
+        else
+        {
+            std::map<int, std::vector<Scene::Vertex>> tmp;
+            tmp[count++] = _verts;
+            _opaque_objects.push_back(tmp);
+            std::vector<Scene::Vertex> v;
+            _verts = v;
         }
     }
 
@@ -170,33 +192,68 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     return ret;
 }
 
-
+//bool comp (std::vector<std::map<uint32_t, glm::float3>> a,
+//           std::vector<std::map<uint32_t, glm::float3>> b) {
+//
+//    std::map<uint32_t, glm::float3>::iterator it1 = a[0].begin();
+//    std::map<uint32_t, glm::float3>::iterator it2 = b[0].begin();
+//
+//    glm::vec3 vec1 = glm::make_vec3(it1->second);
+//    glm::vec3 vec2 = glm::make_vec3(it2->second);
+//    return vec1.x < vec2.x && vec1.y < vec2.y && vec1.z < vec2.z;
+////     glm::all(glm::lessThan(vec1, vec2));
+//}
+//
+//inline bool epsilonEquals(const glm::float3 x,
+//                          const glm::float3 y,
+//                          const glm::float3 epsilon = glm::float3(1E-5f, 1E-5f, 1E-5f))
+//{
+//    return abs(x - y) <= epsilon;
+//}
+//
+//inline bool epsilonLessThanOrEqualTo(const float x, const float y, const float epsilon = 1E-5f)
+//{
+//    return x <= y || epsilonEquals(x, y, epsilon);
+//}
+//
+//void Model::sortMaterials(glm::float3 position)
+//{
+//    std::sort(_transparent_materials.begin(), _transparent_materials.end(), comp);
+//    int t = 0;
+//}
+//
 void Model::sortMaterials(glm::float3 camPosition)
 {
     std::vector<glm::float3> dist;
 
-    for (auto el:_transparent_materials){
-        std::map<uint32_t, glm::float3>::iterator it = el.begin();
-        glm::float3 distToCam = camPosition - it->second;
-        dist.push_back(distToCam);
-    }
-
-    if (dist.size() > 1){
-        int i, j;
-        int n = dist.size();
-        glm::float3 tmp = glm::float3(0.0f, 0.0f, 0.0f);
-
-        for (i = 0; i < n - 1; i++) {
-            for (j = 0; j < n - i - 1; j++) {
-                if ((dist[j].x > dist[j + 1].x) &&
-                    (dist[j].y > dist[j + 1].y) &&
-                    (dist[j].z > dist[j + 1].z)) {
-                    tmp = dist[j + 1];
-                    dist[j + 1] = dist[j];
-                    dist[j] = tmp;
-                }
-            }
-        }
-    }
+    //    for (auto el : _transparent_materials)
+    //    {
+    //        std::map<uint32_t, glm::float3>::iterator it = el.begin();
+    //        glm::float3 distToCam = camPosition - it->second;
+    //        dist.push_back(distToCam);
+    //    }
+    //
+    //    if (dist.size() > 1)
+    //    {
+    //        int i, j;
+    //        int n = dist.size();
+    //        glm::float3 tmp = glm::float3(0.0f, 0.0f, 0.0f);
+    //
+    //        for (i = 0; i < n - 1; i++)
+    //        {
+    //            for (j = 0; j < n - i - 1; j++)
+    //            {
+    //                if ((dist[j].x > dist[j + 1].x) &&
+    //                    (dist[j].y > dist[j + 1].y) &&
+    //                    (dist[j].z > dist[j + 1].z))
+    //                {
+    //                    tmp = dist[j + 1];
+    //                    dist[j + 1] = dist[j];
+    //                    dist[j] = tmp;
+    //                }
+    //            }
+    //        }
+    //    }
 }
+
 } // namespace nevk

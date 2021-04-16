@@ -26,8 +26,10 @@ private:
     std::vector<Scene::Vertex> _vertices;
     std::vector<uint32_t> _indices;
     nevk::TextureManager* mTexManager;
-    std::vector<uint32_t> _opaque_materials;
-    std::vector<std::map<uint32_t, glm::float3>> _transparent_materials;
+    std::vector<Scene::Vertex> _verts;
+    std::vector<uint32_t> _inds;
+    std::vector<std::map<int, std::vector<Scene::Vertex>>> _opaque_objects;
+    std::vector<std::map<int, std::vector<Scene::Vertex>>> _transparent_objects;
     std::vector<uint32_t> _transparent_illums = {4, 6, 7 , 9}; // info from MTL doc
 
 public:
