@@ -24,7 +24,7 @@ uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
-bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
+bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene, glm::float3 camPosition)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -136,17 +136,14 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                                                                material.illum,
                                                                material.texAmbientId, material.texDiffuseId,
                                                                material.texSpecularId, material.texNormalId);
-                        bool tr_illum = std::find(_transparent_illums.begin(), _transparent_illums.end(), material.illum) != _transparent_illums.end();
+                        bool tr_illum = std::find(_transparent_illums.begin(),
+                                                  _transparent_illums.end(), material.illum) != _transparent_illums.end();
                         if (tr_illum)
                         {
-                            //                            std::map<uint32_t, glm::float3> indM_pos;
-                            //                            indM_pos[matId] = vertex.pos;
-                            //                            _transparent_materials.push_back(indM_pos);
                             transparent = true;
                         }
                         else
                         {
-                            //                            _opaque_materials.push_back(matId);
                             transparent = false;
                         }
 
@@ -162,22 +159,22 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                 _vertices.push_back(vertex);
 
                 _inds.push_back(static_cast<uint32_t>(_vertices.size()));
-                _verts.push_back(vertex); // обнулять!!!
+                _verts.push_back(vertex);
             }
             index_offset += fv;
         }
         if (transparent)
         {
-            std::map<int, std::vector<Scene::Vertex>> tmp;
-            tmp[count++] = _verts;
+            std::map<std::vector<uint32_t>, std::vector<Scene::Vertex>> tmp;
+            tmp[_inds] = _verts;
             _transparent_objects.push_back(tmp);
             std::vector<Scene::Vertex> v;
             _verts = v;
         }
         else
         {
-            std::map<int, std::vector<Scene::Vertex>> tmp;
-            tmp[count++] = _verts;
+            std::map<std::vector<uint32_t>, std::vector<Scene::Vertex>> tmp;
+            tmp[_inds] = _verts;
             _opaque_objects.push_back(tmp);
             std::vector<Scene::Vertex> v;
             _verts = v;
@@ -185,6 +182,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     }
 
     mTexManager->createTextureSampler();
+    sortMaterials(camPosition);
     uint32_t meshId = mScene.createMesh(_vertices, _indices);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
@@ -192,68 +190,63 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     return ret;
 }
 
-//bool comp (std::vector<std::map<uint32_t, glm::float3>> a,
-//           std::vector<std::map<uint32_t, glm::float3>> b) {
-//
-//    std::map<uint32_t, glm::float3>::iterator it1 = a[0].begin();
-//    std::map<uint32_t, glm::float3>::iterator it2 = b[0].begin();
-//
-//    glm::vec3 vec1 = glm::make_vec3(it1->second);
-//    glm::vec3 vec2 = glm::make_vec3(it2->second);
-//    return vec1.x < vec2.x && vec1.y < vec2.y && vec1.z < vec2.z;
-////     glm::all(glm::lessThan(vec1, vec2));
-//}
-//
-//inline bool epsilonEquals(const glm::float3 x,
-//                          const glm::float3 y,
-//                          const glm::float3 epsilon = glm::float3(1E-5f, 1E-5f, 1E-5f))
-//{
-//    return abs(x - y) <= epsilon;
-//}
-//
-//inline bool epsilonLessThanOrEqualTo(const float x, const float y, const float epsilon = 1E-5f)
-//{
-//    return x <= y || epsilonEquals(x, y, epsilon);
-//}
-//
-//void Model::sortMaterials(glm::float3 position)
-//{
-//    std::sort(_transparent_materials.begin(), _transparent_materials.end(), comp);
-//    int t = 0;
-//}
-//
-void Model::sortMaterials(glm::float3 camPosition)
-{
-    std::vector<glm::float3> dist;
-
-    //    for (auto el : _transparent_materials)
-    //    {
-    //        std::map<uint32_t, glm::float3>::iterator it = el.begin();
-    //        glm::float3 distToCam = camPosition - it->second;
-    //        dist.push_back(distToCam);
-    //    }
-    //
-    //    if (dist.size() > 1)
-    //    {
-    //        int i, j;
-    //        int n = dist.size();
-    //        glm::float3 tmp = glm::float3(0.0f, 0.0f, 0.0f);
-    //
-    //        for (i = 0; i < n - 1; i++)
-    //        {
-    //            for (j = 0; j < n - i - 1; j++)
-    //            {
-    //                if ((dist[j].x > dist[j + 1].x) &&
-    //                    (dist[j].y > dist[j + 1].y) &&
-    //                    (dist[j].z > dist[j + 1].z))
-    //                {
-    //                    tmp = dist[j + 1];
-    //                    dist[j + 1] = dist[j];
-    //                    dist[j] = tmp;
-    //                }
-    //            }
-    //        }
-    //    }
+void Model::parseVertsInds(std::vector<std::map<std::vector<uint32_t>,
+                                          std::vector<Scene::Vertex>>> vec){
+    _vertices.clear();
+    for (auto& el:vec){
+        for (auto& item:el){
+            for (Scene::Vertex vert:item.second){
+                _vertices.push_back(vert);
+            }
+        }
+    }
 }
 
+bool comp (std::map<std::vector<uint32_t>, glm::float3> a,
+          std::map<std::vector<uint32_t>, glm::float3> b) {
+    std::map<std::vector<uint32_t>, glm::float3>::iterator it1 = a.begin();
+    std::map<std::vector<uint32_t>, glm::float3>::iterator it2 = b.begin();
+    return (it1->second).x < (it2->second).x &&
+           (it1->second).y < (it2->second).y &&
+           (it1->second).z < (it2->second).z;
+}
+
+void Model::sortMaterials(glm::float3 camPosition)
+{
+    std::vector<std::map<std::vector<uint32_t>, glm::float3>> dist;
+    for (auto& obj:_transparent_objects){
+        std::map<std::vector<uint32_t>, std::vector<Scene::Vertex>>::iterator it = obj.begin();
+        std::vector<uint32_t> indices = it->first;
+        std::vector<Scene::Vertex> objVerts = it->second;
+        glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);;
+        for (auto vertPos:objVerts){
+            sum += vertPos.pos;
+        }
+        glm::float3 objCenter = glm::float3(sum.x / objVerts.size(),
+                                         sum.y / objVerts.size(),
+                                         sum.z / objVerts.size()) ;
+
+        std::map<std::vector<uint32_t>, glm::float3> tmp;
+        tmp[indices] = (camPosition - objCenter);
+        dist.push_back(tmp);
+    }
+
+    if (dist.size() > 1)
+    {
+        std::sort(dist.begin(), dist.end(), comp);
+
+        for (auto& el1:dist){
+            for (auto& el2:_transparent_objects){
+                std::map<std::vector<uint32_t>, glm::float3>::iterator itEl1 = el1.begin();
+                std::map<std::vector<uint32_t>, std::vector<Scene::Vertex>>::iterator itEl2 = el2.begin();
+                std::vector<uint32_t> indices1 = itEl1->first;
+                std::vector<uint32_t> indices2 = itEl2->first;
+                if (indices1 == indices2){
+                    _opaque_objects.push_back(el2);
+                    parseVertsInds(_opaque_objects);
+                }
+            }
+        }
+    }
+}
 } // namespace nevk
