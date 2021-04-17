@@ -8,6 +8,7 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
+
 #include "scene/scene.h"
 #include <stdio.h> // printf, fprintf
 #include <stdlib.h> // abort
@@ -28,8 +29,8 @@ public:
     {
         ImGui::DestroyContext();
     }
-    bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
-    void updateUI(GLFWwindow* window, Scene& scene, char* path);
+    bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height,char* path);
+    std::string updateUI(GLFWwindow* window, Scene& scene);
     void render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat);
@@ -42,6 +43,8 @@ private:
     ImGui_ImplVulkan_InitInfo mInitInfo;
     ImGui_ImplVulkanH_Window wd;
     std::vector<VkFramebuffer> mFrameBuffers;
+    std::vector<bool> Bools;
+    std::vector<std::string> filesName;
     VkFormat mFrameBufferFormat;
 };
 } // namespace nevk

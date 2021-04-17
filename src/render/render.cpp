@@ -53,9 +53,10 @@ void Render::initVulkan()
     init_info.Queue = graphicsQueue;
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
-    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
+    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height, "C:/Users/Polina/Downloads/NeVK/misc");
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
     mPass.setFrameBufferFormat(swapChainImageFormat);
+
     mPass.setDepthBufferFormat(findDepthFormat());
     mPass.setTextureImageView(mTexManager->textureImageView);
     mPass.setTextureSampler(mTexManager->textureSampler);
@@ -683,13 +684,13 @@ void Render::drawFrame()
 
     nevk::Scene& scene = getScene();
     Camera& cam = scene.getCamera();
+  
 
     cam.update(deltaTime);
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightDirection, cam.getPosition());
 
-    mUi.updateUI(window, scene, "C:/Users/Polina/Downloads/NeVK/misc");
-
-
+    std::string file = mUi.updateUI(window, scene);
+  
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);
 

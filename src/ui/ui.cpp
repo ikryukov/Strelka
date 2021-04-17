@@ -1,14 +1,16 @@
 #include "ui.h"
 
 #include "scene/scene.h"
-#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING 	
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 
 #include <experimental/filesystem>
 
 #include <iostream>
 #include <stdexcept>
 #include <stdlib.h>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace nevk
 {
@@ -54,7 +56,7 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 }
 
 
-bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
+bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height, char* path)
 {
     wd.Width = width;
     wd.Height = height;
@@ -90,6 +92,16 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
 
     setDarkThemeColors();
 
+
+    for (std::experimental::filesystem::recursive_directory_iterator it(path), end; it != end; ++it)
+    {
+        if (it->path().extension() == ".obj")
+        {
+            filesName.push_back(it->path().generic_string());
+        }
+    }
+
+    Bools = std::vector<bool>(filesName.size(), false);
     return ret;
 }
 
@@ -201,31 +213,38 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(GLFWwindow* window, Scene& scene, char* path)
+std::string Ui::updateUI(GLFWwindow* window, Scene& scene)
 {
-
-
-    for (std::experimental::filesystem::recursive_directory_iterator it(path), end; it != end; ++it)
-    {
-        if (it->path().extension() == ".obj")
-        {
-            std::cout << *it << std::endl;
-        }
-        
-    }
     ImGuiIO& io = ImGui::GetIO();
 
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 
-        ImGui::Begin("Light Settings:"); // begin window
+    ImGui::Begin("Light Settings:"); // begin window
 
-        ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
-        ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
-        ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
+    ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
 
-        ImGui::End(); // end window
+    int pos = 0;
+    for (int i = 0; i < filesName.size(); ++i)
+    {
+        bool bools = Bools.at(i);
+        ImGui::Checkbox(filesName.at(i).c_str(), &bools);
+        if (bools)
+        {
+            for (int j = 0; j < filesName.size(); ++j)
+            {
+                Bools.at(j) = false;
+            }
+        }
+        if (bools)
+          pos = i;
+        Bools.at(i) = bools;
+    }
+    ImGui::End(); // end window
+    return filesName.at(pos);
 }
 
 void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)
