@@ -94,11 +94,12 @@ PS_INPUT vertexMain(VertexInput vi)
     out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
 
     out.uv = unpackUV(vi.uv);
-    out.normal = mul((float3x3)inverseModelToWorld, unpackNormal(vi.normal));
-    out.tangent = mul((float3x3)inverseModelToWorld, unpackTangent(vi.tangent));
+    out.normal = mul((float3x3)inverseModelToWorld, (unpackNormal(vi.normal)));
+    out.tangent = mul((float3x3)inverseModelToWorld, (unpackTangent(vi.tangent)));
     out.materialId = vi.materialId;
-    float4 wPos = mul(modelToWorld, float4(vi.position, 1.0f));
-    out.wPos = wPos.xyz / wPos.w;
+    //float4 wPos = mul(modelToWorld, float4(vi.position, 1.0f));
+    //out.wPos = wPos.xyz / wPos.w;
+    out.wPos = vi.position;
 
     return out;
 }
@@ -116,14 +117,14 @@ float3 specularPhong(float3 kS, float3 r, float3 v, float shinessFactor)
 float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
 {
     float3 Normal = normalize(inp.normal);
-    float3 Tangent = normalize(inp.tangent);
+    float3 Tangent = -normalize(inp.tangent);
     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
-    float3 Bitangent = cross(Tangent, Normal);
+    float3 Bitangent = cross(Normal, Tangent);
 
     float3 BumpMapNormal = textures[texId].Sample(gSampler, inp.uv).xyz;
     BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
 
-    float3x3 TBN = float3x3(Tangent, Bitangent, Normal);
+    float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
     float3 NewNormal = normalize(mul(TBN, BumpMapNormal));
 
     return NewNormal;
@@ -179,6 +180,5 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    {
       return float4(abs(N), 1.0);
    }
-
    return float4(saturate(kA + diffuse + specular), 1.0f);
 }
