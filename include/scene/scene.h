@@ -40,6 +40,7 @@ public:
     struct Vertex
     {
         glm::float3 pos;
+        uint32_t tangent;
         uint32_t normal;
         uint32_t uv;
         uint16_t materialId;
@@ -63,9 +64,15 @@ public:
         uint32_t pad;
     };
 
+    enum class DebugView
+    {
+        eNone = 0,
+        eNormals,
+    };
 
-    glm::float4 mLightDirection;
+    DebugView mDebugViewSettings = DebugView::eNone;
 
+    glm::float4 mLightPosition{1.0, 1.0, 1.0, 1.0};
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;

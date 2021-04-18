@@ -42,5 +42,7 @@ public:
     {
         return _indices;
     }
+
+    void computeTangent();
 };
 } // namespace nevk

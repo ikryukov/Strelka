@@ -16,9 +16,11 @@ private:
         alignas(16) glm::mat4 modelToWorld;
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
-        alignas(16) glm::mat4 inverseWorldToView;
-        alignas(16) glm::float4 lightDirect;
+        alignas(16) glm::mat4 inverseModelToWorld;
+        alignas(16) glm::float4 lightPosition;
         alignas(16) glm::float3 CameraPos;
+        float pad;
+        alignas(16) uint32_t debugView;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -36,7 +38,7 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
-    VkSampler mTextureSampler;
+    VkSampler mTextureSampler = VK_NULL_HANDLE;
 
     void createRenderPass();
 
@@ -79,17 +81,23 @@ private:
         attributeDescription.binding = 0;
         attributeDescription.location = 1;
         attributeDescription.format = VK_FORMAT_R32_UINT;
-        attributeDescription.offset = offsetof(Scene::Vertex, normal);
+        attributeDescription.offset = offsetof(Scene::Vertex, tangent);
         attributeDescriptions.emplace_back(attributeDescription);
 
         attributeDescription.binding = 0;
         attributeDescription.location = 2;
         attributeDescription.format = VK_FORMAT_R32_UINT;
-        attributeDescription.offset = offsetof(Scene::Vertex, uv);
+        attributeDescription.offset = offsetof(Scene::Vertex, normal);
         attributeDescriptions.emplace_back(attributeDescription);
 
         attributeDescription.binding = 0;
         attributeDescription.location = 3;
+        attributeDescription.format = VK_FORMAT_R32_UINT;
+        attributeDescription.offset = offsetof(Scene::Vertex, uv);
+        attributeDescriptions.emplace_back(attributeDescription);
+
+        attributeDescription.binding = 0;
+        attributeDescription.location = 4;
         attributeDescription.format = VK_FORMAT_R16_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, materialId);
         attributeDescriptions.emplace_back(attributeDescription);
@@ -147,7 +155,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos, Scene::DebugView& debugView);
 
 
     RenderPass(/* args */);
