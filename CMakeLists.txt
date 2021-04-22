@@ -194,6 +194,11 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
         "${CMAKE_SOURCE_DIR}/misc"
         "${OUTPUT_DIRECTORY}/misc"
         )
+add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        "${CMAKE_SOURCE_DIR}/tests/modelloader/testmisc"
+        "${OUTPUT_DIRECTORY}/testmisc"
+        )
 
 # Copy slang dlls to final directory after building
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
