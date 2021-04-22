@@ -4,11 +4,11 @@
 #include <doctest.h>
 #include <iostream>
 
-const std::string MODELPATH = "testmisc/cube.obj";
-const std::string MTLPATH = "testmisc/";
-const std::string TEXPATH1 = "testmisc/testtextures/brickwall.png";
-const std::string TEXPATH2 = "testmisc/testtextures/awesomeface.png";
-const std::string TEXPATH3 = "testmisc/testtextures/container.jpg";
+const std::string MODELPATH = "misc/test_data/cube.obj";
+const std::string MTLPATH = "misc/test_data";
+const std::string TEXPATH1 = "textures/brickwall.png";
+const std::string TEXPATH2 = "textures/awesomeface.png";
+const std::string TEXPATH3 = "textures/container.jpg";
 
 Render initVK()
 {
