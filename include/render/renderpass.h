@@ -157,7 +157,6 @@ public:
 
     void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos, Scene::DebugView& debugView);
 
-
     RenderPass(/* args */);
     ~RenderPass();
     void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);

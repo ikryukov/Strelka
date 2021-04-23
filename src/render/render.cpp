@@ -122,6 +122,10 @@ void Render::cleanup()
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
     mTexManager->textureDestroy();
+    
+    vkDestroyImageView(device, textureCompImageView, nullptr);
+    vkDestroyImage(device, textureCompImage, nullptr);
+    vkFreeMemory(device, textureCompImageMemory, nullptr);
 
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);

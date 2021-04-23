@@ -320,7 +320,13 @@ void Ui::onResize(ImGui_ImplVulkan_InitInfo& init_info, std::vector<VkImageView>
 
 void Ui::onDestroy() const
 {
+    for (auto& framebuffer : mFrameBuffers)
+    {
+        vkDestroyFramebuffer(mInitInfo.Device, framebuffer, nullptr);
+    }
     vkDestroyRenderPass(mInitInfo.Device, wd.RenderPass, nullptr);
+    ImGui_ImplVulkan_Shutdown();
+    ImGui::DestroyContext();
 }
 
 } // namespace nevk

@@ -122,6 +122,13 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
         throw std::runtime_error("failed to create pipeline layout!");
     }
 
+    std::array<VkDynamicState, 1> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT };
+
+    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
+    dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
+    dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
+
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
@@ -133,6 +140,7 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicStateCreateInfo;
     pipelineInfo.layout = mPipelineLayout;
     pipelineInfo.renderPass = mRenderPass;
     pipelineInfo.subpass = 0;
@@ -389,7 +397,7 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     ubo.inverseModelToWorld = transpose(inverse(ubo.modelToWorld));
     //ubo.lightPosition = lightPosition;
     ubo.lightPosition = glm::float4(camPos, 1.0f);
-    ubo.debugView = (uint32_t) debugView;
+    ubo.debugView = (uint32_t)debugView;
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -399,6 +407,11 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
 
 void RenderPass::onDestroy()
 {
+    for (size_t i = 0; i < uniformBuffers.size(); ++i)
+    {
+        vkDestroyBuffer(mDevice, uniformBuffers[i], nullptr);
+        vkFreeMemory(mDevice, uniformBuffersMemory[i], nullptr);
+    }
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
