@@ -13,6 +13,7 @@ void Render::initVulkan()
     uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
     uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
     uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
+    //uint32_t shId = mShaderManager.loadShader("shaders/shadow.hlsl", "shadowMain", nevk::ShaderManager::Stage::ePixel);
 
     const char* fragShaderCode = nullptr;
     uint32_t fragShaderCodeSize = 0;
@@ -25,6 +26,10 @@ void Render::initVulkan()
     const char* csShaderCode = nullptr;
     uint32_t csShaderCodeSize = 0;
     mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
+
+    /*const char* shShaderCode = nullptr;
+    uint32_t shShaderCodeSize = 0;
+    mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);*/
 
     createDescriptorPool();
     createCommandPool();
@@ -613,6 +618,27 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 
 void Render::createCommandBuffers()
 {
+    for (FrameData& fd : mFramesData)
+    {
+        VkCommandBufferAllocateInfo allocInfo{};
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = fd.cmdPool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = 1;
+
+        if (vkAllocateCommandBuffers(device, &allocInfo, &fd.cmdBuffer) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
+    }
+}
+
+void Render::createShadowCommandBuffers()
+{
+    VkClearValue clear_values[1];
+    clear_values[0].depthStencil.depth = 1.0f;
+    clear_values[0].depthStencil.stencil = 0;
+
     for (FrameData& fd : mFramesData)
     {
         VkCommandBufferAllocateInfo allocInfo{};

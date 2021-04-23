@@ -27,6 +27,7 @@ private:
     VkPipeline mPipeline;
     VkPipelineLayout mPipelineLayout;
     VkRenderPass mRenderPass;
+    VkRenderPass mShadowPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
     VkDevice mDevice;
     void updateDescriptorSets(uint32_t descSetIndex);
@@ -41,6 +42,9 @@ private:
     VkSampler mTextureSampler = VK_NULL_HANDLE;
 
     void createRenderPass();
+    void createShadowPass();
+    void createFrameBuffersShadow(VkImageView &shadow_map_view, uint32_t width, uint32_t height);
+    void createShadowGraphicsPipeline(VkShaderModule& shadowShaderModule, uint32_t width, uint32_t height);
 
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
@@ -51,6 +55,7 @@ private:
 
     std::vector<VkFramebuffer> mFrameBuffers;
 
+    VkFramebuffer mShadowFrameBuffer;
     VkFormat mFrameBufferFormat;
 
     VkFormat mDepthBufferFormat;
