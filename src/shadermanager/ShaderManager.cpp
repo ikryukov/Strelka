@@ -10,7 +10,10 @@ ShaderManager::ShaderManager()
 
 ShaderManager::~ShaderManager()
 {
-    spDestroySession(mSlangSession);
+    if (mSlangSession)
+    {
+        spDestroySession(mSlangSession);
+    }    
 }
 
 ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, const char* entryPointName, Stage stage)
