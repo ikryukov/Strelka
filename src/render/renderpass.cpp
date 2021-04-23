@@ -400,14 +400,7 @@ void RenderPass::createDescriptorSetLayout()
     materialLayoutBinding.pImmutableSamplers = nullptr;
     materialLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    VkDescriptorSetLayoutBinding depthLayoutBinding{};
-    texLayoutBinding.binding = 4;
-    texLayoutBinding.descriptorCount = 1;
-    texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    texLayoutBinding.pImmutableSamplers = nullptr;
-    texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    std::array<VkDescriptorSetLayoutBinding, 5> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, materialLayoutBinding, depthLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, materialLayoutBinding};
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -600,10 +593,6 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     materialInfo.offset = 0;
     materialInfo.range = VK_WHOLE_SIZE;
 
-    VkDescriptorImageInfo depthInfo{};
-    depthInfo.imageLayout  = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    depthInfo.imageView = mDepthImage;
-
     std::vector<VkWriteDescriptorSet> descriptorWrites{};
 
     {
@@ -650,17 +639,6 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pBufferInfo = &materialInfo;
-        descriptorWrites.push_back(descriptorWrite);
-    }
-    {
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
-        descriptorWrite.dstBinding = 4;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &depthInfo;
         descriptorWrites.push_back(descriptorWrite);
     }
 

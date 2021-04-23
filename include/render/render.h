@@ -40,6 +40,9 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
+const uint32_t SHADOW_MAP_WIDTH = 1024;
+const uint32_t SHADOW_MAP_HEIGHT = 1024;
+
 const std::string MODEL_PATH = "misc/cube.obj";
 const std::string MTL_PATH = "misc/";
 
@@ -140,6 +143,10 @@ private:
     VkImage textureCompImage;
     VkDeviceMemory textureCompImageMemory;
     VkImageView textureCompImageView;
+
+    VkImage shadowImage;
+    VkDeviceMemory shadowImageMemory;
+    VkImageView shadowImageView;
 
     nevk::ResourceManager* mResManager;
     nevk::TextureManager* mTexManager;

@@ -50,7 +50,6 @@ cbuffer ubo
 Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
-Texture2D depthMap;
 
 //  valid range of coordinates [-1; 1]
 float3 unpackNormal(uint32_t val)

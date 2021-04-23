@@ -116,7 +116,7 @@ public:
     int imageviewcounter = 0;
 
     std::vector<VkImageView> mTextureImageView;
-
+    VkImageView mDepthImage;
     VkBuffer mMaterialBuffer;
 
     bool needDesciptorSetUpdate;
