@@ -25,7 +25,6 @@ public:
     }
     ~Ui()
     {
-        ImGui::DestroyContext();
     }
     bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
     void updateUI(GLFWwindow* window, Scene& scene);

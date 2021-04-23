@@ -14,7 +14,7 @@ private:
     VkDevice mDevice;
     VkPhysicalDevice mPhysicalDevice;
 
-    nevk::ResourceManager* mResManager;
+    nevk::ResourceManager* mResManager = nullptr;
 
 public:
     TextureManager(VkDevice device,
@@ -57,7 +57,7 @@ public:
             }
         }
 
-        for (Texture tex : textures)
+        for (Texture& tex : textures)
         {
             vkDestroyImage(mDevice, tex.textureImage, nullptr);
             vkFreeMemory(mDevice, tex.textureImageMemory, nullptr);
