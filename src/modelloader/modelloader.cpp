@@ -38,12 +38,13 @@ glm::float2 unpackUV(uint32_t val)
     return uv;
 }
 
-void Model::computeTangent()
+void Model::computeTangent(std::vector<Scene::Vertex>& vertices,
+                           const std::vector<uint32_t>& indices) const
 {
-    size_t lastIndex = _indices.size();
-    Scene::Vertex& v0 = _vertices[_indices[lastIndex - 3]];
-    Scene::Vertex& v1 = _vertices[_indices[lastIndex - 2]];
-    Scene::Vertex& v2 = _vertices[_indices[lastIndex - 1]];
+    const size_t lastIndex = indices.size();
+    Scene::Vertex& v0 = vertices[indices[lastIndex - 3]];
+    Scene::Vertex& v1 = vertices[indices[lastIndex - 2]];
+    Scene::Vertex& v2 = vertices[indices[lastIndex - 1]];
 
     glm::float2 uv0 = unpackUV(v0.uv);
     glm::float2 uv1 = unpackUV(v1.uv);
@@ -55,9 +56,10 @@ void Model::computeTangent()
     glm::vec2 deltaUV2 = uv2 - uv0;
 
     glm::vec3 tangent{ 0.0f, 0.0f, 1.0f };
-    if (abs(deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x) > 1e-6)
+    const float d = deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x;
+    if (abs(d) > 1e-6)
     {
-        float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+        float r = 1.0f / d;
         tangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y) * r;
     }
 
@@ -86,6 +88,8 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
     std::unordered_map<std::string, uint32_t> uniqueMaterial{};
     for (auto& shape : shapes)
     {
+        std::vector<Scene::Vertex> _vertices;
+        std::vector<uint32_t> _indices;
         size_t index_offset = 0;
         for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++)
         {
@@ -199,15 +203,17 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
             }
             index_offset += verticesPerFace;
 
-            computeTangent();
+            computeTangent(_vertices, _indices);
         }
+
+        uint32_t meshId = mScene.createMesh(_vertices, _indices);
+        glm::float4x4 transform{ 1.0f };
+        glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
+        uint32_t instId = mScene.createInstance(meshId, -1, transform);
     }
 
     mTexManager->createTextureSampler();
-    uint32_t meshId = mScene.createMesh(_vertices, _indices);
-    glm::float4x4 transform{ 1.0f };
-    glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-    uint32_t instId = mScene.createInstance(meshId, -1, transform);
+
     return ret;
 }
 } // namespace nevk

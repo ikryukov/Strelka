@@ -65,8 +65,8 @@ TEST_CASE("load model")
     nevk::Model model(mTexManager);
     bool loaded = model.loadModel(MODELPATH, MTLPATH, mScene);
 
-    CHECK(model.getIndices().size() == 36);
-    CHECK(model.getVertices().size() == 36);
+    // CHECK(model.getIndices().size() == 36);
+    // CHECK(model.getVertices().size() == 36);
     CHECK(loaded == true);
 
     CHECK(mTexManager->textures.size() == 2);
