@@ -68,19 +68,22 @@ void Model::computeTangent()
     v2.tangent = packedTangent;
 }
 
-bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
+bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, nevk::Scene& mScene)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn, err;
 
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str(), MTL_PATH.c_str(), true);
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelFile.c_str(), mtlPath.c_str(), true);
     if (!ret)
     {
         throw std::runtime_error(warn + err);
     }
-    std::unordered_map<std::string, uint32_t> unMat{};
+
+    const bool hasMaterial = !mtlPath.empty() && !materials.empty();
+
+    std::unordered_map<std::string, uint32_t> uniqueMaterial{};
     for (auto& shape : shapes)
     {
         size_t index_offset = 0;
@@ -90,9 +93,68 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
             tinyobj::index_t& idx1 = shape.mesh.indices[f + 1];
             tinyobj::index_t& idx2 = shape.mesh.indices[f + 2];
 
-            const int fv = shape.mesh.num_face_vertices[f];
-            assert(fv == 3);
-            for (size_t v = 0; v < fv; v++)
+            uint32_t faceMaterialId = 0; // TODO: make default material
+            if (hasMaterial)
+            {
+                Scene::Material material{};
+                const int materialIdx = shape.mesh.material_ids[f];
+                const auto& currMaterial = materials[materialIdx];
+                const std::string& matName = currMaterial.name;
+                const std::string& bumpTexname = currMaterial.bump_texname;
+
+                if (uniqueMaterial.count(matName) == 0)
+                {
+                    // need to create material
+                    material.ambient = { currMaterial.ambient[0],
+                                         currMaterial.ambient[1],
+                                         currMaterial.ambient[2], 1.0f };
+
+                    material.diffuse = { currMaterial.diffuse[0],
+                                         currMaterial.diffuse[1],
+                                         currMaterial.diffuse[2], 1.0f };
+
+                    material.specular = { currMaterial.specular[0],
+                                          currMaterial.specular[1],
+                                          currMaterial.specular[2], 1.0f };
+
+                    material.emissive = { currMaterial.emission[0],
+                                          currMaterial.emission[1],
+                                          currMaterial.emission[2], 1.0f };
+
+                    material.opticalDensity = currMaterial.ior;
+
+                    material.shininess = currMaterial.shininess;
+
+                    material.transparency = { currMaterial.transmittance[0],
+                                              currMaterial.transmittance[1],
+                                              currMaterial.transmittance[2], 1.0f };
+
+                    material.illum = currMaterial.illum;
+
+                    material.texAmbientId = mTexManager->loadTexture(currMaterial.ambient_texname, mtlPath);
+                    material.texDiffuseId = mTexManager->loadTexture(currMaterial.diffuse_texname, mtlPath);
+                    material.texSpecularId = mTexManager->loadTexture(currMaterial.specular_texname, mtlPath);
+                    material.texNormalId = mTexManager->loadTexture(currMaterial.bump_texname, mtlPath);
+
+                    uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
+                                                           material.specular, material.emissive,
+                                                           material.opticalDensity, material.shininess,
+                                                           material.transparency, material.illum,
+                                                           material.texAmbientId, material.texDiffuseId,
+                                                           material.texSpecularId, material.texNormalId);
+                    uniqueMaterial[matName] = matId;
+                    faceMaterialId = matId;
+                }
+                else
+                {
+                    // reuse existing material
+                    faceMaterialId = uniqueMaterial[matName];
+                }
+            }
+
+            const int verticesPerFace = shape.mesh.num_face_vertices[f];
+            assert(verticesPerFace == 3); // ensure that we load triangulated faces
+            for (size_t v = 0; v < verticesPerFace; ++v)
             {
                 Scene::Vertex vertex{};
                 const auto& idx = shape.mesh.indices[index_offset + v];
@@ -130,67 +192,12 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
                                                            attrib.normals[3 * idx.normal_index + 1],
                                                            attrib.normals[3 * idx.normal_index + 2]));
                 }
-
-                if (!MTL_PATH.empty())
-                {
-                    Scene::Material material{};
-                    const int materialIdx = shape.mesh.material_ids[f];
-                    const auto& currMaterial = materials[materialIdx];
-                    const std::string& matName = currMaterial.name;
-                    const std::string& bumpTexname = currMaterial.bump_texname;
-
-                    if (unMat.count(matName) == 0)
-                    {
-                        material.ambient = { currMaterial.ambient[0],
-                                             currMaterial.ambient[1],
-                                             currMaterial.ambient[2], 1.0f };
-
-                        material.diffuse = { currMaterial.diffuse[0],
-                                             currMaterial.diffuse[1],
-                                             currMaterial.diffuse[2], 1.0f };
-
-                        material.specular = { currMaterial.specular[0],
-                                              currMaterial.specular[1],
-                                              currMaterial.specular[2], 1.0f };
-
-                        material.emissive = { currMaterial.emission[0],
-                                              currMaterial.emission[1],
-                                              currMaterial.emission[2], 1.0f };
-
-                        material.opticalDensity = currMaterial.ior;
-
-                        material.shininess = currMaterial.shininess;
-
-                        material.transparency = { currMaterial.transmittance[0],
-                                                  currMaterial.transmittance[1],
-                                                  currMaterial.transmittance[2], 1.0f };
-
-                        material.illum = currMaterial.illum;
-
-                        material.texAmbientId = mTexManager->loadTexture(currMaterial.ambient_texname, MTL_PATH);
-                        material.texDiffuseId = mTexManager->loadTexture(currMaterial.diffuse_texname, MTL_PATH);
-                        material.texSpecularId = mTexManager->loadTexture(currMaterial.specular_texname, MTL_PATH);
-                        material.texNormalId = mTexManager->loadTexture(currMaterial.bump_texname, MTL_PATH);
-
-                        uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
-                                                               material.specular, material.emissive,
-                                                               material.opticalDensity, material.shininess,
-                                                               material.transparency, material.illum,
-                                                               material.texAmbientId, material.texDiffuseId,
-                                                               material.texSpecularId, material.texNormalId);
-                        unMat[matName] = matId;
-                        vertex.materialId = matId;
-                    }
-                    else
-                    {
-                        vertex.materialId = unMat[matName];
-                    }
-                }
+                vertex.materialId = faceMaterialId;
 
                 _indices.push_back(static_cast<uint32_t>(_vertices.size()));
                 _vertices.push_back(vertex);
             }
-            index_offset += fv;
+            index_offset += verticesPerFace;
 
             computeTangent();
         }

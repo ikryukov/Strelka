@@ -33,12 +33,12 @@ public:
 
     bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
 
-    std::vector<Scene::Vertex> getVertices()
+    std::vector<Scene::Vertex>& getVertices()
     {
         return _vertices;
     }
 
-    std::vector<uint32_t> getIndices()
+    std::vector<uint32_t>& getIndices()
     {
         return _indices;
     }
