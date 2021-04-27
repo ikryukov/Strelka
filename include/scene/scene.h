@@ -62,6 +62,12 @@ public:
         uint32_t texSpecularId; // map_specular
         uint32_t texNormalId; // map_normal - map_Bump
         uint32_t pad;
+
+        bool isTransparent()
+        {
+            // TODO:
+            return illum != 2;
+        }
     };
 
     enum class DebugView
@@ -80,6 +86,9 @@ public:
     std::vector<Mesh> mMeshes;
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
+
+    std::vector<uint32_t> mOpaqueInstances;
+    std::vector<uint32_t> mTransparentInstances;
 
     Scene() = default;
 
@@ -150,6 +159,11 @@ public:
     void removeInstance(uint32_t instId);
     void removeMesh(uint32_t meshId);
     void removeMaterial(uint32_t materialId);
+
+    std::vector<uint32_t>& getOpaqueInstancesToRender(const glm::float3 camPos);
+    
+    std::vector<uint32_t>& getTransparentInstancesToRender(const glm::float3 camPos);
+
     /// <summary>
     /// Get set of DirtyInstances
     /// </summary>
