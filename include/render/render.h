@@ -308,6 +308,13 @@ private:
 
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     {
+        ImGuiIO& io = ImGui::GetIO();
+        bool handled = io.WantCaptureMouse;
+        if (handled)
+        {
+            return;
+        }
+
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
         nevk::Scene& mScene = app->getScene();
         Camera& mCamera = mScene.getCamera();
