@@ -61,7 +61,7 @@ void Render::initVulkan()
     mPass.setTextureSampler(mTexManager->textureSampler);
 
     mPass.setMaterialBuffer(materialBuffer);
-    mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+    mPass.init(device, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
     mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 

@@ -1,4 +1,6 @@
 #pragma once
+#include "debugUtils.h"
+
 #include <scene/scene.h>
 #include <vulkan/vulkan.h>
 
@@ -24,11 +26,32 @@ private:
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
+
+    VkDevice mDevice;
     VkPipeline mPipeline;
     VkPipelineLayout mPipelineLayout;
     VkRenderPass mRenderPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
-    VkDevice mDevice;
+    
+    bool mEnableValidation = false;
+
+    void beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::float4& color)
+    {
+        if (mEnableValidation)
+        {
+            nevk::debug::beginLabel(cmdBuffer, labelName, color);
+        }
+    }
+
+    void endLabel(VkCommandBuffer cmdBuffer)
+    {
+        if (mEnableValidation)
+        {
+            vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
+            //nevk::debug::endLabel(cmdBuffer);
+        }
+    }
+
     void updateDescriptorSets(uint32_t descSetIndex);
 
     VkShaderModule mVS, mPS;
@@ -134,8 +157,9 @@ public:
     void setTextureSampler(VkSampler textureSampler);
     void setMaterialBuffer(VkBuffer materialBuffer);
 
-    void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
+    void init(VkDevice& device, bool enableValidation, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
     {
+        mEnableValidation = enableValidation;
         mDevice = device;
         mResMngr = resMngr;
         mDescriptorPool = descpool;
