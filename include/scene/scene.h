@@ -1,11 +1,12 @@
 #pragma once
 
-#include <vector>
-#include <stack>
-#include <set>
-#include <cstdint>
-#include "glm-wrapper.hpp"
 #include "camera.h"
+#include "glm-wrapper.hpp"
+
+#include <cstdint>
+#include <set>
+#include <stack>
+#include <vector>
 
 
 namespace nevk
@@ -78,7 +79,7 @@ public:
 
     DebugView mDebugViewSettings = DebugView::eNone;
 
-    glm::float4 mLightPosition{1.0, 1.0, 1.0, 1.0};
+    glm::float4 mLightPosition{ 1.0, 1.0, 1.0, 1.0 };
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
@@ -111,6 +112,16 @@ public:
     Camera& getCamera()
     {
         return mCamera;
+    }
+
+    const std::vector<Instance>& getInstances() const
+    {
+        return mInstances;
+    }
+
+    const std::vector<Mesh>& getMeshes() const
+    {
+        return mMeshes;
     }
 
     void updateCameraParams(int width, int height)
@@ -161,7 +172,7 @@ public:
     void removeMaterial(uint32_t materialId);
 
     std::vector<uint32_t>& getOpaqueInstancesToRender(const glm::float3 camPos);
-    
+
     std::vector<uint32_t>& getTransparentInstancesToRender(const glm::float3 camPos);
 
     /// <summary>
