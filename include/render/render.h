@@ -41,6 +41,7 @@ const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+//const std::string MODEL_PATH = "misc/san-miguel-low-poly.obj";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -372,9 +373,9 @@ private:
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 
-        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene, camera.getPosition());
-        vertices = convertVerticesToRender(testmodel.getVertices());
-        indices = testmodel.getIndices();
+        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
+        vertices = convertVerticesToRender(mScene.getVertices());
+        indices = mScene.getIndices();
     }
 
     void createVertexBuffer();

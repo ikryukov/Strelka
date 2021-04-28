@@ -1,5 +1,6 @@
 #include "scene.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace nevk
@@ -116,6 +117,81 @@ void Scene::removeMaterial(const uint32_t materialId)
     mDelMaterial.push(materialId); // marked as removed
 }
 
+bool compOp(std::map<uint32_t, glm::float3> a,
+            std::map<uint32_t, glm::float3> b)
+{
+    std::map<uint32_t, glm::float3>::iterator it1 = a.begin();
+    std::map<uint32_t, glm::float3>::iterator it2 = b.begin();
+    return (it1->second).x < (it2->second).x &&
+           (it1->second).y < (it2->second).y &&
+           (it1->second).z < (it2->second).z;
+}
+
+std::vector<uint32_t>& Scene::getOpaqueInstancesToRender(glm::float3 camPos)
+{
+    std::vector<std::map<uint32_t, glm::float3>> dist;
+    for (auto& obj : massCenterOp)
+    {
+        uint32_t _meshId = obj.first;
+        glm::float3 _objCenter = obj.second;
+
+//        dist[_meshId] = (camPos - _objCenter);
+        std::map<uint32_t, glm::float3> tmp;
+        tmp[_meshId] = (camPos - _objCenter);
+        dist.push_back(tmp);
+    }
+
+    if (dist.size() > 1)
+    {
+        std::sort(dist.begin(), dist.end(), compOp);
+
+        mOpaqueInstances.clear();
+        for (auto& el : dist)
+        {
+            auto it = el.begin();
+            mOpaqueInstances.push_back(it->first);
+        }
+    }
+    return mOpaqueInstances;
+}
+
+bool compTr(std::map<uint32_t, glm::float3> a,
+            std::map<uint32_t, glm::float3> b)
+{
+    std::map<uint32_t, glm::float3>::iterator it1 = a.begin();
+    std::map<uint32_t, glm::float3>::iterator it2 = b.begin();
+    return (it1->second).x > (it2->second).x &&
+           (it1->second).y > (it2->second).y &&
+           (it1->second).z > (it2->second).z;
+}
+
+std::vector<uint32_t>& Scene::getTransparentInstancesToRender(glm::float3 camPos)
+{
+    std::vector<std::map<uint32_t, glm::float3>> dist;
+    for (auto& obj : massCenterTr)
+    {
+        uint32_t _meshId = obj.first;
+        glm::float3 _objCenter = obj.second;
+
+        std::map<uint32_t, glm::float3> tmp;
+        tmp[_meshId] = (camPos - _objCenter);
+        dist.push_back(tmp);
+    }
+
+    if (dist.size() > 1)
+    {
+        std::sort(dist.begin(), dist.end(), compTr);
+
+        mTransparentInstances.clear();
+        for (auto& el : dist)
+        {
+            auto it = el.begin();
+            mTransparentInstances.push_back(it->first);
+        }
+    }
+    return mTransparentInstances;
+}
+
 std::set<uint32_t> Scene::getDirtyInstances()
 {
     return this->mDirtyInstances;
@@ -142,4 +218,5 @@ void Scene::endFrame()
 {
     FrMod = false;
 }
+
 } // namespace nevk
