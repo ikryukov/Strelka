@@ -122,7 +122,7 @@ void Render::cleanup()
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
     mTexManager->textureDestroy();
-    
+
     vkDestroyImageView(device, textureCompImageView, nullptr);
     vkDestroyImage(device, textureCompImage, nullptr);
     vkFreeMemory(device, textureCompImageMemory, nullptr);
@@ -610,7 +610,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
