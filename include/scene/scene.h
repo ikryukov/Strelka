@@ -64,6 +64,7 @@ public:
         uint32_t texNormalId; // map_normal - map_Bump
         uint32_t pad;
 
+      
         bool isTransparent()
         {
             // TODO:
@@ -80,9 +81,6 @@ public:
     DebugView mDebugViewSettings = DebugView::eNone;
 
     glm::float4 mLightPosition{ 1.0, 1.0, 1.0, 1.0 };
-
-    glm::float4 mLightDirection;
-
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
@@ -117,6 +115,16 @@ public:
     Camera& getCamera()
     {
         return mCamera;
+    }
+
+    const std::vector<Instance>& getInstances() const
+    {
+        return mInstances;
+    }
+
+    const std::vector<Mesh>& getMeshes() const
+    {
+        return mMeshes;
     }
 
     void updateCameraParams(int width, int height)

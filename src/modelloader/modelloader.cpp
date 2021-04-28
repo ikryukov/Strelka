@@ -210,7 +210,6 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
                                                            attrib.normals[3 * idx.normal_index + 2]));
                 }
                 vertex.materialId = shapeMaterialId;
-
                 _indices.push_back(static_cast<uint32_t>(_vertices.size()));
                 _vertices.push_back(vertex);
             }
@@ -243,6 +242,11 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
             mScene.mOpaqueInstances.push_back(instId);
             mScene.massCenterOp[instId] = objCenter;
         }
+
+        uint32_t meshId = mScene.createMesh(_vertices, _indices);
+        glm::float4x4 transform{ 1.0f };
+        glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
+        uint32_t instId = mScene.createInstance(meshId, shapeMaterialId, transform);
     }
 
     mTexManager->createTextureSampler();

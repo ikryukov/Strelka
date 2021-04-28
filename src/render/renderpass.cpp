@@ -122,6 +122,13 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
         throw std::runtime_error("failed to create pipeline layout!");
     }
 
+    std::array<VkDynamicState, 1> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT };
+
+    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
+    dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
+    dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
+
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
@@ -133,6 +140,7 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
+    pipelineInfo.pDynamicState = &dynamicStateCreateInfo;
     pipelineInfo.layout = mPipelineLayout;
     pipelineInfo.renderPass = mRenderPass;
     pipelineInfo.subpass = 0;
@@ -310,7 +318,7 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
     }
 }
 
-void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
+void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     if (needDesciptorSetUpdate && imageviewcounter < 3)
     {
@@ -358,7 +366,24 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
 
-    vkCmdDrawIndexed(cmd, indicesCount, 1, 0, 0, 0);
+    std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
+    std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera().getPosition());
+
+    const std::vector<Instance>& instances = scene.getInstances();
+    const std::vector<Mesh>& meshes = scene.getMeshes();
+
+    auto renderInstances = [&cmd, &instances, &meshes](const std::vector<uint32_t>& ids) {
+        for (const uint32_t currentInstanceId : ids)
+        {
+            const uint32_t currentMeshId = instances[currentInstanceId].mMeshId;
+            const uint32_t indexOffset = meshes[currentMeshId].mIndex;
+            const uint32_t indexCount = meshes[currentMeshId].mCount;
+            vkCmdDrawIndexed(cmd, indexCount, 1, indexOffset, 0, 0);
+        }
+    };
+
+    renderInstances(opaqueIds);
+    renderInstances(transparentIds);
 
     vkCmdEndRenderPass(cmd);
 }
@@ -376,20 +401,20 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos, Scene::DebugView& debugView)
 {
-    float time = 0;
-
     UniformBufferObject ubo{};
-    glm::float4x4 model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::float4x4 model = glm::float4x4(1.0f);
     glm::float4x4 proj = perspective;
 
     ubo.modelToWorld = model;
     ubo.modelViewProj = proj * view * model;
     ubo.CameraPos = camPos;
     ubo.worldToView = view;
-    ubo.inverseWorldToView = transpose(inverse(ubo.modelToWorld));
-    ubo.lightDirect = lightDirect;
+    ubo.inverseModelToWorld = transpose(inverse(ubo.modelToWorld));
+    //ubo.lightPosition = lightPosition;
+    ubo.lightPosition = glm::float4(camPos, 1.0f);
+    ubo.debugView = (uint32_t)debugView;
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -399,6 +424,11 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
 
 void RenderPass::onDestroy()
 {
+    for (size_t i = 0; i < uniformBuffers.size(); ++i)
+    {
+        vkDestroyBuffer(mDevice, uniformBuffers[i], nullptr);
+        vkFreeMemory(mDevice, uniformBuffersMemory[i], nullptr);
+    }
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);

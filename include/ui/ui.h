@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+#include "scene/scene.h"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
@@ -24,7 +25,6 @@ public:
     }
     ~Ui()
     {
-        ImGui::DestroyContext();
     }
     bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
     void updateUI(GLFWwindow* window, Scene& scene);
@@ -37,9 +37,9 @@ public:
     void onDestroy() const;
 
 private:
-    ImGui_ImplVulkan_InitInfo mInitInfo;
-    ImGui_ImplVulkanH_Window wd;
+    ImGui_ImplVulkan_InitInfo mInitInfo{};
+    ImGui_ImplVulkanH_Window wd{};
     std::vector<VkFramebuffer> mFrameBuffers;
-    VkFormat mFrameBufferFormat;
+    VkFormat mFrameBufferFormat = VkFormat::VK_FORMAT_UNDEFINED;
 };
 } // namespace nevk

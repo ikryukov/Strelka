@@ -14,7 +14,7 @@ private:
     VkDevice mDevice;
     VkPhysicalDevice mPhysicalDevice;
 
-    nevk::ResourceManager* mResManager;
+    nevk::ResourceManager* mResManager = nullptr;
 
 public:
     TextureManager(VkDevice device,
@@ -33,7 +33,7 @@ public:
     std::unordered_map<std::string, uint32_t> nameID{};
     std::vector<Texture> textures;
     std::vector<VkImageView> textureImageView;
-    VkSampler textureSampler;
+    VkSampler textureSampler = VK_NULL_HANDLE;
 
     int loadTexture(const std::string& texture_path, const std::string& MTL_PATH);
 
@@ -57,7 +57,7 @@ public:
             }
         }
 
-        for (Texture tex : textures)
+        for (Texture& tex : textures)
         {
             vkDestroyImage(mDevice, tex.textureImage, nullptr);
             vkFreeMemory(mDevice, tex.textureImageMemory, nullptr);

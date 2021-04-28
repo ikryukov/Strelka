@@ -40,9 +40,15 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
+// const std::string MODEL_PATH = "misc/cube.obj";
+// const std::string MTL_PATH = "misc/";
+
 const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
 //const std::string MODEL_PATH = "misc/san-miguel-low-poly.obj";
 const std::string MTL_PATH = "misc/";
+
+// const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
+// const std::string MTL_PATH = "misc/San_Miguel/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -146,8 +152,7 @@ private:
     nevk::Model* model;
     nevk::ComputePass mComputePass;
 
-    std::vector<nevk::Scene::Vertex> vertices;
-    std::vector<uint32_t> indices;
+    uint32_t indicesCount = 0;
     VkBuffer vertexBuffer;
     VkDeviceMemory vertexBufferMemory;
     VkBuffer materialBuffer;
@@ -235,6 +240,7 @@ private:
         }
         case GLFW_KEY_E: {
             camera.keys.down = keyState;
+            break;
         }
         default:
             break;
@@ -350,18 +356,9 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    std::vector<nevk::Scene::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
+     void loadModel(nevk::Model& testmodel)
     {
-        std::vector<nevk::Scene::Vertex> ret(params.size());
-        std::transform(params.begin(), params.end(), ret.begin(),
-                       [](auto& value) {
-                           return nevk::Scene::Vertex{ value.pos, value.normal, value.uv, value.materialId };
-                       });
-        return ret;
-    }
-
-    void loadModel(nevk::Model& testmodel)
-    {
+        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
         Camera& camera = mScene.getCamera();
         camera.type = Camera::CameraType::firstperson;
 
@@ -372,10 +369,6 @@ private:
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
-
-        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
-        vertices = convertVerticesToRender(mScene.getVertices());
-        indices = mScene.getIndices();
     }
 
     void createVertexBuffer();

@@ -123,6 +123,10 @@ void Render::cleanup()
 
     mTexManager->textureDestroy();
 
+    vkDestroyImageView(device, textureCompImageView, nullptr);
+    vkDestroyImage(device, textureCompImage, nullptr);
+    vkFreeMemory(device, textureCompImageMemory, nullptr);
+
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
 
@@ -483,24 +487,18 @@ VkFormat Render::findDepthFormat()
 void Render::createVertexBuffer()
 {
     std::vector<nevk::Scene::Vertex>& sceneVertices = mScene.getVertices();
-    // convert to render's vertices
-    vertices.resize(sceneVertices.size());
-    for (int i = 0; i < sceneVertices.size(); ++i)
+    VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
+    if (bufferSize == 0)
     {
-        vertices[i].pos = sceneVertices[i].pos;
-        vertices[i].uv = sceneVertices[i].uv;
-        vertices[i].normal = sceneVertices[i].normal;
-        vertices[i].materialId = sceneVertices[i].materialId;
+        return;
     }
-
-    VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, vertices.data(), (size_t)bufferSize);
+    memcpy(data, sceneVertices.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
@@ -541,14 +539,12 @@ void Render::createMaterialBuffer()
 void Render::createIndexBuffer()
 {
     std::vector<uint32_t>& sceneIndices = mScene.getIndices();
-    indices.resize(sceneIndices.size());
-
-    for (int i = 0; i < sceneIndices.size(); ++i)
+    indicesCount = sceneIndices.size();
+    VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
+    if (bufferSize == 0)
     {
-        indices[i] = sceneIndices[i];
+        return;
     }
-
-    VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -556,7 +552,7 @@ void Render::createIndexBuffer()
 
     void* data;
     vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, indices.data(), (size_t)bufferSize);
+    memcpy(data, sceneIndices.data(), (size_t)bufferSize);
     vkUnmapMemory(device, stagingBufferMemory);
 
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
@@ -614,7 +610,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mPass.record(cmd, vertexBuffer, indexBuffer, indices.size(), swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
@@ -685,10 +681,8 @@ void Render::drawFrame()
     Camera& cam = scene.getCamera();
 
     cam.update(deltaTime);
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightDirection, cam.getPosition());
-
+    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);
     mUi.updateUI(window, scene);
-
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);
@@ -926,6 +920,8 @@ std::vector<const char*> Render::getRequiredExtensions()
     {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
+
+    extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
     return extensions;
 }

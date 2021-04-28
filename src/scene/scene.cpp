@@ -55,6 +55,15 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     inst->mMeshId = meshId;
     inst->transform = transform;
 
+    if (mMaterials[materialId].isTransparent())
+    {
+        mTransparentInstances.push_back(instId);
+    }
+    else
+    {
+        mOpaqueInstances.push_back(instId);
+    }
+
     return instId;
 }
 
