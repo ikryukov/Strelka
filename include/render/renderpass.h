@@ -32,7 +32,7 @@ private:
     VkPipelineLayout mPipelineLayout;
     VkRenderPass mRenderPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
-    
+
     bool mEnableValidation = false;
 
     void beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::float4& color)
@@ -47,8 +47,7 @@ private:
     {
         if (mEnableValidation)
         {
-            vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
-            //nevk::debug::endLabel(cmdBuffer);
+            nevk::debug::endLabel(cmdBuffer);
         }
     }
 

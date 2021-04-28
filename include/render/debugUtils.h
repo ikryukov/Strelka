@@ -10,6 +10,8 @@ namespace nevk
 namespace debug
 {
 
+void setupDebug(VkInstance instance);
+
 void beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::float4& color);
 
 void endLabel(VkCommandBuffer cmdBuffer);

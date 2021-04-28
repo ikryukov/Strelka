@@ -1,10 +1,16 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "render.h"
 
+#include "debugUtils.h"
+
 void Render::initVulkan()
 {
     createInstance();
     setupDebugMessenger();
+    if (enableValidationLayers)
+    {
+        nevk::debug::setupDebug(instance);
+    }
     createSurface();
     pickPhysicalDevice();
     createLogicalDevice();

@@ -40,11 +40,11 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-// const std::string MODEL_PATH = "misc/cube.obj";
-// const std::string MTL_PATH = "misc/";
-
-const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+const std::string MODEL_PATH = "misc/cube.obj";
 const std::string MTL_PATH = "misc/";
+
+// const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+// const std::string MTL_PATH = "misc/";
 
 // const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
 // const std::string MTL_PATH = "misc/San_Miguel/";
