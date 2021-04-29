@@ -44,7 +44,6 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 // const std::string MTL_PATH = "misc/";
 
 const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
-//const std::string MODEL_PATH = "misc/san-miguel-low-poly.obj";
 const std::string MTL_PATH = "misc/";
 
 // const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
@@ -356,7 +355,7 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-     void loadModel(nevk::Model& testmodel)
+    void loadModel(nevk::Model& testmodel)
     {
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
         Camera& camera = mScene.getCamera();

@@ -13,11 +13,11 @@ struct Material
   float4 diffuse; // Kd
   float4 specular; // Ks
   float4 emissive; // Ke
-  float4 transparency; //  Tf -- прозрачность/непрозрачность
+  float4 transparency; //  d 1 -- прозрачность/непрозрачность
   float opticalDensity; // Ni
   float shininess; // Ns 16 --  блеск материала
   uint32_t illum; // illum 2 -- модель освещения
-  uint32_t texDiffuseId; // map_diffuse - map_kd
+  uint32_t texDiffuseId; // map_diffuse
 
   uint32_t texAmbientId; // map_ambient
   uint32_t texSpecularId; // map_specular
