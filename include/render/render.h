@@ -178,7 +178,8 @@ private:
 
     nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
-    nevk::Scene mScene;
+    nevk::Scene* mScene;
+    std::string mModelPath = MODEL_PATH;
 
     void initWindow()
     {
@@ -359,12 +360,14 @@ private:
         return ret;
     }
 
-    void loadModel(nevk::Model& testmodel)
+    void loadModel(std::string path, nevk::Model& testmodel)
     {
-        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
+        delete mScene;
+        mScene = new nevk::Scene;
+        testmodel.loadModel(path, MTL_PATH, mScene);
         vertices = convertVerticesToRender(testmodel.getVertices());
         indices = testmodel.getIndices();
-        Camera& camera = mScene.getCamera();
+        Camera& camera = mScene->getCamera();
         camera.type = Camera::CameraType::firstperson;
 
         camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
@@ -534,7 +537,7 @@ public:
     }
     nevk::Scene& getScene()
     {
-        return mScene;
+        return *mScene;
     }
     void setDepthResources()
     {

@@ -60,7 +60,7 @@ TEST_CASE("load model")
     initUi(&r);
 
     nevk::TextureManager* mTexManager = r.getTexManager();
-    nevk::Scene mScene;
+    nevk::Scene* mScene = new nevk::Scene;
 
     nevk::Model model(mTexManager);
     bool loaded = model.loadModel(MODELPATH, MTLPATH, mScene);

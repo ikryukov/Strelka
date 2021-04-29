@@ -38,7 +38,9 @@ void Render::initVulkan()
 
     createDepthResources();
     model = new nevk::Model(mTexManager);
-    loadModel(*model);
+    mScene = new nevk::Scene;
+    std::string s = "misc/CornellBox-Sphere.obj";
+    loadModel(s, *model);
 
     createMaterialBuffer();
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
@@ -53,7 +55,8 @@ void Render::initVulkan()
     init_info.Queue = graphicsQueue;
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
-    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height, "C:/Users/Polina/Downloads/NeVK/misc");
+    std::string* path = new std::string("C://Users//Polina//NeVK//build//bin//misc");
+    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height, *path);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
     mPass.setFrameBufferFormat(swapChainImageFormat);
 
@@ -73,7 +76,6 @@ void Render::initVulkan()
                              textureCompImage, textureCompImageMemory);
     mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-
     //mComputePass.setOutputImageView(textureCompImageView);
     //mComputePass.setInImageView();
     //mComputePass.setTextureSampler(mTexManager->textureSampler);
@@ -178,7 +180,7 @@ void Render::recreateSwapChain()
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(init_info, swapChainImageViews, width, height);
 
-    Camera& camera = mScene.getCamera();
+    Camera& camera = mScene->getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 }
 
@@ -483,7 +485,7 @@ VkFormat Render::findDepthFormat()
 
 void Render::createVertexBuffer()
 {
-    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene.getVertices();
+    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene->getVertices();
     // convert to render's vertices
     vertices.resize(sceneVertices.size());
     for (int i = 0; i < sceneVertices.size(); ++i)
@@ -514,7 +516,7 @@ void Render::createVertexBuffer()
 
 void Render::createMaterialBuffer()
 {
-    std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
+    std::vector<nevk::Scene::Material>& sceneMaterials = mScene->getMaterials();
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
     if (bufferSize == 0)
@@ -541,7 +543,7 @@ void Render::createMaterialBuffer()
 
 void Render::createIndexBuffer()
 {
-    std::vector<uint32_t>& sceneIndices = mScene.getIndices();
+    std::vector<uint32_t>& sceneIndices = mScene->getIndices();
     indices.resize(sceneIndices.size());
 
     for (int i = 0; i < sceneIndices.size(); ++i)
@@ -685,11 +687,15 @@ void Render::drawFrame()
     nevk::Scene& scene = getScene();
     Camera& cam = scene.getCamera();
   
-
     cam.update(deltaTime);
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightDirection, cam.getPosition());
+    if (mUi.updateUI(window, scene)) {
+      delete model;
+      model = new nevk::Model(mTexManager);
+      std::string path = "misc/viking_room.obj";
+      loadModel(path, *model);
+    }
 
-    std::string file = mUi.updateUI(window, scene);
   
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);

@@ -56,7 +56,7 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 }
 
 
-bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height, char* path)
+bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height, std::string& path)
 {
     wd.Width = width;
     wd.Height = height;
@@ -213,7 +213,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-std::string Ui::updateUI(GLFWwindow* window, Scene& scene)
+bool Ui::updateUI(GLFWwindow* window, Scene& scene)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -244,7 +244,7 @@ std::string Ui::updateUI(GLFWwindow* window, Scene& scene)
         Bools.at(i) = bools;
     }
     ImGui::End(); // end window
-    return filesName.at(pos);
+    return true;
 }
 
 void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)

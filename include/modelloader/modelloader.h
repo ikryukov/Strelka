@@ -31,7 +31,7 @@ public:
     explicit Model(nevk::TextureManager* texManager)
         : mTexManager(texManager){};
 
-    bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
+    bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene* mScene);
 
     std::vector<Scene::Vertex> getVertices()
     {
