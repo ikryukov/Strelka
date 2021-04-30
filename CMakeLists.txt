@@ -103,9 +103,11 @@ set(RENDER_SOURCES
         include/render/render.h
         include/render/renderpass.h
         include/render/computepass.h
+        include/render/shadowpass.h
         src/render/render.cpp
         src/render/renderpass.cpp
         src/render/computepass.cpp
+        src/render/shadowpass.cpp
         )
 set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})

@@ -387,7 +387,7 @@ private:
     void recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex);
 
     void createCommandBuffers();
-    void createShadowCommandBuffers();
+    void createShadowCommandBuffers(); //?
 
     void createSyncObjects();
 

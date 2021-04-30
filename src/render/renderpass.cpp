@@ -144,60 +144,6 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
     }
 }
 
-void RenderPass::createShadowGraphicsPipeline(VkShaderModule& shadowShaderModule, uint32_t width, uint32_t height)
-{
-    VkPipelineShaderStageCreateInfo shaderStageInfo{};
-    shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    shaderStageInfo.module = shadowShaderModule;
-    shaderStageInfo.pName = "main";
-
-    VkVertexInputBindingDescription bindingDescription{};
-    VkVertexInputAttributeDescription vertexattribs{};
-
-// Vertex attribute binding 0, location 0: position
-    bindingDescription.binding = 0;
-    bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    bindingDescription.stride = 2 * sizeof(glm::vec3);
-
-    vertexattribs.binding = 0;
-    vertexattribs.location = 0;
-    vertexattribs.format = VK_FORMAT_R32G32B32_SFLOAT;
-    vertexattribs.offset = 0;
-
-    VkPipelineVertexInputStateCreateInfo vertexPipeline;
-    vertexPipeline.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexPipeline.pNext = NULL;
-    vertexPipeline.flags = 0;
-    vertexPipeline.vertexBindingDescriptionCount = 1;
-    vertexPipeline.pVertexBindingDescriptions = &bindingDescription;
-    vertexPipeline.vertexAttributeDescriptionCount = 1;
-    vertexPipeline.pVertexAttributeDescriptions = &vertexattribs;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &mDescriptorSetLayout;
-
-    if (vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
-
-    VkGraphicsPipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineInfo.layout = mPipelineLayout;
-    pipelineInfo.pVertexInputState = &vertexPipeline;
-    pipelineInfo.pStages = &shaderStageInfo;
-    pipelineInfo.stageCount = 1;
-    pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-
-    if (vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create compute pipeline!");
-    }
-}
-
 void RenderPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
     mFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -222,25 +168,6 @@ void RenderPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImag
         {
             throw std::runtime_error("failed to create framebuffer!");
         }
-    }
-}
-
-void RenderPass::createFrameBuffersShadow(VkImageView &shadowMapView, uint32_t width, uint32_t height)
-{
-    VkFramebufferCreateInfo framebufferInfo{};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.pNext = NULL;
-    framebufferInfo.renderPass = mShadowPass;
-    framebufferInfo.attachmentCount = 1;
-    framebufferInfo.pAttachments = &shadowMapView;
-    framebufferInfo.width = width; // shadowMap width
-    framebufferInfo.height = height; //shadowMap height
-    framebufferInfo.layers = 1;
-    framebufferInfo.flags = 0;
-
-    if (vkCreateFramebuffer(mDevice, &framebufferInfo, NULL, &mShadowFrameBuffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create framebuffer!");
     }
 }
 
@@ -315,56 +242,6 @@ void RenderPass::createRenderPass()
     renderPassInfo.pDependencies = &dependency;
 
     if (vkCreateRenderPass(mDevice, &renderPassInfo, nullptr, &mRenderPass) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create render pass!");
-    }
-}
-
-void RenderPass::createShadowPass()
-{
-    VkAttachmentDescription attachments{};
-    // Depth attachment (shadow map)
-    attachments.format = VK_FORMAT_D32_SFLOAT;
-    attachments.samples = VK_SAMPLE_COUNT_1_BIT;
-    attachments.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    attachments.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    attachments.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    attachments.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachments.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    attachments.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    attachments.flags = 0;
-
-    // Attachment references from subpasses
-    VkAttachmentReference depthAttachmentRef;
-    depthAttachmentRef.attachment = 0;
-    depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-    // Subpass 0: shadow map rendering
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.flags = 0;
-    subpass.inputAttachmentCount = 0;
-    subpass.pInputAttachments = NULL;
-    subpass.colorAttachmentCount = 0;
-    subpass.pColorAttachments = NULL;
-    subpass.pResolveAttachments = NULL;
-    subpass.pDepthStencilAttachment = &depthAttachmentRef;
-    subpass.preserveAttachmentCount = 0;
-    subpass.pPreserveAttachments = NULL;
-
-    // Create render pass
-    VkRenderPassCreateInfo renderPassInfo;
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.pNext = NULL;
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &attachments;
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
-    renderPassInfo.dependencyCount = 0;
-    renderPassInfo.pDependencies = NULL;
-    renderPassInfo.flags = 0;
-
-    if (vkCreateRenderPass(mDevice, &renderPassInfo, NULL, &mShadowPass) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create render pass!");
     }
