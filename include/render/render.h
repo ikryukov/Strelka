@@ -13,6 +13,7 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "computepass.h"
+#include "shadowpass.h"
 #include "renderpass.h"
 
 #include <modelloader/modelloader.h>
@@ -154,6 +155,7 @@ private:
     nevk::RenderPass mPass;
     nevk::Model* model;
     nevk::ComputePass mComputePass;
+    nevk::ShadowPass mShadowPass;
 
     uint32_t indicesCount = 0;
     VkBuffer vertexBuffer;

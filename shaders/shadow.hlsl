@@ -17,10 +17,10 @@ struct PS_INPUT
 };
 
 [shader("vertex")]
-PS_INPUT main(VertexInput vi)
+PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
-    out.pos = mul(MVP * float4(vi.position, 1.0f));
+    out.pos = mul(MVP, float4(vi.position, 1.0f));
 
     return out;
 }

@@ -77,16 +77,21 @@ void ShadowPass::createShadowPass()
 //shadow pass pipeline w/o fragment shader
 void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule)
 {
-    VkPipelineShaderStageCreateInfo shaderStageInfo{};
-    shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    shaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    shaderStageInfo.module = shadowShaderModule;
-    shaderStageInfo.pName = "main";
+    VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = shadowShaderModule;
+    vertShaderStageInfo.pName = "main";
+
+    VkPipelineShaderStageCreateInfo shaderStages = vertShaderStageInfo;
+
+    VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+    vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
     VkVertexInputBindingDescription bindingDescription{};
     VkVertexInputAttributeDescription attributeDescription{};
 
-// here binding position
+    // here binding position
     bindingDescription.binding = 0;
     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     bindingDescription.stride = sizeof(Scene::Vertex);
@@ -96,14 +101,58 @@ void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule)
     attributeDescription.format = VK_FORMAT_R32G32B32_SFLOAT;
     attributeDescription.offset = offsetof(Scene::Vertex, pos);
 
-    VkPipelineVertexInputStateCreateInfo vertexPipeline;
-    vertexPipeline.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexPipeline.pNext = NULL;
-    vertexPipeline.flags = 0;
-    vertexPipeline.vertexBindingDescriptionCount = 1;
-    vertexPipeline.pVertexBindingDescriptions = &bindingDescription;
-    vertexPipeline.vertexAttributeDescriptionCount = 1; // only pos
-    vertexPipeline.pVertexAttributeDescriptions = &attributeDescription;
+    vertexInputInfo.vertexBindingDescriptionCount = 1;
+    vertexInputInfo.vertexAttributeDescriptionCount = 1; //only pos
+    vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+    vertexInputInfo.pVertexAttributeDescriptions = &attributeDescription;
+
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
+    inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.primitiveRestartEnable = VK_FALSE;
+
+    // Fix view port: vulkan specific to handle right hand coordinates
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = (float)SHADOW_MAP_HEIGHT;
+    viewport.width = (float)SHADOW_MAP_WIDTH;
+    viewport.height = -(float)SHADOW_MAP_HEIGHT;
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+
+    VkRect2D scissor{};
+    scissor.offset = { 0, 0 };
+    scissor.extent = { SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT };
+
+    VkPipelineViewportStateCreateInfo viewportState{};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.pViewports = &viewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
+
+    VkPipelineRasterizationStateCreateInfo rasterizer{};
+    rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.depthClampEnable = VK_FALSE;
+    rasterizer.rasterizerDiscardEnable = VK_FALSE;
+    rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizer.lineWidth = 1.0f;
+    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+    rasterizer.depthBiasEnable = VK_FALSE;
+
+    VkPipelineMultisampleStateCreateInfo multisampling{};
+    multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.sampleShadingEnable = VK_FALSE;
+    multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable = VK_TRUE;
+    depthStencil.depthWriteEnable = VK_TRUE;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthBoundsTestEnable = VK_FALSE;
+    depthStencil.stencilTestEnable = VK_FALSE;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -116,16 +165,23 @@ void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule)
     }
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
-    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    pipelineInfo.layout = mPipelineLayout;
-    pipelineInfo.pVertexInputState = &vertexPipeline;
-    pipelineInfo.pStages = &shaderStageInfo;
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 1;
+    pipelineInfo.pStages = &shaderStages;
+    pipelineInfo.pVertexInputState = &vertexInputInfo;
+    pipelineInfo.pInputAssemblyState = &inputAssembly;
+    pipelineInfo.pViewportState = &viewportState;
+    pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pMultisampleState = &multisampling;
+    pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.layout = mPipelineLayout;
+    pipelineInfo.renderPass = mShadowPass;
+    pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
     if (vkCreateGraphicsPipelines(mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
     {
-        throw std::runtime_error("failed to create compute pipeline!");
+        throw std::runtime_error("failed to create graphics pipeline!");
     }
 }
 
@@ -295,6 +351,7 @@ void ShadowPass::init(VkDevice& device, const char* ssCode, uint32_t ssCodeSize,
     mDescriptorPool = descpool;
     mSS = createShaderModule(ssCode, ssCodeSize);
     createUniformBuffers();
+    createShadowPass();
     createDescriptorSetLayout();
     createDescriptorSets(mDescriptorPool);
     createGraphicsPipeline(mSS);

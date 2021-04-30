@@ -13,7 +13,7 @@ void Render::initVulkan()
     uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
     uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
     uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-    //uint32_t shId = mShaderManager.loadShader("shaders/shadow.hlsl", "shadowMain", nevk::ShaderManager::Stage::ePixel);
+    uint32_t shId = mShaderManager.loadShader("shaders/shadow.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
 
     const char* fragShaderCode = nullptr;
     uint32_t fragShaderCodeSize = 0;
@@ -27,9 +27,9 @@ void Render::initVulkan()
     uint32_t csShaderCodeSize = 0;
     mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
 
-    /*const char* shShaderCode = nullptr;
+    const char* shShaderCode = nullptr;
     uint32_t shShaderCodeSize = 0;
-    mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);*/
+    mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);
 
     createDescriptorPool();
     createCommandPool();
@@ -85,6 +85,9 @@ void Render::initVulkan()
                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                              shadowImage, shadowImageMemory);
     shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT /* ? */);
+
+    mShadowPass.setInImageView(shadowImageView);
+    mShadowPass.init(device, shShaderCode, shShaderCodeSize, descriptorPool, mResManager);
 
     //mComputePass.setOutputImageView(textureCompImageView);
     //mComputePass.setInImageView();
