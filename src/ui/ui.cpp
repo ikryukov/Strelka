@@ -213,7 +213,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-bool Ui::updateUI(GLFWwindow* window, Scene& scene)
+std::string Ui::updateUI(GLFWwindow* window, Scene& scene)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -244,7 +244,7 @@ bool Ui::updateUI(GLFWwindow* window, Scene& scene)
         Bools.at(i) = bools;
     }
     ImGui::End(); // end window
-    return true;
+    return filesName[pos];
 }
 
 void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)

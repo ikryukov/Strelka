@@ -689,11 +689,12 @@ void Render::drawFrame()
   
     cam.update(deltaTime);
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightDirection, cam.getPosition());
-    if (mUi.updateUI(window, scene)) {
-      delete model;
-      model = new nevk::Model(mTexManager);
-      std::string path = "misc/viking_room.obj";
-      loadModel(path, *model);
+    std::string path = mUi.updateUI(window, scene);
+    if (path != mModelPath) {
+      //delete model;
+      //model = new nevk::Model(mTexManager);
+      mModelPath = path;
+      loadModel(mModelPath, *model);
     }
 
   
