@@ -23,7 +23,6 @@ ShadowPass::~ShadowPass()
 //Rendering the shadow map w/o color attachments
 void ShadowPass::createShadowPass()
 {
-
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = VK_FORMAT_D32_SFLOAT;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -32,7 +31,7 @@ void ShadowPass::createShadowPass()
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 0;
@@ -111,7 +110,7 @@ void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule)
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-    // Fix view port: vulkan specific to handle right hand coordinates
+    // Fix view port: vulkan specific to handle right hand coordinates ?
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = (float)SHADOW_MAP_HEIGHT;
@@ -185,6 +184,28 @@ void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule)
     }
 }
 
+void ShadowPass::createFrameBuffers(VkImageView& shadowImageView)
+{
+    std::array<VkImageView, 1> attachments = {
+        shadowImageView
+    };
+
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = mShadowPass;
+    framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    framebufferInfo.pAttachments = attachments.data();
+    framebufferInfo.width = SHADOW_MAP_WIDTH;
+    framebufferInfo.height = SHADOW_MAP_HEIGHT;
+    framebufferInfo.layers = 1;
+    framebufferInfo.flags = 0;
+
+    if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &shadowMapFb) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create framebuffer!");
+    }
+}
+
 VkShaderModule ShadowPass::createShaderModule(const char* code, const uint32_t codeSize)
 {
     VkShaderModuleCreateInfo createInfo{};
@@ -211,7 +232,7 @@ void ShadowPass::createDescriptorSetLayout()
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
     // for depth image ?
-   /*  VkDescriptorSetLayoutBinding texLayoutBinding{};
+    /*  VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
     texLayoutBinding.descriptorCount = 1;
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
@@ -262,15 +283,18 @@ void ShadowPass::createUniformBuffers()
     }
 }
 
-glm::float4x4 ShadowPass::computeMVP()
+glm::mat4 ShadowPass::computeLightSpaceMatrix()
 {
-    glm::vec3 lightInvDir = glm::vec3(0.5f,2,2);
+    float near_plane = 1.0f, far_plane = 7.5f;
+    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
-    glm::mat4 depthProjectionMatrix = glm::ortho<float>(-10,10,-10,10,-10,20);
-    glm::mat4 depthViewMatrix = glm::lookAt(lightInvDir, glm::vec3(0,0,0), glm::vec3(0,1,0));
-    glm::mat4 depthModelMatrix = glm::mat4(1.0);
+    glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+                                      glm::vec3(0.0f, 0.0f, 0.0f),
+                                      glm::vec3(0.0f, 1.0f, 0.0f));
 
-    return depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+
+    return lightSpaceMatrix;
 }
 
 void ShadowPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos)
@@ -279,7 +303,7 @@ void ShadowPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     glm::float4x4 model = glm::float4x4(1.0f);
     glm::float4x4 proj = perspective;
 
-    ubo.MVP = computeMVP();
+    ubo.lightSpaceMatrix = computeLightSpaceMatrix();
     ubo.modelToWorld = model;
     ubo.modelViewProj = proj * view * model;
     //ubo.lightPosition = lightPosition;  ?
@@ -299,17 +323,12 @@ void ShadowPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void ShadowPass::setInImageView(VkImageView textureImageView)
-{
-    mInImageView = textureImageView; // depth image?
-}
-
 void ShadowPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mShadowPass;
-    //renderPassInfo.framebuffer = mFrameBuffers[imageIndex % MAX_FRAMES_IN_FLIGHT];
+    renderPassInfo.framebuffer = shadowMapFb;
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { width, height };
 

@@ -12,7 +12,7 @@ class ShadowPass
 private:
     struct UniformBufferObject
     {
-        alignas(16) glm::mat4 MVP;
+        alignas(16) glm::mat4 lightSpaceMatrix;
         alignas(16) glm::mat4 modelToWorld;
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::float4 lightPosition;
@@ -22,6 +22,8 @@ private:
     const uint32_t SHADOW_MAP_HEIGHT = 1024;
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
+
+    VkFramebuffer shadowMapFb;
 
     VkDevice mDevice;
     VkDescriptorPool mDescriptorPool;
@@ -47,9 +49,8 @@ private:
 
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
     void createGraphicsPipeline(VkShaderModule& shadowShaderModule);
-    VkFormat findDepthFormat();
 
-    static glm::float4x4 computeMVP();
+    static glm::mat4 computeLightSpaceMatrix();
 
 public:
     ShadowPass(/* args */);
@@ -60,9 +61,9 @@ public:
     void createShadowPass();
     void init(VkDevice& device, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr);
     void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex); //?
+    void createFrameBuffers(VkImageView& shadowImageView);
     void onDestroy();
 
-    void setInImageView(VkImageView textureImageView);
     void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos);
 };
 } // namespace nevk

@@ -92,9 +92,8 @@ void Render::initVulkan()
                              shadowImage, shadowImageMemory);
     shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT /* ? */);
 
-    mShadowPass.setInImageView(shadowImageView);
     mShadowPass.init(device, shShaderCode, shShaderCodeSize, descriptorPool, mResManager);
-
+    mShadowPass.createFrameBuffers(shadowImageView);
     //mComputePass.setOutputImageView(textureCompImageView);
     //mComputePass.setInImageView();
     //mComputePass.setTextureSampler(mTexManager->textureSampler);
@@ -634,6 +633,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    //mShadowPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 
@@ -725,6 +725,7 @@ void Render::drawFrame()
 
     cam.update(deltaTime);
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);
+    mShadowPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition());
     mUi.updateUI(window, scene);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
