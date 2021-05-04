@@ -382,8 +382,18 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
         }
     };
 
-    renderInstances(opaqueIds);
-    renderInstances(transparentIds);
+    if (scene.transparentMode && scene.opaqueMode){
+        renderInstances(opaqueIds);
+        renderInstances(transparentIds);
+    }
+    else if (scene.transparentMode){
+        renderInstances(transparentIds);
+    }
+    else if(scene.opaqueMode){
+        renderInstances(opaqueIds);
+    }
+
+
 
     vkCmdEndRenderPass(cmd);
 }

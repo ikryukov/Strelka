@@ -204,7 +204,7 @@ void Ui::updateUI(GLFWwindow* window, Scene& scene)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::Begin("Light Settings:"); // begin window
+    ImGui::Begin("Settings:"); // begin window
 
     ImGui::SliderFloat("coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);
     ImGui::SliderFloat("coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
@@ -230,6 +230,13 @@ void Ui::updateUI(GLFWwindow* window, Scene& scene)
         }
         ImGui::EndCombo();
     }
+
+    ////// transparency settings
+//    static bool transparentMode = false;
+//    static bool opaqueMode = false;
+    ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
+    ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
+    ///////////
 
     ImGui::End(); // end window
 }
