@@ -354,13 +354,9 @@ void ShadowPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
 
-    vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
 
-    vkCmdDrawIndexed(cmd, indicesCount, 1, 0, 0, 0);
-
-    vkCmdEndRenderPass(cmd);
+   // vkCmdEndRenderPass(cmd);
 }
 
 void ShadowPass::init(VkDevice& device, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr)
