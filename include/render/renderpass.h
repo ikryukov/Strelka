@@ -1,4 +1,6 @@
 #pragma once
+#include "debugUtils.h"
+
 #include <scene/scene.h>
 #include <vulkan/vulkan.h>
 
@@ -24,11 +26,31 @@ private:
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
+
+    VkDevice mDevice;
     VkPipeline mPipeline;
     VkPipelineLayout mPipelineLayout;
     VkRenderPass mRenderPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
-    VkDevice mDevice;
+
+    bool mEnableValidation = false;
+
+    void beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::float4& color)
+    {
+        if (mEnableValidation)
+        {
+            nevk::debug::beginLabel(cmdBuffer, labelName, color);
+        }
+    }
+
+    void endLabel(VkCommandBuffer cmdBuffer)
+    {
+        if (mEnableValidation)
+        {
+            nevk::debug::endLabel(cmdBuffer);
+        }
+    }
+
     void updateDescriptorSets(uint32_t descSetIndex);
 
     VkShaderModule mVS, mPS;
@@ -134,8 +156,9 @@ public:
     void setTextureSampler(VkSampler textureSampler);
     void setMaterialBuffer(VkBuffer materialBuffer);
 
-    void init(VkDevice& device, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
+    void init(VkDevice& device, bool enableValidation, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
     {
+        mEnableValidation = enableValidation;
         mDevice = device;
         mResMngr = resMngr;
         mDescriptorPool = descpool;
@@ -159,6 +182,6 @@ public:
 
     RenderPass(/* args */);
     ~RenderPass();
-    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex);
+    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex);
 };
 } // namespace nevk

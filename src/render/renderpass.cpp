@@ -318,8 +318,10 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
     }
 }
 
-void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
+void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
+    beginLabel(cmd, "Geometry Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
+
     if (needDesciptorSetUpdate && imageviewcounter < 3)
     {
         imageviewcounter++;
@@ -366,9 +368,28 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
 
-    vkCmdDrawIndexed(cmd, indicesCount, 1, 0, 0, 0);
+    std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
+    std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera().getPosition());
+
+    const std::vector<Instance>& instances = scene.getInstances();
+    const std::vector<Mesh>& meshes = scene.getMeshes();
+
+    auto renderInstances = [&cmd, &instances, &meshes](const std::vector<uint32_t>& ids) {
+        for (const uint32_t currentInstanceId : ids)
+        {
+            const uint32_t currentMeshId = instances[currentInstanceId].mMeshId;
+            const uint32_t indexOffset = meshes[currentMeshId].mIndex;
+            const uint32_t indexCount = meshes[currentMeshId].mCount;
+            vkCmdDrawIndexed(cmd, indexCount, 1, indexOffset, 0, 0);
+        }
+    };
+
+    renderInstances(opaqueIds);
+    renderInstances(transparentIds);
 
     vkCmdEndRenderPass(cmd);
+
+    endLabel(cmd);
 }
 
 void RenderPass::createUniformBuffers()
