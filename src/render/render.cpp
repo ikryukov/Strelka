@@ -92,8 +92,8 @@ void Render::initVulkan()
                              shadowImage, shadowImageMemory);
     shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT /* ? */);
 
-    mShadowPass.init(device, shShaderCode, shShaderCodeSize, descriptorPool, mResManager);
-    mShadowPass.createFrameBuffers(shadowImageView);
+    mShadowPass.init(device, shShaderCode, shShaderCodeSize, descriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mShadowPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     //mComputePass.setOutputImageView(textureCompImageView);
     //mComputePass.setInImageView();
     //mComputePass.setTextureSampler(mTexManager->textureSampler);
@@ -633,33 +633,12 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
-    mShadowPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mShadowPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 
 void Render::createCommandBuffers()
 {
-    for (FrameData& fd : mFramesData)
-    {
-        VkCommandBufferAllocateInfo allocInfo{};
-        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        allocInfo.commandPool = fd.cmdPool;
-        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = 1;
-
-        if (vkAllocateCommandBuffers(device, &allocInfo, &fd.cmdBuffer) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to allocate command buffers!");
-        }
-    }
-}
-
-void Render::createShadowCommandBuffers()
-{
-    VkClearValue clear_values[1];
-    clear_values[0].depthStencil.depth = 1.0f;
-    clear_values[0].depthStencil.stencil = 0;
-
     for (FrameData& fd : mFramesData)
     {
         VkCommandBufferAllocateInfo allocInfo{};

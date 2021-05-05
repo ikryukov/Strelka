@@ -41,8 +41,8 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const uint32_t SHADOW_MAP_WIDTH = 1024;
-const uint32_t SHADOW_MAP_HEIGHT = 1024;
+const uint32_t SHADOW_MAP_WIDTH = 512;
+const uint32_t SHADOW_MAP_HEIGHT = 512;
 
 const std::string MODEL_PATH = "misc/cube.obj";
 const std::string MTL_PATH = "misc/";

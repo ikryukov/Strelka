@@ -74,7 +74,7 @@ void ShadowPass::createShadowPass()
 }
 
 //shadow pass pipeline w/o fragment shader
-void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule)
+void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint32_t width, uint32_t height)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -113,15 +113,15 @@ void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule)
     // Fix view port: vulkan specific to handle right hand coordinates ?
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = (float)SHADOW_MAP_HEIGHT;
-    viewport.width = (float)SHADOW_MAP_WIDTH;
-    viewport.height = -(float)SHADOW_MAP_HEIGHT;
+    viewport.y = (float)height;
+    viewport.width = (float)width;
+    viewport.height = -(float)height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
     scissor.offset = { 0, 0 };
-    scissor.extent = { SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT };
+    scissor.extent = { width, height };
 
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -184,7 +184,7 @@ void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule)
     }
 }
 
-void ShadowPass::createFrameBuffers(VkImageView& shadowImageView)
+void ShadowPass::createFrameBuffers(VkImageView& shadowImageView, uint32_t width, uint32_t height)
 {
     std::array<VkImageView, 1> attachments = {
         shadowImageView
@@ -195,8 +195,8 @@ void ShadowPass::createFrameBuffers(VkImageView& shadowImageView)
     framebufferInfo.renderPass = mShadowPass;
     framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
     framebufferInfo.pAttachments = attachments.data();
-    framebufferInfo.width = SHADOW_MAP_WIDTH;
-    framebufferInfo.height = SHADOW_MAP_HEIGHT;
+    framebufferInfo.width = width;
+    framebufferInfo.height = height;
     framebufferInfo.layers = 1;
     framebufferInfo.flags = 0;
 
@@ -229,7 +229,7 @@ void ShadowPass::createDescriptorSetLayout()
     uboLayoutBinding.descriptorCount = 1;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboLayoutBinding.pImmutableSamplers = nullptr;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     // for depth image ?
     /*  VkDescriptorSetLayoutBinding texLayoutBinding{};
@@ -301,13 +301,9 @@ void ShadowPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
 {
     UniformBufferObject ubo{};
     glm::float4x4 model = glm::float4x4(1.0f);
-    glm::float4x4 proj = perspective;
 
     ubo.lightSpaceMatrix = computeLightSpaceMatrix();
     ubo.modelToWorld = model;
-    ubo.modelViewProj = proj * view * model;
-    //ubo.lightPosition = lightPosition;  ?
-    ubo.lightPosition = glm::float4(camPos, 1.0f);
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -339,6 +335,7 @@ void ShadowPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
 
+    vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
 
     VkViewport viewport{};
@@ -356,10 +353,10 @@ void ShadowPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
 
-   // vkCmdEndRenderPass(cmd);
+    vkCmdEndRenderPass(cmd);
 }
 
-void ShadowPass::init(VkDevice& device, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr)
+void ShadowPass::init(VkDevice& device, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
 {
     mDevice = device;
     mResMngr = resMngr;
@@ -369,7 +366,7 @@ void ShadowPass::init(VkDevice& device, const char* ssCode, uint32_t ssCodeSize,
     createShadowPass();
     createDescriptorSetLayout();
     createDescriptorSets(mDescriptorPool);
-    createGraphicsPipeline(mSS);
+    createGraphicsPipeline(mSS, width, height);
 }
 
 } // namespace nevk
