@@ -140,7 +140,7 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
                                                        material.texSpecularId, material.texNormalId);
 
                 bool tr_illum = std::find(_transparent_illums.begin(),
-                                          _transparent_illums.end(), material.illum) != _transparent_illums.end(); ///////
+                                          _transparent_illums.end(), material.illum) != _transparent_illums.end();
                 if (tr_illum)
                 {
                     transparent = true;
