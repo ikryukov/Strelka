@@ -40,7 +40,7 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+//const std::string MODEL_PATH = "misc/cube.obj";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -179,7 +179,8 @@ private:
     nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
     nevk::Scene* mScene;
-    std::string mModelPath = MODEL_PATH;
+    std::string* mModelPath = new std::string("misc/CornellBox-Sphere.obj");
+
 
     void initWindow()
     {
@@ -364,7 +365,7 @@ private:
     {
         delete mScene;
         mScene = new nevk::Scene;
-        testmodel.loadModel(path, MTL_PATH, mScene);
+        testmodel.loadModel(path, MTL_PATH, *mScene);
         vertices = convertVerticesToRender(testmodel.getVertices());
         indices = testmodel.getIndices();
         Camera& camera = mScene->getCamera();

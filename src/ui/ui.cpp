@@ -1,5 +1,4 @@
 #include "ui.h"
-
 #include "scene/scene.h"
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 
@@ -56,7 +55,7 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 }
 
 
-bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height, std::string& path)
+bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height, std::string& path, std::string& model)
 {
     wd.Width = width;
     wd.Height = height;
@@ -92,16 +91,15 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
 
     setDarkThemeColors();
 
-
+    int pos = 0;
     for (std::experimental::filesystem::recursive_directory_iterator it(path), end; it != end; ++it)
     {
         if (it->path().extension() == ".obj")
         {
-            filesName.push_back(it->path().generic_string());
+            filesName.push_back(it->path().relative_path().string());
+            it->path().generic_string() == model ? Bools.push_back(true) : Bools.push_back(false);
         }
     }
-
-    Bools = std::vector<bool>(filesName.size(), false);
     return ret;
 }
 
@@ -221,12 +219,14 @@ std::string Ui::updateUI(GLFWwindow* window, Scene& scene)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::Begin("Light Settings:"); // begin window
+    ImGui::Begin("Light settings"); // begin window
 
+    ImGui::Text("Light settings:");
     ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
     ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
     ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
 
+    ImGui::Text("Choosing model:");
     int pos = 0;
     for (int i = 0; i < filesName.size(); ++i)
     {

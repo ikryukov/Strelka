@@ -39,8 +39,7 @@ void Render::initVulkan()
     createDepthResources();
     model = new nevk::Model(mTexManager);
     mScene = new nevk::Scene;
-    std::string s = "misc/CornellBox-Sphere.obj";
-    loadModel(s, *model);
+    loadModel(*mModelPath, *model);
 
     createMaterialBuffer();
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
@@ -55,8 +54,8 @@ void Render::initVulkan()
     init_info.Queue = graphicsQueue;
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
-    std::string* path = new std::string("C://Users//Polina//NeVK//build//bin//misc");
-    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height, *path);
+    std::string path = MTL_PATH;
+    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height, path, *mModelPath);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
     mPass.setFrameBufferFormat(swapChainImageFormat);
 
@@ -690,11 +689,18 @@ void Render::drawFrame()
     cam.update(deltaTime);
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightDirection, cam.getPosition());
     std::string path = mUi.updateUI(window, scene);
-    if (path != mModelPath) {
-      //delete model;
-      //model = new nevk::Model(mTexManager);
-      mModelPath = path;
-      loadModel(mModelPath, *model);
+//std::cout << std::endl << path << " " << *mModelPath << std::endl;
+    if (path != *mModelPath) {
+      delete mScene;
+      delete model;
+      mScene = new nevk::Scene;
+      model = new nevk::Model(mTexManager);
+      *mModelPath = path;
+      loadModel(*mModelPath, *model);
+      createMaterialBuffer();
+      //textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+      createIndexBuffer();
+      createVertexBuffer();
     }
 
   

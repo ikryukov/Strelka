@@ -20,7 +20,7 @@ uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
-bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene* mScene)
+bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -124,7 +124,7 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
 
                         material.texNormalId = mTexManager->loadTexture(materials[shape.mesh.material_ids[f]].bump_texname, MTL_PATH);
 
-                        uint32_t matId = mScene->createMaterial(material.ambient, material.diffuse,
+                        uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
                                                                material.specular, material.emissive,
                                                                material.opticalDensity, material.shininess,
                                                                material.transparency, material.illum,
@@ -147,10 +147,10 @@ bool Model::loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH
     }
 
     mTexManager->createTextureSampler();
-    uint32_t meshId = mScene->createMesh(_vertices, _indices);
+    uint32_t meshId = mScene.createMesh(_vertices, _indices);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-    uint32_t instId = mScene->createInstance(meshId, -1, transform);
+    uint32_t instId = mScene.createInstance(meshId, -1, transform);
     return ret;
 }
 } // namespace nevk
