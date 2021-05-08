@@ -219,6 +219,11 @@ void ComputePass::updateUniformBuffer(uint32_t currentImage, const uint32_t widt
 
 void ComputePass::onDestroy()
 {
+    for (size_t i = 0; i < uniformBuffers.size(); ++i)
+    {
+        vkDestroyBuffer(mDevice, uniformBuffers[i], nullptr);
+        vkFreeMemory(mDevice, uniformBuffersMemory[i], nullptr);
+    }
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyShaderModule(mDevice, mCS, nullptr);

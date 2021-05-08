@@ -1,9 +1,8 @@
-#pragma once
-#include <scene/glm-wrapper.hpp>
-
-#include <glm/gtx/quaternion.hpp>
 #include "camera.h"
 
+#include <glm/gtx/quaternion.hpp>
+
+#include <scene/glm-wrapper.hpp>
 
 void Camera::updateViewMatrix()
 {

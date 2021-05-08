@@ -57,16 +57,15 @@ void initUi(Render* r)
 TEST_CASE("load model")
 {
     Render r = initVK();
-    initUi(&r);
-
     nevk::TextureManager* mTexManager = r.getTexManager();
     nevk::Scene* mScene = new nevk::Scene;
 
-    nevk::Model model(mTexManager);
-    bool loaded = model.loadModel(MODELPATH, MTLPATH, mScene);
 
-    CHECK(model.getIndices().size() == 36);
-    CHECK(model.getVertices().size() == 36);
+    nevk::Model model(mTexManager);
+    bool loaded = model.loadModel(MODELPATH, MTLPATH, scene);
+
+    CHECK(scene.getIndices().size() == 36);
+    CHECK(scene.getVertices().size() == 36);
     CHECK(loaded == true);
 
     CHECK(mTexManager->textures.size() == 2);
@@ -79,8 +78,6 @@ TEST_CASE("load model")
 TEST_CASE("load textures")
 {
     Render r = initVK();
-    initUi(&r);
-
     nevk::TextureManager* mTexManager = r.getTexManager();
     nevk::Scene mScene;
 

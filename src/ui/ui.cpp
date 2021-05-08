@@ -1,4 +1,5 @@
 #include "ui.h"
+
 #include "scene/scene.h"
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 
@@ -10,6 +11,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 
 namespace nevk
 {
@@ -219,12 +221,34 @@ std::string Ui::updateUI(GLFWwindow* window, Scene& scene)
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::Begin("Light settings"); // begin window
+    ImGui::Begin("Settings"); // begin window
 
     ImGui::Text("Light settings:");
-    ImGui::SliderFloat("coordinate X", &scene.mLightDirection.x, -1.0f, 1.0f);
-    ImGui::SliderFloat("coordinate Y", &scene.mLightDirection.y, -1.0f, 1.0f);
-    ImGui::SliderFloat("coordinate Z", &scene.mLightDirection.z, -1.0f, 1.0f);
+
+    ImGui::SliderFloat("coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);
+    ImGui::SliderFloat("coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
+    ImGui::SliderFloat("coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
+
+    const char* items[] = { "None", "Normals" };
+    static const char* current_item = items[0];
+
+    if (ImGui::BeginCombo("Debug view", current_item))
+    {
+        for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+        {
+            bool is_selected = (current_item == items[n]);
+            if (ImGui::Selectable(items[n], is_selected))
+            {
+                current_item = items[n];
+                scene.mDebugViewSettings = (Scene::DebugView)n;
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
 
     ImGui::Text("Choosing model:");
     int pos = 0;
@@ -333,7 +357,13 @@ void Ui::onResize(ImGui_ImplVulkan_InitInfo& init_info, std::vector<VkImageView>
 
 void Ui::onDestroy() const
 {
+    for (auto& framebuffer : mFrameBuffers)
+    {
+        vkDestroyFramebuffer(mInitInfo.Device, framebuffer, nullptr);
+    }
     vkDestroyRenderPass(mInitInfo.Device, wd.RenderPass, nullptr);
+    ImGui_ImplVulkan_Shutdown();
+    ImGui::DestroyContext();
 }
 
 } // namespace nevk

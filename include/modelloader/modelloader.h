@@ -23,9 +23,7 @@ namespace nevk
 class Model
 {
 private:
-    std::vector<Scene::Vertex> _vertices;
-    std::vector<uint32_t> _indices;
-    nevk::TextureManager* mTexManager;
+    nevk::TextureManager* mTexManager = nullptr;
 
 public:
     explicit Model(nevk::TextureManager* texManager)
@@ -33,14 +31,8 @@ public:
 
     bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
 
-    std::vector<Scene::Vertex> getVertices()
-    {
-        return _vertices;
-    }
-
-    std::vector<uint32_t> getIndices()
-    {
-        return _indices;
-    }
+    // TODO: could be static
+    void computeTangent(std::vector<Scene::Vertex>& _vertices,
+                        const std::vector<uint32_t>& _indices) const;
 };
 } // namespace nevk
