@@ -231,12 +231,9 @@ void Ui::updateUI(GLFWwindow* window, Scene& scene)
         ImGui::EndCombo();
     }
 
-    ////// transparency settings
-//    static bool transparentMode = false;
-//    static bool opaqueMode = false;
+    // transparency settings
     ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
     ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
-    ///////////
 
     ImGui::End(); // end window
 }

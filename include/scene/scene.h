@@ -78,9 +78,9 @@ public:
     };
 
     DebugView mDebugViewSettings = DebugView::eNone;
-
-    bool transparentMode = false;
-    bool opaqueMode = false;
+    
+    bool transparentMode = true;
+    bool opaqueMode = true;
 
     glm::float4 mLightPosition{ 1.0, 1.0, 1.0, 1.0 };
 
