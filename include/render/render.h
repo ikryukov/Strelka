@@ -46,6 +46,9 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
 const std::string MTL_PATH = "misc/";
 
+// const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+// const std::string MTL_PATH = "misc/";
+
 // const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
 // const std::string MTL_PATH = "misc/San_Miguel/";
 
@@ -190,7 +193,7 @@ private:
         glfwInit();
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK Example", nullptr, nullptr);
+        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK", nullptr, nullptr);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
         glfwSetKeyCallback(window, keyCallback);
@@ -308,6 +311,13 @@ private:
 
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     {
+        ImGuiIO& io = ImGui::GetIO();
+        bool handled = io.WantCaptureMouse;
+        if (handled)
+        {
+            return;
+        }
+
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
         nevk::Scene& mScene = app->getScene();
         Camera& mCamera = mScene.getCamera();
@@ -408,8 +418,18 @@ private:
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
     {
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
-
+        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+        {
+            std::cout << "Warning: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
+        }
+        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
+        {
+            std::cerr << "Error: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
+        }
+        else
+        {
+            std::cerr << "Validation: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
+        }
         return VK_FALSE;
     }
 

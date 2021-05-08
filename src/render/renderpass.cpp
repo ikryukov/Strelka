@@ -326,6 +326,8 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
+    beginLabel(cmd, "Geometry Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
+
     if (needDesciptorSetUpdate && imageviewcounter < 3)
     {
         imageviewcounter++;
@@ -404,6 +406,8 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
 
     vkCmdEndRenderPass(cmd);
+
+    endLabel(cmd);
 }
 
 void RenderPass::createUniformBuffers()
