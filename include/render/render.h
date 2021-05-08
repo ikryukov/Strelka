@@ -380,8 +380,6 @@ private:
         delete mScene;
         mScene = new nevk::Scene;
         testmodel.loadModel(path, MTL_PATH, *mScene);
-        vertices = convertVerticesToRender(testmodel.getVertices());
-        indices = testmodel.getIndices();
         Camera& camera = mScene->getCamera();
     
         camera.type = Camera::CameraType::firstperson;

@@ -495,7 +495,7 @@ VkFormat Render::findDepthFormat()
 void Render::createVertexBuffer()
 {
 
-    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene.getVertices();
+    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene->getVertices();
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
     if (bufferSize == 0)
     {
@@ -548,7 +548,7 @@ void Render::createMaterialBuffer()
 void Render::createIndexBuffer()
 {
 
-    std::vector<uint32_t>& sceneIndices = mScene.getIndices();
+    std::vector<uint32_t>& sceneIndices = mScene->getIndices();
     indicesCount = sceneIndices.size();
     VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
     if (bufferSize == 0)
@@ -620,7 +620,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
@@ -692,7 +692,7 @@ void Render::drawFrame()
   
     cam.update(deltaTime);
 
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightDirection, cam.getPosition());
+    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);
     std::string path = mUi.updateUI(window, scene);
     if (path != *mModelPath) {
       delete mScene;
@@ -734,7 +734,8 @@ void Render::drawFrame()
       mPass.setTextureSampler(mTexManager->textureSampler);
 
       mPass.setMaterialBuffer(materialBuffer);
-      mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+      //mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+      mPass.init(device, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
       mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
