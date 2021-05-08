@@ -67,11 +67,9 @@ TEST_CASE("load model")
     CHECK(scene.getVertices().size() == 36);
     CHECK(loaded == true);
 
-    CHECK(mTexManager->textures.size() == 2);
+    CHECK(mTexManager->textures.size() == 1);
     CHECK(mTexManager->textures[0].texWidth == 512);
     CHECK(mTexManager->textures[0].texHeight == 512);
-    CHECK(mTexManager->textures[1].texWidth == 600);
-    CHECK(mTexManager->textures[1].texHeight == 600);
 }
 
 TEST_CASE("load textures")
