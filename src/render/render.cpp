@@ -64,13 +64,27 @@ void Render::initVulkan()
     init_info.Queue = graphicsQueue;
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
+    //creating depth image for shadow pass
+    mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
+                             VK_IMAGE_TILING_OPTIMAL,
+                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                             shadowImage, shadowImageMemory);
+    shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT /* ? */);
+
+
+    mShadowPass.init(device, shShaderCode, shShaderCodeSize, descriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mShadowPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mTexManager->createShadowSampler();
+
     mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
     mPass.setFrameBufferFormat(swapChainImageFormat);
     mPass.setDepthBufferFormat(findDepthFormat());
     mPass.setTextureImageView(mTexManager->textureImageView);
     mPass.setTextureSampler(mTexManager->textureSampler);
-
+    mPass.setShadowImageView(shadowImageView);
+    mPass.setShadowSampler(mTexManager->shadowSampler);
     mPass.setMaterialBuffer(materialBuffer);
     mPass.init(device, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
@@ -84,16 +98,6 @@ void Render::initVulkan()
     mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    //creating depth image for shadow pass
-    mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
-                             VK_IMAGE_TILING_OPTIMAL,
-                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                             shadowImage, shadowImageMemory);
-    shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT /* ? */);
-
-    mShadowPass.init(device, shShaderCode, shShaderCodeSize, descriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-    mShadowPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     //mComputePass.setOutputImageView(textureCompImageView);
     //mComputePass.setInImageView();
     //mComputePass.setTextureSampler(mTexManager->textureSampler);
