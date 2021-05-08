@@ -47,6 +47,7 @@ cbuffer ubo
     uint32_t debugView;
 }
 
+
 Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
@@ -121,7 +122,8 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
     float3 Bitangent = cross(Normal, Tangent);
 
-    float3 BumpMapNormal = textures[texId].Sample(gSampler, inp.uv).xyz;
+    float3 BumpMapNormal = textures[texId].Sample(gSampler, inp.uv).xyz;  ////
+
     BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
 
     float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
@@ -145,7 +147,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    uint32_t texSpecularId = materials[inp.materialId].texSpecularId;
    uint32_t texNormalId = materials[inp.materialId].texNormalId;
 
-   float3 kA = materials[inp.materialId].ambient.rgb;
+   float3 kA = materials[inp.materialId].ambient.rgb;      //////// СДЕЛАТЬ 4
    float3 kD = materials[inp.materialId].diffuse.rgb;
    float3 kS = materials[inp.materialId].specular.rgb;
 
@@ -178,7 +180,8 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    // Normals
    if (debugView == 1)
    {
-      return float4(abs(N), 1.0);
+     return float4(abs(N), 1.0);
    }
-   return float4(saturate(kA + diffuse + specular), 1.0f);
+
+ return float4(saturate(kA + diffuse + specular), 0.5f);
 }
