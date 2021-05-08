@@ -87,14 +87,14 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
 
     std::unordered_map<std::string, uint32_t> uniqueMaterial{};
     bool transparent = false;
-    for (auto& shape : shapes)
+    for (tinyobj::shape_t& shape : shapes)
     {
         uint32_t shapeMaterialId = 0; // TODO: make default material
         if (hasMaterial)
         {
             Scene::Material material{};
             const int materialIdx = shape.mesh.material_ids[0]; // assume that material per-shape
-            const auto& currMaterial = materials[materialIdx];
+            const tinyobj::material_t& currMaterial = materials[materialIdx];
             const std::string& matName = currMaterial.name;
             const std::string& bumpTexname = currMaterial.bump_texname;
 
@@ -225,7 +225,7 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
         uint32_t instId = mScene.createInstance(meshId, shapeMaterialId, transform);
 
         glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
-        for (auto vertPos : _vertices)
+        for (Scene::Vertex& vertPos : _vertices)
         {
             sum += vertPos.pos;
         }

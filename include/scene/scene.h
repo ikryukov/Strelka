@@ -84,9 +84,6 @@ public:
 
     glm::float4 mLightPosition{ 1.0, 1.0, 1.0, 1.0 };
 
-    glm::float4 mLightDirection;
-
-
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
 

@@ -127,7 +127,7 @@ bool compOp(std::map<uint32_t, glm::float3> a,
            (it1->second).z < (it2->second).z;
 }
 
-std::vector<uint32_t>& Scene::getOpaqueInstancesToRender(glm::float3 camPos)
+std::vector<uint32_t>& Scene::getOpaqueInstancesToRender(const glm::float3 camPos)
 {
     std::vector<std::map<uint32_t, glm::float3>> dist;
     for (auto& obj : massCenterOp)
@@ -165,7 +165,7 @@ bool compTr(std::map<uint32_t, glm::float3> a,
            (it1->second).z > (it2->second).z;
 }
 
-std::vector<uint32_t>& Scene::getTransparentInstancesToRender(glm::float3 camPos)
+std::vector<uint32_t>& Scene::getTransparentInstancesToRender(const glm::float3 camPos)
 {
     std::vector<std::map<uint32_t, glm::float3>> dist;
     for (auto& obj : massCenterTr)
