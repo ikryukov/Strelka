@@ -689,16 +689,57 @@ void Render::drawFrame()
     cam.update(deltaTime);
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightDirection, cam.getPosition());
     std::string path = mUi.updateUI(window, scene);
-//std::cout << std::endl << path << " " << *mModelPath << std::endl;
     if (path != *mModelPath) {
       delete mScene;
       delete model;
+      delete mResManager;
+      delete mTexManager;
+
+      uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+      uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+      uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
+
+      const char* fragShaderCode = nullptr;
+      uint32_t fragShaderCodeSize = 0;
+      mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+
+      const char* vertShaderCode = nullptr;
+      uint32_t vertShaderCodeSize = 0;
+      mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+
+      const char* csShaderCode = nullptr;
+      uint32_t csShaderCodeSize = 0;
+      mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
+
+      mResManager = new nevk::ResourceManager(device, physicalDevice, getCurrentFrameData().cmdPool, graphicsQueue);
+      mTexManager = new nevk::TextureManager(device, physicalDevice, mResManager);
+
       mScene = new nevk::Scene;
+
       model = new nevk::Model(mTexManager);
       *mModelPath = path;
+
       loadModel(*mModelPath, *model);
       createMaterialBuffer();
-      //textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+     
+      mPass.setFrameBufferFormat(swapChainImageFormat);
+
+      mPass.setDepthBufferFormat(findDepthFormat());
+      mPass.setTextureImageView(mTexManager->textureImageView);
+      mPass.setTextureSampler(mTexManager->textureSampler);
+
+      mPass.setMaterialBuffer(materialBuffer);
+      mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+
+      mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
+      mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        textureCompImage, textureCompImageMemory);
+      mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+      textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
       createIndexBuffer();
       createVertexBuffer();
     }
