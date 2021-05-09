@@ -1,4 +1,6 @@
 #pragma once
+#include "debugUtils.h"
+
 #include <scene/scene.h>
 #include <vulkan/vulkan.h>
 
@@ -36,6 +38,24 @@ private:
 
     VkImageView mInImageView;
 
+    bool mEnableValidation = false;
+
+    void beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::float4& color)
+    {
+        if (mEnableValidation)
+        {
+            nevk::debug::beginLabel(cmdBuffer, labelName, color);
+        }
+    }
+
+    void endLabel(VkCommandBuffer cmdBuffer)
+    {
+        if (mEnableValidation)
+        {
+            nevk::debug::endLabel(cmdBuffer);
+        }
+    }
+
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
     void updateDescriptorSets(); //?
@@ -54,7 +74,7 @@ public:
     VkRenderPass mShadowPass;
 
     void createShadowPass();
-    void init(VkDevice& device, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height);
+    void init(VkDevice& device, bool enableValidation, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height);
     void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex); //?
     void createFrameBuffers(VkImageView& shadowImageView, uint32_t width, uint32_t height);
     void onDestroy();
