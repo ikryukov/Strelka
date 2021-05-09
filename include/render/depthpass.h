@@ -66,6 +66,10 @@ private:
     void createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint32_t width, uint32_t height);
 
     static glm::mat4 computeLightSpaceMatrix();
+    bool needDesciptorSetUpdate;
+    int imageviewcounter = 0;
+
+    void updateDescriptorSets(uint32_t descSetIndex);
 
 public:
     DepthPass(/* args */);
@@ -75,7 +79,7 @@ public:
 
     void createShadowPass();
     void init(VkDevice& device, bool enableValidation, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height);
-    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex); //?
+    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex); //?
     void createFrameBuffers(VkImageView& shadowImageView, uint32_t width, uint32_t height);
     void onDestroy();
 

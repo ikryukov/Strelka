@@ -268,7 +268,28 @@ void DepthPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
     }
 }
 
-/* update desc sets ? */
+void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
+{
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = uniformBuffers[descSetIndex];
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
+
+    std::vector<VkWriteDescriptorSet> descriptorWrites{};
+    {
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
+        descriptorWrite.dstBinding = 0;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &bufferInfo;
+        descriptorWrites.push_back(descriptorWrite);
+    }
+
+    vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+}
 
 void DepthPass::createUniformBuffers()
 {
@@ -319,9 +340,21 @@ void DepthPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
+void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     beginLabel(cmd, "Depth Pass", { 0.0f, 0.0f, 1.0f, 1.0f });
+
+    if (needDesciptorSetUpdate && imageviewcounter < 3)
+    {
+        imageviewcounter++;
+        updateDescriptorSets(imageIndex);
+    }
+    else
+    {
+        imageviewcounter = 0;
+        needDesciptorSetUpdate = false;
+    }
+
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mShadowPass;
@@ -329,9 +362,8 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { width, height };
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = { 0.0f, 0.0f, 0.0f, 1.0f };
-    clearValues[1].depthStencil = { 1.0f, 0 };
+    std::array<VkClearValue, 1> clearValues{};
+    clearValues[0].depthStencil = { 1.0f, 0 };
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
@@ -351,8 +383,26 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
     VkBuffer vertexBuffers[] = { vertexBuffer };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
+    vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
+
+    std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
+
+    const std::vector<Instance>& instances = scene.getInstances();
+    const std::vector<Mesh>& meshes = scene.getMeshes();
+
+    auto renderInstances = [&cmd, &instances, &meshes](const std::vector<uint32_t>& ids) {
+        for (const uint32_t currentInstanceId : ids)
+        {
+            const uint32_t currentMeshId = instances[currentInstanceId].mMeshId;
+            const uint32_t indexOffset = meshes[currentMeshId].mIndex;
+            const uint32_t indexCount = meshes[currentMeshId].mCount;
+            vkCmdDrawIndexed(cmd, indexCount, 1, indexOffset, 0, 0);
+        }
+    };
+
+    renderInstances(opaqueIds);
 
     vkCmdEndRenderPass(cmd);
     endLabel(cmd);

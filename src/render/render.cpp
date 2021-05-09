@@ -635,7 +635,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mDepthPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
+    mDepthPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
     mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
