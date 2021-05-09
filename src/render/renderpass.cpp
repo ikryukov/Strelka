@@ -285,14 +285,21 @@ void RenderPass::createDescriptorSetLayout()
     materialLayoutBinding.pImmutableSamplers = nullptr;
     materialLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    VkDescriptorSetLayoutBinding shadowLayoutBinding{};
-    shadowLayoutBinding.binding = 4;
-    shadowLayoutBinding.descriptorCount = 1;
-    shadowLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    shadowLayoutBinding.pImmutableSamplers = nullptr;
-    shadowLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    VkDescriptorSetLayoutBinding shadowImageLayoutBinding{};
+    shadowImageLayoutBinding.binding = 4;
+    shadowImageLayoutBinding.descriptorCount = 1;
+    shadowImageLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    shadowImageLayoutBinding.pImmutableSamplers = nullptr;
+    shadowImageLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 5> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, materialLayoutBinding, shadowLayoutBinding };
+    VkDescriptorSetLayoutBinding shadowSamplerLayoutBinding{};
+    shadowSamplerLayoutBinding.binding = 5;
+    shadowSamplerLayoutBinding.descriptorCount = 1;
+    shadowSamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    shadowSamplerLayoutBinding.pImmutableSamplers = nullptr;
+    shadowSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 6> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, materialLayoutBinding, shadowImageLayoutBinding, shadowSamplerLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -521,10 +528,13 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     materialInfo.offset = 0;
     materialInfo.range = VK_WHOLE_SIZE;
 
-    VkDescriptorImageInfo shadowInfo{};
-    shadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    shadowInfo.imageView = mShadowImageView;
-    shadowInfo.sampler = mShadowSampler;
+    VkDescriptorImageInfo shadowImageInfo{};
+    shadowImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    shadowImageInfo.imageView = mShadowImageView;
+
+    VkDescriptorImageInfo shadowSamplerInfo{};
+    shadowSamplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    shadowSamplerInfo.sampler = mShadowSampler;
 
     std::vector<VkWriteDescriptorSet> descriptorWrites{};
 
@@ -580,10 +590,20 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
         descriptorWrite.dstBinding = 4;
         descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &shadowInfo;
-        descriptorWrite.pTexelBufferView = NULL;
+        descriptorWrite.pImageInfo = &shadowImageInfo;
+        descriptorWrites.push_back(descriptorWrite);
+    }
+    {
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
+        descriptorWrite.dstBinding = 5;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pImageInfo = &shadowSamplerInfo;
         descriptorWrites.push_back(descriptorWrite);
     }
 

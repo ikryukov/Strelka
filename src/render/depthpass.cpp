@@ -1,4 +1,4 @@
-#include "shadowpass.h"
+#include "depthpass.h"
 
 #include <array>
 #include <stdexcept>
@@ -13,15 +13,15 @@
 
 namespace nevk
 {
-ShadowPass::ShadowPass(/* args */)
+DepthPass::DepthPass(/* args */)
 {
 }
 
-ShadowPass::~ShadowPass()
+DepthPass::~DepthPass()
 {
 }
 //Rendering the shadow map w/o color attachments
-void ShadowPass::createShadowPass()
+void DepthPass::createShadowPass()
 {
     VkAttachmentDescription depthAttachment{};
     depthAttachment.format = VK_FORMAT_D32_SFLOAT;
@@ -74,7 +74,7 @@ void ShadowPass::createShadowPass()
 }
 
 //shadow pass pipeline w/o fragment shader
-void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint32_t width, uint32_t height)
+void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint32_t width, uint32_t height)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -184,7 +184,7 @@ void ShadowPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint
     }
 }
 
-void ShadowPass::createFrameBuffers(VkImageView& shadowImageView, uint32_t width, uint32_t height)
+void DepthPass::createFrameBuffers(VkImageView& shadowImageView, uint32_t width, uint32_t height)
 {
     std::array<VkImageView, 1> attachments = {
         shadowImageView
@@ -206,7 +206,7 @@ void ShadowPass::createFrameBuffers(VkImageView& shadowImageView, uint32_t width
     }
 }
 
-VkShaderModule ShadowPass::createShaderModule(const char* code, const uint32_t codeSize)
+VkShaderModule DepthPass::createShaderModule(const char* code, const uint32_t codeSize)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -222,7 +222,7 @@ VkShaderModule ShadowPass::createShaderModule(const char* code, const uint32_t c
     return shaderModule;
 }
 
-void ShadowPass::createDescriptorSetLayout()
+void DepthPass::createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -252,7 +252,7 @@ void ShadowPass::createDescriptorSetLayout()
     }
 }
 
-void ShadowPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
+void DepthPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, mDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -270,7 +270,7 @@ void ShadowPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 /* update desc sets ? */
 
-void ShadowPass::createUniformBuffers()
+void DepthPass::createUniformBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -283,7 +283,7 @@ void ShadowPass::createUniformBuffers()
     }
 }
 
-glm::mat4 ShadowPass::computeLightSpaceMatrix()
+glm::mat4 DepthPass::computeLightSpaceMatrix()
 {
     float near_plane = 1.0f, far_plane = 7.5f;
     glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
@@ -297,7 +297,7 @@ glm::mat4 ShadowPass::computeLightSpaceMatrix()
     return lightSpaceMatrix;
 }
 
-void ShadowPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos)
+void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos)
 {
     UniformBufferObject ubo{};
     glm::float4x4 model = glm::float4x4(1.0f);
@@ -311,7 +311,7 @@ void ShadowPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
 }
 
-void ShadowPass::onDestroy()
+void DepthPass::onDestroy()
 {
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
@@ -319,7 +319,7 @@ void ShadowPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void ShadowPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
+void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -356,7 +356,7 @@ void ShadowPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
     vkCmdEndRenderPass(cmd);
 }
 
-void ShadowPass::init(VkDevice& device, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
+void DepthPass::init(VkDevice& device, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
 {
     mDevice = device;
     mResMngr = resMngr;

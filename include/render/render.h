@@ -13,7 +13,7 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "computepass.h"
-#include "shadowpass.h"
+#include "depthpass.h"
 #include "renderpass.h"
 
 #include <modelloader/modelloader.h>
@@ -158,7 +158,7 @@ private:
     nevk::RenderPass mPass;
     nevk::Model* model;
     nevk::ComputePass mComputePass;
-    nevk::ShadowPass mShadowPass;
+    nevk::DepthPass mDepthPass;
 
     uint32_t indicesCount = 0;
     VkBuffer vertexBuffer;
@@ -399,7 +399,6 @@ private:
     void recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex);
 
     void createCommandBuffers();
-    void createShadowCommandBuffers(); //?
 
     void createSyncObjects();
 

@@ -105,12 +105,12 @@ set(RENDER_SOURCES
         include/render/render.h
         include/render/renderpass.h
         include/render/computepass.h
-        include/render/shadowpass.h
+        include/render/depthpass.h
         include/render/debugUtils.h
         src/render/render.cpp
         src/render/renderpass.cpp
         src/render/computepass.cpp
-        src/render/shadowpass.cpp
+        src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )
 set(RENDERLIB_NAME render)

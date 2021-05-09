@@ -50,7 +50,8 @@ cbuffer ubo
 Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
-SamplerState shadowMap; // sampler2d or texture2d
+Texture2D shadowMap;
+SamplerState shadowSamp;
 
 //  valid range of coordinates [-1; 1]
 float3 unpackNormal(uint32_t val)
@@ -131,7 +132,7 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
     return NewNormal;
 }
 
-float ShadowCalculation(float4 lightPosition, uint32_t texId)
+float ShadowCalculation(float4 lightPosition, PS_INPUT inp)
 {
     // perform perspective divide
     float3 projCoords = lightPosition.xyz / lightPosition.w;
@@ -139,7 +140,7 @@ float ShadowCalculation(float4 lightPosition, uint32_t texId)
     projCoords = projCoords * 0.5 + 0.5;
 
     // get closest depth value from light's perspective (using [0,1] range lightPosition as coords)
-    float closestDepth = textures[texId].Sample(shadowMap, projCoords.xy).r; //sampler2d x coord ? уыыыууууу
+    float closestDepth = float4(shadowMap.Sample(shadowSamp, projCoords.xy)).r; ////уыыыууу
 
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
@@ -200,7 +201,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
       return float4(abs(N), 1.0);
    }
 
-   float shadow = ShadowCalculation(lightPosition, texDiffuseId /* or any of them, which isn't null */ ); // ?
+   //float shadow = ShadowCalculation(lightPosition, inp);
    //return float4(saturate(kA + mul((1.0 - shadow), (diffuse + specular))), 1.0f);
 
    return float4(saturate(kA + diffuse + specular), 1.0f);

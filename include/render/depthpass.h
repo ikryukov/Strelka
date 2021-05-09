@@ -7,7 +7,7 @@
 
 namespace nevk
 {
-class ShadowPass
+class DepthPass
 {
 private:
     struct UniformBufferObject
@@ -48,8 +48,8 @@ private:
     static glm::mat4 computeLightSpaceMatrix();
 
 public:
-    ShadowPass(/* args */);
-    ~ShadowPass();
+    DepthPass(/* args */);
+    ~DepthPass();
 
     VkRenderPass mShadowPass;
 

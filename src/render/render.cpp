@@ -73,8 +73,8 @@ void Render::initVulkan()
     shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT /* ? */);
 
 
-    mShadowPass.init(device, shShaderCode, shShaderCodeSize, descriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-    mShadowPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mDepthPass.init(device, shShaderCode, shShaderCodeSize, descriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     mTexManager->createShadowSampler();
 
     mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
@@ -635,9 +635,9 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
+    mDepthPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
     mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
-    mShadowPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 
@@ -708,7 +708,7 @@ void Render::drawFrame()
 
     cam.update(deltaTime);
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);
-    mShadowPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition());
+    mDepthPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition());
     mUi.updateUI(window, scene);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
