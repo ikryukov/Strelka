@@ -231,15 +231,6 @@ void DepthPass::createDescriptorSetLayout()
     uboLayoutBinding.pImmutableSamplers = nullptr;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-    // for depth image ?
-    /*  VkDescriptorSetLayoutBinding texLayoutBinding{};
-    texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = 1;
-    texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    texLayoutBinding.pImmutableSamplers = nullptr;
-    texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT; */
-
-
     std::array<VkDescriptorSetLayoutBinding, 1> bindings = { uboLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -306,7 +297,7 @@ void DepthPass::createUniformBuffers()
 
 glm::mat4 DepthPass::computeLightSpaceMatrix()
 {
-    float near_plane = 1.0f, far_plane = 7.5f;
+    float near_plane = 0.1f, far_plane = 7.5f;
     glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
     glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
