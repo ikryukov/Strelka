@@ -368,6 +368,7 @@ private:
     void loadModel(nevk::Model& testmodel)
     {
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
+
         Camera& camera = mScene.getCamera();
         camera.type = Camera::CameraType::firstperson;
 
@@ -378,6 +379,8 @@ private:
         camera.movementSpeed = 1.0f;
         camera.setPosition({ 0.0f, 0.0f, 1.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
+//        mScene.mode |= mScene.transparentMode;//////////////////
+//        mScene.mode |= mScene.opaqueMode;//////////////////
     }
 
     void createVertexBuffer();

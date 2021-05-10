@@ -619,6 +619,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
+
 }
 
 void Render::createCommandBuffers()
@@ -685,6 +686,9 @@ void Render::drawFrame()
 
     nevk::Scene& scene = getScene();
     Camera& cam = scene.getCamera();
+//    mScene.mode |= mScene.transparentMode;//////////////////
+//    mScene.mode |= mScene.opaqueMode;//////////////////
+
 
     cam.update(deltaTime);
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);

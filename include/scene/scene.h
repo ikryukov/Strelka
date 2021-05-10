@@ -24,7 +24,9 @@ struct Instance
     glm::mat4 transform;
     uint32_t mMeshId;
     uint32_t mMaterialId;
+    glm::float3 massCenter;
 };
+
 
 class Scene
 {
@@ -78,9 +80,14 @@ public:
     };
 
     DebugView mDebugViewSettings = DebugView::eNone;
-    
+
     bool transparentMode = true;
     bool opaqueMode = true;
+
+//    const unsigned char transparentMode = 0x01;
+//    const unsigned char opaqueMode = 0x02;
+//    unsigned char mode = 0;
+
 
     glm::float4 mLightPosition{ 1.0, 1.0, 1.0, 1.0 };
 
@@ -92,9 +99,9 @@ public:
     std::vector<Instance> mInstances;
 
     std::vector<uint32_t> mTransparentInstances;
-    std::map<uint32_t, glm::float3> massCenterTr;
+//    std::map<uint32_t, glm::float3> massCenterTr;
     std::vector<uint32_t> mOpaqueInstances;
-    std::map<uint32_t, glm::float3> massCenterOp;
+//    std::map<uint32_t, glm::float3> massCenterOp;
 
     Scene() = default;
 
@@ -104,6 +111,7 @@ public:
     {
         return mVertices;
     }
+
     std::vector<uint32_t>& getIndices()
     {
         return mIndices;
@@ -147,7 +155,7 @@ public:
     /// <param name="materialId">valid material id</param>
     /// <param name="transform">transform</param>
     /// <returns>Instance id in scene</returns>
-    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform);
+    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter);
     /// <summary>
     /// Creates Material
     /// </summary>
