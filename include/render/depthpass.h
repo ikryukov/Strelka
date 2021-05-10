@@ -65,8 +65,8 @@ private:
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
     void createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint32_t width, uint32_t height);
 
-    static glm::mat4 computeLightSpaceMatrix();
-    bool needDesciptorSetUpdate;
+    static glm::mat4 computeLightSpaceMatrix(glm::float3& lightPosition);
+    bool needDesciptorSetUpdate = true;
     int imageviewcounter = 0;
 
     void updateDescriptorSets(uint32_t descSetIndex);

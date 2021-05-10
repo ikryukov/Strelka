@@ -132,20 +132,22 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
     return NewNormal;
 }
 
-float ShadowCalculation(float4 lightPosition, PS_INPUT inp)
+float ShadowCalculation(float4 lightPosition)
 {
+    float bias = 0.005;
     // perform perspective divide
     float3 projCoords = lightPosition.xyz / lightPosition.w;
     // transform to [0,1] range
     projCoords = projCoords * 0.5 + 0.5;
-
     // get closest depth value from light's perspective (using [0,1] range lightPosition as coords)
-    float closestDepth = float4(shadowMap.Sample(shadowSamp, projCoords.xy)).r; ////уыыыууу
-
+    float closestDepth = shadowMap.Sample(shadowSamp, projCoords.xy).x;
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // check whether current frag pos is in shadow
-    float shadow = currentDepth > closestDepth ? 1.0 : 0.0;
+    float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
+
+    //if (abs(projCoords.z) > 1.0)
+           // shadow = 0.0;
 
     return shadow;
 }
@@ -200,8 +202,15 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    {
       return float4(abs(N), 1.0);
    }
+   // Shadow
+   if (debugView == 2)
+   {
+      float depthValue = shadowMap.Sample(shadowSamp, inp.uv).x;
+      //return float4(float3(depthValue), 1.0);
+      return float4(1.0 - (1.0 - depthValue) * 100.0);
+   }
 
-   //float shadow = ShadowCalculation(lightPosition, inp);
+   //float shadow = ShadowCalculation(lightPosition);
    //return float4(saturate(kA + mul((1.0 - shadow), (diffuse + specular))), 1.0f);
 
    return float4(saturate(kA + diffuse + specular), 1.0f);

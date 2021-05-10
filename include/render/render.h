@@ -44,11 +44,11 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 const uint32_t SHADOW_MAP_WIDTH = 512;
 const uint32_t SHADOW_MAP_HEIGHT = 512;
 
-const std::string MODEL_PATH = "misc/cube.obj";
+const std::string MODEL_PATH = "misc/CubeScene.obj";
 const std::string MTL_PATH = "misc/";
 
-// const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
-// const std::string MTL_PATH = "misc/";
+ //const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+ //const std::string MTL_PATH = "misc/";
 
 // const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
 // const std::string MTL_PATH = "misc/San_Miguel/";

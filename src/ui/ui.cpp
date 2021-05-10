@@ -210,7 +210,7 @@ void Ui::updateUI(GLFWwindow* window, Scene& scene)
     ImGui::SliderFloat("coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
     ImGui::SliderFloat("coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
 
-    const char* items[] = { "None", "Normals" };
+    const char* items[] = { "None", "Normals", "Shadow" };
     static const char* current_item = items[0];
 
     if (ImGui::BeginCombo("Debug view", current_item))

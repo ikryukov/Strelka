@@ -142,6 +142,7 @@ void Render::cleanup()
     cleanupSwapChain();
 
     mPass.onDestroy();
+    mDepthPass.onDestroy();
     mUi.onDestroy();
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -151,6 +152,10 @@ void Render::cleanup()
     vkDestroyImageView(device, textureCompImageView, nullptr);
     vkDestroyImage(device, textureCompImage, nullptr);
     vkFreeMemory(device, textureCompImageMemory, nullptr);
+
+    vkDestroyImageView(device, shadowImageView, nullptr);
+    vkDestroyImage(device, shadowImage, nullptr);
+    vkFreeMemory(device, shadowImageMemory, nullptr);
 
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);

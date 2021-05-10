@@ -295,26 +295,23 @@ void DepthPass::createUniformBuffers()
     }
 }
 
-glm::mat4 DepthPass::computeLightSpaceMatrix()
+glm::mat4 DepthPass::computeLightSpaceMatrix(glm::float3& lightPosition)
 {
-    float near_plane = 0.1f, far_plane = 7.5f;
-    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+    float zNear = 0.1f, zFar = 7.5f;
+    glm::mat4 depthProjectionMatrix = glm::perspective(glm::radians(45.0f), 1.0f, zNear, zFar);
+    glm::mat4 depthViewMatrix = glm::lookAt(lightPosition, glm::vec3(0.0f), glm::vec3(0, 1, 0));
+    glm::mat4 depthModelMatrix = glm::mat4(1.0f);
 
-    glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
-                                      glm::vec3(0.0f, 0.0f, 0.0f),
-                                      glm::vec3(0.0f, 1.0f, 0.0f));
-
-    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-
-    return lightSpaceMatrix;
+    return depthProjectionMatrix * depthViewMatrix * depthModelMatrix;
 }
 
 void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos)
 {
     UniformBufferObject ubo{};
     glm::float4x4 model = glm::float4x4(1.0f);
+    glm::float3 lightPos = camPos; //?
 
-    ubo.lightSpaceMatrix = computeLightSpaceMatrix();
+    ubo.lightSpaceMatrix = computeLightSpaceMatrix(lightPos);
     ubo.modelToWorld = model;
 
     void* data;
