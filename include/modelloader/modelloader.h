@@ -24,7 +24,6 @@ class Model
 {
 private:
     nevk::TextureManager* mTexManager = nullptr;
-    std::vector<uint32_t> _transparent_illums = { 4, 6, 7, 9 }; // info from MTL doc
 
 public:
     explicit Model(nevk::TextureManager* texManager)

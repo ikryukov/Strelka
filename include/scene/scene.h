@@ -84,9 +84,9 @@ public:
     bool transparentMode = true;
     bool opaqueMode = true;
 
-//    const unsigned char transparentMode = 0x01;
-//    const unsigned char opaqueMode = 0x02;
-//    unsigned char mode = 0;
+    //    const unsigned char transparentMode = 0x01;
+    //    const unsigned char opaqueMode = 0x02;
+    //    unsigned char mode = 0;
 
 
     glm::float4 mLightPosition{ 1.0, 1.0, 1.0, 1.0 };
@@ -99,9 +99,9 @@ public:
     std::vector<Instance> mInstances;
 
     std::vector<uint32_t> mTransparentInstances;
-//    std::map<uint32_t, glm::float3> massCenterTr;
+    //    std::map<uint32_t, glm::float3> massCenterTr;
     std::vector<uint32_t> mOpaqueInstances;
-//    std::map<uint32_t, glm::float3> massCenterOp;
+    //    std::map<uint32_t, glm::float3> massCenterOp;
 
     Scene() = default;
 

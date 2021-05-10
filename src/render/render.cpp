@@ -686,8 +686,8 @@ void Render::drawFrame()
 
     nevk::Scene& scene = getScene();
     Camera& cam = scene.getCamera();
-//    mScene.mode |= mScene.transparentMode;//////////////////
-//    mScene.mode |= mScene.opaqueMode;//////////////////
+    //    mScene.mode |= mScene.transparentMode;//////////////////
+    //    mScene.mode |= mScene.opaqueMode;//////////////////
 
 
     cam.update(deltaTime);

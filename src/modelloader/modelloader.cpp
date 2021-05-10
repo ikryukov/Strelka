@@ -86,7 +86,6 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
     const bool hasMaterial = !mtlPath.empty() && !materials.empty();
 
     std::unordered_map<std::string, uint32_t> uniqueMaterial{};
-    bool transparent = false;
     for (tinyobj::shape_t& shape : shapes)
     {
         uint32_t shapeMaterialId = 0; // TODO: make default material
@@ -138,17 +137,6 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
                                                        material.shininess, material.illum,
                                                        material.texAmbientId, material.texDiffuseId,
                                                        material.texSpecularId, material.texNormalId);
-
-                bool tr_illum = std::find(_transparent_illums.begin(),
-                                          _transparent_illums.end(), material.illum) != _transparent_illums.end();
-                if (tr_illum)
-                {
-                    transparent = true;
-                }
-                else
-                {
-                    transparent = false;
-                }
 
                 uniqueMaterial[matName] = matId;
                 shapeMaterialId = matId;
@@ -232,27 +220,7 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
         uint32_t meshId = mScene.createMesh(_vertices, _indices);
         glm::float4x4 transform{ 1.0f };
         glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-        uint32_t instId = mScene.createInstance(meshId, shapeMaterialId, transform, massCenter); /////////////
-
-//        glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
-//        for (Scene::Vertex& vertPos : _vertices)
-//        {
-//            sum += vertPos.pos;
-//        }
-//        glm::float3 objCenter = glm::float3(sum.x / _vertices.size(),
-//                                            sum.y / _vertices.size(),
-//                                            sum.z / _vertices.size());
-//
-        if (transparent)
-        {
-            mScene.mTransparentInstances.push_back(instId);
-//            mScene.massCenterTr[instId] = objCenter;
-        }
-        else
-        {
-            mScene.mOpaqueInstances.push_back(instId);
-//            mScene.massCenterOp[instId] = objCenter;
-        }
+        uint32_t instId = mScene.createInstance(meshId, shapeMaterialId, transform, massCenter);
     }
 
     mTexManager->createTextureSampler();
