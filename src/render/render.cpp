@@ -712,6 +712,7 @@ void Render::drawFrame()
     Camera& cam = scene.getCamera();
 
     cam.update(deltaTime);
+
     mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);
     mDepthPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition());
     mUi.updateUI(window, scene);

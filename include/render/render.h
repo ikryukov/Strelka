@@ -382,7 +382,7 @@ private:
         camera.rotationSpeed = 0.0025f;
 
         camera.movementSpeed = 1.0f;
-        camera.setPosition({ 0.0f, 0.0f, 1.0f });
+        camera.setPosition({ -1.0f, 3.0f, 8.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
     }
 

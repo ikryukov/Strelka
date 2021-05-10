@@ -33,6 +33,7 @@ struct PS_INPUT
     float3 wPos;
     float2 uv;
     nointerpolation uint32_t materialId;
+    float4 posLightSpace;
 };
 
 cbuffer ubo
@@ -42,6 +43,7 @@ cbuffer ubo
     float4x4 worldToView;
     float4x4 inverseModelToWorld;
     float4 lightPosition;
+    float4x4 lightSpaceMatrix; // like in rendering depth map
     float3 CameraPos;
     float pad;
     uint32_t debugView;
@@ -103,6 +105,8 @@ PS_INPUT vertexMain(VertexInput vi)
     //out.wPos = wPos.xyz / wPos.w;
     out.wPos = vi.position;
 
+    out.posLightSpace = mul(lightSpaceMatrix, out.pos);
+
     return out;
 }
 
@@ -144,10 +148,10 @@ float ShadowCalculation(float4 lightPosition)
     // get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
     // check whether current frag pos is in shadow
-    float shadow = currentDepth - bias > closestDepth ? 0.0 : 1.0;
+    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
 
-    //if (abs(projCoords.z) > 1.0)
-           // shadow = 0.0;
+   // if (abs(projCoords.z) > 1.0)
+         //   shadow = 0.0;
 
     return shadow;
 }
@@ -205,13 +209,11 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    // Shadow
    if (debugView == 2)
    {
-      float depthValue = shadowMap.Sample(shadowSamp, inp.uv).x;
-      //return float4(float3(depthValue), 1.0);
-      return float4(1.0 - (1.0 - depthValue) * 100.0);
-   }
+     float shadow = ShadowCalculation(inp.posLightSpace);
+     float3 lighting = (kA*0.15 + (1.0 - shadow) * (diffuse + specular)) * kA;
 
-   //float shadow = ShadowCalculation(lightPosition);
-   //return float4(saturate(kA + mul((1.0 - shadow), (diffuse + specular))), 1.0f);
+     return float4(lighting, 1.0);
+   }
 
    return float4(saturate(kA + diffuse + specular), 1.0f);
 }

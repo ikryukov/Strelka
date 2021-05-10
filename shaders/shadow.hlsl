@@ -18,8 +18,8 @@ struct PS_INPUT
 PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
-    out.pos = mul(lightSpaceMatrix, mul(modelToWorld, float4(vi.position, 1.0f))); //?
-
+    //out.pos = mul(mul(lightSpaceMatrix, modelToWorld), float4(vi.position, 1.0)); //?
+    out.pos = mul(lightSpaceMatrix, float4(vi.position, 1.0));
     return out;
 }
 
