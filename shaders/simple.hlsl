@@ -28,12 +28,12 @@ struct Material
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
+    float4 posLightSpace;
     float3 tangent;
     float3 normal;
     float3 wPos;
     float2 uv;
     nointerpolation uint32_t materialId;
-    float4 posLightSpace;
 };
 
 cbuffer ubo
@@ -42,8 +42,8 @@ cbuffer ubo
     float4x4 modelViewProj;
     float4x4 worldToView;
     float4x4 inverseModelToWorld;
-    float4 lightPosition;
     float4x4 lightSpaceMatrix; // like in rendering depth map
+    float4 lightPosition;
     float3 CameraPos;
     float pad;
     uint32_t debugView;
@@ -91,22 +91,31 @@ float3 srgb_to_linear(float3 c) {
     return lerp(c / 12.92, pow((c + 0.055) / 1.055, float3(2.4)), step(0.04045, c));
 }
 
+float LinearizeDepth(float depth)
+{
+    float nearPlane = 0.01;
+    float farPlane = 50.0;
+    float z = depth * 2.0 - 1.0; // Back to NDC 
+    return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
+}
+
+static const float4x4 biasMatrix = float4x4(
+  0.5, 0.0, 0.0, 0.5,
+  0.0, -0.5, 0.0, 0.5,
+  0.0, 0.0, 1.0, 0.0,
+  0.0, 0.0, 0.0, 1.0 );
+
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
     out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
-
+    out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, float4(vi.position, 1.0f)));
     out.uv = unpackUV(vi.uv);
     out.normal = mul((float3x3)inverseModelToWorld, (unpackNormal(vi.normal)));
     out.tangent = mul((float3x3)inverseModelToWorld, (unpackTangent(vi.tangent)));
     out.materialId = vi.materialId;
-    //float4 wPos = mul(modelToWorld, float4(vi.position, 1.0f));
-    //out.wPos = wPos.xyz / wPos.w;
     out.wPos = vi.position;
-
-    out.posLightSpace = mul(lightSpaceMatrix, out.pos);
-
     return out;
 }
 
@@ -136,23 +145,20 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
     return NewNormal;
 }
 
-float ShadowCalculation(float4 lightPosition)
+float ShadowCalculation(float4 lightCoord)
 {
-    float bias = 0.005;
-    // perform perspective divide
-    float3 projCoords = lightPosition.xyz / lightPosition.w;
-    // transform to [0,1] range
-    projCoords = projCoords * 0.5 + 0.5;
-    // get closest depth value from light's perspective (using [0,1] range lightPosition as coords)
-    float closestDepth = shadowMap.Sample(shadowSamp, projCoords.xy).x;
-    // get depth of current fragment from light's perspective
-    float currentDepth = projCoords.z;
-    // check whether current frag pos is in shadow
-    float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
-
-   // if (abs(projCoords.z) > 1.0)
-         //   shadow = 0.0;
-
+    const float bias = 0.005;
+    float shadow = 1.0;
+    float3 projCoord = lightCoord.xyz / lightCoord.w;
+    if (abs(projCoord.z) < 1.0)
+    {
+      float2 coord = float2(projCoord.x, projCoord.y);
+      float distFromLight = shadowMap.Sample(shadowSamp, coord).r;
+      if (distFromLight < projCoord.z)
+      {
+        shadow = 0.1;
+      }
+    }
     return shadow;
 }
 
@@ -210,8 +216,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    if (debugView == 2)
    {
      float shadow = ShadowCalculation(inp.posLightSpace);
-     float3 lighting = (kA*0.15 + (1.0 - shadow) * (diffuse + specular)) * kA;
-
+     float3 lighting = saturate(kA + diffuse + specular) * shadow;
      return float4(lighting, 1.0);
    }
 

@@ -19,8 +19,8 @@ private:
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseModelToWorld;
-        alignas(16) glm::float4 lightPosition;
         alignas(16) glm::mat4 lightSpaceMatrix; //like in rendering depth map
+        alignas(16) glm::float4 lightPosition;
         alignas(16) glm::float3 CameraPos;
         float pad;
         alignas(16) uint32_t debugView;
@@ -183,7 +183,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos, Scene::DebugView& debugView);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos, const glm::float4x4& lightSpaceMatrix, Scene::DebugView& debugView);
 
     RenderPass(/* args */);
     ~RenderPass();

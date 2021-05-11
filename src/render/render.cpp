@@ -712,9 +712,9 @@ void Render::drawFrame()
     Camera& cam = scene.getCamera();
 
     cam.update(deltaTime);
-
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);
-    mDepthPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition());
+    const glm::float4x4 lightSpaceMatrix = nevk::DepthPass::computeLightSpaceMatrix(glm::float3(scene.mLightPosition));
+    mDepthPass.updateUniformBuffer(imageIndex, lightSpaceMatrix);
+    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), lightSpaceMatrix, scene.mDebugViewSettings);
     mUi.updateUI(window, scene);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;

@@ -419,20 +419,7 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-glm::mat4 computeLightSpaceMatrix(glm::float3& lightPosition)
-{
-    float zNear = 2.0f, zFar = 10.f;
-    // Matrix from light's point of view
-
-    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, zNear, zFar);
-    glm::mat4  lightView = glm::lookAt(lightPosition, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-    glm::mat4  lightSpaceMatrix = lightProjection * lightView;
-
-    return lightSpaceMatrix;
-
-}
-
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos, Scene::DebugView& debugView)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos, const glm::float4x4& lightSpaceMatrix, Scene::DebugView& debugView)
 {
     UniformBufferObject ubo{};
     glm::float4x4 model = glm::float4x4(1.0f);
@@ -444,9 +431,7 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     ubo.worldToView = view;
     ubo.inverseModelToWorld = transpose(inverse(ubo.modelToWorld));
     ubo.lightPosition = lightPosition;
-    glm::float3 lightPos(lightPosition.x, lightPosition.y, lightPosition.z);
-    ubo.lightSpaceMatrix = computeLightSpaceMatrix(lightPos);
-    //ubo.lightPosition = glm::float4(camPos, 1.0f);
+    ubo.lightSpaceMatrix = lightSpaceMatrix;
     ubo.debugView = (uint32_t)debugView;
 
     void* data;
@@ -544,7 +529,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     materialInfo.range = VK_WHOLE_SIZE;
 
     VkDescriptorImageInfo shadowImageInfo{};
-    shadowImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    shadowImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
     shadowImageInfo.imageView = mShadowImageView;
 
     VkDescriptorImageInfo shadowSamplerInfo{};

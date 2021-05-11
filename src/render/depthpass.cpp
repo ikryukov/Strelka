@@ -27,11 +27,11 @@ void DepthPass::createShadowPass()
     depthAttachment.format = VK_FORMAT_D32_SFLOAT;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
 
     VkAttachmentReference depthAttachmentRef{};
     depthAttachmentRef.attachment = 0;
@@ -138,7 +138,7 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
     rasterizer.lineWidth = 1.0f;
     rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-    rasterizer.depthBiasEnable = VK_FALSE;
+    rasterizer.depthBiasEnable = VK_TRUE;
 
     VkPipelineMultisampleStateCreateInfo multisampling{};
     multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -149,9 +149,20 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = VK_TRUE;
     depthStencil.depthWriteEnable = VK_TRUE;
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.stencilTestEnable = VK_FALSE;
+
+    VkPipelineColorBlendStateCreateInfo colorBlending{};
+    colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.logicOpEnable = VK_FALSE;
+    colorBlending.logicOp = VK_LOGIC_OP_COPY;
+    colorBlending.attachmentCount = 0;
+    colorBlending.pAttachments = VK_NULL_HANDLE;
+    colorBlending.blendConstants[0] = 0.0f;
+    colorBlending.blendConstants[1] = 0.0f;
+    colorBlending.blendConstants[2] = 0.0f;
+    colorBlending.blendConstants[3] = 0.0f;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -163,6 +174,13 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
         throw std::runtime_error("failed to create pipeline layout!");
     }
 
+    std::array<VkDynamicState, 2> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_DEPTH_BIAS };
+
+    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
+    dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
+    dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
+
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 1;
@@ -171,8 +189,10 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
     pipelineInfo.pInputAssemblyState = &inputAssembly;
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &rasterizer;
+    pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pMultisampleState = &multisampling;
     pipelineInfo.pDepthStencilState = &depthStencil;
+    pipelineInfo.pDynamicState = &dynamicStateCreateInfo;
     pipelineInfo.layout = mPipelineLayout;
     pipelineInfo.renderPass = mShadowPass;
     pipelineInfo.subpass = 0;
@@ -257,6 +277,11 @@ void DepthPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
     {
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    {
+        updateDescriptorSets(i);
+    }
 }
 
 void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
@@ -297,24 +322,20 @@ void DepthPass::createUniformBuffers()
 
 glm::mat4 DepthPass::computeLightSpaceMatrix(glm::float3& lightPosition)
 {
-    float zNear = 2.0f, zFar = 10.f;
+    float zNear = 0.01f, zFar = 50.f;
     // Matrix from light's point of view
-
-    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, zNear, zFar);
-    glm::mat4  lightView = glm::lookAt(lightPosition, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-    glm::mat4  lightSpaceMatrix = lightProjection * lightView;
+    glm::mat4 lightProjection = glm::perspective(glm::radians(45.0f), 1.0f, zNear, zFar);
+    glm::mat4 lightView = glm::lookAt(lightPosition, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
     return lightSpaceMatrix;
-
 }
 
-void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos)
+void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix)
 {
     UniformBufferObject ubo{};
+    ubo.lightSpaceMatrix = lightSpaceMatrix;
     glm::float4x4 model = glm::float4x4(1.0f);
-    glm::float3 lightPos(lightPosition.x, lightPosition.y, lightPosition.z);
-
-    ubo.lightSpaceMatrix = computeLightSpaceMatrix(lightPos);
     ubo.modelToWorld = model;
 
     void* data;
@@ -370,6 +391,19 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+    // Depth bias (and slope) are used to avoid shadowing artifacts
+    // Constant depth bias factor (always applied)
+    float depthBiasConstant = 1.25f;
+    // Slope depth bias factor, applied depending on polygon's slope
+    float depthBiasSlope = 1.75f;
+    // Set depth bias (aka "Polygon offset")
+    // Required to avoid shadow mapping artifacts
+    vkCmdSetDepthBias(
+        cmd,
+        depthBiasConstant,
+        0.0f,
+        depthBiasSlope);
 
     VkBuffer vertexBuffers[] = { vertexBuffer };
     VkDeviceSize offsets[] = { 0 };
