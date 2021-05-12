@@ -183,7 +183,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos, const glm::float4x4& lightSpaceMatrix, Scene::DebugView& debugView);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene);
 
     RenderPass(/* args */);
     ~RenderPass();

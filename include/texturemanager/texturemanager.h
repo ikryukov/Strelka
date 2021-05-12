@@ -50,6 +50,7 @@ public:
     void textureDestroy()
     {
         vkDestroySampler(mDevice, textureSampler, nullptr);
+        vkDestroySampler(mDevice, shadowSampler, nullptr);
 
         for (VkImageView& image_view : textureImageView)
         {

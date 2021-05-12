@@ -346,9 +346,16 @@ void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& 
 
 void DepthPass::onDestroy()
 {
+    for (size_t i = 0; i < uniformBuffers.size(); ++i)
+    {
+        vkDestroyBuffer(mDevice, uniformBuffers[i], nullptr);
+        vkFreeMemory(mDevice, uniformBuffersMemory[i], nullptr);
+    }
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
+    vkDestroyRenderPass(mDevice, mShadowPass, nullptr);
     vkDestroyShaderModule(mDevice, mSS, nullptr);
+    vkDestroyFramebuffer(mDevice, shadowMapFb, nullptr);
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 

@@ -419,20 +419,22 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightPosition, const glm::float3& camPos, const glm::float4x4& lightSpaceMatrix, Scene::DebugView& debugView)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene)
 {
     UniformBufferObject ubo{};
+    Camera& camera = scene.getCamera();
     glm::float4x4 model = glm::float4x4(1.0f);
-    glm::float4x4 proj = perspective;
+    glm::float4x4 proj = camera.getPerspective();
+    glm::float4x4 view = camera.getView();
 
     ubo.modelToWorld = model;
     ubo.modelViewProj = proj * view * model;
-    ubo.CameraPos = camPos;
+    ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
     ubo.inverseModelToWorld = transpose(inverse(ubo.modelToWorld));
-    ubo.lightPosition = lightPosition;
+    ubo.lightPosition = scene.mLightPosition;
     ubo.lightSpaceMatrix = lightSpaceMatrix;
-    ubo.debugView = (uint32_t)debugView;
+    ubo.debugView = (uint32_t)scene.mDebugViewSettings;
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
