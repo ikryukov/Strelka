@@ -322,10 +322,9 @@ void DepthPass::createUniformBuffers()
 
 glm::mat4 DepthPass::computeLightSpaceMatrix(glm::float3& lightPosition)
 {
-    float zNear = 0.01f, zFar = 50.f;
     // Matrix from light's point of view
-    glm::mat4 lightProjection = glm::perspective(glm::radians(45.0f), 1.0f, zNear, zFar);
-    glm::mat4 lightView = glm::lookAt(lightPosition, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 lightProjection = glm::perspective(glm::radians(fovAngle), fovAspect, zNear, zFar);
+    glm::mat4 lightView = glm::lookAt(lightPosition, lightAt, lightUpwards);
     glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
     return lightSpaceMatrix;

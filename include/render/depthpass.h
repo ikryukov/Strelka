@@ -4,7 +4,7 @@
 #include <scene/scene.h>
 #include <vulkan/vulkan.h>
 
-#include <resourcemanager.h>
+#include "resourcemanager/resourcemanager.h"
 #include <vector>
 
 namespace nevk
@@ -76,7 +76,13 @@ public:
 
     VkRenderPass mShadowPass;
 
-    static glm::mat4 computeLightSpaceMatrix(glm::float3& lightPosition);
+    glm::mat4 computeLightSpaceMatrix(glm::float3& lightPosition);
+    glm::vec3 lightUpwards = glm::vec3(0.0, 1.0, 0.0);
+    glm::vec3 lightAt = glm::vec3(0.0f);
+    float fovAngle = 45.0f;
+    float fovAspect = 1.0f;
+    float zNear = 0.01f;
+    float zFar = 50.f;
 
     void createShadowPass();
     void init(VkDevice& device, bool enableValidation, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height);
