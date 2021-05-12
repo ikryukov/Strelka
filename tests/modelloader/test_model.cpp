@@ -13,25 +13,25 @@ const std::string TEXPATH3 = "textures/container.jpg";
 Render initVK()
 {
     Render r;
+    r.initVulkan();
+    //r.setWindow();
+    //r.setInstance();
+    //r.setDebugMessenger();
+    //r.setSurface();
+    //r.setPhysicalDevice();
+    //r.setLogicalDevice();
+    //r.setSwapChain();
+    //r.setDescriptorPool();
+    //r.setCommandPool();
 
-    r.setWindow();
-    r.setInstance();
-    r.setDebugMessenger();
-    r.setSurface();
-    r.setPhysicalDevice();
-    r.setLogicalDevice();
-    r.setSwapChain();
-    r.setDescriptorPool();
-    r.setCommandPool();
+    //nevk::ResourceManager* mResManager = new nevk::ResourceManager(r.getDevice(), r.getPhysicalDevice(), r.getCurrentFrameData().cmdPool, r.getGraphicsQueue());
+    //nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), mResManager);
+    //r.setTexManager(mTexManager);
+    //r.setResManager(mResManager);
 
-    nevk::ResourceManager* mResManager = new nevk::ResourceManager(r.getDevice(), r.getPhysicalDevice(), r.getCurrentFrameData().cmdPool, r.getGraphicsQueue());
-    nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), mResManager);
-    r.setTexManager(mTexManager);
-    r.setResManager(mResManager);
-
-    r.setImageViews();
-    r.setCommandBuffers();
-    r.setSyncObjects();
+    //r.setImageViews();
+    //r.setCommandBuffers();
+    //r.setSyncObjects();
 
     return r;
 }
@@ -56,7 +56,10 @@ void initUi(Render* r)
 
 TEST_CASE("load model")
 {
-    Render r = initVK();
+    Render r;
+    r.initWindow();
+    r.initVulkan();
+
     nevk::TextureManager* mTexManager = r.getTexManager();
     nevk::Scene scene;
 
@@ -70,11 +73,15 @@ TEST_CASE("load model")
     CHECK(mTexManager->textures.size() == 1);
     CHECK(mTexManager->textures[0].texWidth == 512);
     CHECK(mTexManager->textures[0].texHeight == 512);
+
+    r.cleanup();
 }
 
 TEST_CASE("load textures")
 {
-    Render r = initVK();
+    Render r;
+    r.initWindow();
+    r.initVulkan();
     nevk::TextureManager* mTexManager = r.getTexManager();
     nevk::Scene mScene;
 
@@ -95,4 +102,6 @@ TEST_CASE("load textures")
     CHECK(mTexManager->textures[1].texWidth == 512);
     CHECK(mTexManager->textures[2].texHeight == 512);
     CHECK(mTexManager->textures[2].texWidth == 512);
+
+    r.cleanup();
 }

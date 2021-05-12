@@ -114,6 +114,10 @@ public:
         cleanup();
     }
 
+    void initWindow();
+    void initVulkan();
+    void cleanup();
+
 private:
     GLFWwindow* window;
     ImGui_ImplVulkan_InitInfo init_info{};
@@ -185,19 +189,7 @@ private:
     nevk::ShaderManager mShaderManager;
     nevk::Scene mScene;
 
-    void initWindow()
-    {
-        glfwInit();
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-        glfwSetKeyCallback(window, keyCallback);
-        glfwSetMouseButtonCallback(window, mouseButtonCallback);
-        glfwSetCursorPosCallback(window, handleMouseMoveCallback);
-        glfwSetScrollCallback(window, scrollCallback);
-    }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
     {
@@ -323,13 +315,12 @@ private:
                                     -yoffset * mCamera.movementSpeed));
     }
 
-    void initVulkan();
 
     void mainLoop();
 
     void cleanupSwapChain();
 
-    void cleanup();
+
 
     void recreateSwapChain();
 
