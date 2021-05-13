@@ -50,11 +50,11 @@ const uint32_t SHADOW_MAP_HEIGHT = 512;
 const std::string MODEL_PATH = "misc/CubeScene.obj";
 const std::string MTL_PATH = "misc/";
 
- //const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
- //const std::string MTL_PATH = "misc/";
+//const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+//const std::string MTL_PATH = "misc/";
 
- //const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
- //const std::string MTL_PATH = "misc/San_Miguel/";
+//const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
+//const std::string MTL_PATH = "misc/San_Miguel/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -382,9 +382,9 @@ private:
 
         camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 
-        camera.rotationSpeed = 0.0025f;
+        camera.rotationSpeed = 0.05f;
 
-        camera.movementSpeed = 1.0f;
+        camera.movementSpeed = 5.0f;
         camera.setPosition({ -1.0f, 3.0f, 8.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
     }

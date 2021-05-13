@@ -19,7 +19,7 @@ private:
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseModelToWorld;
-        alignas(16) glm::mat4 lightSpaceMatrix; //like in rendering depth map
+        alignas(16) glm::mat4 lightSpaceMatrix;
         alignas(16) glm::float4 lightPosition;
         alignas(16) glm::float3 CameraPos;
         float pad;

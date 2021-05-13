@@ -20,7 +20,7 @@ DepthPass::DepthPass(/* args */)
 DepthPass::~DepthPass()
 {
 }
-//Rendering the shadow map w/o color attachments
+
 void DepthPass::createShadowPass()
 {
     VkAttachmentDescription depthAttachment{};
@@ -73,7 +73,6 @@ void DepthPass::createShadowPass()
     }
 }
 
-//shadow pass pipeline w/o fragment shader
 void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint32_t width, uint32_t height)
 {
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
@@ -90,7 +89,6 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
     VkVertexInputBindingDescription bindingDescription{};
     VkVertexInputAttributeDescription attributeDescription{};
 
-    // here binding position
     bindingDescription.binding = 0;
     bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
     bindingDescription.stride = sizeof(Scene::Vertex);
@@ -101,7 +99,7 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
     attributeDescription.offset = offsetof(Scene::Vertex, pos);
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
-    vertexInputInfo.vertexAttributeDescriptionCount = 1; //only pos
+    vertexInputInfo.vertexAttributeDescriptionCount = 1;
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
     vertexInputInfo.pVertexAttributeDescriptions = &attributeDescription;
 
@@ -110,7 +108,6 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-    // Fix view port: vulkan specific to handle right hand coordinates ?
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = (float)height;
@@ -323,7 +320,7 @@ void DepthPass::createUniformBuffers()
 glm::mat4 DepthPass::computeLightSpaceMatrix(glm::float3& lightPosition)
 {
     // Matrix from light's point of view
-    glm::mat4 lightProjection = glm::perspective(glm::radians(fovAngle), fovAspect, zNear, zFar);
+    glm::mat4 lightProjection = glm::perspective(glm::radians(fovAngle), 1.0f, zNear, zFar);
     glm::mat4 lightView = glm::lookAt(lightPosition, lightAt, lightUpwards);
     glm::mat4 lightSpaceMatrix = lightProjection * lightView;
 
@@ -334,8 +331,6 @@ void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& 
 {
     UniformBufferObject ubo{};
     ubo.lightSpaceMatrix = lightSpaceMatrix;
-    glm::float4x4 model = glm::float4x4(1.0f);
-    ubo.modelToWorld = model;
 
     void* data;
     vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
@@ -398,18 +393,9 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
     viewport.maxDepth = 1.0f;
     vkCmdSetViewport(cmd, 0, 1, &viewport);
 
-    // Depth bias (and slope) are used to avoid shadowing artifacts
-    // Constant depth bias factor (always applied)
-    float depthBiasConstant = 1.25f;
-    // Slope depth bias factor, applied depending on polygon's slope
-    float depthBiasSlope = 1.75f;
     // Set depth bias (aka "Polygon offset")
     // Required to avoid shadow mapping artifacts
-    vkCmdSetDepthBias(
-        cmd,
-        depthBiasConstant,
-        0.0f,
-        depthBiasSlope);
+    vkCmdSetDepthBias(cmd, depthBiasConstant, 0.0f, depthBiasSlope);
 
     VkBuffer vertexBuffers[] = { vertexBuffer };
     VkDeviceSize offsets[] = { 0 };

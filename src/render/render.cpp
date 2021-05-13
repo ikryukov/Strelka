@@ -64,14 +64,12 @@ void Render::initVulkan()
     init_info.Queue = graphicsQueue;
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
-    //creating depth image for shadow pass
     mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
                              VK_IMAGE_TILING_OPTIMAL,
                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                              shadowImage, shadowImageMemory);
-    shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT /* ? */);
-
+    shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
 
     mDepthPass.init(device, enableValidationLayers, shShaderCode, shShaderCodeSize, descriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
@@ -715,7 +713,7 @@ void Render::drawFrame()
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene.mLightPosition);
     mDepthPass.updateUniformBuffer(imageIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(imageIndex, lightSpaceMatrix, mScene);
-    mUi.updateUI(window, scene, mDepthPass);
+    mUi.updateUI(scene, mDepthPass);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);

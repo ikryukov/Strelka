@@ -42,7 +42,7 @@ cbuffer ubo
     float4x4 modelViewProj;
     float4x4 worldToView;
     float4x4 inverseModelToWorld;
-    float4x4 lightSpaceMatrix; // like in rendering depth map
+    float4x4 lightSpaceMatrix;
     float4 lightPosition;
     float3 CameraPos;
     float pad;
@@ -215,10 +215,11 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    // Shadow
    if (debugView == 2)
    {
-     float shadow = ShadowCalculation(inp.posLightSpace);
-     float3 lighting = saturate(kA + diffuse + specular) * shadow;
-     return float4(lighting, 1.0);
+       float shadow = ShadowCalculation(inp.posLightSpace);
+       return float4(dot(N, L) * shadow, 1.0);
    }
 
-   return float4(saturate(kA + diffuse + specular), 1.0f);
+    float shadow = ShadowCalculation(inp.posLightSpace);
+
+    return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
 }

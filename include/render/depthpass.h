@@ -1,10 +1,10 @@
 #pragma once
 #include "debugUtils.h"
+#include "resourcemanager/resourcemanager.h"
 
 #include <scene/scene.h>
 #include <vulkan/vulkan.h>
 
-#include "resourcemanager/resourcemanager.h"
 #include <vector>
 
 namespace nevk
@@ -15,7 +15,6 @@ private:
     struct UniformBufferObject
     {
         alignas(16) glm::mat4 lightSpaceMatrix;
-        alignas(16) glm::mat4 modelToWorld;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -79,8 +78,9 @@ public:
     glm::mat4 computeLightSpaceMatrix(glm::float3& lightPosition);
     glm::vec3 lightUpwards = glm::vec3(0.0, 1.0, 0.0);
     glm::vec3 lightAt = glm::vec3(0.0f);
+    float depthBiasConstant = 1.25f; // Constant depth bias factor (always applied)
+    float depthBiasSlope = 1.75f; // Slope depth bias factor, applied depending on polygon's slope
     float fovAngle = 45.0f;
-    float fovAspect = 1.0f;
     float zNear = 0.01f;
     float zFar = 50.f;
 

@@ -6,7 +6,6 @@ struct VertexInput
 cbuffer ubo
 {
     float4x4 lightSpaceMatrix;
-    float4x4 modelToWorld;
 }
 
 struct PS_INPUT
