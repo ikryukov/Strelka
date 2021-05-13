@@ -1,5 +1,5 @@
 {
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "editor.formatOnSave": true,
+    "editor.formatOnSave": false,
     "clang-format.executable": "/usr/local/Cellar/clang-format/11.0.0/bin/clang-format"
 }
