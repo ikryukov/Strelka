@@ -57,7 +57,7 @@ void Camera::setPerspective(float _fov, float _aspect, float _znear, float _zfar
     matrices.perspective = glm::perspective(glm::radians(fov), _aspect, znear, zfar);
 }
 
-glm::float4x4 Camera::getPerspective()
+glm::float4x4& Camera::getPerspective()
 {
     return matrices.perspective;
 }

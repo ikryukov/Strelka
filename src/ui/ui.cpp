@@ -226,10 +226,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass)
     ImGui::SliderFloat("up coordinate X", &depthPass.lightUpwards.x, -100.0f, 100.0f);
     ImGui::SliderFloat("up coordinate Y", &depthPass.lightUpwards.y, -100.0f, 100.0f);
     ImGui::SliderFloat("up coordinate Z", &depthPass.lightUpwards.z, -100.0f, 100.0f);
-    if (ImGui::Button("Copy from current camera to light upwards"))
-    {
-        depthPass.lightUpwards = scene.getCamera().getPosition();
-    }
 
     ImGui::Text("Other light settings");
     ImGui::SliderFloat("fov angle", &depthPass.fovAngle, -100.0f, 100.0f);

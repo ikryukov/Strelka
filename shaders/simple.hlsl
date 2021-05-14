@@ -148,17 +148,24 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
 float ShadowCalculation(float4 lightCoord)
 {
     const float bias = 0.005;
-    float shadow = 1.0;
+    float shadow = 0.1;
     float3 projCoord = lightCoord.xyz / lightCoord.w;
     if (abs(projCoord.z) < 1.0)
     {
       float2 coord = float2(projCoord.x, projCoord.y);
-      float distFromLight = shadowMap.Sample(shadowSamp, coord).r;
-      if (distFromLight < projCoord.z)
-      {
-        shadow = 0.1;
-      }
+      // pcf
+      float2 texelSize = 1.0 / float2(512, 512);
+        for (int x = -1; x <= 1; ++x)
+        {
+            for(int y = -1; y <= 1; ++y)
+            {
+                float pcfDepth = shadowMap.Sample(shadowSamp, coord + float2(x, y) * texelSize).r;
+                shadow += projCoord.z > pcfDepth ? 0.1 : 1.0;
+            }
+        }
+        shadow /= 9.0;
     }
+
     return shadow;
 }
 
