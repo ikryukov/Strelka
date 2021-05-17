@@ -422,62 +422,6 @@ private:
     }
 
 public:
-    void setWindow()
-    {
-        initWindow();
-    }
-    void setInstance()
-    {
-        createInstance();
-    }
-    void setDebugMessenger()
-    {
-        setupDebugMessenger();
-    }
-    void setSurface()
-    {
-        createSurface();
-    }
-    void setPhysicalDevice()
-    {
-        pickPhysicalDevice();
-    }
-    void setLogicalDevice()
-    {
-        createLogicalDevice();
-    }
-    void setSwapChain()
-    {
-        createSwapChain();
-    }
-    void setTexManager(nevk::TextureManager* _mTexManager)
-    {
-        mTexManager = _mTexManager;
-    }
-    void setResManager(nevk::ResourceManager* _mResManager)
-    {
-        mResManager = _mResManager;
-    }
-    void setImageViews()
-    {
-        createImageViews();
-    }
-    void setDescriptorPool()
-    {
-        createDescriptorPool();
-    }
-    void setCommandPool()
-    {
-        createCommandPool();
-    }
-    void setCommandBuffers()
-    {
-        createCommandBuffers();
-    }
-    void setSyncObjects()
-    {
-        createSyncObjects();
-    }
     VkPhysicalDevice getPhysicalDevice()
     {
         return physicalDevice;
