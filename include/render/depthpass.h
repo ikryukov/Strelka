@@ -77,7 +77,7 @@ public:
     glm::vec3 lightUpwards = glm::vec3(0.0, 1.0, 0.0);
     glm::vec3 lightAt = glm::vec3(0.0f);
     float depthBiasConstant = 1.25f; // Constant depth bias factor (always applied)
-    float depthBiasSlope = 1.75f; // Slope depth bias factor, applied depending on polygon's slope
+    float depthBiasSlope = 2.0f; // Slope depth bias factor, applied depending on polygon's slope
     float fovAngle = 45.0f;
     float zNear = 0.01f;
     float zFar = 50.f;
