@@ -57,7 +57,7 @@ private:
 
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
-    void updateDescriptorSets(); //?
+    void updateDescriptorSets(uint32_t descSetIndex);
 
     void createUniformBuffers();
 
@@ -66,8 +66,6 @@ private:
 
     bool needDesciptorSetUpdate = true;
     int imageviewcounter = 0;
-
-    void updateDescriptorSets(uint32_t descSetIndex);
 
 public:
     DepthPass(/* args */);
