@@ -95,7 +95,7 @@ float LinearizeDepth(float depth)
 {
     float nearPlane = 0.01;
     float farPlane = 50.0;
-    float z = depth * 2.0 - 1.0; // Back to NDC 
+    float z = depth * 2.0 - 1.0; // Back to NDC
     return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
 }
 
@@ -136,7 +136,7 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
     float3 Bitangent = cross(Normal, Tangent);
 
-    float3 BumpMapNormal = textures[texId].Sample(gSampler, inp.uv).xyz;
+    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(gSampler, inp.uv).xyz;
     BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
 
     float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
@@ -226,40 +226,44 @@ float ShadowCalculationPoisson(float4 lightCoord, float3 wPos)
   return shadow;
 }
 
+#define INVALID_INDEX -1
+
 // Fragment Shader
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-   float3 emissive = float3(materials[inp.materialId].emissive.rgb);
-   float opticalDensity = float(materials[inp.materialId].opticalDensity);
-   float shininess = float(materials[inp.materialId].shininess);
-   float3 transparency = float3(materials[inp.materialId].transparency.rgb);
-   uint32_t illum = 2;
+   Material material = materials[NonUniformResourceIndex(inp.materialId)];
 
-   uint32_t texAmbientId = materials[inp.materialId].texAmbientId;
-   uint32_t texDiffuseId = materials[inp.materialId].texDiffuseId;
-   uint32_t texSpecularId = materials[inp.materialId].texSpecularId;
-   uint32_t texNormalId = materials[inp.materialId].texNormalId;
+   float3 emissive = float3(material.emissive.rgb);
+   float opticalDensity = material.opticalDensity;
+   float shininess = material.shininess;
+   float3 transparency = float3(material.transparency.rgb);
+   uint32_t illum = material.illum;
 
-   float3 kA = materials[inp.materialId].ambient.rgb;
-   float3 kD = materials[inp.materialId].diffuse.rgb;
-   float3 kS = materials[inp.materialId].specular.rgb;
+   uint32_t texAmbientId = material.texAmbientId;
+   uint32_t texDiffuseId = material.texDiffuseId;
+   uint32_t texSpecularId = material.texSpecularId;
+   uint32_t texNormalId = material.texNormalId;
 
-   if (texAmbientId != (uint32_t) -1)
+   float3 kA = material.ambient.rgb;
+   float3 kD = material.diffuse.rgb;
+   float3 kS = material.specular.rgb;
+
+   if (texAmbientId != INVALID_INDEX)
    {
-      kA *= textures[texAmbientId].Sample(gSampler, inp.uv).rgb;
+      kA *= textures[NonUniformResourceIndex(texAmbientId)].Sample(gSampler, inp.uv).rgb;
    }
-   if (texDiffuseId != (uint32_t) -1)
+   if (texDiffuseId != INVALID_INDEX)
    {
-      kD *= textures[texDiffuseId].Sample(gSampler, inp.uv).rgb;
+      kD *= textures[NonUniformResourceIndex(texDiffuseId)].Sample(gSampler, inp.uv).rgb;
    }
-   if (texSpecularId != (uint32_t) -1)
+   if (texSpecularId != INVALID_INDEX)
    {
-      kS *= textures[texSpecularId].Sample(gSampler, inp.uv).rgb;
+      kS *= textures[NonUniformResourceIndex(texSpecularId)].Sample(gSampler, inp.uv).rgb;
    }
 
    float3 N = normalize(inp.normal);
-   if (texNormalId != (uint32_t) -1)
+   if (texNormalId != INVALID_INDEX)
    {
       N = CalcBumpedNormal(inp, texNormalId);
    }
