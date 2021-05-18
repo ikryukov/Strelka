@@ -45,9 +45,9 @@ void Render::initVulkan()
     createDepthResources();
     model = new nevk::Model(mTexManager);
     mScene = new nevk::Scene;
-    loadModel(*mModelPath, *model);
+    //loadModel(*mModelPath, *model);
 
-    createMaterialBuffer();
+    //createMaterialBuffer();
     QueueFamilyIndices indicesFamily = findQueueFamilies(physicalDevice);
 
     //    ImGui_ImplVulkan_InitInfo init_info{};
@@ -61,30 +61,31 @@ void Render::initVulkan()
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
     std::string path = MTL_PATH;
-    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height, path, *mModelPath);
+    mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height, path);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
-    mPass.setFrameBufferFormat(swapChainImageFormat);
 
+    mPass.setFrameBufferFormat(swapChainImageFormat);
     mPass.setDepthBufferFormat(findDepthFormat());
     mPass.setTextureImageView(mTexManager->textureImageView);
     mPass.setTextureSampler(mTexManager->textureSampler);
 
     mPass.setMaterialBuffer(materialBuffer);
-    mPass.init(device, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
-    mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+    //mPass.init(device, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
-    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+    //mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
+     mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
                              VK_IMAGE_TILING_OPTIMAL,
                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                              textureCompImage, textureCompImageMemory);
     mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-    //mComputePass.setOutputImageView(textureCompImageView);
+    ///*mComputePass.setOutputImageView(textureCompImageView);
     //mComputePass.setInImageView();
     //mComputePass.setTextureSampler(mTexManager->textureSampler);
-    //mComputePass.init(device, csShaderCode, csShaderCodeSize, descriptorPool, mResManager);
+    //mComputePass.init(device, csShaderCode, csShaderCodeSize, descriptorPool, mResManager);*/
 
     createIndexBuffer();
     createVertexBuffer();
@@ -494,7 +495,6 @@ VkFormat Render::findDepthFormat()
 
 void Render::createVertexBuffer()
 {
-
     std::vector<nevk::Scene::Vertex>& sceneVertices = mScene->getVertices();
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
     if (bufferSize == 0)
@@ -620,7 +620,8 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    if (*mModelPath != "")
+        mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
@@ -689,141 +690,140 @@ void Render::drawFrame()
 
     nevk::Scene& scene = getScene();
     Camera& cam = scene.getCamera();
-  
+
     cam.update(deltaTime);
 
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);
-    std::string path = mUi.updateUI(window, scene);
-    if (path != *mModelPath) {
-      delete mScene;
-      delete model;
-      delete mResManager;
-      delete mTexManager;
 
-      uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
-      uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
-      uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-
-      const char* fragShaderCode = nullptr;
-      uint32_t fragShaderCodeSize = 0;
-      mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
-
-      const char* vertShaderCode = nullptr;
-      uint32_t vertShaderCodeSize = 0;
-      mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
-
-      const char* csShaderCode = nullptr;
-      uint32_t csShaderCodeSize = 0;
-      mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
-
-      mResManager = new nevk::ResourceManager(device, physicalDevice, getCurrentFrameData().cmdPool, graphicsQueue);
-      mTexManager = new nevk::TextureManager(device, physicalDevice, mResManager);
-
-      mScene = new nevk::Scene;
-
-      model = new nevk::Model(mTexManager);
-      *mModelPath = path;
-
-      loadModel(*mModelPath, *model);
-      createMaterialBuffer();
-     
-      mPass.setFrameBufferFormat(swapChainImageFormat);
-
-      mPass.setDepthBufferFormat(findDepthFormat());
-      mPass.setTextureImageView(mTexManager->textureImageView);
-      mPass.setTextureSampler(mTexManager->textureSampler);
-
-      mPass.setMaterialBuffer(materialBuffer);
-      //mPass.init(device, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
-      mPass.init(device, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
-
-      mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
-
-      mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        textureCompImage, textureCompImageMemory);
-      mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-      textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-      createIndexBuffer();
-      createVertexBuffer();
-    }
-
-  
-
-    VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
-    vkResetCommandBuffer(cmdBuff, 0);
-
-    VkCommandBufferBeginInfo cmdBeginInfo = {};
-    cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    cmdBeginInfo.pNext = nullptr;
-    cmdBeginInfo.pInheritanceInfo = nullptr;
-    cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
-
-    recordCommandBuffer(cmdBuff, imageIndex);
-
-    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
+    std::string& path = mUi.updateUI(window, scene);
+    if (path != *mModelPath)
     {
+        delete mScene;
+        delete model;
+        delete mResManager;
+        delete mTexManager;
+
+        uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+        uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+        uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
+
+        const char* fragShaderCode = nullptr;
+        uint32_t fragShaderCodeSize = 0;
+        mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+
+        const char* vertShaderCode = nullptr;
+        uint32_t vertShaderCodeSize = 0;
+        mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+
+        const char* csShaderCode = nullptr;
+        uint32_t csShaderCodeSize = 0;
+        mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
+
+        mResManager = new nevk::ResourceManager(device, physicalDevice, getCurrentFrameData().cmdPool, graphicsQueue);
+        mTexManager = new nevk::TextureManager(device, physicalDevice, mResManager);
+
+        mScene = new nevk::Scene;
+
+        model = new nevk::Model(mTexManager);
+        *mModelPath = path;
+
+        loadModel(*mModelPath, *model);
+        createMaterialBuffer();
+
+        mPass.setFrameBufferFormat(swapChainImageFormat);
+
+        mPass.setDepthBufferFormat(findDepthFormat());
+        mPass.setTextureImageView(mTexManager->textureImageView);
+        mPass.setTextureSampler(mTexManager->textureSampler);
+
+        mPass.setMaterialBuffer(materialBuffer);
+        mPass.init(device, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+
+        mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
+        mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                 VK_IMAGE_TILING_OPTIMAL,
+                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                 textureCompImage, textureCompImageMemory);
+        mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+        textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+        createIndexBuffer();
+        createVertexBuffer();
+    }
+    if (*mModelPath != "")
+      mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);
+
+      VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
+      vkResetCommandBuffer(cmdBuff, 0);
+
+      VkCommandBufferBeginInfo cmdBeginInfo = {};
+      cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+      cmdBeginInfo.pNext = nullptr;
+      cmdBeginInfo.pInheritanceInfo = nullptr;
+      cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+      vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
+
+      recordCommandBuffer(cmdBuff, imageIndex);
+
+      if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
+      {
         throw std::runtime_error("failed to record command buffer!");
-    }
+      }
 
-    if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
-    {
+      if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
+      {
         vkWaitForFences(device, 1, &getFrameData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
-    }
-    getFrameData(imageIndex).imagesInFlight = currFrame.inFlightFence;
+      }
+      getFrameData(imageIndex).imagesInFlight = currFrame.inFlightFence;
 
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+      VkSubmitInfo submitInfo{};
+      submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore waitSemaphores[] = { currFrame.imageAvailable };
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-    submitInfo.waitSemaphoreCount = 1;
-    submitInfo.pWaitSemaphores = waitSemaphores;
-    submitInfo.pWaitDstStageMask = waitStages;
+      VkSemaphore waitSemaphores[] = { currFrame.imageAvailable };
+      VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+      submitInfo.waitSemaphoreCount = 1;
+      submitInfo.pWaitSemaphores = waitSemaphores;
+      submitInfo.pWaitDstStageMask = waitStages;
 
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmdBuff;
+      submitInfo.commandBufferCount = 1;
+      submitInfo.pCommandBuffers = &cmdBuff;
 
-    VkSemaphore signalSemaphores[] = { currFrame.renderFinished };
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores = signalSemaphores;
+      VkSemaphore signalSemaphores[] = { currFrame.renderFinished };
+      submitInfo.signalSemaphoreCount = 1;
+      submitInfo.pSignalSemaphores = signalSemaphores;
 
-    vkResetFences(device, 1, &currFrame.inFlightFence);
+      vkResetFences(device, 1, &currFrame.inFlightFence);
 
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, currFrame.inFlightFence) != VK_SUCCESS)
-    {
+      if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, currFrame.inFlightFence) != VK_SUCCESS)
+      {
         throw std::runtime_error("failed to submit draw command buffer!");
-    }
+      }
 
-    VkPresentInfoKHR presentInfo{};
-    presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+      VkPresentInfoKHR presentInfo{};
+      presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-    presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores = signalSemaphores;
+      presentInfo.waitSemaphoreCount = 1;
+      presentInfo.pWaitSemaphores = signalSemaphores;
 
-    VkSwapchainKHR swapChains[] = { swapChain };
-    presentInfo.swapchainCount = 1;
-    presentInfo.pSwapchains = swapChains;
+      VkSwapchainKHR swapChains[] = { swapChain };
+      presentInfo.swapchainCount = 1;
+      presentInfo.pSwapchains = swapChains;
 
-    presentInfo.pImageIndices = &imageIndex;
+      presentInfo.pImageIndices = &imageIndex;
 
-    result = vkQueuePresentKHR(presentQueue, &presentInfo);
+      result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
-    {
+      if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
+      {
         framebufferResized = false;
         recreateSwapChain();
-    }
-    else if (result != VK_SUCCESS)
-    {
+      }
+      else if (result != VK_SUCCESS)
+      {
         throw std::runtime_error("failed to present swap chain image!");
-    }
-
-    mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+      }
+        mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 VkSurfaceFormatKHR Render::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

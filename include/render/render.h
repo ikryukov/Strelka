@@ -185,7 +185,8 @@ private:
     nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
     nevk::Scene* mScene;
-    std::string* mModelPath = new std::string("misc/CornellBox-Sphere.obj");
+    std::string* mModelPath = new std::string();
+    //std::string* mModelPath = new std::string("misc/CornellBox-Sphere.obj");
 
 
     void initWindow()
@@ -365,23 +366,15 @@ private:
         return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
     }
 
-    std::vector<nevk::Scene::Vertex> convertVerticesToRender(std::vector<nevk::Scene::Vertex> const& params)
-    {
-        std::vector<nevk::Scene::Vertex> ret(params.size());
-        std::transform(params.begin(), params.end(), ret.begin(),
-                       [](auto& value) {
-                           return nevk::Scene::Vertex{ value.pos, value.normal, value.uv, value.materialId };
-                       });
-        return ret;
-    }
-
     void loadModel(std::string path, nevk::Model& testmodel)
     {
-        delete mScene;
+        if (mScene != nullptr)
+            delete mScene;
         mScene = new nevk::Scene;
+        
         testmodel.loadModel(path, MTL_PATH, *mScene);
         Camera& camera = mScene->getCamera();
-    
+
         camera.type = Camera::CameraType::firstperson;
 
         camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);

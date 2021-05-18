@@ -12,7 +12,6 @@
 #include <utility>
 #include <vector>
 
-
 namespace nevk
 {
 
@@ -57,7 +56,7 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 }
 
 
-bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height, std::string& path, std::string& model)
+bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height, std::string& path)
 {
     wd.Width = width;
     wd.Height = height;
@@ -99,9 +98,9 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
         if (it->path().extension() == ".obj")
         {
             filesName.push_back(it->path().relative_path().string());
-            it->path().generic_string() == model ? Bools.push_back(true) : Bools.push_back(false);
         }
     }
+    Bools = std::vector<bool>(filesName.size(), false);
     return ret;
 }
 
@@ -213,7 +212,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-std::string Ui::updateUI(GLFWwindow* window, Scene& scene)
+std::string& Ui::updateUI(GLFWwindow* window, Scene& scene)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -251,7 +250,7 @@ std::string Ui::updateUI(GLFWwindow* window, Scene& scene)
     }
 
     ImGui::Text("Choosing model:");
-    int pos = 0;
+    int pos = -1;
     for (int i = 0; i < filesName.size(); ++i)
     {
         bool bools = Bools.at(i);
@@ -264,10 +263,15 @@ std::string Ui::updateUI(GLFWwindow* window, Scene& scene)
             }
         }
         if (bools)
-          pos = i;
+            pos = i;
         Bools.at(i) = bools;
     }
     ImGui::End(); // end window
+    if (pos == -1)
+    {
+        std::string* path = new std::string();
+        return *path;
+    }
     return filesName[pos];
 }
 
