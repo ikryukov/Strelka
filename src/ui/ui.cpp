@@ -234,7 +234,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass)
     ImGui::SliderFloat("depth bias factor", &depthPass.depthBiasConstant, -100.0f, 100.0f);
     ImGui::SliderFloat("slope depth bias factor", &depthPass.depthBiasSlope, -100.0f, 100.0f);
 
-    const char* items[] = { "None", "Normals", "Shadow" };
+    const char* items[] = { "None", "Normals", "Shadow b&w", "Shadow PCF", "Shadow Poisson" };
     static const char* current_item = items[0];
 
     if (ImGui::BeginCombo("Debug view", current_item))
