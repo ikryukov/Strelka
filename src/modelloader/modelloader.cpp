@@ -86,6 +86,50 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
     const bool hasMaterial = !mtlPath.empty() && !materials.empty();
 
     std::unordered_map<std::string, uint32_t> uniqueMaterial{};
+
+    // default material 
+    {
+        Scene::Material material{};
+        material.ambient = { 0.1f,
+                             0.1f,
+                             0.1f, 1.0f };
+
+        material.diffuse = { 0.8f,
+                             0.8f,
+                             0.8f, 1.0f };
+
+        material.specular = { 0.0f,
+                              0.0f,
+                              0.0f, 1.0f };
+
+        material.emissive = { 0.0f,
+                              0.0f,
+                              0.0f, 1.0f };
+
+        material.opticalDensity = 0.0f;
+
+        material.shininess = 1.0f;
+
+        material.transparency = { 0.0f,
+                                  0.0f,
+                                  0.0f, 1.0f };
+
+        material.illum = 2;
+
+        material.texAmbientId = -1;
+        material.texDiffuseId = -1;
+        material.texSpecularId = -1;
+        material.texNormalId = -1;
+
+        uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
+                                               material.specular, material.emissive,
+                                               material.opticalDensity, material.shininess,
+                                               material.transparency, material.illum,
+                                               material.texAmbientId, material.texDiffuseId,
+                                               material.texSpecularId, material.texNormalId);
+        assert(matId == 0);
+    }
+
     for (auto& shape : shapes)
     {
         uint32_t shapeMaterialId = 0; // TODO: make default material
