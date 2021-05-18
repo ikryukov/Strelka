@@ -13,6 +13,7 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "computepass.h"
+#include "depthpass.h"
 #include "renderpass.h"
 
 #include <modelloader/modelloader.h>
@@ -40,14 +41,20 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 const int MAX_FRAMES_IN_FLIGHT = 3;
 
-const std::string MODEL_PATH = "misc/cube.obj";
+const uint32_t SHADOW_MAP_WIDTH = 1024;
+const uint32_t SHADOW_MAP_HEIGHT = 1024;
+
+//const std::string MODEL_PATH = "misc/cube.obj";
+//const std::string MTL_PATH = "misc/";
+
+const std::string MODEL_PATH = "misc/CubeScene.obj";
 const std::string MTL_PATH = "misc/";
 
-// const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
-// const std::string MTL_PATH = "misc/";
+//const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+//const std::string MTL_PATH = "misc/";
 
-// const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
-// const std::string MTL_PATH = "misc/San_Miguel/";
+//const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
+//const std::string MTL_PATH = "misc/San_Miguel/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -144,12 +151,17 @@ private:
     VkDeviceMemory textureCompImageMemory;
     VkImageView textureCompImageView;
 
+    VkImage shadowImage;
+    VkDeviceMemory shadowImageMemory;
+    VkImageView shadowImageView;
+
     nevk::ResourceManager* mResManager;
     nevk::TextureManager* mTexManager;
 
     nevk::RenderPass mPass;
     nevk::Model* model;
     nevk::ComputePass mComputePass;
+    nevk::DepthPass mDepthPass;
 
     uint32_t indicesCount = 0;
     VkBuffer vertexBuffer;
@@ -370,10 +382,10 @@ private:
 
         camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 
-        camera.rotationSpeed = 0.0025f;
+        camera.rotationSpeed = 0.05f;
 
-        camera.movementSpeed = 1.0f;
-        camera.setPosition({ 0.0f, 0.0f, 1.0f });
+        camera.movementSpeed = 5.0f;
+        camera.setPosition({ -1.0f, 3.0f, 8.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
     }
 

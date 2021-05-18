@@ -19,6 +19,7 @@ private:
         alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseModelToWorld;
+        alignas(16) glm::mat4 lightSpaceMatrix;
         alignas(16) glm::float4 lightPosition;
         alignas(16) glm::float3 CameraPos;
         float pad;
@@ -61,6 +62,7 @@ private:
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
     VkSampler mTextureSampler = VK_NULL_HANDLE;
+    VkSampler mShadowSampler = VK_NULL_HANDLE;
 
     void createRenderPass();
 
@@ -73,6 +75,7 @@ private:
 
     std::vector<VkFramebuffer> mFrameBuffers;
 
+    VkFramebuffer mShadowFrameBuffer;
     VkFormat mFrameBufferFormat;
 
     VkFormat mDepthBufferFormat;
@@ -133,7 +136,7 @@ public:
     int imageviewcounter = 0;
 
     std::vector<VkImageView> mTextureImageView;
-
+    VkImageView mShadowImageView;
     VkBuffer mMaterialBuffer;
 
     bool needDesciptorSetUpdate;
@@ -152,8 +155,10 @@ public:
         mDepthBufferFormat = format;
     }
 
+    void setShadowImageView(VkImageView shadowImageView);
     void setTextureImageView(std::vector<VkImageView> textureImageView);
     void setTextureSampler(VkSampler textureSampler);
+    void setShadowSampler(VkSampler shadowSampler);
     void setMaterialBuffer(VkBuffer materialBuffer);
 
     void init(VkDevice& device, bool enableValidation, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
@@ -178,7 +183,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& perspective, const glm::float4x4& view, const glm::float4& lightDirect, const glm::float3& camPos, Scene::DebugView& debugView);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene);
 
     RenderPass(/* args */);
     ~RenderPass();
