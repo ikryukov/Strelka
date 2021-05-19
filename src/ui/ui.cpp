@@ -81,7 +81,7 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
     bool ret = ImGui_ImplVulkan_Init(&init_info, wd.RenderPass);
 
     // Upload Fonts
-    uploadFonts(init_info, command_pool, command_buffer) ? : ret = false;
+    if (!uploadFonts(init_info, command_pool, command_buffer)) ret = false;
 
     setDarkThemeColors();
 
