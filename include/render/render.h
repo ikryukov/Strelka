@@ -486,4 +486,12 @@ public:
     {
         createDepthResources();
     }
+    nevk::Ui getUi()
+    {
+        return mUi;
+    }
+    void setUi(nevk::Ui _mUi)
+    {
+        mUi = _mUi;
+    }
 };
