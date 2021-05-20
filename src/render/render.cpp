@@ -188,6 +188,20 @@ void Render::cleanup()
     glfwTerminate();
 }
 
+void Render::initWindow()
+{
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+    window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK", nullptr, nullptr);
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetCursorPosCallback(window, handleMouseMoveCallback);
+    glfwSetScrollCallback(window, scrollCallback);
+}
+
 void Render::recreateSwapChain()
 {
     int width = 0, height = 0;

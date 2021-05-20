@@ -32,7 +32,7 @@ public:
     void render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat);
-    bool uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer);
+    bool uploadFonts(ImGui_ImplVulkan_InitInfo& init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer);
     static void setDarkThemeColors();
     void onResize(ImGui_ImplVulkan_InitInfo& init_info, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void onDestroy() const;

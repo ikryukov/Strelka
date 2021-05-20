@@ -79,14 +79,14 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
     bool ret = ImGui_ImplVulkan_Init(&init_info, wd.RenderPass);
 
     // Upload Fonts
-    uploadFonts(init_info, command_pool, command_buffer);
+    if (!uploadFonts(init_info, command_pool, command_buffer)) ret = false;
 
     setDarkThemeColors();
 
     return ret;
 }
 
-bool Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer)
+bool Ui::uploadFonts(ImGui_ImplVulkan_InitInfo& init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer)
 {
     // Use any command queue
     VkResult err = vkResetCommandPool(init_info.Device, command_pool, 0);

@@ -121,6 +121,10 @@ public:
         cleanup();
     }
 
+    void initWindow();
+    void initVulkan();
+    void cleanup();
+
 private:
     GLFWwindow* window;
     ImGui_ImplVulkan_InitInfo init_info{};
@@ -197,19 +201,7 @@ private:
     nevk::ShaderManager mShaderManager;
     nevk::Scene mScene;
 
-    void initWindow()
-    {
-        glfwInit();
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-        window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK", nullptr, nullptr);
-        glfwSetWindowUserPointer(window, this);
-        glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-        glfwSetKeyCallback(window, keyCallback);
-        glfwSetMouseButtonCallback(window, mouseButtonCallback);
-        glfwSetCursorPosCallback(window, handleMouseMoveCallback);
-        glfwSetScrollCallback(window, scrollCallback);
-    }
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
     {
@@ -335,13 +327,12 @@ private:
                                     -yoffset * mCamera.movementSpeed));
     }
 
-    void initVulkan();
 
     void mainLoop();
 
     void cleanupSwapChain();
 
-    void cleanup();
+
 
     void recreateSwapChain();
 
@@ -443,62 +434,6 @@ private:
     }
 
 public:
-    void setWindow()
-    {
-        initWindow();
-    }
-    void setInstance()
-    {
-        createInstance();
-    }
-    void setDebugMessenger()
-    {
-        setupDebugMessenger();
-    }
-    void setSurface()
-    {
-        createSurface();
-    }
-    void setPhysicalDevice()
-    {
-        pickPhysicalDevice();
-    }
-    void setLogicalDevice()
-    {
-        createLogicalDevice();
-    }
-    void setSwapChain()
-    {
-        createSwapChain();
-    }
-    void setTexManager(nevk::TextureManager* _mTexManager)
-    {
-        mTexManager = _mTexManager;
-    }
-    void setResManager(nevk::ResourceManager* _mResManager)
-    {
-        mResManager = _mResManager;
-    }
-    void setImageViews()
-    {
-        createImageViews();
-    }
-    void setDescriptorPool()
-    {
-        createDescriptorPool();
-    }
-    void setCommandPool()
-    {
-        createCommandPool();
-    }
-    void setCommandBuffers()
-    {
-        createCommandBuffers();
-    }
-    void setSyncObjects()
-    {
-        createSyncObjects();
-    }
     VkPhysicalDevice getPhysicalDevice()
     {
         return physicalDevice;
@@ -562,5 +497,13 @@ public:
     void setDepthResources()
     {
         createDepthResources();
+    }
+    nevk::Ui getUi()
+    {
+        return mUi;
+    }
+    void setUi(nevk::Ui _mUi)
+    {
+        mUi = _mUi;
     }
 };
