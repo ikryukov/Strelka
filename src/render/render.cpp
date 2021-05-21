@@ -19,6 +19,7 @@ void Render::initVulkan()
     uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
     uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
     uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
+    uint32_t shId = mShaderManager.loadShader("shaders/shadow.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
 
     const char* fragShaderCode = nullptr;
     uint32_t fragShaderCodeSize = 0;
@@ -31,6 +32,10 @@ void Render::initVulkan()
     const char* csShaderCode = nullptr;
     uint32_t csShaderCodeSize = 0;
     mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
+
+    const char* shShaderCode = nullptr;
+    uint32_t shShaderCodeSize = 0;
+    mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);
 
     createDescriptorPool();
     createCommandPool();
@@ -59,13 +64,25 @@ void Render::initVulkan()
     init_info.Queue = graphicsQueue;
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
+    mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
+                             VK_IMAGE_TILING_OPTIMAL,
+                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                             shadowImage, shadowImageMemory);
+    shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    mDepthPass.init(device, enableValidationLayers, shShaderCode, shShaderCodeSize, descriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mTexManager->createShadowSampler();
+
     mUi.init(init_info, swapChainImageFormat, window, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(device, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
     mPass.setFrameBufferFormat(swapChainImageFormat);
     mPass.setDepthBufferFormat(findDepthFormat());
     mPass.setTextureImageView(mTexManager->textureImageView);
     mPass.setTextureSampler(mTexManager->textureSampler);
-
+    mPass.setShadowImageView(shadowImageView);
+    mPass.setShadowSampler(mTexManager->shadowSampler);
     mPass.setMaterialBuffer(materialBuffer);
     mPass.init(device, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, descriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
@@ -123,6 +140,7 @@ void Render::cleanup()
     cleanupSwapChain();
 
     mPass.onDestroy();
+    mDepthPass.onDestroy();
     mUi.onDestroy();
 
     vkDestroyDescriptorPool(device, descriptorPool, nullptr);
@@ -132,6 +150,10 @@ void Render::cleanup()
     vkDestroyImageView(device, textureCompImageView, nullptr);
     vkDestroyImage(device, textureCompImage, nullptr);
     vkFreeMemory(device, textureCompImageMemory, nullptr);
+
+    vkDestroyImageView(device, shadowImageView, nullptr);
+    vkDestroyImage(device, shadowImage, nullptr);
+    vkFreeMemory(device, shadowImageMemory, nullptr);
 
     vkDestroyBuffer(device, indexBuffer, nullptr);
     vkFreeMemory(device, indexBufferMemory, nullptr);
@@ -164,6 +186,20 @@ void Render::cleanup()
     glfwDestroyWindow(window);
 
     glfwTerminate();
+}
+
+void Render::initWindow()
+{
+    glfwInit();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+
+    window = glfwCreateWindow(WIDTH, HEIGHT, "NeVK", nullptr, nullptr);
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
+    glfwSetCursorPosCallback(window, handleMouseMoveCallback);
+    glfwSetScrollCallback(window, scrollCallback);
 }
 
 void Render::recreateSwapChain()
@@ -616,6 +652,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
+    mDepthPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
     mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
@@ -691,8 +728,10 @@ void Render::drawFrame()
 
 
     cam.update(deltaTime);
-    mPass.updateUniformBuffer(imageIndex, cam.matrices.perspective, cam.matrices.view, scene.mLightPosition, cam.getPosition(), scene.mDebugViewSettings);
-    mUi.updateUI(window, scene);
+    const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene.mLightPosition);
+    mDepthPass.updateUniformBuffer(imageIndex, lightSpaceMatrix);
+    mPass.updateUniformBuffer(imageIndex, lightSpaceMatrix, mScene);
+    mUi.updateUI(scene, mDepthPass);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);

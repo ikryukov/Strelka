@@ -1,7 +1,5 @@
 #include "ui.h"
 
-#include "scene/scene.h"
-
 #include <stdexcept>
 #include <utility>
 
@@ -81,14 +79,14 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
     bool ret = ImGui_ImplVulkan_Init(&init_info, wd.RenderPass);
 
     // Upload Fonts
-    uploadFonts(init_info, command_pool, command_buffer);
+    if (!uploadFonts(init_info, command_pool, command_buffer)) ret = false;
 
     setDarkThemeColors();
 
     return ret;
 }
 
-bool Ui::uploadFonts(ImGui_ImplVulkan_InitInfo init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer)
+bool Ui::uploadFonts(ImGui_ImplVulkan_InitInfo& init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer)
 {
     // Use any command queue
     VkResult err = vkResetCommandPool(init_info.Device, command_pool, 0);
@@ -196,7 +194,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(GLFWwindow* window, Scene& scene)
+void Ui::updateUI(Scene& scene, DepthPass& depthPass)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -206,11 +204,37 @@ void Ui::updateUI(GLFWwindow* window, Scene& scene)
 
     ImGui::Begin("Settings:"); // begin window
 
-    ImGui::SliderFloat("coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);
-    ImGui::SliderFloat("coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
-    ImGui::SliderFloat("coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
+    ImGui::Text("Light Position");
+    ImGui::SliderFloat("pos coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);
+    ImGui::SliderFloat("pos coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
+    ImGui::SliderFloat("pos coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
+    if (ImGui::Button("Copy from current camera to light position"))
+    {
+        (glm::float3&)scene.mLightPosition = scene.getCamera().getPosition();
+    }
 
-    const char* items[] = { "None", "Normals" };
+    ImGui::Text("Light At");
+    ImGui::SliderFloat("coordinate X", &depthPass.lightAt.x, -100.0f, 100.0f);
+    ImGui::SliderFloat("coordinate Y", &depthPass.lightAt.y, -100.0f, 100.0f);
+    ImGui::SliderFloat("coordinate Z", &depthPass.lightAt.z, -100.0f, 100.0f);
+    if (ImGui::Button("Copy from current camera to light at"))
+    {
+        depthPass.lightAt = scene.getCamera().getPosition();
+    }
+
+    ImGui::Text("Light Direction Upwards");
+    ImGui::SliderFloat("up coordinate X", &depthPass.lightUpwards.x, -100.0f, 100.0f);
+    ImGui::SliderFloat("up coordinate Y", &depthPass.lightUpwards.y, -100.0f, 100.0f);
+    ImGui::SliderFloat("up coordinate Z", &depthPass.lightUpwards.z, -100.0f, 100.0f);
+
+    ImGui::Text("Other light settings");
+    ImGui::SliderFloat("fov angle", &depthPass.fovAngle, -100.0f, 100.0f);
+    ImGui::SliderFloat("zNear", &depthPass.zNear, -100.0f, 100.0f);
+    ImGui::SliderFloat("zFar", &depthPass.zFar, -100.0f, 100.0f);
+    ImGui::SliderFloat("depth bias factor", &depthPass.depthBiasConstant, -100.0f, 100.0f);
+    ImGui::SliderFloat("slope depth bias factor", &depthPass.depthBiasSlope, -100.0f, 100.0f);
+
+    const char* items[] = { "None", "Normals", "Shadow b&w", "Shadow PCF", "Shadow Poisson", "Shadow Poisson+PCF"};
     static const char* current_item = items[0];
 
     if (ImGui::BeginCombo("Debug view", current_item))
@@ -231,11 +255,6 @@ void Ui::updateUI(GLFWwindow* window, Scene& scene)
         ImGui::EndCombo();
     }
 
-    //    bool val1 = (scene.mode & scene.transparentMode);
-    //    bool val2 = (scene.mode & scene.opaqueMode);
-    //    ImGui::Checkbox("Transparent Mode", &val1);
-    //    ImGui::Checkbox("Opaque Mode", &val2);
-    //
     //     transparency settings
     ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
     ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);

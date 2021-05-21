@@ -81,8 +81,8 @@ target_include_directories(${UILIB_NAME} PUBLIC external/imgui/include)
 target_include_directories(${UILIB_NAME} PRIVATE external/glfw/include)
 target_include_directories(${UILIB_NAME} PUBLIC external/glm)
 if (MSVC)
-        target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
-endif()
+    target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
+endif ()
 ## Vulkan
 target_include_directories(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
@@ -105,10 +105,12 @@ set(RENDER_SOURCES
         include/render/render.h
         include/render/renderpass.h
         include/render/computepass.h
+        include/render/depthpass.h
         include/render/debugUtils.h
         src/render/render.cpp
         src/render/renderpass.cpp
         src/render/computepass.cpp
+        src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )
 set(RENDERLIB_NAME render)

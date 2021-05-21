@@ -83,13 +83,8 @@ public:
 
     bool transparentMode = true;
     bool opaqueMode = true;
-
-    //    const unsigned char transparentMode = 0x01;
-    //    const unsigned char opaqueMode = 0x02;
-    //    unsigned char mode = 0;
-
-
-    glm::float4 mLightPosition{ 1.0, 1.0, 1.0, 1.0 };
+  
+    glm::float4 mLightPosition{ 10.0, 10.0, 10.0, 1.0 };
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;

@@ -65,6 +65,8 @@ public:
     float getNearClip();
     float getFarClip();
     void setPerspective(float fov, float aspect, float znear, float zfar);
+    glm::float4x4& getPerspective();
+    glm::float4x4 getView();
     void updateAspectRatio(float aspect);
     void setPosition(glm::float3 position);
     glm::float3 getPosition();

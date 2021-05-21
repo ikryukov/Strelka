@@ -16,6 +16,13 @@ add_executable(${TEST_MAIN} ${TESTFILES})
 target_link_libraries(${TEST_MAIN} PRIVATE ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} doctest)
 target_include_directories(${TEST_MAIN} PRIVATE ../include/)
 
+# Set working directory
+set(OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+if (MSVC)
+    set_property(TARGET ${TEST_MAIN} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
+elseif (APPLE)
+    set_property(TARGET ${TEST_MAIN} PROPERTY XCODE_SCHEME_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
+endif ()
 set_target_properties(${TEST_MAIN} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 # target_set_warnings(${TEST_MAIN} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 

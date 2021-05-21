@@ -34,12 +34,14 @@ public:
     std::vector<Texture> textures;
     std::vector<VkImageView> textureImageView;
     VkSampler textureSampler = VK_NULL_HANDLE;
+    VkSampler shadowSampler = VK_NULL_HANDLE;
 
     int loadTexture(const std::string& texture_path, const std::string& MTL_PATH);
 
     Texture createTextureImage(const std::string& texture_path);
     void createTextureImageView(Texture& texture);
     void createTextureSampler();
+    void createShadowSampler();
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
     void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
@@ -48,6 +50,7 @@ public:
     void textureDestroy()
     {
         vkDestroySampler(mDevice, textureSampler, nullptr);
+        vkDestroySampler(mDevice, shadowSampler, nullptr);
 
         for (VkImageView& image_view : textureImageView)
         {

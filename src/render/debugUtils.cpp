@@ -11,6 +11,10 @@ void nevk::debug::setupDebug(VkInstance instance)
 
 void nevk::debug::beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::float4& color)
 {
+    if (!_vkCmdBeginDebugUtilsLabelEXT)
+    {
+        return;
+    }
     VkDebugUtilsLabelEXT label = {};
     label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
     label.pLabelName = labelName;
@@ -23,5 +27,9 @@ void nevk::debug::beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, c
 
 void nevk::debug::endLabel(VkCommandBuffer cmdBuffer)
 {
+    if (!_vkCmdEndDebugUtilsLabelEXT)
+    {
+        return;
+    }
     _vkCmdEndDebugUtilsLabelEXT(cmdBuffer);
 }
