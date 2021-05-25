@@ -25,7 +25,7 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     mesh->mIndex = mIndices.size(); // Index of 1st index in index buffer
     mesh->mCount = ib.size(); // amount of indices in mesh
 
-    const uint32_t ibOffset = mIndices.size(); // adjust indices for global index buffer
+    const uint32_t ibOffset = mVertices.size(); // adjust indices for global index buffer
     for (int i = 0; i < ib.size(); ++i)
     {
         mIndices.push_back(ibOffset + ib[i]);

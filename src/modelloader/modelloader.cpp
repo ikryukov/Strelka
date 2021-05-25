@@ -237,32 +237,53 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
 
     const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes.find("POSITION")->second];
     const tinygltf::BufferView& positionView = model.bufferViews[positionAccessor.bufferView];
-
     const float* positionData = reinterpret_cast<const float*>(&model.buffers[positionView.buffer].data[positionAccessor.byteOffset + positionView.byteOffset]);
     assert(positionData != nullptr);
-
-    uint32_t vertexCount = static_cast<uint32_t>(positionAccessor.count);
+    const uint32_t vertexCount = static_cast<uint32_t>(positionAccessor.count);
     assert(vertexCount != 0);
-
     const int byteStride = positionAccessor.ByteStride(positionView);
-    assert(byteStride != -1);
-
+    assert(byteStride > 0); // -1 means invalid glTF
     int posStride = byteStride / sizeof(float);
 
+    // Normals
+    const float* normalsData = nullptr;
+    int normalStride = 0;
+    if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
+    {
+        const tinygltf::Accessor& normalAccessor = model.accessors[primitive.attributes.find("NORMAL")->second];
+        const tinygltf::BufferView& normView = model.bufferViews[normalAccessor.bufferView];
+        normalsData = reinterpret_cast<const float*>(&(model.buffers[normView.buffer].data[normalAccessor.byteOffset + normView.byteOffset]));
+        assert(normalsData != nullptr);
+        normalStride = normalAccessor.ByteStride(normView) / sizeof(float);
+        assert(normalStride > 0);
+    }
+
+    // UVs
+    const float* texCoord0Data = nullptr;
+    int texCoord0Stride = 0; 
+    if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
+    {
+        const tinygltf::Accessor& uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
+        const tinygltf::BufferView& uvView = model.bufferViews[uvAccessor.bufferView];
+        texCoord0Data = reinterpret_cast<const float*>(&(model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+        texCoord0Stride = uvAccessor.ByteStride(uvView) / sizeof(float);
+    }
+
     std::vector<nevk::Scene::Vertex> vertices;
-    vertices.reserve(positionAccessor.count);
-    for (int v = 0; v < positionAccessor.count; ++v)
+    vertices.reserve(vertexCount);
+    for (int v = 0; v < vertexCount; ++v)
     {
         nevk::Scene::Vertex vertex = {};
         vertex.pos = glm::make_vec3(&positionData[v * posStride]);
-
+        vertex.normal = packNormal(glm::normalize(glm::vec3(normalsData ? glm::make_vec3(&normalsData[v * normalStride]) : glm::vec3(0.0f))));
+        vertex.uv = packUV(texCoord0Data ? glm::make_vec2(&texCoord0Data[v * texCoord0Stride]) : glm::vec3(0.0f));
         vertices.push_back(vertex);
     }
 
-    const bool hasIndices = (primitive.indices != -1);
-
     uint32_t indexCount = 0;
     std::vector<uint32_t> indices;
+    const bool hasIndices = (primitive.indices != -1);
+    assert(hasIndices); // currently support only this mode
     if (hasIndices)
     {
         const tinygltf::Accessor& accessor = model.accessors[primitive.indices > -1 ? primitive.indices : 0];
@@ -270,15 +291,16 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
 
         indexCount = static_cast<uint32_t>(accessor.count);
+        assert(indexCount != 0 && (indexCount % 3 == 0));
         const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
 
-        indices.reserve(accessor.count);
+        indices.reserve(indexCount);
 
         switch (accessor.componentType)
         {
         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
             const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
-            for (size_t index = 0; index < accessor.count; index++)
+            for (size_t index = 0; index < indexCount; index++)
             {
                 indices.push_back(buf[index]);
             }
@@ -286,7 +308,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         }
         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
             const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
-            for (size_t index = 0; index < accessor.count; index++)
+            for (size_t index = 0; index < indexCount; index++)
             {
                 indices.push_back(buf[index]);
             }
@@ -294,7 +316,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         }
         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
             const uint8_t* buf = static_cast<const uint8_t*>(dataPtr);
-            for (size_t index = 0; index < accessor.count; index++)
+            for (size_t index = 0; index < indexCount; index++)
             {
                 indices.push_back(buf[index]);
             }
