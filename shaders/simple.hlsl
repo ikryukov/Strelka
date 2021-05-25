@@ -328,34 +328,34 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    // Normals
    if (debugView == 1)
    {
-      return float4(abs(N), 1.0);
+      return float4(abs(N), 0.5);
    }
    // Shadow b&w
    if (debugView == 2)
    {
        float shadow = ShadowCalculation(inp.posLightSpace);
-       return float4(dot(N, L) * shadow, 1.0);
+       return float4(dot(N, L) * shadow, 0.5);
    }
    // pcf shadow
    if (debugView == 3)
    {
         float shadow = ShadowCalculationPcf(inp.posLightSpace);
-        return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+        return float4(saturate(kA + diffuse + specular) * shadow, 0.5);
    }
    // poisson shadow
    if (debugView == 4)
    {
         float shadow = ShadowCalculationPoisson(inp.posLightSpace, inp.wPos);
-        return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+        return float4(saturate(kA + diffuse + specular) * shadow, 0.5);
    }
     // poisson + pcf shadow
     if (debugView == 5)
     {
         float shadow = ShadowCalculationPoissonPCF(inp.posLightSpace, inp.wPos);
-        return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+        return float4(saturate(kA + diffuse + specular) * shadow, 0.5);
     }
 
     float shadow = ShadowCalculation(inp.posLightSpace);
 
-    return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+    return float4(saturate(kA + diffuse + specular) * shadow, 0.5);
 }
