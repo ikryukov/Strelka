@@ -6,6 +6,10 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 #define TINYGLTF_IMPLEMENTATION
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#include <iostream>
 #include <tiny_gltf.h>
 
 namespace nevk
@@ -225,13 +229,179 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
 
     return ret;
 }
-bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& mScene)
+
+void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Primitive& primitive)
 {
+    using namespace std;
+    assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
+
+    const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes.find("POSITION")->second];
+    const tinygltf::BufferView& positionView = model.bufferViews[positionAccessor.bufferView];
+
+    const float* positionData = reinterpret_cast<const float*>(&model.buffers[positionView.buffer].data[positionAccessor.byteOffset + positionView.byteOffset]);
+    assert(positionData != nullptr);
+
+    uint32_t vertexCount = static_cast<uint32_t>(positionAccessor.count);
+    assert(vertexCount != 0);
+
+    const int byteStride = positionAccessor.ByteStride(positionView);
+    assert(byteStride != -1);
+
+    int posStride = byteStride / sizeof(float);
+
+    std::vector<nevk::Scene::Vertex> vertices;
+    vertices.reserve(positionAccessor.count);
+    for (int v = 0; v < positionAccessor.count; ++v)
+    {
+        nevk::Scene::Vertex vertex = {};
+        vertex.pos = glm::make_vec3(&positionData[v * posStride]);
+
+        vertices.push_back(vertex);
+    }
+
+    const bool hasIndices = (primitive.indices != -1);
+
+    uint32_t indexCount = 0;
+    std::vector<uint32_t> indices;
+    if (hasIndices)
+    {
+        const tinygltf::Accessor& accessor = model.accessors[primitive.indices > -1 ? primitive.indices : 0];
+        const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+        const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+
+        indexCount = static_cast<uint32_t>(accessor.count);
+        const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+
+        indices.reserve(accessor.count);
+
+        switch (accessor.componentType)
+        {
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
+            const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
+            for (size_t index = 0; index < accessor.count; index++)
+            {
+                indices.push_back(buf[index]);
+            }
+            break;
+        }
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
+            const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
+            for (size_t index = 0; index < accessor.count; index++)
+            {
+                indices.push_back(buf[index]);
+            }
+            break;
+        }
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
+            const uint8_t* buf = static_cast<const uint8_t*>(dataPtr);
+            for (size_t index = 0; index < accessor.count; index++)
+            {
+                indices.push_back(buf[index]);
+            }
+            break;
+        }
+        default:
+            std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
+            return;
+        }
+    }
+
+    uint32_t meshId = scene.createMesh(vertices, indices);
+    glm::float4x4 transform{ 1.0f };
+    glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
+    uint32_t instId = scene.createInstance(meshId, 0 /* default */, transform);
+}
+
+void processMesh(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Mesh& mesh)
+{
+    using namespace std;
+    cout << "Mesh name: " << mesh.name << endl;
+    cout << "Primitive count: " << mesh.primitives.size() << endl;
+    for (int i = 0; i < mesh.primitives.size(); ++i)
+    {
+        processPrimitive(model, scene, mesh.primitives[i]);
+    }
+}
+
+void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Node& node)
+{
+    using namespace std;
+    cout << "Node name: " << node.name << endl;
+
+    if (node.mesh != -1) // mesh exist
+    {
+        const tinygltf::Mesh& mesh = model.meshes[node.mesh];
+        processMesh(model, scene, mesh);
+    }
+
+    for (int i = 0; i < node.children.size(); ++i)
+    {
+        processNode(model, scene, model.nodes[node.children[i]]);
+    }
+}
+
+bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
+{
+    using namespace std;
     tinygltf::Model model;
     tinygltf::TinyGLTF gltf_ctx;
     std::string err;
     std::string warn;
     bool res = gltf_ctx.LoadASCIIFromFile(&model, &err, &warn, modelPath.c_str());
+
+    for (int i = 0; i < model.scenes.size(); ++i)
+    {
+        cout << "Scene: " << model.scenes[i].name << endl;
+    }
+
+    mTexManager->createTextureSampler();
+    // default material
+    {
+        Scene::Material material{};
+        material.ambient = { 0.1f,
+                             0.1f,
+                             0.1f, 1.0f };
+
+        material.diffuse = { 0.8f,
+                             0.8f,
+                             0.8f, 1.0f };
+
+        material.specular = { 0.0f,
+                              0.0f,
+                              0.0f, 1.0f };
+
+        material.emissive = { 0.0f,
+                              0.0f,
+                              0.0f, 1.0f };
+
+        material.opticalDensity = 0.0f;
+
+        material.shininess = 1.0f;
+
+        material.transparency = { 0.0f,
+                                  0.0f,
+                                  0.0f, 1.0f };
+
+        material.illum = 2;
+
+        material.texAmbientId = -1;
+        material.texDiffuseId = -1;
+        material.texSpecularId = -1;
+        material.texNormalId = -1;
+
+        uint32_t matId = scene.createMaterial(material.ambient, material.diffuse,
+                                              material.specular, material.emissive,
+                                              material.opticalDensity, material.shininess,
+                                              material.transparency, material.illum,
+                                              material.texAmbientId, material.texDiffuseId,
+                                              material.texSpecularId, material.texNormalId);
+        assert(matId == 0);
+    }
+
+    int sceneId = model.defaultScene;
+
+    processNode(model, scene, model.nodes[sceneId]);
+
     return res;
 }
 } // namespace nevk
