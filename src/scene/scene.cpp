@@ -110,6 +110,14 @@ uint32_t Scene::createMaterial(const glm::float4& ambient,
     return materialId;
 }
 
+uint32_t Scene::addMaterial(const Material& material)
+{
+    // TODO: fix here
+    uint32_t res = mMaterials.size();
+    mMaterials.push_back(material);
+    return res;
+}
+
 void Scene::removeInstance(const uint32_t instId)
 {
     mDelInstances.push(instId); // marked as removed

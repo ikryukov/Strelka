@@ -25,12 +25,12 @@ public:
     struct Texture
     {
         VkImage textureImage;
-        int texWidth;
-        int texHeight;
+        uint32_t texWidth;
+        uint32_t texHeight;
         VkDeviceMemory textureImageMemory;
     };
 
-    std::unordered_map<std::string, uint32_t> nameID{};
+    std::unordered_map<std::string, uint32_t> mNameToID{};
     std::vector<Texture> textures;
     std::vector<VkImageView> textureImageView;
     VkSampler textureSampler = VK_NULL_HANDLE;
@@ -38,7 +38,13 @@ public:
 
     int loadTexture(const std::string& texture_path, const std::string& MTL_PATH);
 
+    int loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name);
+    int findTexture(const std::string& name);
+
     Texture createTextureImage(const std::string& texture_path);
+    
+    Texture createTextureImage(const void* pixels, uint32_t width, uint32_t height);
+
     void createTextureImageView(Texture& texture);
     void createTextureSampler();
     void createShadowSampler();

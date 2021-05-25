@@ -17,11 +17,11 @@ struct Material
   float opticalDensity; // Ni
   float shininess; // Ns 16 --  блеск материала
   uint32_t illum; // illum 2 -- модель освещения
-  uint32_t texDiffuseId; // map_diffuse
+  int32_t texDiffuseId; // map_diffuse
 
-  uint32_t texAmbientId; // map_ambient
-  uint32_t texSpecularId; // map_specular
-  uint32_t texNormalId; // map_normal - map_Bump
+  int32_t texAmbientId; // map_ambient
+  int32_t texSpecularId; // map_specular
+  int32_t texNormalId; // map_normal - map_Bump
   uint32_t pad;
 };
 
@@ -357,5 +357,6 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 
     float shadow = ShadowCalculation(inp.posLightSpace);
 
-    return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+    //return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+    return float4(saturate(diffuse) * shadow, 1.0);
 }

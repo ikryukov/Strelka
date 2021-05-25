@@ -260,7 +260,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
 
     // UVs
     const float* texCoord0Data = nullptr;
-    int texCoord0Stride = 0; 
+    int texCoord0Stride = 0;
     if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
     {
         const tinygltf::Accessor& uvAccessor = model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
@@ -269,14 +269,17 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         texCoord0Stride = uvAccessor.ByteStride(uvView) / sizeof(float);
     }
 
+    int matId = primitive.material;
+
     std::vector<nevk::Scene::Vertex> vertices;
     vertices.reserve(vertexCount);
     for (int v = 0; v < vertexCount; ++v)
     {
-        nevk::Scene::Vertex vertex = {};
+        nevk::Scene::Vertex vertex{};
         vertex.pos = glm::make_vec3(&positionData[v * posStride]);
         vertex.normal = packNormal(glm::normalize(glm::vec3(normalsData ? glm::make_vec3(&normalsData[v * normalStride]) : glm::vec3(0.0f))));
         vertex.uv = packUV(texCoord0Data ? glm::make_vec2(&texCoord0Data[v * texCoord0Stride]) : glm::vec3(0.0f));
+        vertex.materialId = matId;
         vertices.push_back(vertex);
     }
 
@@ -331,7 +334,8 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
     uint32_t meshId = scene.createMesh(vertices, indices);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-    uint32_t instId = scene.createInstance(meshId, 0 /* default */, transform);
+
+    uint32_t instId = scene.createInstance(meshId, matId, transform);
 }
 
 void processMesh(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Mesh& mesh)
@@ -362,6 +366,54 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
     }
 }
 
+void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
+{
+    for (const tinygltf::Texture& tex : model.textures)
+    {
+        const tinygltf::Image& image = model.images[tex.source];
+        // TODO: create sampler for tex
+
+        if (image.component == 3)
+        {
+            // unsupported
+            return;
+        }
+        else if (image.component == 4)
+        {
+            // supported
+        }
+        else
+        {
+            // error
+        }
+
+        const void* data = image.image.data();
+        uint32_t width = image.width;
+        uint32_t height = image.height;
+
+        const std::string name = image.uri;
+
+        int texId = textureManager.loadTextureGltf(data, width, height, name);
+        assert(texId != -1);
+    }
+}
+
+void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
+{
+    for (const tinygltf::Material& material : model.materials)
+    {
+        Scene::Material currMaterial{};
+
+        currMaterial.diffuse = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
+                                           material.pbrMetallicRoughness.baseColorFactor[1],
+                                           material.pbrMetallicRoughness.baseColorFactor[2],
+                                           material.pbrMetallicRoughness.baseColorFactor[3]);
+        currMaterial.texDiffuseId = material.pbrMetallicRoughness.baseColorTexture.index;
+
+        scene.addMaterial(currMaterial);
+    }
+}
+
 bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
 {
     using namespace std;
@@ -378,6 +430,7 @@ bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
 
     mTexManager->createTextureSampler();
     // default material
+    if (0)
     {
         Scene::Material material{};
         material.ambient = { 0.1f,
@@ -421,6 +474,9 @@ bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
     }
 
     int sceneId = model.defaultScene;
+
+    loadTextures(model, scene, *mTexManager);
+    loadMaterials(model, scene, *mTexManager);
 
     processNode(model, scene, model.nodes[sceneId]);
 

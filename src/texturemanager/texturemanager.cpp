@@ -19,23 +19,35 @@ int nevk::TextureManager::loadTexture(const std::string& texture_path, const std
     if (path.find(backslash) < path.size())
         path.replace(path.find(backslash), backslash.length(), fslash);
 
-    if (nameID.count(path) == 0)
+    if (mNameToID.count(path) == 0)
     {
-        nameID[path] = textures.size();
+        mNameToID[path] = textures.size();
         Texture tex = createTextureImage(path);
         textures.push_back(tex);
 
         createTextureImageView(tex);
     }
 
-    return nameID.find(path)->second;
+    return mNameToID.find(path)->second;
+}
+
+int nevk::TextureManager::loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name)
+{
+    if (mNameToID.count(name) == 0)
+    {
+        mNameToID[name] = textures.size();
+        Texture tex = createTextureImage(pixels, width, height);
+        textures.push_back(tex);
+
+        createTextureImageView(tex);
+    }
+
+    return mNameToID.find(name)->second;
 }
 
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std::string& texture_path)
 {
     int texWidth, texHeight, texChannels;
-    VkImage textureImage;
-    VkDeviceMemory textureImageMemory;
     stbi_uc* pixels = stbi_load(texture_path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
     VkDeviceSize imageSize = texWidth * texHeight * 4;
     if (!pixels)
@@ -43,8 +55,20 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std
         throw std::runtime_error("failed to load texture image!");
     }
 
+    Texture res = createTextureImage(pixels, texWidth, texHeight);
+
+    stbi_image_free(pixels);
+
+    return res;
+}
+
+nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, uint32_t width, uint32_t height)
+{
+    VkImage textureImage;
+    VkDeviceMemory textureImageMemory;
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
+    VkDeviceSize imageSize = width * height * 4;
     mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
     void* data;
@@ -52,20 +76,27 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std
     memcpy(data, pixels, static_cast<size_t>(imageSize));
     vkUnmapMemory(mDevice, stagingBufferMemory);
 
-    stbi_image_free(pixels);
-
-    mResManager->createImage(texWidth, texHeight, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
+    mResManager->createImage(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, textureImage, textureImageMemory);
 
     transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(texWidth), static_cast<uint32_t>(texHeight));
+    copyBufferToImage(stagingBuffer, textureImage, static_cast<uint32_t>(width), static_cast<uint32_t>(height));
     transitionImageLayout(textureImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
     vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
 
-    return Texture{ textureImage, texWidth, texHeight, textureImageMemory };
+    return Texture{ textureImage, width, height, textureImageMemory };
 }
 
+int nevk::TextureManager::findTexture(const std::string& name)
+{
+    auto it = mNameToID.find(name);
+    if (it == mNameToID.end())
+    {
+        return -1;
+    }
+    return it->second;
+}
 
 void nevk::TextureManager::createTextureImageView(Texture& texture)
 {

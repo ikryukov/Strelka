@@ -57,11 +57,11 @@ public:
         float opticalDensity; // Ni
         float shininess; // Ns 16 --  блеск материала
         uint32_t illum; // illum 2 -- модель освещения
-        uint32_t texDiffuseId; // map_diffuse
+        int32_t texDiffuseId = -1; // map_diffuse
 
-        uint32_t texAmbientId; // map_ambient
-        uint32_t texSpecularId; // map_specular
-        uint32_t texNormalId; // map_normal - map_Bump
+        int32_t texAmbientId = -1; // map_ambient
+        int32_t texSpecularId = -1; // map_specular
+        int32_t texNormalId = -1; // map_normal - map_Bump
         uint32_t pad;
 
         bool isTransparent()
@@ -160,6 +160,9 @@ public:
                             uint32_t texDiffuseId,
                             uint32_t texSpeculaId,
                             uint32_t texNormalId);
+
+    uint32_t addMaterial(const Material& material);
+
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>
