@@ -47,7 +47,7 @@ const uint32_t SHADOW_MAP_HEIGHT = 1024;
 //const std::string MODEL_PATH = "misc/cube.obj";
 //const std::string MTL_PATH = "misc/";
 
-const std::string MODEL_PATH = "misc/CubeScene.obj";
+const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
 const std::string MTL_PATH = "misc/";
 
 //const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
@@ -367,7 +367,7 @@ private:
 
     void loadModel(nevk::Model& testmodel)
     {
-        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
+        testmodel.loadModelGltf(MODEL_PATH, mScene);
         Camera& camera = mScene.getCamera();
         camera.type = Camera::CameraType::firstperson;
 

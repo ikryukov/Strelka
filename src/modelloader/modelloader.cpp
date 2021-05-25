@@ -1,5 +1,13 @@
 #include "modelloader.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
+#define TINYGLTF_IMPLEMENTATION
+#include <tiny_gltf.h>
+
 namespace nevk
 {
 
@@ -216,5 +224,14 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
     mTexManager->createTextureSampler();
 
     return ret;
+}
+bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& mScene)
+{
+    tinygltf::Model model;
+    tinygltf::TinyGLTF gltf_ctx;
+    std::string err;
+    std::string warn;
+    bool res = gltf_ctx.LoadASCIIFromFile(&model, &err, &warn, modelPath.c_str());
+    return res;
 }
 } // namespace nevk

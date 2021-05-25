@@ -3,19 +3,8 @@
 #include "scene/scene.h"
 #include "texturemanager/texturemanager.h"
 
-#include <array>
-#include <chrono>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <fstream>
-#include <iostream>
-#include <optional>
-#include <set>
-#include <stdexcept>
-#include <tiny_obj_loader.h>
-#include <unordered_map>
 #include <vector>
+#include <string>
 
 namespace nevk
 {
@@ -30,6 +19,8 @@ public:
         : mTexManager(texManager){};
 
     bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
+    
+    bool loadModelGltf(const std::string& modelPath, nevk::Scene& mScene);
 
     // TODO: could be static
     void computeTangent(std::vector<Scene::Vertex>& _vertices,
