@@ -23,6 +23,12 @@ struct Material
   int32_t texSpecularId; // map_specular
   int32_t texNormalId; // map_normal - map_Bump
   uint32_t pad;
+  //====PBR====
+  float4 baseColorFactor;
+  float metallicFactor;
+  float roughnessFactor;
+  int32_t metallicRoughnessTexture = -1;
+  int32_t pad0;
 };
 
 struct PS_INPUT

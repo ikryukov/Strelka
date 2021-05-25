@@ -409,7 +409,8 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                            material.pbrMetallicRoughness.baseColorFactor[2],
                                            material.pbrMetallicRoughness.baseColorFactor[3]);
         currMaterial.texDiffuseId = material.pbrMetallicRoughness.baseColorTexture.index;
-
+        currMaterial.texNormalId = material.normalTexture.index;
+        currMaterial.illum = material.alphaMode == "OPAQUE" ? 2 : 1;
         scene.addMaterial(currMaterial);
     }
 }

@@ -63,6 +63,12 @@ public:
         int32_t texSpecularId = -1; // map_specular
         int32_t texNormalId = -1; // map_normal - map_Bump
         uint32_t pad;
+        //====PBR====
+        glm::float4 baseColorFactor;
+        float metallicFactor;
+        float roughnessFactor;
+        int32_t metallicRoughnessTexture = -1;
+        int32_t pad0;
 
         bool isTransparent()
         {
