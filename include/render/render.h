@@ -22,19 +22,11 @@
 #include <shadermanager/ShaderManager.h>
 #include <ui/ui.h>
 
-#include <algorithm>
 #include <array>
-#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
-#include <iostream>
-#include <optional>
-#include <set>
-#include <stb_image.h>
 #include <stdexcept>
-#include <unordered_map>
 #include <vector>
 
 const uint32_t WIDTH = 800;
@@ -47,8 +39,9 @@ const uint32_t SHADOW_MAP_HEIGHT = 1024;
 //const std::string MODEL_PATH = "misc/cube.obj";
 //const std::string MTL_PATH = "misc/";
 
-const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
+// const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
 // const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
+const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
 const std::string MTL_PATH = "misc/";
 
 //const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
@@ -62,7 +55,8 @@ const std::vector<const char*> validationLayers = {
 };
 
 const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    "VK_KHR_portability_subset"
 };
 
 #ifdef NDEBUG
