@@ -46,7 +46,7 @@ struct InstancePushConstants
 {
     float4x4 model;
 };
-[[vk::push_constant]] static InstancePushConstants pconst;
+[[vk::push_constant]] ConstantBuffer<InstancePushConstants> pconst;
 
 cbuffer ubo
 {
