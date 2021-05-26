@@ -121,13 +121,13 @@ static const float4x4 biasMatrix = float4x4(
 PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
-    out.pos = mul(viewToProj, mul(worldToView, mul(pconst.model, float4(vi.position, 1.0f))));
-    out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, float4(vi.position, 1.0f)));
-    out.uv = unpackUV(vi.uv);
-    out.normal = mul((float3x3)inverseModelToWorld, (unpackNormal(vi.normal)));
-    out.tangent = mul((float3x3)inverseModelToWorld, (unpackTangent(vi.tangent)));
-    out.materialId = vi.materialId;
     float4 wpos = mul(pconst.model, float4(vi.position, 1.0f));
+    out.pos = mul(viewToProj, mul(worldToView, wpos));
+    out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, wpos));
+    out.uv = unpackUV(vi.uv);
+    out.normal = mul((float3x3)inverseModelToWorld, unpackNormal(vi.normal));
+    out.tangent = mul((float3x3)inverseModelToWorld, unpackTangent(vi.tangent));
+    out.materialId = vi.materialId;
     out.wPos = wpos.xyz / wpos.w; 
     return out;
 }
@@ -290,60 +290,96 @@ float ShadowCalculationPoissonPCF(float4 lightCoord, float3 wPos)
 }
 
 #define INVALID_INDEX -1
+#define PI 3.1415926535897
+
+float GGX_PartialGeometry(float cosThetaN, float alpha) 
+{
+    float cosTheta_sqr = saturate(cosThetaN*cosThetaN);
+    float tan2 = (1.0 - cosTheta_sqr) / cosTheta_sqr;
+    float GP = 2.0 / (1.0 + sqrt(1.0 + alpha * alpha * tan2));
+    return GP;
+}
+
+float GGX_Distribution(float cosThetaNH, float alpha) 
+{
+    float alpha2 = alpha * alpha;
+    float NH_sqr = saturate(cosThetaNH * cosThetaNH);
+    float den = NH_sqr * alpha2 + (1.0 - NH_sqr);
+    return alpha2 / (PI * den * den);
+}
+
+float3 FresnelSchlick(float3 F0, float cosTheta) 
+{
+    return F0 + (1.0 - F0) * pow(1.0 - saturate(cosTheta), 5.0);
+}
 
 // Fragment Shader
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-   Material material = materials[NonUniformResourceIndex(inp.materialId)];
+    Material material = materials[NonUniformResourceIndex(inp.materialId)];
 
-   float3 emissive = float3(material.emissive.rgb);
-   float opticalDensity = material.opticalDensity;
-   float shininess = material.shininess;
-   float3 transparency = float3(material.transparency.rgb);
-   uint32_t illum = material.illum;
+    float3 emissive = float3(material.emissive.rgb);
+    float opticalDensity = material.opticalDensity;
+    float shininess = material.shininess;
+    float3 transparency = float3(material.transparency.rgb);
+    uint32_t illum = material.illum;
 
-   uint32_t texAmbientId = material.texAmbientId;
-   uint32_t texDiffuseId = material.texDiffuseId;
-   uint32_t texSpecularId = material.texSpecularId;
-   uint32_t texNormalId = material.texNormalId;
+    uint32_t texAmbientId = material.texAmbientId;
+    uint32_t texDiffuseId = material.texDiffuseId;
+    uint32_t texSpecularId = material.texSpecularId;
+    uint32_t texNormalId = material.texNormalId;
 
-   float3 kA = material.ambient.rgb;
-   float3 kD = material.diffuse.rgb;
-   float3 kS = material.specular.rgb;
+    float3 kA = material.ambient.rgb;
+    float3 kD = material.diffuse.rgb;
+    float3 kS = material.specular.rgb;
 
-   float3 N = normalize(inp.normal);
+    float3 N = normalize(inp.normal);
+    float3 L = normalize(lightPosition.xyz - inp.wPos);
 
-   float3 L = normalize(lightPosition.xyz - inp.wPos);
-   float3 diffuse = diffuseLambert(kD, L, N);
+    float NL = dot(N, L);
+    if (NL <= 0.0)
+    {
+        return float4(0.0, 0.0, 0.0, 1.0);
+    }
+    float3 V = normalize(CameraPos - inp.wPos);
+    float NV = dot(N, V);
+    if (NV <= 0.0)
+    {
+        return float4(0.0, 0.0, 0.0, 1.0);
+    }
 
-   float3 R = reflect(-L, N);
-   float3 V = normalize(CameraPos - inp.wPos);
-   float3 specular = specularPhong(kS, R, V, shininess);
+    float3 diffuse = diffuseLambert(kD, L, N);
+    float3 R = reflect(-L, N);
 
-   // Normals
-   if (debugView == 1)
-   {
+    float3 H = normalize(V + L);
+    float HV = dot(H, V);
+
+    float3 specular = specularPhong(kS, R, V, shininess);
+
+    // Normals
+    if (debugView == 1)
+    {
       return float4(abs(N), 1.0);
-   }
-   // Shadow b&w
-   if (debugView == 2)
-   {
+    }
+    // Shadow b&w
+    if (debugView == 2)
+    {
        float shadow = ShadowCalculation(inp.posLightSpace);
        return float4(dot(N, L) * shadow, 1.0);
-   }
-   // pcf shadow
-   if (debugView == 3)
-   {
+    }
+    // pcf shadow
+    if (debugView == 3)
+    {
         float shadow = ShadowCalculationPcf(inp.posLightSpace);
         return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
-   }
-   // poisson shadow
-   if (debugView == 4)
-   {
+    }
+    // poisson shadow
+    if (debugView == 4)
+    {
         float shadow = ShadowCalculationPoisson(inp.posLightSpace, inp.wPos);
         return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
-   }
+    }
     // poisson + pcf shadow
     if (debugView == 5)
     {
@@ -355,5 +391,22 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 
     //return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
     //return float4(saturate(diffuse) * shadow, 1.0);
-    return float4(1.0);
+
+    float roughness = material.roughnessFactor;
+    float roughness2 = roughness * roughness;
+
+    float G = GGX_PartialGeometry(dot(N, V), roughness2) * GGX_PartialGeometry(dot(N, L), roughness2);
+    float D = GGX_Distribution(dot(N, H), roughness2);
+
+    float3 f0 = float3(0.24, 0.24, 0.24);
+    float3 F = FresnelSchlick(f0, HV);
+    //mix
+    float3 specK = G * D * F * 0.25 / NV;
+    float3 diffK = saturate(1.0-F);
+
+    float3 albedo = material.baseColorFactor.rgb;
+
+    float3 result = max(0.0, albedo * diffK * NL / PI + specK);
+
+    return float4(float3(result), 1.0);
 }

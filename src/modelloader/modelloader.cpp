@@ -415,8 +415,16 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                            material.pbrMetallicRoughness.baseColorFactor[1],
                                            material.pbrMetallicRoughness.baseColorFactor[2],
                                            material.pbrMetallicRoughness.baseColorFactor[3]);
-        currMaterial.texDiffuseId = material.pbrMetallicRoughness.baseColorTexture.index;
         currMaterial.texNormalId = material.normalTexture.index;
+        
+        currMaterial.baseColorFactor = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
+                                                   material.pbrMetallicRoughness.baseColorFactor[1],
+                                                   material.pbrMetallicRoughness.baseColorFactor[2],
+                                                   material.pbrMetallicRoughness.baseColorFactor[3]);
+        currMaterial.texDiffuseId = material.pbrMetallicRoughness.baseColorTexture.index;
+        currMaterial.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
+        currMaterial.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
+
         currMaterial.illum = material.alphaMode == "OPAQUE" ? 2 : 1;
         scene.addMaterial(currMaterial);
     }
