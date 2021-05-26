@@ -413,7 +413,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
         albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler, inp.uv).rgb;
     }
 
-    float3 result = max(0.0, albedo * diffK * NL / PI + specK);
+    float3 result = max(0.0, albedo * diffK * NL * shadow / PI + specK);
 
     return float4(float3(result), 1.0);
 }
