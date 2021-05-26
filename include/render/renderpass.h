@@ -16,7 +16,7 @@ private:
     struct UniformBufferObject
     {
         alignas(16) glm::mat4 modelToWorld;
-        alignas(16) glm::mat4 modelViewProj;
+        alignas(16) glm::mat4 viewToProj;
         alignas(16) glm::mat4 worldToView;
         alignas(16) glm::mat4 inverseModelToWorld;
         alignas(16) glm::mat4 lightSpaceMatrix;
@@ -24,6 +24,11 @@ private:
         alignas(16) glm::float3 CameraPos;
         float pad;
         alignas(16) uint32_t debugView;
+    };
+
+    struct InstancePushConstants 
+    {
+        glm::float4x4 model;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;

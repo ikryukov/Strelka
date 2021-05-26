@@ -230,7 +230,7 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
     return ret;
 }
 
-void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Primitive& primitive)
+void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Primitive& primitive, const glm::float3& translation)
 {
     using namespace std;
     assert(primitive.attributes.find("POSITION") != primitive.attributes.end());
@@ -276,7 +276,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
     for (int v = 0; v < vertexCount; ++v)
     {
         nevk::Scene::Vertex vertex{};
-        vertex.pos = glm::make_vec3(&positionData[v * posStride]);
+        vertex.pos = glm::make_vec3(&positionData[v * posStride]) * 1e4f;
         vertex.normal = packNormal(glm::normalize(glm::vec3(normalsData ? glm::make_vec3(&normalsData[v * normalStride]) : glm::vec3(0.0f))));
         vertex.uv = packUV(texCoord0Data ? glm::make_vec2(&texCoord0Data[v * texCoord0Stride]) : glm::vec3(0.0f));
         vertex.materialId = matId;
@@ -333,19 +333,19 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
 
     uint32_t meshId = scene.createMesh(vertices, indices);
     glm::float4x4 transform{ 1.0f };
-    glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
+    transform = glm::translate(glm::float4x4(1.0f), translation);
 
     uint32_t instId = scene.createInstance(meshId, matId, transform);
 }
 
-void processMesh(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Mesh& mesh)
+void processMesh(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Mesh& mesh, const glm::float3& translation)
 {
     using namespace std;
     cout << "Mesh name: " << mesh.name << endl;
     cout << "Primitive count: " << mesh.primitives.size() << endl;
     for (int i = 0; i < mesh.primitives.size(); ++i)
     {
-        processPrimitive(model, scene, mesh.primitives[i]);
+        processPrimitive(model, scene, mesh.primitives[i], translation);
     }
 }
 
@@ -356,8 +356,15 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
 
     if (node.mesh != -1) // mesh exist
     {
+        glm::float3 translation{0.0f};
+        if (!node.translation.empty())
+        {
+            translation = {node.translation[0], node.translation[1], node.translation[2]};
+            translation *= 1e4f;
+        }
+        
         const tinygltf::Mesh& mesh = model.meshes[node.mesh];
-        processMesh(model, scene, mesh);
+        processMesh(model, scene, mesh, translation);
     }
 
     for (int i = 0; i < node.children.size(); ++i)

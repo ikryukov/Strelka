@@ -47,7 +47,8 @@ const uint32_t SHADOW_MAP_HEIGHT = 1024;
 //const std::string MODEL_PATH = "misc/cube.obj";
 //const std::string MTL_PATH = "misc/";
 
-const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
+const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
+// const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
 const std::string MTL_PATH = "misc/";
 
 //const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
@@ -376,7 +377,8 @@ private:
         camera.rotationSpeed = 0.05f;
 
         camera.movementSpeed = 5.0f;
-        camera.setPosition({ -1.0f, 3.0f, 8.0f });
+        //camera.setPosition({ -1.0f, 3.0f, 8.0f });
+        camera.setPosition({ 0.0f, 0.0f, 10.0f });
         camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
     }
 

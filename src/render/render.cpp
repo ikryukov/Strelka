@@ -16,8 +16,8 @@ void Render::initVulkan()
     createLogicalDevice();
     createSwapChain();
 
-    uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
-    uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+    uint32_t vertId = mShaderManager.loadShader("shaders/pbr.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+    uint32_t fragId = mShaderManager.loadShader("shaders/pbr.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
     uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
     uint32_t shId = mShaderManager.loadShader("shaders/shadow.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
 
