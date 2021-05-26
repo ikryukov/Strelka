@@ -68,7 +68,7 @@ public:
         float metallicFactor;
         float roughnessFactor;
         int32_t metallicRoughnessTexture = -1;
-        int32_t pad0;
+        int32_t texBaseColor = -1;
 
         bool isTransparent()
         {

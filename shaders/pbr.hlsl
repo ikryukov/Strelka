@@ -27,8 +27,8 @@ struct Material
   float4 baseColorFactor;
   float metallicFactor;
   float roughnessFactor;
-  int32_t metallicRoughnessTexture = -1;
-  int32_t pad0;
+  int32_t metallicRoughnessTexture;
+  int32_t texBaseColor;
 };
 
 struct PS_INPUT
@@ -60,7 +60,7 @@ cbuffer ubo
     uint32_t debugView;
 }
 
-//Texture2D textures[];
+Texture2D textures[];
 SamplerState gSampler;
 StructuredBuffer<Material> materials;
 Texture2D shadowMap;
@@ -141,21 +141,21 @@ float3 specularPhong(float3 kS, float3 r, float3 v, float shinessFactor)
     return kS * pow(saturate(dot(r, v)), shinessFactor);
 }
 
-// float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
-// {
-//     float3 Normal = normalize(inp.normal);
-//     float3 Tangent = -normalize(inp.tangent);
-//     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
-//     float3 Bitangent = cross(Normal, Tangent);
+float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
+{
+    float3 Normal = normalize(inp.normal);
+    float3 Tangent = -normalize(inp.tangent);
+    Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
+    float3 Bitangent = cross(Normal, Tangent);
 
-//     float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(gSampler, inp.uv).xyz;
-//     BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
+    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(gSampler, inp.uv).xyz;
+    BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
 
-//     float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
-//     float3 NewNormal = normalize(mul(TBN, BumpMapNormal));
+    float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
+    float3 NewNormal = normalize(mul(TBN, BumpMapNormal));
 
-//     return NewNormal;
-// }
+    return NewNormal;
+}
 
 float ShadowCalculation(float4 lightCoord)
 {
@@ -334,6 +334,10 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     float3 kS = material.specular.rgb;
 
     float3 N = normalize(inp.normal);
+    if (texNormalId != INVALID_INDEX)
+    {
+        N = CalcBumpedNormal(inp, texNormalId);
+    }
     float3 L = normalize(lightPosition.xyz - inp.wPos);
 
     float NL = dot(N, L);
@@ -404,6 +408,10 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     float3 diffK = saturate(1.0-F);
 
     float3 albedo = material.baseColorFactor.rgb;
+    if (material.texBaseColor != INVALID_INDEX)
+    {
+        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler, inp.uv).rgb;
+    }
 
     float3 result = max(0.0, albedo * diffK * NL / PI + specK);
 

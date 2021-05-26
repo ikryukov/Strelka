@@ -21,6 +21,10 @@
                 {
                     "name": "VK_LAYER_PATH",
                     "value": "${env:VULKAN_SDK}/share/vulkan/explicit_layer.d"
+                },
+                {
+                    "name": "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS",
+                    "value": ""
                 }
             ],
             "externalConsole": false,

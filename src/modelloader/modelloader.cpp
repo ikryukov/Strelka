@@ -421,7 +421,7 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                                    material.pbrMetallicRoughness.baseColorFactor[1],
                                                    material.pbrMetallicRoughness.baseColorFactor[2],
                                                    material.pbrMetallicRoughness.baseColorFactor[3]);
-        currMaterial.texDiffuseId = material.pbrMetallicRoughness.baseColorTexture.index;
+        currMaterial.texBaseColor = material.pbrMetallicRoughness.baseColorTexture.index;
         currMaterial.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
         currMaterial.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
 
