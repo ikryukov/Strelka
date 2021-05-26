@@ -45,15 +45,14 @@ struct PS_INPUT
 struct InstancePushConstants 
 {
     float4x4 model;
+    float4x4 inverseTransposeModel;
 };
 [[vk::push_constant]] ConstantBuffer<InstancePushConstants> pconst;
 
 cbuffer ubo
 {
-    float4x4 modelToWorld;
     float4x4 viewToProj;
     float4x4 worldToView;
-    float4x4 inverseModelToWorld;
     float4x4 lightSpaceMatrix;
     float4 lightPosition;
     float3 CameraPos;
@@ -125,8 +124,8 @@ PS_INPUT vertexMain(VertexInput vi)
     out.pos = mul(viewToProj, mul(worldToView, wpos));
     out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, wpos));
     out.uv = unpackUV(vi.uv);
-    out.normal = mul((float3x3)inverseModelToWorld, unpackNormal(vi.normal));
-    out.tangent = mul((float3x3)inverseModelToWorld, unpackTangent(vi.tangent));
+    out.normal = mul((float3x3)pconst.inverseTransposeModel, unpackNormal(vi.normal));
+    out.tangent = mul((float3x3)pconst.inverseTransposeModel, unpackTangent(vi.tangent));
     out.materialId = vi.materialId;
     out.wPos = wpos.xyz / wpos.w; 
     return out;

@@ -15,10 +15,8 @@ class RenderPass
 private:
     struct UniformBufferObject
     {
-        alignas(16) glm::mat4 modelToWorld;
         alignas(16) glm::mat4 viewToProj;
         alignas(16) glm::mat4 worldToView;
-        alignas(16) glm::mat4 inverseModelToWorld;
         alignas(16) glm::mat4 lightSpaceMatrix;
         alignas(16) glm::float4 lightPosition;
         alignas(16) glm::float3 CameraPos;
@@ -29,6 +27,7 @@ private:
     struct InstancePushConstants 
     {
         glm::float4x4 model;
+        glm::float4x4 inverseTransposeModel;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;

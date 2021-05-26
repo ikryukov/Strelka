@@ -405,6 +405,7 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
             InstancePushConstants constants;
             constants.model = instances[currentInstanceId].transform;
+            constants.inverseTransposeModel = glm::transpose(glm::inverse(constants.model));
 
             vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(InstancePushConstants), &constants);
 
@@ -437,15 +438,12 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
 {
     UniformBufferObject ubo{};
     Camera& camera = scene.getCamera();
-    glm::float4x4 model = glm::float4x4(1.0f);
     glm::float4x4 proj = camera.getPerspective();
     glm::float4x4 view = camera.getView();
 
-    ubo.modelToWorld = model;
     ubo.viewToProj = proj;
     ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
-    ubo.inverseModelToWorld = transpose(inverse(ubo.modelToWorld));
     ubo.lightPosition = scene.mLightPosition;
     ubo.lightSpaceMatrix = lightSpaceMatrix;
     ubo.debugView = (uint32_t)scene.mDebugViewSettings;
