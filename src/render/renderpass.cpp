@@ -113,9 +113,9 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
     colorBlending.blendConstants[3] = 0.0f;
 
     VkPushConstantRange pushConstant;
-	pushConstant.offset = 0;
-	pushConstant.size = sizeof(InstancePushConstants);
-	pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstant.offset = 0;
+    pushConstant.size = sizeof(InstancePushConstants);
+    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
