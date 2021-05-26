@@ -16,6 +16,11 @@ private:
     {
         alignas(16) glm::mat4 lightSpaceMatrix;
     };
+    
+    struct InstancePushConstants 
+    {
+        glm::float4x4 model;
+    };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 
