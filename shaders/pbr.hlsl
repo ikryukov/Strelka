@@ -1,3 +1,5 @@
+#include "pack.h"
+
 struct VertexInput
 {
     float3 position : POSITION;
@@ -73,50 +75,6 @@ SamplerState gSampler;
 StructuredBuffer<Material> materials;
 Texture2D shadowMap;
 SamplerState shadowSamp;
-
-//  valid range of coordinates [-1; 1]
-float3 unpackNormal(uint32_t val)
-{
-   float3 normal;
-   normal.z = ((val & 0xfff00000) >> 20) / 511.99999f * 2.0f - 1.0f;
-   normal.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 2.0f - 1.0f;
-   normal.x = (val & 0x000003ff) / 511.99999f * 2.0f - 1.0f;
-
-   return normal;
-}
-
-//  valid range of coordinates [-10; 10]
-float2 unpackUV(uint32_t val)
-{
-   float2 uv;
-   uv.y = ((val & 0xffff0000) >> 16) / 16383.99999f * 20.0f - 10.0f;
-   uv.x = (val & 0x0000ffff) / 16383.99999f * 20.0f  - 10.0f;
-
-   return uv;
-}
-
-//  valid range of coordinates [-10; 10]
-float3 unpackTangent(uint32_t val)
-{
-   float3 tangent;
-   tangent.z = ((val & 0xfff00000) >> 20) / 511.99999f * 20.0f - 10.0f;
-   tangent.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 20.0f - 10.0f;
-   tangent.x = (val & 0x000003ff) / 511.99999f * 20.0f - 10.0f;
-
-   return tangent;
-}
-
-float3 srgb_to_linear(float3 c) {
-    return lerp(c / 12.92, pow((c + 0.055) / 1.055, float3(2.4)), step(0.04045, c));
-}
-
-float LinearizeDepth(float depth)
-{
-    float nearPlane = 0.01;
-    float farPlane = 50.0;
-    float z = depth * 2.0 - 1.0; // Back to NDC
-    return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
-}
 
 static const float4x4 biasMatrix = float4x4(
   0.5, 0.0, 0.0, 0.5,
