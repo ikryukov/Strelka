@@ -82,7 +82,7 @@ target_include_directories(${UILIB_NAME} PRIVATE external/glfw/include)
 target_include_directories(${UILIB_NAME} PUBLIC external/glm)
 if (MSVC)
     target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
-endif ()
+endif()
 ## Vulkan
 target_include_directories(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${UILIB_NAME} PUBLIC Vulkan::Vulkan)

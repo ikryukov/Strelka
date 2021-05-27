@@ -661,6 +661,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     mPass.record(cmd, vertexBuffer, indexBuffer, indicesCount, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
+
 }
 
 void Render::createCommandBuffers()
@@ -727,6 +728,7 @@ void Render::drawFrame()
 
     nevk::Scene& scene = getScene();
     Camera& cam = scene.getCamera();
+
 
     cam.update(deltaTime);
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene.mLightPosition);

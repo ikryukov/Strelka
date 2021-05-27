@@ -22,7 +22,7 @@ struct Material
   int32_t texAmbientId; // map_ambient
   int32_t texSpecularId; // map_specular
   int32_t texNormalId; // map_normal - map_Bump
-  uint32_t pad;
+  float d;
   //====PBR====
   float4 baseColorFactor;
   float metallicFactor;
@@ -295,6 +295,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    float shininess = material.shininess;
    float3 transparency = float3(material.transparency.rgb);
    uint32_t illum = material.illum;
+   float d = material.d;
 
    uint32_t texAmbientId = material.texAmbientId;
    uint32_t texDiffuseId = material.texDiffuseId;
@@ -334,35 +335,34 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
    // Normals
    if (debugView == 1)
    {
-      return float4(abs(N), 1.0);
+      return float4(abs(N), d);
    }
    // Shadow b&w
    if (debugView == 2)
    {
        float shadow = ShadowCalculation(inp.posLightSpace);
-       return float4(dot(N, L) * shadow, 1.0);
+       return float4(dot(N, L) * shadow, d);
    }
    // pcf shadow
    if (debugView == 3)
    {
         float shadow = ShadowCalculationPcf(inp.posLightSpace);
-        return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+        return float4(saturate(kA + diffuse + specular) * shadow, d);
    }
    // poisson shadow
    if (debugView == 4)
    {
         float shadow = ShadowCalculationPoisson(inp.posLightSpace, inp.wPos);
-        return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+        return float4(saturate(kA + diffuse + specular) * shadow, d);
    }
     // poisson + pcf shadow
     if (debugView == 5)
     {
         float shadow = ShadowCalculationPoissonPCF(inp.posLightSpace, inp.wPos);
-        return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+        return float4(saturate(kA + diffuse + specular) * shadow, d);
     }
 
     float shadow = ShadowCalculation(inp.posLightSpace);
 
-    //return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
-    return float4(saturate(diffuse) * shadow, 1.0);
+    return float4(saturate(kA + diffuse + specular) * shadow, d);
 }
