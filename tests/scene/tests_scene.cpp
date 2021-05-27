@@ -49,13 +49,13 @@ TEST_CASE("test createInstance")
                                           glm::float4(1.0),
                                           glm::float4(1.0),
                                           glm::float4(1.0),
-                                          1.0f,
-                                          1.0f,
                                           glm::float4(1.0),
-                                          0, 0, 0, 0, 0);
+                                          1.0f,
+                                          1.0f,
+                                          0, 0, 0, 0, 0, 1.0f);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-    uint32_t instId = scene.createInstance(meshId, matId, transform);
+    uint32_t instId = scene.createInstance(meshId, matId, transform, glm::float3(0.0f));
     CHECK(instId != -1);
 }
 
@@ -69,17 +69,17 @@ TEST_CASE("test createInstance complex")
                                           glm::float4(1.0),
                                           glm::float4(1.0),
                                           glm::float4(1.0),
-                                          1.0f,
-                                          1.0f,
                                           glm::float4(1.0),
-                                          0, 0, 0, 0, 0);
+                                          1.0f,
+                                          1.0f,
+                                          0, 0, 0, 0, 0, 1.0f);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-    uint32_t firstId = scene.createInstance(meshId, matId, transform);
-    uint32_t secondId = scene.createInstance(meshId, matId, transform);
+    uint32_t firstId = scene.createInstance(meshId, matId, transform, glm::float3(0.0f));
+    uint32_t secondId = scene.createInstance(meshId, matId, transform, glm::float3(0.0f));
     CHECK(firstId != secondId);
     scene.removeInstance(firstId);
-    uint32_t thirdId = scene.createInstance(meshId, matId, transform);
+    uint32_t thirdId = scene.createInstance(meshId, matId, transform, glm::float3(0.0f));
     CHECK(firstId == thirdId);
 }
 
@@ -90,10 +90,10 @@ TEST_CASE("test createMaterial")
                                           glm::float4(1.0),
                                           glm::float4(1.0),
                                           glm::float4(1.0),
-                                          1.0f,
-                                          1.0f,
                                           glm::float4(1.0),
-                                          0, 0, 0, 0, 0);
+                                          1.0f,
+                                          1.0f,
+                                          0, 0, 0, 0, 0, 1.0f);
     CHECK(matId != -1);
 }
 
@@ -105,31 +105,30 @@ TEST_CASE("test createMaterial complex")
                                              glm::float4(1.0),
                                              glm::float4(1.0),
                                              glm::float4(1.0),
-                                             1.0f,
-                                             1.0f,
                                              glm::float4(1.0),
-                                             0, 0, 0, 0, 0);
+                                             1.0f,
+                                             1.0f,
+                                             0, 0, 0, 0, 0, 1.0f);
     uint32_t matIdSnd = scene.createMaterial(glm::float4(1.0),
                                              glm::float4(1.0),
                                              glm::float4(1.0),
                                              glm::float4(1.0),
-                                             1.0f,
-                                             1.0f,
                                              glm::float4(1.0),
-                                             0, 0, 0, 0, 0);
+                                             1.0f,
+                                             1.0f,
+                                             0, 0, 0, 0, 0, 1.0f);
     CHECK(matIdFst != matIdSnd);
     scene.removeMaterial(matIdFst);
     uint32_t matIdThd = scene.createMaterial(glm::float4(1.0),
                                              glm::float4(1.0),
                                              glm::float4(1.0),
                                              glm::float4(1.0),
-                                             1.0f,
-                                             1.0f,
                                              glm::float4(1.0),
-                                             0, 0, 0, 0, 0);
+                                             1.0f,
+                                             1.0f,
+                                             0, 0, 0, 0, 0, 1.0f);
     CHECK(matIdFst == matIdThd);
 }
-
 
 TEST_CASE("test checkMesh")
 {
@@ -151,13 +150,13 @@ TEST_CASE("test checkInstance")
                                           glm::float4(1.0),
                                           glm::float4(1.0),
                                           glm::float4(1.0),
-                                          1.0f,
-                                          1.0f,
                                           glm::float4(1.0),
-                                          0, 0, 0, 0, 0);
+                                          1.0f,
+                                          1.0f,
+                                          0, 0, 0, 0, 0, 1.0f);
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-    uint32_t instId = scene.createInstance(meshId, matId, transform);
+    uint32_t instId = scene.createInstance(meshId, matId, transform, glm::float3(0.0f));
     CHECK(instId == 0);
     CHECK(scene.mInstances.size() == 1);
 }
@@ -169,10 +168,10 @@ TEST_CASE("test checkMaterial")
                                           glm::float4(1.0),
                                           glm::float4(1.0),
                                           glm::float4(1.0),
-                                          1.0f,
-                                          1.0f,
                                           glm::float4(1.0),
-                                          0, 0, 0, 0, 0);
+                                          1.0f,
+                                          1.0f,
+                                          0, 0, 0, 0, 0, 1.0f);
     CHECK(matId == 0);
     CHECK(scene.mMaterials.size() == 1);
 }
