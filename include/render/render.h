@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <optional>
 #include <stdexcept>
 #include <vector>
 
@@ -55,8 +56,11 @@ const std::vector<const char*> validationLayers = {
 };
 
 const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+#ifdef __APPLE__
+    ,
     "VK_KHR_portability_subset"
+#endif
 };
 
 #ifdef NDEBUG
@@ -197,7 +201,6 @@ private:
     nevk::Scene mScene;
 
 
-
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
     {
         auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
@@ -326,7 +329,6 @@ private:
     void mainLoop();
 
     void cleanupSwapChain();
-
 
 
     void recreateSwapChain();
