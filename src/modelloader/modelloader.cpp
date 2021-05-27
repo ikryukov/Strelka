@@ -106,7 +106,8 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
 
                 material.diffuse = { currMaterial.diffuse[0],
                                      currMaterial.diffuse[1],
-                                     currMaterial.diffuse[2], 1.0f };
+                                     currMaterial.diffuse[2],
+                                     currMaterial.emission[3] };
 
                 material.specular = { currMaterial.specular[0],
                                       currMaterial.specular[1],
@@ -130,13 +131,15 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
                 material.texDiffuseId = mTexManager->loadTexture(currMaterial.diffuse_texname, mtlPath);
                 material.texSpecularId = mTexManager->loadTexture(currMaterial.specular_texname, mtlPath);
                 material.texNormalId = mTexManager->loadTexture(currMaterial.bump_texname, mtlPath);
+                material.d = currMaterial.dissolve;
 
                 uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
                                                        material.specular, material.emissive,
                                                        material.transparency, material.opticalDensity,
                                                        material.shininess, material.illum,
                                                        material.texAmbientId, material.texDiffuseId,
-                                                       material.texSpecularId, material.texNormalId);
+                                                       material.texSpecularId, material.texNormalId,
+                                                       material.d);
 
                 uniqueMaterial[matName] = matId;
                 shapeMaterialId = matId;
@@ -208,7 +211,7 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
         }
 
         glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
-        for (Scene::Vertex& vertPos : _vertices)
+        for (const Scene::Vertex& vertPos : _vertices)
         {
             sum += vertPos.pos;
         }

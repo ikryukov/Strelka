@@ -142,8 +142,7 @@ public:
 
     bool needDesciptorSetUpdate;
 
-    void createGraphicsPipelineOp(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
-    void createGraphicsPipelineTr(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
+    VkPipeline createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height, bool isTransparent);
 
     void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
 
@@ -178,8 +177,8 @@ public:
         createRenderPass();
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
-        createGraphicsPipelineOp(mVS, mPS, width, height);
-        createGraphicsPipelineTr(mVS, mPS, width, height);
+        mPipelineOpaque =  createGraphicsPipeline(mVS, mPS, width, height, false);
+        mPipelineTransparent =  createGraphicsPipeline(mVS, mPS, width, height, true);
     }
 
     void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);

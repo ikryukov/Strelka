@@ -4,7 +4,6 @@
 #include "glm-wrapper.hpp"
 
 #include <cstdint>
-#include <map>
 #include <set>
 #include <stack>
 #include <vector>
@@ -64,7 +63,7 @@ public:
         uint32_t texAmbientId; // map_ambient
         uint32_t texSpecularId; // map_specular
         uint32_t texNormalId; // map_normal - map_Bump
-        uint32_t pad;
+        float d;
 
         bool isTransparent()
         {
@@ -94,9 +93,7 @@ public:
     std::vector<Instance> mInstances;
 
     std::vector<uint32_t> mTransparentInstances;
-    //    std::map<uint32_t, glm::float3> massCenterTr;
     std::vector<uint32_t> mOpaqueInstances;
-    //    std::map<uint32_t, glm::float3> massCenterOp;
 
     Scene() = default;
 
@@ -167,7 +164,8 @@ public:
                             uint32_t texAmbientId,
                             uint32_t texDiffuseId,
                             uint32_t texSpeculaId,
-                            uint32_t texNormalId);
+                            uint32_t texNormalId,
+                            float d);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>
