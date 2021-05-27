@@ -29,7 +29,8 @@ private:
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 
     VkDevice mDevice;
-    VkPipeline mPipeline;
+    VkPipeline mPipelineOpaque;
+    VkPipeline mPipelineTransparent;
     VkPipelineLayout mPipelineLayout;
     VkRenderPass mRenderPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
@@ -141,7 +142,8 @@ public:
 
     bool needDesciptorSetUpdate;
 
-    void createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
+    void createGraphicsPipelineOp(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
+    void createGraphicsPipelineTr(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height);
 
     void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
 
@@ -176,7 +178,8 @@ public:
         createRenderPass();
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
-        createGraphicsPipeline(mVS, mPS, width, height);
+        createGraphicsPipelineOp(mVS, mPS, width, height);
+        createGraphicsPipelineTr(mVS, mPS, width, height);
     }
 
     void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);

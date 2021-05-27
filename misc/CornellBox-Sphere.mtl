@@ -17,7 +17,7 @@ newmtl leftSphere
     Kd 0.01 0.01 0.01
     Ks 0.95 0.95 0.95
     Ns 1024
-    illum 4
+    illum 2
 	map_Kd wwwd.png
     
 newmtl rightSphere
