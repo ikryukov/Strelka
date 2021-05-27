@@ -376,6 +376,9 @@ void Render::createLogicalDevice()
     indexingFeatures.pNext = nullptr;
     indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
     indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+    indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    indexingFeatures.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
+    indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
