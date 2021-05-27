@@ -24,7 +24,7 @@ struct Material
     int32_t texAmbientId; // map_ambient
     int32_t texSpecularId; // map_specular
     int32_t texNormalId; // map_normal - map_Bump
-    uint32_t pad;
+    float d; // alpha value
     //====PBR====
     float4 baseColorFactor;
     float metallicFactor;
@@ -405,5 +405,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
         return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
     }
 
-    return float4(float3(result), 1.0);
+    float alpha = material.d;
+
+    return float4(float3(result), alpha);
 }
