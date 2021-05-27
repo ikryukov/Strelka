@@ -471,49 +471,6 @@ bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
     }
 
     mTexManager->createTextureSampler();
-    // default material
-    if (0)
-    {
-        Scene::Material material{};
-        material.ambient = { 0.1f,
-                             0.1f,
-                             0.1f, 1.0f };
-
-        material.diffuse = { 0.8f,
-                             0.8f,
-                             0.8f, 1.0f };
-
-        material.specular = { 0.0f,
-                              0.0f,
-                              0.0f, 1.0f };
-
-        material.emissive = { 0.0f,
-                              0.0f,
-                              0.0f, 1.0f };
-
-        material.opticalDensity = 0.0f;
-
-        material.shininess = 1.0f;
-
-        material.transparency = { 0.0f,
-                                  0.0f,
-                                  0.0f, 1.0f };
-
-        material.illum = 2;
-
-        material.texAmbientId = -1;
-        material.texDiffuseId = -1;
-        material.texSpecularId = -1;
-        material.texNormalId = -1;
-
-        uint32_t matId = scene.createMaterial(material.ambient, material.diffuse,
-                                              material.specular, material.emissive,
-                                              material.opticalDensity, material.shininess,
-                                              material.transparency, material.illum,
-                                              material.texAmbientId, material.texDiffuseId,
-                                              material.texSpecularId, material.texNormalId);
-        assert(matId == 0);
-    }
 
     int sceneId = model.defaultScene;
 
