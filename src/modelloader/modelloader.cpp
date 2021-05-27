@@ -450,6 +450,7 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                                   material.emissiveFactor[1],
                                                   material.emissiveFactor[2]);
         currMaterial.texEmissive = material.emissiveTexture.index;
+        currMaterial.texOcclusion = material.occlusionTexture.index;
 
         currMaterial.illum = material.alphaMode == "OPAQUE" ? 2 : 1;
         scene.addMaterial(currMaterial);

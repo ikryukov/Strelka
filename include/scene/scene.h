@@ -74,6 +74,11 @@ public:
         glm::float3 emissiveFactor;
         int32_t texEmissive = -1;
 
+        int32_t texOcclusion = -1;
+        int32_t pad0;
+        int32_t pad1;
+        int32_t pad2;
+
         bool isTransparent()
         {
             // TODO:

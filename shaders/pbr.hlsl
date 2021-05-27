@@ -32,6 +32,11 @@ struct Material
 
     float3 emissiveFactor;
     int32_t texEmissive;
+
+    int32_t texOcclusion;
+    int32_t pad0;
+    int32_t pad1;
+    int32_t pad2;
 };
 
 struct PS_INPUT
@@ -364,10 +369,10 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     float3 transparency = float3(material.transparency.rgb);
     uint32_t illum = material.illum;
 
-    uint32_t texAmbientId = material.texAmbientId;
-    uint32_t texDiffuseId = material.texDiffuseId;
-    uint32_t texSpecularId = material.texSpecularId;
-    uint32_t texNormalId = material.texNormalId;
+    int32_t texAmbientId = material.texAmbientId;
+    int32_t texDiffuseId = material.texDiffuseId;
+    int32_t texSpecularId = material.texSpecularId;
+    int32_t texNormalId = material.texNormalId;
 
     float3 kA = material.ambient.rgb;
     float3 kD = material.diffuse.rgb;
@@ -387,12 +392,12 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     float3 V = normalize(CameraPos - inp.wPos);
     pointData.NV = dot(N, V);
 
-
     float3 diffuse = diffuseLambert(kD, L, N);
     float3 R = reflect(-L, N);
 
     float3 H = normalize(V + L);
     pointData.HV = dot(H, V);
+    pointData.NH = dot(N, H);
 
     float3 specular = specularPhong(kS, R, V, shininess);
 
@@ -402,6 +407,11 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     {
         float3 emissive = textures[NonUniformResourceIndex(material.texEmissive)].Sample(gSampler, inp.uv).rgb;
         result += emissive;
+    }
+    if (material.texOcclusion != INVALID_INDEX)
+    {
+        float occlusion = textures[NonUniformResourceIndex(material.texOcclusion)].Sample(gSampler, inp.uv).r;
+        result *= occlusion;
     }
     float shadow = ShadowCalculation(inp.posLightSpace);
 
