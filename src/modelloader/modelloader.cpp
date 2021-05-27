@@ -465,7 +465,11 @@ bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
     std::string err;
     std::string warn;
     bool res = gltf_ctx.LoadASCIIFromFile(&model, &err, &warn, modelPath.c_str());
-
+    if (!res)
+    {
+        cerr << "Unable to load file: " << modelPath << endl;
+        return res;
+    }
     for (int i = 0; i < model.scenes.size(); ++i)
     {
         cout << "Scene: " << model.scenes[i].name << endl;
