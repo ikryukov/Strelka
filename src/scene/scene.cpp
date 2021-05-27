@@ -1,5 +1,8 @@
 #include "scene.h"
 
+#include <glm/gtx/norm.hpp>
+
+#include <algorithm>
 #include <utility>
 
 namespace nevk
@@ -34,7 +37,7 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     return meshId;
 }
 
-uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform)
+uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter)
 {
     Instance* inst = nullptr;
     uint32_t instId = -1;
@@ -53,6 +56,7 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     inst->mMaterialId = materialId;
     inst->mMeshId = meshId;
     inst->transform = transform;
+    inst->massCenter = massCenter;
 
     if (mMaterials[materialId].isTransparent())
     {
@@ -63,6 +67,7 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
         mOpaqueInstances.push_back(instId);
     }
 
+
     return instId;
 }
 
@@ -71,14 +76,15 @@ uint32_t Scene::createMaterial(const glm::float4& ambient,
                                const glm::float4& diffuse,
                                const glm::float4& specular,
                                const glm::float4& emissive,
+                               const glm::float4& transparency,
                                float opticalDensity,
                                float shininess,
-                               const glm::float4& transparency,
                                uint32_t illum,
                                uint32_t texAmbientId,
                                uint32_t texDiffuseId,
                                uint32_t texSpecularId,
-                               uint32_t texNormalId)
+                               uint32_t texNormalId,
+                               float d)
 {
     Material* material = nullptr;
     uint32_t materialId = -1;
@@ -98,14 +104,15 @@ uint32_t Scene::createMaterial(const glm::float4& ambient,
     material->diffuse = diffuse;
     material->specular = specular;
     material->emissive = emissive;
+    material->transparency = transparency;
     material->opticalDensity = opticalDensity;
     material->shininess = shininess;
-    material->transparency = transparency;
     material->illum = illum;
     material->texAmbientId = texAmbientId;
     material->texDiffuseId = texDiffuseId;
     material->texSpecularId = texSpecularId;
     material->texNormalId = texNormalId;
+    material->d = d;
 
     return materialId;
 }
@@ -127,13 +134,23 @@ void Scene::removeMaterial(const uint32_t materialId)
 
 std::vector<uint32_t>& Scene::getOpaqueInstancesToRender(const glm::float3 camPos)
 {
-    // TODO:
+    sort(mOpaqueInstances.begin(), mOpaqueInstances.end(),
+         [&camPos, this](const uint32_t& instId1, const uint32_t& instId2) {
+             return glm::distance2(camPos, getInstances()[instId1].massCenter) <=
+                    glm::distance2(camPos, getInstances()[instId2].massCenter);
+         });
+
     return mOpaqueInstances;
 }
 
 std::vector<uint32_t>& Scene::getTransparentInstancesToRender(const glm::float3 camPos)
 {
-    // TODO: 
+    sort(mTransparentInstances.begin(), mTransparentInstances.end(),
+         [&camPos, this](const uint32_t& instId1, const uint32_t& instId2) {
+             return glm::distance2(camPos, getInstances()[instId1].massCenter) >=
+                    glm::distance2(camPos, getInstances()[instId2].massCenter);
+         });
+
     return mTransparentInstances;
 }
 
@@ -141,6 +158,7 @@ std::set<uint32_t> Scene::getDirtyInstances()
 {
     return this->mDirtyInstances;
 }
+
 bool Scene::getFrMod()
 {
     return this->FrMod;
@@ -163,4 +181,5 @@ void Scene::endFrame()
 {
     FrMod = false;
 }
+
 } // namespace nevk

@@ -255,6 +255,11 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass)
         ImGui::EndCombo();
     }
 
+    //     transparency settings
+    ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
+    ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
+
+
     ImGui::End(); // end window
 }
 

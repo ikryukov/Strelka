@@ -17,7 +17,8 @@ newmtl leftSphere
     Kd 0.01 0.01 0.01
     Ks 0.95 0.95 0.95
     Ns 1024
-    illum 5
+    illum 2
+	map_Kd wwwd.png
     
 newmtl rightSphere
     Ka 0.01 0.01 0.01
@@ -27,6 +28,7 @@ newmtl rightSphere
     Ns 1024
     Ni 2.5
     illum 7
+	map_Kd wwwd.png
    
 newmtl floor
     Ns 10.0000

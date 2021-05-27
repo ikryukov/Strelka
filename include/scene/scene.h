@@ -23,7 +23,9 @@ struct Instance
     glm::mat4 transform;
     uint32_t mMeshId;
     uint32_t mMaterialId;
+    glm::float3 massCenter;
 };
+
 
 class Scene
 {
@@ -58,11 +60,10 @@ public:
         float shininess; // Ns 16 --  блеск материала
         uint32_t illum; // illum 2 -- модель освещения
         uint32_t texDiffuseId; // map_diffuse
-
         uint32_t texAmbientId; // map_ambient
         uint32_t texSpecularId; // map_specular
         uint32_t texNormalId; // map_normal - map_Bump
-        uint32_t pad;
+        float d;
 
         bool isTransparent()
         {
@@ -79,6 +80,9 @@ public:
 
     DebugView mDebugViewSettings = DebugView::eNone;
 
+    bool transparentMode = true;
+    bool opaqueMode = true;
+  
     glm::float4 mLightPosition{ 10.0, 10.0, 10.0, 1.0 };
 
     std::vector<Vertex> mVertices;
@@ -88,8 +92,8 @@ public:
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
 
-    std::vector<uint32_t> mOpaqueInstances;
     std::vector<uint32_t> mTransparentInstances;
+    std::vector<uint32_t> mOpaqueInstances;
 
     Scene() = default;
 
@@ -99,6 +103,7 @@ public:
     {
         return mVertices;
     }
+
     std::vector<uint32_t>& getIndices()
     {
         return mIndices;
@@ -142,7 +147,7 @@ public:
     /// <param name="materialId">valid material id</param>
     /// <param name="transform">transform</param>
     /// <returns>Instance id in scene</returns>
-    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform);
+    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter);
     /// <summary>
     /// Creates Material
     /// </summary>
@@ -152,14 +157,15 @@ public:
                             const glm::float4& diffuse,
                             const glm::float4& specular,
                             const glm::float4& emissive,
+                            const glm::float4& transparency,
                             float opticalDensity,
                             float shininess,
-                            const glm::float4& transparency,
                             uint32_t illum,
                             uint32_t texAmbientId,
                             uint32_t texDiffuseId,
                             uint32_t texSpeculaId,
-                            uint32_t texNormalId);
+                            uint32_t texNormalId,
+                            float d);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>
@@ -171,9 +177,9 @@ public:
     void removeMesh(uint32_t meshId);
     void removeMaterial(uint32_t materialId);
 
-    std::vector<uint32_t>& getOpaqueInstancesToRender(const glm::float3 camPos);
+    std::vector<uint32_t>& getOpaqueInstancesToRender(glm::float3 camPos);
 
-    std::vector<uint32_t>& getTransparentInstancesToRender(const glm::float3 camPos);
+    std::vector<uint32_t>& getTransparentInstancesToRender(glm::float3 camPos);
 
     /// <summary>
     /// Get set of DirtyInstances

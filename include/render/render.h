@@ -44,17 +44,11 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 const uint32_t SHADOW_MAP_WIDTH = 1024;
 const uint32_t SHADOW_MAP_HEIGHT = 1024;
 
-//const std::string MODEL_PATH = "misc/cube.obj";
-//const std::string MTL_PATH = "misc/";
-
-const std::string MODEL_PATH = "misc/CubeScene.obj";
-const std::string MTL_PATH = "misc/";
-
 //const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
 //const std::string MTL_PATH = "misc/";
 
-//const std::string MODEL_PATH = "misc/San_Miguel/san-miguel-low-poly.obj";
-//const std::string MTL_PATH = "misc/San_Miguel/";
+const std::string MODEL_PATH = "misc/diamonds.obj";
+const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -368,6 +362,7 @@ private:
     void loadModel(nevk::Model& testmodel)
     {
         testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
+
         Camera& camera = mScene.getCamera();
         camera.type = Camera::CameraType::firstperson;
 

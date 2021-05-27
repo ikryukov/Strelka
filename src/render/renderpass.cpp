@@ -22,8 +22,10 @@ RenderPass::~RenderPass()
 {
 }
 
-void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height)
+VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height, bool isTransparent)
 {
+    VkPipeline mPipeline;
+
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
@@ -99,7 +101,20 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
 
     VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    colorBlendAttachment.blendEnable = VK_FALSE;
+    if (isTransparent)
+    {
+        colorBlendAttachment.blendEnable = VK_TRUE;
+        colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
+        colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    }
+    else
+    {
+        colorBlendAttachment.blendEnable = VK_FALSE;
+    }
 
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -150,7 +165,9 @@ void RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShad
     {
         throw std::runtime_error("failed to create graphics pipeline!");
     }
+    return mPipeline;
 }
+
 
 void RenderPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
@@ -363,8 +380,6 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     vkCmdBeginRenderPass(cmd, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipeline);
-
     VkViewport viewport{};
     viewport.x = 0;
     viewport.y = (float)height;
@@ -398,8 +413,24 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
         }
     };
 
-    renderInstances(opaqueIds);
-    renderInstances(transparentIds);
+    if (scene.transparentMode && scene.opaqueMode)
+    {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineOpaque);
+        renderInstances(opaqueIds);
+
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineTransparent);
+        renderInstances(transparentIds);
+    }
+    else if (scene.transparentMode)
+    {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineTransparent);
+        renderInstances(transparentIds);
+    }
+    else if (scene.opaqueMode)
+    {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineOpaque);
+        renderInstances(opaqueIds);
+    }
 
     vkCmdEndRenderPass(cmd);
 
@@ -449,7 +480,8 @@ void RenderPass::onDestroy()
         vkDestroyBuffer(mDevice, uniformBuffers[i], nullptr);
         vkFreeMemory(mDevice, uniformBuffersMemory[i], nullptr);
     }
-    vkDestroyPipeline(mDevice, mPipeline, nullptr);
+    vkDestroyPipeline(mDevice, mPipelineTransparent, nullptr);
+    vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
     vkDestroyShaderModule(mDevice, mVS, nullptr);
@@ -471,12 +503,14 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
         vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
     }
 
-    vkDestroyPipeline(mDevice, mPipeline, nullptr);
+    vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
+    vkDestroyPipeline(mDevice, mPipelineTransparent, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
     createRenderPass();
-    createGraphicsPipeline(mVS, mPS, mWidth, mHeight);
+    mPipelineOpaque = createGraphicsPipeline(mVS, mPS, width, height, false);
+    mPipelineTransparent = createGraphicsPipeline(mVS, mPS, width, height, true);
     createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
 }
 
