@@ -65,10 +65,14 @@ public:
         uint32_t pad;
         //====PBR====
         glm::float4 baseColorFactor;
+
         float metallicFactor;
         float roughnessFactor;
         int32_t metallicRoughnessTexture = -1;
         int32_t texBaseColor = -1;
+
+        glm::float3 emissiveFactor;
+        int32_t texEmissive = -1;
 
         bool isTransparent()
         {

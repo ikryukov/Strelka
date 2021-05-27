@@ -425,6 +425,11 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
         currMaterial.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
         currMaterial.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
 
+        currMaterial.emissiveFactor = glm::float3(material.emissiveFactor[0],
+                                                  material.emissiveFactor[1],
+                                                  material.emissiveFactor[2]);
+        currMaterial.texEmissive = material.emissiveTexture.index;
+
         currMaterial.illum = material.alphaMode == "OPAQUE" ? 2 : 1;
         scene.addMaterial(currMaterial);
     }

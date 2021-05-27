@@ -9,26 +9,29 @@ struct VertexInput
 
 struct Material
 {
-  float4 ambient; // Ka
-  float4 diffuse; // Kd
-  float4 specular; // Ks
-  float4 emissive; // Ke
-  float4 transparency; //  d 1 -- прозрачность/непрозрачность
-  float opticalDensity; // Ni
-  float shininess; // Ns 16 --  блеск материала
-  uint32_t illum; // illum 2 -- модель освещения
-  int32_t texDiffuseId; // map_diffuse
+    float4 ambient; // Ka
+    float4 diffuse; // Kd
+    float4 specular; // Ks
+    float4 emissive; // Ke
+    float4 transparency; //  d 1 -- прозрачность/непрозрачность
+    float opticalDensity; // Ni
+    float shininess; // Ns 16 --  блеск материала
+    uint32_t illum; // illum 2 -- модель освещения
+    int32_t texDiffuseId; // map_diffuse
 
-  int32_t texAmbientId; // map_ambient
-  int32_t texSpecularId; // map_specular
-  int32_t texNormalId; // map_normal - map_Bump
-  uint32_t pad;
-  //====PBR====
-  float4 baseColorFactor;
-  float metallicFactor;
-  float roughnessFactor;
-  int32_t metallicRoughnessTexture;
-  int32_t texBaseColor;
+    int32_t texAmbientId; // map_ambient
+    int32_t texSpecularId; // map_specular
+    int32_t texNormalId; // map_normal - map_Bump
+    uint32_t pad;
+    //====PBR====
+    float4 baseColorFactor;
+    float metallicFactor;
+    float roughnessFactor;
+    int32_t metallicRoughnessTexture;
+    int32_t texBaseColor;
+
+    float3 emissiveFactor;
+    int32_t texEmissive;
 };
 
 struct PS_INPUT
@@ -312,13 +315,50 @@ float3 FresnelSchlick(float3 F0, float cosTheta)
     return F0 + (1.0 - F0) * pow(1.0 - saturate(cosTheta), 5.0);
 }
 
+struct PointData
+{
+    float NL;
+    float NV;
+    float NH;
+    float HV;
+}
+
+float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
+{
+    if (pd.NL <= 0.0 || pd.NV <= 0.0)
+    {
+        return float3(0.0, 0.0, 0.0);
+    }
+
+    float roughness = material.roughnessFactor;
+    float roughness2 = roughness * roughness;
+
+    float G = GGX_PartialGeometry(pd.NV, roughness2) * GGX_PartialGeometry(pd.NL, roughness2);
+    float D = GGX_Distribution(pd.NH, roughness2);
+
+    float3 f0 = float3(0.24, 0.24, 0.24);
+    float3 F = FresnelSchlick(f0, pd.HV);
+    //mix
+    float3 specK = G * D * F * 0.25 / pd.NV;
+    float3 diffK = saturate(1.0 - F);
+
+    float3 albedo = material.baseColorFactor.rgb;
+    if (material.texBaseColor != INVALID_INDEX)
+    {
+        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler, uv).rgb;
+    }
+
+
+    float3 result = max(0.0, albedo * diffK * pd.NL / PI + specK);
+    return result;
+}
+
 // Fragment Shader
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
     Material material = materials[NonUniformResourceIndex(inp.materialId)];
 
-    float3 emissive = float3(material.emissive.rgb);
     float opticalDensity = material.opticalDensity;
     float shininess = material.shininess;
     float3 transparency = float3(material.transparency.rgb);
@@ -340,25 +380,32 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     }
     float3 L = normalize(lightPosition.xyz - inp.wPos);
 
-    float NL = dot(N, L);
-    if (NL <= 0.0)
-    {
-        return float4(0.0, 0.0, 0.0, 1.0);
-    }
+    PointData pointData;
+
+    pointData.NL = dot(N, L);
+
     float3 V = normalize(CameraPos - inp.wPos);
-    float NV = dot(N, V);
-    if (NV <= 0.0)
-    {
-        return float4(0.0, 0.0, 0.0, 1.0);
-    }
+    pointData.NV = dot(N, V);
+
 
     float3 diffuse = diffuseLambert(kD, L, N);
     float3 R = reflect(-L, N);
 
     float3 H = normalize(V + L);
-    float HV = dot(H, V);
+    pointData.HV = dot(H, V);
 
     float3 specular = specularPhong(kS, R, V, shininess);
+
+    float3 result = cookTorrance(material, pointData, inp.uv);
+
+    if (material.texEmissive != INVALID_INDEX)
+    {
+        float3 emissive = textures[NonUniformResourceIndex(material.texEmissive)].Sample(gSampler, inp.uv).rgb;
+        result += emissive;
+    }
+    float shadow = ShadowCalculation(inp.posLightSpace);
+
+    result *= shadow;
 
     // Normals
     if (debugView == 1)
@@ -389,31 +436,6 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
         float shadow = ShadowCalculationPoissonPCF(inp.posLightSpace, inp.wPos);
         return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
     }
-
-    float shadow = ShadowCalculation(inp.posLightSpace);
-
-    //return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
-    //return float4(saturate(diffuse) * shadow, 1.0);
-
-    float roughness = material.roughnessFactor;
-    float roughness2 = roughness * roughness;
-
-    float G = GGX_PartialGeometry(dot(N, V), roughness2) * GGX_PartialGeometry(dot(N, L), roughness2);
-    float D = GGX_Distribution(dot(N, H), roughness2);
-
-    float3 f0 = float3(0.24, 0.24, 0.24);
-    float3 F = FresnelSchlick(f0, HV);
-    //mix
-    float3 specK = G * D * F * 0.25 / NV;
-    float3 diffK = saturate(1.0-F);
-
-    float3 albedo = material.baseColorFactor.rgb;
-    if (material.texBaseColor != INVALID_INDEX)
-    {
-        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler, inp.uv).rgb;
-    }
-
-    float3 result = max(0.0, albedo * diffK * NL * shadow / PI + specK);
 
     return float4(float3(result), 1.0);
 }
