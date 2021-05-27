@@ -121,8 +121,7 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
 
                 material.diffuse = { currMaterial.diffuse[0],
                                      currMaterial.diffuse[1],
-                                     currMaterial.diffuse[2],
-                                     currMaterial.emission[3] };
+                                     currMaterial.diffuse[2], 1.0f };
 
                 material.specular = { currMaterial.specular[0],
                                       currMaterial.specular[1],
@@ -231,8 +230,8 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
             sum += vertPos.pos;
         }
         glm::float3 massCenter = glm::float3(sum.x / _vertices.size(),
-                                            sum.y / _vertices.size(),
-                                            sum.z / _vertices.size());
+                                             sum.y / _vertices.size(),
+                                             sum.z / _vertices.size());
 
 
         uint32_t meshId = mScene.createMesh(_vertices, _indices);
@@ -287,6 +286,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
 
     int matId = primitive.material;
 
+    glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
     std::vector<nevk::Scene::Vertex> vertices;
     vertices.reserve(vertexCount);
     for (int v = 0; v < vertexCount; ++v)
@@ -297,7 +297,9 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         vertex.uv = packUV(texCoord0Data ? glm::make_vec2(&texCoord0Data[v * texCoord0Stride]) : glm::vec3(0.0f));
         vertex.materialId = matId;
         vertices.push_back(vertex);
+        sum += vertex.pos;
     }
+    const glm::float3 massCenter = sum / (float)vertexCount;
 
     uint32_t indexCount = 0;
     std::vector<uint32_t> indices;
@@ -348,9 +350,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
     }
 
     uint32_t meshId = scene.createMesh(vertices, indices);
-
-
-    uint32_t instId = scene.createInstance(meshId, matId, transform);
+    uint32_t instId = scene.createInstance(meshId, matId, transform, massCenter);
 }
 
 void processMesh(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Mesh& mesh, const glm::float4x4& transform, const float globalScale)
