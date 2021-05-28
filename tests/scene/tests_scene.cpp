@@ -60,9 +60,7 @@ TEST_CASE("test createInstance")
     {
         sum += vertPos.pos;
     }
-    glm::float3 massCenter = glm::float3(sum.x / vb.size(),
-                                         sum.y / vb.size(),
-                                         sum.z / vb.size());
+    glm::float3 massCenter = sum / (float)vb.size();
 
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
@@ -91,9 +89,7 @@ TEST_CASE("test createInstance complex")
     {
         sum += vertPos.pos;
     }
-    glm::float3 massCenter = glm::float3(sum.x / vb.size(),
-                                         sum.y / vb.size(),
-                                         sum.z / vb.size());
+    glm::float3 massCenter = sum / (float)vb.size();
 
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
@@ -134,25 +130,25 @@ TEST_CASE("test createMaterial complex")
                                              0, 0, 0, 0, 0,
                                              1.0f);
     uint32_t matIdSnd = scene.createMaterial(glm::float4(1.0),
-                                               glm::float4(1.0),
-                                               glm::float4(1.0),
-                                               glm::float4(1.0),
-                                               glm::float4(1.0),
-                                               1.0f,
-                                               1.0f,
-                                               0, 0, 0, 0, 0,
-                                               1.0f);
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             1.0f,
+                                             1.0f,
+                                             0, 0, 0, 0, 0,
+                                             1.0f);
     CHECK(matIdFst != matIdSnd);
     scene.removeMaterial(matIdFst);
     uint32_t matIdThd = scene.createMaterial(glm::float4(1.0),
-                                               glm::float4(1.0),
-                                               glm::float4(1.0),
-                                               glm::float4(1.0),
-                                               glm::float4(1.0),
-                                               1.0f,
-                                               1.0f,
-                                               0, 0, 0, 0, 0,
-                                               1.0f);
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             glm::float4(1.0),
+                                             1.0f,
+                                             1.0f,
+                                             0, 0, 0, 0, 0,
+                                             1.0f);
     CHECK(matIdFst == matIdThd);
 }
 
@@ -188,9 +184,7 @@ TEST_CASE("test checkInstance")
     {
         sum += vertPos.pos;
     }
-    glm::float3 massCenter = glm::float3(sum.x / vb.size(),
-                                         sum.y / vb.size(),
-                                         sum.z / vb.size());
+    glm::float3 massCenter = sum / (float)vb.size();
 
     glm::float4x4 transform{ 1.0f };
     glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
