@@ -214,7 +214,6 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
                                                            attrib.normals[3 * idx.normal_index + 1],
                                                            attrib.normals[3 * idx.normal_index + 2]));
                 }
-                vertex.materialId = shapeMaterialId;
 
                 _indices.push_back(static_cast<uint32_t>(_vertices.size()));
                 _vertices.push_back(vertex);
@@ -284,7 +283,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         texCoord0Stride = uvAccessor.ByteStride(uvView) / sizeof(float);
     }
 
-    int matId = primitive.material;
+    const int matId = primitive.material;
 
     glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
     std::vector<nevk::Scene::Vertex> vertices;
@@ -295,7 +294,6 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         vertex.pos = glm::make_vec3(&positionData[v * posStride]) * globalScale;
         vertex.normal = packNormal(glm::normalize(glm::vec3(normalsData ? glm::make_vec3(&normalsData[v * normalStride]) : glm::vec3(0.0f))));
         vertex.uv = packUV(texCoord0Data ? glm::make_vec2(&texCoord0Data[v * texCoord0Stride]) : glm::vec3(0.0f));
-        vertex.materialId = matId;
         vertices.push_back(vertex);
         sum += vertex.pos;
     }
@@ -464,7 +462,7 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                                   material.emissiveFactor[2]);
         currMaterial.texEmissive = material.emissiveTexture.index;
         currMaterial.texOcclusion = material.occlusionTexture.index;
-        currMaterial.d = (float) material.pbrMetallicRoughness.baseColorFactor[3];
+        currMaterial.d = (float)material.pbrMetallicRoughness.baseColorFactor[3];
 
         currMaterial.illum = material.alphaMode == "OPAQUE" ? 2 : 1;
         scene.addMaterial(currMaterial);

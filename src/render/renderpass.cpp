@@ -8,6 +8,7 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
@@ -130,7 +131,7 @@ VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, 
     VkPushConstantRange pushConstant;
     pushConstant.offset = 0;
     pushConstant.size = sizeof(InstancePushConstants);
-    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -174,7 +175,6 @@ VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, 
     }
     return mPipeline;
 }
-
 
 void RenderPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
@@ -418,11 +418,11 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
             const uint32_t indexOffset = meshes[currentMeshId].mIndex;
             const uint32_t indexCount = meshes[currentMeshId].mCount;
 
-            InstancePushConstants constants;
+            InstancePushConstants constants{};
             constants.model = instances[currentInstanceId].transform;
-            constants.inverseTransposeModel = glm::transpose(glm::inverse(constants.model));
+            constants.materialId = instances[currentInstanceId].mMaterialId;
 
-            vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(InstancePushConstants), &constants);
+            vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(InstancePushConstants), &constants);
 
             vkCmdDrawIndexed(cmd, indexCount, 1, indexOffset, 0, 0);
         }

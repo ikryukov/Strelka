@@ -27,7 +27,7 @@ private:
     struct InstancePushConstants 
     {
         glm::float4x4 model;
-        glm::float4x4 inverseTransposeModel;
+        int32_t materialId = -1;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -125,13 +125,7 @@ private:
         attributeDescription.format = VK_FORMAT_R32_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, uv);
         attributeDescriptions.emplace_back(attributeDescription);
-
-        attributeDescription.binding = 0;
-        attributeDescription.location = 4;
-        attributeDescription.format = VK_FORMAT_R16_UINT;
-        attributeDescription.offset = offsetof(Scene::Vertex, materialId);
-        attributeDescriptions.emplace_back(attributeDescription);
-
+        
         return attributeDescriptions;
     }
 

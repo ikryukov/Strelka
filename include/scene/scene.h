@@ -46,7 +46,6 @@ public:
         uint32_t tangent;
         uint32_t normal;
         uint32_t uv;
-        uint16_t materialId;
     };
 
     struct Material
@@ -98,7 +97,7 @@ public:
 
     bool transparentMode = true;
     bool opaqueMode = true;
-  
+
     glm::float4 mLightPosition{ 10.0, 10.0, 10.0, 1.0 };
 
     std::vector<Vertex> mVertices;

@@ -6,7 +6,6 @@ struct VertexInput
     uint32_t tangent;
     uint32_t normal;
     uint32_t uv;
-    uint16_t materialId;
 };
 
 struct Material
@@ -49,13 +48,12 @@ struct PS_INPUT
     float3 normal;
     float3 wPos;
     float2 uv;
-    nointerpolation uint32_t materialId;
 };
 
 struct InstancePushConstants 
 {
     float4x4 model;
-    float4x4 inverseTransposeModel;
+    int32_t materialId;
 };
 [[vk::push_constant]] ConstantBuffer<InstancePushConstants> pconst;
 
@@ -90,9 +88,10 @@ PS_INPUT vertexMain(VertexInput vi)
     out.pos = mul(viewToProj, mul(worldToView, wpos));
     out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, wpos));
     out.uv = unpackUV(vi.uv);
-    out.normal = mul((float3x3)pconst.inverseTransposeModel, unpackNormal(vi.normal));
-    out.tangent = mul((float3x3)pconst.inverseTransposeModel, unpackTangent(vi.tangent));
-    out.materialId = vi.materialId;
+    // assume that we don't use non-uniform scales
+    // TODO:
+    out.normal = unpackNormal(vi.normal);
+    out.tangent = unpackTangent(vi.tangent);
     out.wPos = wpos.xyz / wpos.w; 
     return out;
 }
@@ -320,7 +319,7 @@ float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    Material material = materials[NonUniformResourceIndex(inp.materialId)];
+    Material material = materials[NonUniformResourceIndex(pconst.materialId)];
 
     float opticalDensity = material.opticalDensity;
     float shininess = material.shininess;
