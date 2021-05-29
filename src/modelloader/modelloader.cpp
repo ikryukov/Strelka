@@ -53,7 +53,7 @@ glm::float2 unpackUV(uint32_t val)
     return uv;
 }
 
-void Model::computeTangent(std::vector<Scene::Vertex>& vertices,
+void ModelLoader::computeTangent(std::vector<Scene::Vertex>& vertices,
                            const std::vector<uint32_t>& indices) const
 {
     const size_t lastIndex = indices.size();
@@ -85,7 +85,7 @@ void Model::computeTangent(std::vector<Scene::Vertex>& vertices,
     v2.tangent = packedTangent;
 }
 
-bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, nevk::Scene& mScene)
+bool ModelLoader::loadModel(const std::string& modelFile, const std::string& mtlPath, nevk::Scene& scene)
 {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
@@ -146,7 +146,7 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
                 material.texNormalId = mTexManager->loadTexture(currMaterial.bump_texname, mtlPath);
                 material.d = currMaterial.dissolve;
 
-                uint32_t matId = mScene.createMaterial(material.ambient, material.diffuse,
+                uint32_t matId = scene.createMaterial(material.ambient, material.diffuse,
                                                        material.specular, material.emissive,
                                                        material.transparency, material.opticalDensity,
                                                        material.shininess, material.illum,
@@ -232,10 +232,11 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
                                              sum.z / _vertices.size());
 
 
-        uint32_t meshId = mScene.createMesh(_vertices, _indices);
+        uint32_t meshId = scene.createMesh(_vertices, _indices);
+        assert(meshId != -1);
         glm::float4x4 transform{ 1.0f };
         glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-        uint32_t instId = mScene.createInstance(meshId, shapeMaterialId, transform, massCenter);
+        uint32_t instId = scene.createInstance(meshId, shapeMaterialId, transform, massCenter);
         assert(instId != -1);
     }
 
@@ -487,7 +488,7 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
     }
 }
 
-bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
+bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
 {
     using namespace std;
     tinygltf::Model model;

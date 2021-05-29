@@ -18,18 +18,8 @@ void Render::initVulkan()
     createLogicalDevice();
     createSwapChain();
 
-    uint32_t vertId = mShaderManager.loadShader("shaders/pbr.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
-    uint32_t fragId = mShaderManager.loadShader("shaders/pbr.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
     uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
     uint32_t shId = mShaderManager.loadShader("shaders/shadow.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
-
-    const char* fragShaderCode = nullptr;
-    uint32_t fragShaderCodeSize = 0;
-    mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
-
-    const char* vertShaderCode = nullptr;
-    uint32_t vertShaderCodeSize = 0;
-    mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
 
     const char* csShaderCode = nullptr;
     uint32_t csShaderCodeSize = 0;
@@ -50,8 +40,8 @@ void Render::initVulkan()
     createSyncObjects();
 
     createDepthResources();
-    model = new nevk::Model(mTexManager);
-    loadModel(*model);
+    modelLoader = new nevk::ModelLoader(mTexManager);
+    loadModel(*modelLoader);
 
     createMaterialBuffer();
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
@@ -75,23 +65,60 @@ void Render::initVulkan()
 
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+
     mTexManager->createShadowSampler();
+    mTexManager->createTextureSampler();
 
     mUi.init(init_info, swapChainImageFormat, mWindow, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(mDevice, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
+    // PBR
+    {
+        uint32_t vertId = mShaderManager.loadShader("shaders/pbr.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+        uint32_t fragId = mShaderManager.loadShader("shaders/pbr.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
 
-    mPass.setFrameBufferFormat(swapChainImageFormat);
-    mPass.setDepthBufferFormat(findDepthFormat());
-    mTexManager->createTextureSampler();
-    mPass.setTextureImageView(mTexManager->textureImageView);
-    mPass.setTextureSampler(mTexManager->textureSampler);
-    mPass.setShadowImageView(shadowImageView);
-    mPass.setShadowSampler(mTexManager->shadowSampler);
-    mPass.setMaterialBuffer(mMaterialBuffer);
-    mPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+        const char* vertShaderCode = nullptr;
+        uint32_t vertShaderCodeSize = 0;
+        mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
 
-    mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+        const char* fragShaderCode = nullptr;
+        uint32_t fragShaderCodeSize = 0;
+        mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
 
+        mPbrPass.setFrameBufferFormat(swapChainImageFormat);
+        mPbrPass.setDepthBufferFormat(findDepthFormat());
+        mPbrPass.setTextureImageView(mTexManager->textureImageView);
+        mPbrPass.setTextureSampler(mTexManager->textureSampler);
+        mPbrPass.setShadowImageView(shadowImageView);
+        mPbrPass.setShadowSampler(mTexManager->shadowSampler);
+        mPbrPass.setMaterialBuffer(mMaterialBuffer);
+        mPbrPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+
+        mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+    }
+    // Simple
+    {
+        uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+        uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+
+        const char* vertShaderCode = nullptr;
+        uint32_t vertShaderCodeSize = 0;
+        mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+
+        const char* fragShaderCode = nullptr;
+        uint32_t fragShaderCodeSize = 0;
+        mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+
+        mPass.setFrameBufferFormat(swapChainImageFormat);
+        mPass.setDepthBufferFormat(findDepthFormat());
+        mPass.setTextureImageView(mTexManager->textureImageView);
+        mPass.setTextureSampler(mTexManager->textureSampler);
+        mPass.setShadowImageView(shadowImageView);
+        mPass.setShadowSampler(mTexManager->shadowSampler);
+        mPass.setMaterialBuffer(mMaterialBuffer);
+        mPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+
+        mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+    }
     mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
                              VK_IMAGE_TILING_OPTIMAL,
                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -267,6 +294,7 @@ void Render::cleanup()
 {
     cleanupSwapChain();
 
+    mPbrPass.onDestroy();
     mPass.onDestroy();
     mDepthPass.onDestroy();
     mUi.onDestroy();
@@ -349,6 +377,7 @@ void Render::recreateSwapChain()
     createDepthResources();
 
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
+    mPbrPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(init_info, swapChainImageViews, width, height);
 
     Camera& camera = mScene.getCamera();
@@ -662,9 +691,11 @@ bool Render::hasStencilComponent(VkFormat format)
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Render::loadModel(nevk::Model& testmodel)
+void Render::loadModel(nevk::ModelLoader& testmodel)
 {
+    isPBR = true;
     bool res = testmodel.loadModelGltf(MODEL_PATH, mScene);
+    // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
     if (!res)
     {
         return;
@@ -734,7 +765,7 @@ void Render::createMaterialBuffer()
 void Render::createIndexBuffer()
 {
     std::vector<uint32_t>& sceneIndices = mScene.getIndices();
-    mIndicesCount = (uint32_t) sceneIndices.size();
+    mIndicesCount = (uint32_t)sceneIndices.size();
     VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
     if (bufferSize == 0)
     {
@@ -806,7 +837,14 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mDepthPass.record(cmd, mVertexBuffer, mIndexBuffer, mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
-    mPass.record(cmd, mVertexBuffer, mIndexBuffer, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    if (isPBR)
+    {
+        mPbrPass.record(cmd, mVertexBuffer, mIndexBuffer, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    }
+    else
+    {
+        mPass.record(cmd, mVertexBuffer, mIndexBuffer, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    }
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
@@ -866,7 +904,7 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
-    
+
     if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
     {
         vkWaitForFences(mDevice, 1, &getFrameData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
@@ -883,10 +921,11 @@ void Render::drawFrame()
     nevk::Scene& scene = getScene();
     Camera& cam = scene.getCamera();
 
-    cam.update((float) deltaTime);
+    cam.update((float)deltaTime);
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene.mLightPosition);
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
+    mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
     mUi.updateUI(scene, mDepthPass);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;

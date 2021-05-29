@@ -29,6 +29,7 @@
 #include <optional>
 #include <stdexcept>
 #include <vector>
+#include <memory>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -37,11 +38,13 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 const uint32_t SHADOW_MAP_WIDTH = 1024;
 const uint32_t SHADOW_MAP_HEIGHT = 1024;
 
-//const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
-//const std::string MTL_PATH = "misc/";
+// const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+// const std::string MTL_PATH = "misc/";
 
 // const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
 const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
+// const std::string MODEL_PATH = "misc/car_scene/scene.gltf";
+
 // const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
 const std::string MTL_PATH = "misc/";
 
@@ -156,7 +159,8 @@ private:
     nevk::TextureManager* mTexManager;
 
     nevk::RenderPass mPass;
-    nevk::Model* model;
+    nevk::RenderPass mPbrPass;
+    nevk::ModelLoader* modelLoader;
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
 
@@ -194,6 +198,7 @@ private:
     nevk::ShaderManager mShaderManager;
     nevk::Scene mScene;
 
+    bool isPBR = true;
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
@@ -237,7 +242,7 @@ private:
 
     bool hasStencilComponent(VkFormat format);
 
-    void loadModel(nevk::Model& testmodel);
+    void loadModel(nevk::ModelLoader& testmodel);
 
     void createVertexBuffer();
 

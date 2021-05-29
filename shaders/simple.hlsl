@@ -1,34 +1,42 @@
+#include "pack.h"
+
 struct VertexInput
 {
     float3 position : POSITION;
     uint32_t tangent;
     uint32_t normal;
     uint32_t uv;
-    uint16_t materialId;
 };
 
 struct Material
 {
-  float4 ambient; // Ka
-  float4 diffuse; // Kd
-  float4 specular; // Ks
-  float4 emissive; // Ke
-  float4 transparency; //  d 1 -- прозрачность/непрозрачность
-  float opticalDensity; // Ni
-  float shininess; // Ns 16 --  блеск материала
-  uint32_t illum; // illum 2 -- модель освещения
-  int32_t texDiffuseId; // map_diffuse
+    float4 ambient; // Ka
+    float4 diffuse; // Kd
+    float4 specular; // Ks
+    float4 emissive; // Ke
+    float4 transparency; //  d 1 -- прозрачность/непрозрачность
+    float opticalDensity; // Ni
+    float shininess; // Ns 16 --  блеск материала
+    uint32_t illum; // illum 2 -- модель освещения
+    int32_t texDiffuseId; // map_diffuse
 
-  int32_t texAmbientId; // map_ambient
-  int32_t texSpecularId; // map_specular
-  int32_t texNormalId; // map_normal - map_Bump
-  float d;
-  //====PBR====
-  float4 baseColorFactor;
-  float metallicFactor;
-  float roughnessFactor;
-  int32_t metallicRoughnessTexture = -1;
-  int32_t pad0;
+    int32_t texAmbientId; // map_ambient
+    int32_t texSpecularId; // map_specular
+    int32_t texNormalId; // map_normal - map_Bump
+    float d; // alpha value
+    //====PBR====
+    float4 baseColorFactor;
+    float metallicFactor;
+    float roughnessFactor;
+    int32_t metallicRoughnessTexture;
+    int32_t texBaseColor;
+
+    float3 emissiveFactor;
+    int32_t texEmissive;
+    int32_t texOcclusion;
+    int32_t pad0;
+    int32_t pad1;
+    int32_t pad2;
 };
 
 struct PS_INPUT
@@ -39,15 +47,19 @@ struct PS_INPUT
     float3 normal;
     float3 wPos;
     float2 uv;
-    nointerpolation uint32_t materialId;
 };
+
+struct InstancePushConstants 
+{
+    float4x4 model;
+    int32_t materialId;
+};
+[[vk::push_constant]] ConstantBuffer<InstancePushConstants> pconst;
 
 cbuffer ubo
 {
-    float4x4 modelToWorld;
-    float4x4 modelViewProj;
+    float4x4 viewToProj;
     float4x4 worldToView;
-    float4x4 inverseModelToWorld;
     float4x4 lightSpaceMatrix;
     float4 lightPosition;
     float3 CameraPos;
@@ -61,50 +73,6 @@ StructuredBuffer<Material> materials;
 Texture2D shadowMap;
 SamplerState shadowSamp;
 
-//  valid range of coordinates [-1; 1]
-float3 unpackNormal(uint32_t val)
-{
-   float3 normal;
-   normal.z = ((val & 0xfff00000) >> 20) / 511.99999f * 2.0f - 1.0f;
-   normal.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 2.0f - 1.0f;
-   normal.x = (val & 0x000003ff) / 511.99999f * 2.0f - 1.0f;
-
-   return normal;
-}
-
-//  valid range of coordinates [-10; 10]
-float2 unpackUV(uint32_t val)
-{
-   float2 uv;
-   uv.y = ((val & 0xffff0000) >> 16) / 16383.99999f * 20.0f - 10.0f;
-   uv.x = (val & 0x0000ffff) / 16383.99999f * 20.0f  - 10.0f;
-
-   return uv;
-}
-
-//  valid range of coordinates [-10; 10]
-float3 unpackTangent(uint32_t val)
-{
-   float3 tangent;
-   tangent.z = ((val & 0xfff00000) >> 20) / 511.99999f * 20.0f - 10.0f;
-   tangent.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 20.0f - 10.0f;
-   tangent.x = (val & 0x000003ff) / 511.99999f * 20.0f - 10.0f;
-
-   return tangent;
-}
-
-float3 srgb_to_linear(float3 c) {
-    return lerp(c / 12.92, pow((c + 0.055) / 1.055, float3(2.4)), step(0.04045, c));
-}
-
-float LinearizeDepth(float depth)
-{
-    float nearPlane = 0.01;
-    float farPlane = 50.0;
-    float z = depth * 2.0 - 1.0; // Back to NDC
-    return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
-}
-
 static const float4x4 biasMatrix = float4x4(
   0.5, 0.0, 0.0, 0.5,
   0.0, -0.5, 0.0, 0.5,
@@ -115,13 +83,15 @@ static const float4x4 biasMatrix = float4x4(
 PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
-    out.pos = mul(modelViewProj, float4(vi.position, 1.0f));
-    out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, float4(vi.position, 1.0f)));
+    float4 wpos = mul(pconst.model, float4(vi.position, 1.0f));
+    out.pos = mul(viewToProj, mul(worldToView, wpos));
+    out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, wpos));
     out.uv = unpackUV(vi.uv);
-    out.normal = mul((float3x3)inverseModelToWorld, (unpackNormal(vi.normal)));
-    out.tangent = mul((float3x3)inverseModelToWorld, (unpackTangent(vi.tangent)));
-    out.materialId = vi.materialId;
-    out.wPos = vi.position;
+    // assume that we don't use non-uniform scales
+    // TODO:
+    out.normal = unpackNormal(vi.normal);
+    out.tangent = unpackTangent(vi.tangent);
+    out.wPos = wpos.xyz / wpos.w; 
     return out;
 }
 
@@ -288,7 +258,7 @@ float ShadowCalculationPoissonPCF(float4 lightCoord, float3 wPos)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-   Material material = materials[NonUniformResourceIndex(inp.materialId)];
+   Material material = materials[NonUniformResourceIndex(pconst.materialId)];
 
    float3 emissive = float3(material.emissive.rgb);
    float opticalDensity = material.opticalDensity;

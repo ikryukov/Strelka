@@ -96,16 +96,6 @@ PS_INPUT vertexMain(VertexInput vi)
     return out;
 }
 
-float3 diffuseLambert(float3 kD, float3 n, float3 l)
-{
-    return kD * saturate(dot(l, n));
-}
-
-float3 specularPhong(float3 kS, float3 r, float3 v, float shinessFactor)
-{
-    return kS * pow(saturate(dot(r, v)), shinessFactor);
-}
-
 float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
 {
     float3 Normal = normalize(inp.normal);
@@ -283,7 +273,7 @@ struct PointData
     float NV;
     float NH;
     float HV;
-}
+};
 
 float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
 {

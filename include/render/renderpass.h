@@ -24,7 +24,7 @@ private:
         alignas(16) uint32_t debugView;
     };
 
-    struct InstancePushConstants 
+    struct InstancePushConstants
     {
         glm::float4x4 model;
         int32_t materialId = -1;
@@ -175,8 +175,8 @@ public:
         createRenderPass();
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
-        mPipelineOpaque =  createGraphicsPipeline(mVS, mPS, width, height, false);
-        mPipelineTransparent =  createGraphicsPipeline(mVS, mPS, width, height, true);
+        mPipelineOpaque = createGraphicsPipeline(mVS, mPS, width, height, false);
+        mPipelineTransparent = createGraphicsPipeline(mVS, mPS, width, height, true);
     }
 
     void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);

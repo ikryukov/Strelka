@@ -9,13 +9,13 @@
 namespace nevk
 {
 
-class Model
+class ModelLoader
 {
 private:
     nevk::TextureManager* mTexManager = nullptr;
 
 public:
-    explicit Model(nevk::TextureManager* texManager)
+    explicit ModelLoader(nevk::TextureManager* texManager)
         : mTexManager(texManager){};
 
     bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
