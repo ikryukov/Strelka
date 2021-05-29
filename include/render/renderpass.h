@@ -35,7 +35,8 @@ private:
     VkDevice mDevice;
     VkPipeline mPipelineOpaque;
     VkPipeline mPipelineTransparent;
-    VkPipelineLayout mPipelineLayout;
+    VkPipelineLayout mPipelineLayoutOpaque;
+    VkPipelineLayout mPipelineLayoutTransparent;
     VkRenderPass mRenderPass;
     VkDescriptorSetLayout mDescriptorSetLayout;
 
@@ -140,7 +141,9 @@ public:
 
     bool needDesciptorSetUpdate;
 
-    VkPipeline createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height, bool isTransparent);
+    VkPipelineLayout createGraphicsPipelineLayout();
+
+    VkPipeline createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, VkPipelineLayout pipelineLayout, uint32_t width, uint32_t height, bool isTransparent);
 
     void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
 
@@ -175,8 +178,10 @@ public:
         createRenderPass();
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
-        mPipelineOpaque = createGraphicsPipeline(mVS, mPS, width, height, false);
-        mPipelineTransparent = createGraphicsPipeline(mVS, mPS, width, height, true);
+        mPipelineLayoutOpaque = createGraphicsPipelineLayout();
+        mPipelineLayoutTransparent = createGraphicsPipelineLayout();
+        mPipelineOpaque = createGraphicsPipeline(mVS, mPS, mPipelineLayoutOpaque, width, height, false);
+        mPipelineTransparent = createGraphicsPipeline(mVS, mPS, mPipelineLayoutTransparent, width, height, true);
     }
 
     void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);

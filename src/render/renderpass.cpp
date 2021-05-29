@@ -23,7 +23,29 @@ RenderPass::~RenderPass()
 {
 }
 
-VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height, bool isTransparent)
+VkPipelineLayout RenderPass::createGraphicsPipelineLayout()
+{
+    VkPipelineLayout result = VK_NULL_HANDLE;
+    VkPushConstantRange pushConstant;
+    pushConstant.offset = 0;
+    pushConstant.size = sizeof(InstancePushConstants);
+    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &mDescriptorSetLayout;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+
+    if (vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &result) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create pipeline layout!");
+    }
+    return result;
+}
+
+VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, VkPipelineLayout pipelineLayout, uint32_t width, uint32_t height, bool isTransparent)
 {
     VkPipeline mPipeline;
 
@@ -128,28 +150,11 @@ VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, 
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
-    VkPushConstantRange pushConstant;
-    pushConstant.offset = 0;
-    pushConstant.size = sizeof(InstancePushConstants);
-    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &mDescriptorSetLayout;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-
-    if (vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
-
     std::array<VkDynamicState, 1> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT };
 
     VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
     dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicStateCreateInfo.dynamicStateCount = (uint32_t) dynamicStates.size();
+    dynamicStateCreateInfo.dynamicStateCount = (uint32_t)dynamicStates.size();
     dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -164,7 +169,7 @@ VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, 
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicStateCreateInfo;
-    pipelineInfo.layout = mPipelineLayout;
+    pipelineInfo.layout = pipelineLayout;
     pipelineInfo.renderPass = mRenderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -290,7 +295,7 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t) mTextureImageView.size();
+    texLayoutBinding.descriptorCount = (uint32_t)mTextureImageView.size();
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -410,13 +415,11 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
 
     const std::vector<Instance>& instances = scene.getInstances();
     const std::vector<Mesh>& meshes = scene.getMeshes();
 
-    const VkPipelineLayout layout = mPipelineLayout;
-    auto renderInstances = [&cmd, &instances, &meshes, &layout](const std::vector<uint32_t>& ids) {
+    auto renderInstances = [&cmd, &instances, &meshes](VkPipelineLayout layout, const std::vector<uint32_t>& ids) {
         for (const uint32_t currentInstanceId : ids)
         {
             const uint32_t currentMeshId = instances[currentInstanceId].mMeshId;
@@ -435,21 +438,25 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     if (scene.transparentMode && scene.opaqueMode)
     {
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayoutOpaque, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineOpaque);
-        renderInstances(opaqueIds);
+        renderInstances(mPipelineLayoutOpaque, opaqueIds);
 
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayoutTransparent, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineTransparent);
-        renderInstances(transparentIds);
+        renderInstances(mPipelineLayoutTransparent, transparentIds);
     }
     else if (scene.transparentMode)
     {
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayoutTransparent, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineTransparent);
-        renderInstances(transparentIds);
+        renderInstances(mPipelineLayoutTransparent, transparentIds);
     }
     else if (scene.opaqueMode)
     {
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayoutOpaque, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineOpaque);
-        renderInstances(opaqueIds);
+        renderInstances(mPipelineLayoutOpaque, opaqueIds);
     }
 
     vkCmdEndRenderPass(cmd);
@@ -499,7 +506,8 @@ void RenderPass::onDestroy()
     }
     vkDestroyPipeline(mDevice, mPipelineTransparent, nullptr);
     vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
-    vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(mDevice, mPipelineLayoutOpaque, nullptr);
+    vkDestroyPipelineLayout(mDevice, mPipelineLayoutTransparent, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
     vkDestroyShaderModule(mDevice, mVS, nullptr);
     vkDestroyShaderModule(mDevice, mPS, nullptr);
@@ -522,12 +530,11 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
 
     vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
     vkDestroyPipeline(mDevice, mPipelineTransparent, nullptr);
-    vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
     createRenderPass();
-    mPipelineOpaque = createGraphicsPipeline(mVS, mPS, width, height, false);
-    mPipelineTransparent = createGraphicsPipeline(mVS, mPS, width, height, true);
+    mPipelineOpaque = createGraphicsPipeline(mVS, mPS, mPipelineLayoutOpaque, width, height, false);
+    mPipelineTransparent = createGraphicsPipeline(mVS, mPS, mPipelineLayoutTransparent, width, height, true);
     createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
 }
 
@@ -611,7 +618,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t) mTextureImageView.size();
+        descriptorWrite.descriptorCount = (uint32_t)mTextureImageView.size();
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
