@@ -65,12 +65,13 @@ set(UI_SOURCES
         include/ui/ui.h
         src/ui/ui.cpp
 
-        #		 Imgui
+        # Imgui
         external/imgui/include
         external/imgui/src/imgui.cpp
         external/imgui/src/imgui_demo.cpp
         external/imgui/src/imgui_draw.cpp
         external/imgui/src/imgui_widgets.cpp
+        external/imgui/src/imgui_tables.cpp
         external/imgui/src/imgui_impl_vulkan.cpp
         external/imgui/src/imgui_impl_glfw.cpp)
 set(UILIB_NAME ui)
