@@ -125,7 +125,7 @@ private:
         attributeDescription.format = VK_FORMAT_R32_UINT;
         attributeDescription.offset = offsetof(Scene::Vertex, uv);
         attributeDescriptions.emplace_back(attributeDescription);
-        
+
         return attributeDescriptions;
     }
 
@@ -136,7 +136,7 @@ public:
 
     std::vector<VkImageView> mTextureImageView;
     VkImageView mShadowImageView;
-    VkBuffer mMaterialBuffer;
+    VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
 
     bool needDesciptorSetUpdate;
 

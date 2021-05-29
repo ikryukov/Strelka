@@ -79,8 +79,10 @@ void Render::initVulkan()
 
     mUi.init(init_info, swapChainImageFormat, mWindow, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(mDevice, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
+
     mPass.setFrameBufferFormat(swapChainImageFormat);
     mPass.setDepthBufferFormat(findDepthFormat());
+    mTexManager->createTextureSampler();
     mPass.setTextureImageView(mTexManager->textureImageView);
     mPass.setTextureSampler(mTexManager->textureSampler);
     mPass.setShadowImageView(shadowImageView);
@@ -662,14 +664,15 @@ bool Render::hasStencilComponent(VkFormat format)
 
 void Render::loadModel(nevk::Model& testmodel)
 {
-    testmodel.loadModelGltf(MODEL_PATH, mScene);
+    bool res = testmodel.loadModelGltf(MODEL_PATH, mScene);
+    if (!res)
+    {
+        return;
+    }
     Camera& camera = mScene.getCamera();
     camera.type = Camera::CameraType::firstperson;
-
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
-
     camera.rotationSpeed = 0.05f;
-
     camera.movementSpeed = 5.0f;
     //camera.setPosition({ -1.0f, 3.0f, 8.0f });
     camera.setPosition({ 0.0f, 0.0f, 10.0f });

@@ -491,8 +491,6 @@ bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
         cout << "Scene: " << model.scenes[i].name << endl;
     }
 
-    mTexManager->createTextureSampler();
-
     int sceneId = model.defaultScene;
 
     loadTextures(model, scene, *mTexManager);
