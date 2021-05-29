@@ -364,12 +364,9 @@ void processMesh(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
     }
 }
 
-void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Node& node, const float globalScale)
+glm::float4x4 getTransform(const tinygltf::Node& node, const float globalScale)
 {
-    using namespace std;
-    cout << "Node name: " << node.name << endl;
-
-    if (node.mesh != -1) // mesh exist
+    if (node.matrix.empty())
     {
         glm::float3 scale{ 1.0f };
         if (!node.scale.empty())
@@ -391,21 +388,38 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
             translation = { node.translation[0], node.translation[1], node.translation[2] };
             translation *= globalScale;
         }
+        glm::float4x4 localTransform{ 1.0f };
 
-        glm::float4x4 transform{ 1.0f };
-
-        transform = glm::scale(transform, scale);
+        localTransform = glm::scale(localTransform, scale);
         glm::float4x4 rot = glm::float4x4(rotation);
-        transform *= rot;
-        transform = glm::translate(transform, translation);
+        localTransform *= rot;
+        localTransform = glm::translate(localTransform, translation);
+        return localTransform;
+    }
+    else
+    {
+        glm::float4x4 localTransform = glm::make_mat4(node.matrix.data());
+        return localTransform;
+    }
+}
 
+void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Node& node, const glm::float4x4& baseTransform, const float globalScale)
+{
+    using namespace std;
+    cout << "Node name: " << node.name << endl;
+
+    const glm::float4x4 localTransform = getTransform(node, globalScale);
+    const glm::float4x4 globalTransform = baseTransform * localTransform;
+
+    if (node.mesh != -1) // mesh exist
+    {
         const tinygltf::Mesh& mesh = model.meshes[node.mesh];
-        processMesh(model, scene, mesh, transform, globalScale);
+        processMesh(model, scene, mesh, globalTransform, globalScale);
     }
 
     for (int i = 0; i < node.children.size(); ++i)
     {
-        processNode(model, scene, model.nodes[node.children[i]], globalScale);
+        processNode(model, scene, model.nodes[node.children[i]], globalTransform, globalScale);
     }
 }
 
@@ -498,7 +512,7 @@ bool Model::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
 
     const float globalScale = 1.0f;
 
-    processNode(model, scene, model.nodes[sceneId], globalScale);
+    processNode(model, scene, model.nodes[sceneId], glm::float4x4(1.0f), globalScale);
 
     return res;
 }
