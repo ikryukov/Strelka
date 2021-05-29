@@ -16,8 +16,8 @@ private:
     {
         alignas(16) glm::mat4 lightSpaceMatrix;
     };
-    
-    struct InstancePushConstants 
+
+    struct InstancePushConstants
     {
         glm::float4x4 model;
     };
@@ -89,7 +89,7 @@ public:
 
     void createShadowPass();
     void init(VkDevice& device, bool enableValidation, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height);
-    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex); //?
+    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex);
     void createFrameBuffers(VkImageView& shadowImageView, uint32_t width, uint32_t height);
     void onDestroy();
 

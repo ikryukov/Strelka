@@ -182,7 +182,7 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
 
     VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
     dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
+    dynamicStateCreateInfo.dynamicStateCount = (uint32_t) dynamicStates.size();
     dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -282,7 +282,7 @@ void DepthPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         updateDescriptorSets(i);
     }
@@ -360,7 +360,7 @@ void DepthPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
+void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     beginLabel(cmd, "Depth Pass", { 0.0f, 0.0f, 1.0f, 1.0f });
 

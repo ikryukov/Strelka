@@ -67,7 +67,6 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
         mOpaqueInstances.push_back(instId);
     }
 
-
     return instId;
 }
 

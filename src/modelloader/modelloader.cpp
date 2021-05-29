@@ -110,7 +110,6 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
             const int materialIdx = shape.mesh.material_ids[0]; // assume that material per-shape
             const tinyobj::material_t& currMaterial = materials[materialIdx];
             const std::string& matName = currMaterial.name;
-            const std::string& bumpTexname = currMaterial.bump_texname;
 
             if (uniqueMaterial.count(matName) == 0)
             {
@@ -176,7 +175,7 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
 
             const int verticesPerFace = shape.mesh.num_face_vertices[f];
             assert(verticesPerFace == 3); // ensure that we load triangulated faces
-            for (size_t v = 0; v < verticesPerFace; ++v)
+            for (int v = 0; v < verticesPerFace; ++v)
             {
                 Scene::Vertex vertex{};
                 const auto& idx = shape.mesh.indices[index_offset + v];
@@ -237,6 +236,7 @@ bool Model::loadModel(const std::string& modelFile, const std::string& mtlPath, 
         glm::float4x4 transform{ 1.0f };
         glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
         uint32_t instId = mScene.createInstance(meshId, shapeMaterialId, transform, massCenter);
+        assert(instId != -1);
     }
 
     mTexManager->createTextureSampler();
@@ -288,7 +288,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
     glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
     std::vector<nevk::Scene::Vertex> vertices;
     vertices.reserve(vertexCount);
-    for (int v = 0; v < vertexCount; ++v)
+    for (uint32_t v = 0; v < vertexCount; ++v)
     {
         nevk::Scene::Vertex vertex{};
         vertex.pos = glm::make_vec3(&positionData[v * posStride]) * globalScale;
@@ -348,7 +348,9 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
     }
 
     uint32_t meshId = scene.createMesh(vertices, indices);
+    assert(meshId != -1);
     uint32_t instId = scene.createInstance(meshId, matId, transform, massCenter);
+    assert(instId != -1);
 }
 
 void processMesh(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Mesh& mesh, const glm::float4x4& transform, const float globalScale)
@@ -356,7 +358,7 @@ void processMesh(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
     using namespace std;
     cout << "Mesh name: " << mesh.name << endl;
     cout << "Primitive count: " << mesh.primitives.size() << endl;
-    for (int i = 0; i < mesh.primitives.size(); ++i)
+    for (size_t i = 0; i < mesh.primitives.size(); ++i)
     {
         processPrimitive(model, scene, mesh.primitives[i], transform, globalScale);
     }
@@ -373,6 +375,8 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
         if (!node.scale.empty())
         {
             scale = glm::make_vec3(node.scale.data());
+            // check that scale is uniform, otherwise we have to support it in shader
+            assert(scale.x == scale.y && scale.y == scale.z);
         }
 
         glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -454,8 +458,8 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                                    material.pbrMetallicRoughness.baseColorFactor[2],
                                                    material.pbrMetallicRoughness.baseColorFactor[3]);
         currMaterial.texBaseColor = material.pbrMetallicRoughness.baseColorTexture.index;
-        currMaterial.roughnessFactor = material.pbrMetallicRoughness.roughnessFactor;
-        currMaterial.metallicFactor = material.pbrMetallicRoughness.metallicFactor;
+        currMaterial.roughnessFactor = (float)material.pbrMetallicRoughness.roughnessFactor;
+        currMaterial.metallicFactor = (float)material.pbrMetallicRoughness.metallicFactor;
 
         currMaterial.emissiveFactor = glm::float3(material.emissiveFactor[0],
                                                   material.emissiveFactor[1],

@@ -149,7 +149,7 @@ VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, 
 
     VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
     dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
+    dynamicStateCreateInfo.dynamicStateCount = (uint32_t) dynamicStates.size();
     dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -290,7 +290,7 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = mTextureImageView.size();
+    texLayoutBinding.descriptorCount = (uint32_t) mTextureImageView.size();
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -350,13 +350,13 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         updateDescriptorSets(i);
     }
 }
 
-void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
+void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     beginLabel(cmd, "Geometry Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
 
@@ -606,7 +606,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = mTextureImageView.size();
+        descriptorWrite.descriptorCount = (uint32_t) mTextureImageView.size();
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
