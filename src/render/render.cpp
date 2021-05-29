@@ -866,6 +866,12 @@ void Render::drawFrame()
     {
         throw std::runtime_error("failed to acquire swap chain image!");
     }
+    
+    if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
+    {
+        vkWaitForFences(mDevice, 1, &getFrameData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
+    }
+    getFrameData(imageIndex).imagesInFlight = currFrame.inFlightFence;
 
     static auto prevTime = std::chrono::high_resolution_clock::now();
 
@@ -873,13 +879,14 @@ void Render::drawFrame()
     double deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
     prevTime = currentTime;
 
+    const uint32_t frameIndex = imageIndex;
     nevk::Scene& scene = getScene();
     Camera& cam = scene.getCamera();
 
     cam.update((float) deltaTime);
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene.mLightPosition);
-    mDepthPass.updateUniformBuffer(imageIndex, lightSpaceMatrix);
-    mPass.updateUniformBuffer(imageIndex, lightSpaceMatrix, mScene);
+    mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
+    mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
     mUi.updateUI(scene, mDepthPass);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
@@ -893,18 +900,12 @@ void Render::drawFrame()
 
     vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
 
-    recordCommandBuffer(cmdBuff, imageIndex);
+    recordCommandBuffer(cmdBuff, frameIndex);
 
     if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to record command buffer!");
     }
-
-    if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
-    {
-        vkWaitForFences(mDevice, 1, &getFrameData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
-    }
-    getFrameData(imageIndex).imagesInFlight = currFrame.inFlightFence;
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

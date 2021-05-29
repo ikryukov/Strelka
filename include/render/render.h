@@ -337,6 +337,10 @@ public:
     {
         return swapChainImageViews;
     }
+    size_t getCurrentFrameIndex()
+    {
+        return mCurrentFrame % MAX_FRAMES_IN_FLIGHT;
+    }
     FrameData& getCurrentFrameData()
     {
         return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
