@@ -140,22 +140,22 @@ void Scene::removeMaterial(const uint32_t materialId)
     mDelMaterial.push(materialId); // marked as removed
 }
 
-std::vector<uint32_t>& Scene::getOpaqueInstancesToRender(const glm::float3 camPos)
+std::vector<uint32_t>& Scene::getOpaqueInstancesToRender(const glm::float3& camPos)
 {
     sort(mOpaqueInstances.begin(), mOpaqueInstances.end(),
          [&camPos, this](const uint32_t& instId1, const uint32_t& instId2) {
-             return glm::distance2(camPos, getInstances()[instId1].massCenter) <=
+             return glm::distance2(camPos, getInstances()[instId1].massCenter) <
                     glm::distance2(camPos, getInstances()[instId2].massCenter);
          });
 
     return mOpaqueInstances;
 }
 
-std::vector<uint32_t>& Scene::getTransparentInstancesToRender(const glm::float3 camPos)
+std::vector<uint32_t>& Scene::getTransparentInstancesToRender(const glm::float3& camPos)
 {
     sort(mTransparentInstances.begin(), mTransparentInstances.end(),
          [&camPos, this](const uint32_t& instId1, const uint32_t& instId2) {
-             return glm::distance2(camPos, getInstances()[instId1].massCenter) >=
+             return glm::distance2(camPos, getInstances()[instId1].massCenter) >
                     glm::distance2(camPos, getInstances()[instId2].massCenter);
          });
 
