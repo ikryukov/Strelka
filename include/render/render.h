@@ -26,10 +26,10 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <vector>
-#include <memory>
 
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
@@ -42,10 +42,10 @@ const uint32_t SHADOW_MAP_HEIGHT = 1024;
 // const std::string MTL_PATH = "misc/";
 
 // const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
-const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
+// const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
 // const std::string MODEL_PATH = "misc/car_scene/scene.gltf";
 
-// const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
+const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -123,7 +123,6 @@ public:
 
 private:
     GLFWwindow* mWindow;
-    ImGui_ImplVulkan_InitInfo init_info{};
 
     VkInstance mInstance;
     VkDebugUtilsMessengerEXT debugMessenger;

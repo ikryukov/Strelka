@@ -19,15 +19,11 @@ void Render::initVulkan()
     createSwapChain();
 
     uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-    uint32_t shId = mShaderManager.loadShader("shaders/shadow.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
 
     const char* csShaderCode = nullptr;
     uint32_t csShaderCodeSize = 0;
     mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
 
-    const char* shShaderCode = nullptr;
-    uint32_t shShaderCodeSize = 0;
-    mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);
 
     createDescriptorPool();
     createCommandPool();
@@ -46,7 +42,7 @@ void Render::initVulkan()
     createMaterialBuffer();
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
-    //    ImGui_ImplVulkan_InitInfo init_info{};
+    ImGui_ImplVulkan_InitInfo init_info{};
     init_info.DescriptorPool = mDescriptorPool;
     init_info.Device = mDevice;
     init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
@@ -56,15 +52,21 @@ void Render::initVulkan()
     init_info.Queue = mGraphicsQueue;
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
-    mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
-                             VK_IMAGE_TILING_OPTIMAL,
-                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                             shadowImage, shadowImageMemory);
-    shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
+    {
+        uint32_t shId = mShaderManager.loadShader("shaders/shadowmap.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+        const char* shShaderCode = nullptr;
+        uint32_t shShaderCodeSize = 0;
+        mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);
+        mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
+                                 VK_IMAGE_TILING_OPTIMAL,
+                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                 shadowImage, shadowImageMemory);
+        shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-    mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+        mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+        mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    }
 
     mTexManager->createShadowSampler();
     mTexManager->createTextureSampler();
@@ -378,7 +380,7 @@ void Render::recreateSwapChain()
 
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
     mPbrPass.onResize(swapChainImageViews, depthImageView, width, height);
-    mUi.onResize(init_info, swapChainImageViews, width, height);
+    mUi.onResize(swapChainImageViews, width, height);
 
     Camera& camera = mScene.getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);

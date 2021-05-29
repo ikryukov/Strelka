@@ -49,13 +49,12 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 
 bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
 {
+    mInitInfo = init_info;
     wd.Width = width;
     wd.Height = height;
 
     mFrameBufferFormat = framebufferFormat;
-    createVkRenderPass(init_info, framebufferFormat);
-
-    mInitInfo = init_info;
+    createVkRenderPass(framebufferFormat);
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
@@ -79,17 +78,20 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
     bool ret = ImGui_ImplVulkan_Init(&init_info, wd.RenderPass);
 
     // Upload Fonts
-    if (!uploadFonts(init_info, command_pool, command_buffer)) ret = false;
+    if (!uploadFonts(command_pool, command_buffer))
+    {
+        ret = false;
+    }
 
     setDarkThemeColors();
 
     return ret;
 }
 
-bool Ui::uploadFonts(ImGui_ImplVulkan_InitInfo& init_info, VkCommandPool command_pool, VkCommandBuffer command_buffer)
+bool Ui::uploadFonts(VkCommandPool command_pool, VkCommandBuffer command_buffer)
 {
     // Use any command queue
-    VkResult err = vkResetCommandPool(init_info.Device, command_pool, 0);
+    VkResult err = vkResetCommandPool(mInitInfo.Device, command_pool, 0);
     check_vk_result(err);
     VkCommandBufferBeginInfo begin_info = {};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -105,10 +107,10 @@ bool Ui::uploadFonts(ImGui_ImplVulkan_InitInfo& init_info, VkCommandPool command
     end_info.pCommandBuffers = &command_buffer;
     err = vkEndCommandBuffer(command_buffer);
     check_vk_result(err);
-    err = vkQueueSubmit(init_info.Queue, 1, &end_info, VK_NULL_HANDLE);
+    err = vkQueueSubmit(mInitInfo.Queue, 1, &end_info, VK_NULL_HANDLE);
     check_vk_result(err);
 
-    err = vkDeviceWaitIdle(init_info.Device);
+    err = vkDeviceWaitIdle(mInitInfo.Device);
     check_vk_result(err);
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
@@ -234,7 +236,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass)
     ImGui::SliderFloat("depth bias factor", &depthPass.depthBiasConstant, -100.0f, 100.0f);
     ImGui::SliderFloat("slope depth bias factor", &depthPass.depthBiasSlope, -100.0f, 100.0f);
 
-    const char* items[] = { "None", "Normals", "Shadow b&w", "Shadow PCF", "Shadow Poisson", "Shadow Poisson+PCF"};
+    const char* items[] = { "None", "Normals", "Shadow b&w", "Shadow PCF", "Shadow Poisson", "Shadow Poisson+PCF" };
     static const char* current_item = items[0];
 
     if (ImGui::BeginCombo("Debug view", current_item))
@@ -295,7 +297,7 @@ void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)
     vkCmdEndRenderPass(commandBuffer);
 }
 
-void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat framebufferFormat)
+void Ui::createVkRenderPass(VkFormat framebufferFormat)
 {
     VkAttachmentDescription attachment = {};
     attachment.format = framebufferFormat;
@@ -328,11 +330,11 @@ void Ui::createVkRenderPass(ImGui_ImplVulkan_InitInfo init_info, VkFormat frameb
     info.pSubpasses = &subpass;
     info.dependencyCount = 1;
     info.pDependencies = &dependency;
-    VkResult err = vkCreateRenderPass(init_info.Device, &info, nullptr, &wd.RenderPass);
+    VkResult err = vkCreateRenderPass(mInitInfo.Device, &info, nullptr, &wd.RenderPass);
     check_vk_result(err);
 }
 
-void Ui::onResize(ImGui_ImplVulkan_InitInfo& init_info, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
+void Ui::onResize(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height)
 {
     wd.Width = width;
     wd.Height = height;
@@ -343,7 +345,7 @@ void Ui::onResize(ImGui_ImplVulkan_InitInfo& init_info, std::vector<VkImageView>
     }
     vkDestroyRenderPass(mInitInfo.Device, wd.RenderPass, nullptr);
 
-    createVkRenderPass(init_info, mFrameBufferFormat);
+    createVkRenderPass(mFrameBufferFormat);
     createFrameBuffers(mInitInfo.Device, imageViews, wd.Width, wd.Height);
 }
 
