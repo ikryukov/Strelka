@@ -311,19 +311,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
     Material material = materials[NonUniformResourceIndex(pconst.materialId)];
 
-    float opticalDensity = material.opticalDensity;
-    float shininess = material.shininess;
-    float3 transparency = float3(material.transparency.rgb);
-    uint32_t illum = material.illum;
-
-    int32_t texAmbientId = material.texAmbientId;
-    int32_t texDiffuseId = material.texDiffuseId;
-    int32_t texSpecularId = material.texSpecularId;
     int32_t texNormalId = material.texNormalId;
-
-    float3 kA = material.ambient.rgb;
-    float3 kD = material.diffuse.rgb;
-    float3 kS = material.specular.rgb;
 
     float3 N = normalize(inp.normal);
     if (texNormalId != INVALID_INDEX)
@@ -339,14 +327,9 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     float3 V = normalize(CameraPos - inp.wPos);
     pointData.NV = dot(N, V);
 
-    float3 diffuse = diffuseLambert(kD, L, N);
-    float3 R = reflect(-L, N);
-
     float3 H = normalize(V + L);
     pointData.HV = dot(H, V);
     pointData.NH = dot(N, H);
-
-    float3 specular = specularPhong(kS, R, V, shininess);
 
     float3 result = cookTorrance(material, pointData, inp.uv);
 
@@ -362,8 +345,6 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     }
     float shadow = ShadowCalculation(inp.posLightSpace);
 
-    result *= shadow;
-
     // Normals
     if (debugView == 1)
     {
@@ -372,27 +353,25 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     // Shadow b&w
     if (debugView == 2)
     {
-       float shadow = ShadowCalculation(inp.posLightSpace);
        return float4(dot(N, L) * shadow, 1.0);
     }
     // pcf shadow
     if (debugView == 3)
     {
-        float shadow = ShadowCalculationPcf(inp.posLightSpace);
-        return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+        shadow = ShadowCalculationPcf(inp.posLightSpace);
     }
     // poisson shadow
     if (debugView == 4)
     {
-        float shadow = ShadowCalculationPoisson(inp.posLightSpace, inp.wPos);
-        return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+        shadow = ShadowCalculationPoisson(inp.posLightSpace, inp.wPos);
     }
     // poisson + pcf shadow
     if (debugView == 5)
     {
-        float shadow = ShadowCalculationPoissonPCF(inp.posLightSpace, inp.wPos);
-        return float4(saturate(kA + diffuse + specular) * shadow, 1.0);
+        shadow = ShadowCalculationPoissonPCF(inp.posLightSpace, inp.wPos);
     }
+    
+    result *= shadow;
 
     float alpha = material.d;
 
