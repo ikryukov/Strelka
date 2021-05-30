@@ -65,12 +65,13 @@ set(UI_SOURCES
         include/ui/ui.h
         src/ui/ui.cpp
 
-        #		 Imgui
+        # Imgui
         external/imgui/include
         external/imgui/src/imgui.cpp
         external/imgui/src/imgui_demo.cpp
         external/imgui/src/imgui_draw.cpp
         external/imgui/src/imgui_widgets.cpp
+        external/imgui/src/imgui_tables.cpp
         external/imgui/src/imgui_impl_vulkan.cpp
         external/imgui/src/imgui_impl_glfw.cpp)
 set(UILIB_NAME ui)
@@ -127,6 +128,7 @@ add_library(${MODELLIB_NAME} OBJECT ${MODELLIB_SOURCES})
 target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/modelloader)
 target_link_libraries(${MODELLIB_NAME} PUBLIC ${SCENELIB_NAME})
+target_include_directories(${MODELLIB_NAME} PUBLIC external/tinygltf)
 
 set(TEXTURELIB_SOURCES
         include/texturemanager/texturemanager.h

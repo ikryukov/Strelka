@@ -22,19 +22,13 @@
 #include <shadermanager/ShaderManager.h>
 #include <ui/ui.h>
 
-#include <algorithm>
 #include <array>
-#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
-#include <iostream>
+#include <memory>
 #include <optional>
-#include <set>
-#include <stb_image.h>
 #include <stdexcept>
-#include <unordered_map>
 #include <vector>
 
 const uint32_t WIDTH = 800;
@@ -44,10 +38,14 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 const uint32_t SHADOW_MAP_WIDTH = 1024;
 const uint32_t SHADOW_MAP_HEIGHT = 1024;
 
-//const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
-//const std::string MTL_PATH = "misc/";
+// const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
+// const std::string MTL_PATH = "misc/";
 
-const std::string MODEL_PATH = "misc/diamonds.obj";
+// const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
+// const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
+// const std::string MODEL_PATH = "misc/car_scene/scene.gltf";
+
+const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
 const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
@@ -56,6 +54,10 @@ const std::vector<const char*> validationLayers = {
 
 const std::vector<const char*> deviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME
+#ifdef __APPLE__
+    ,
+    "VK_KHR_portability_subset"
+#endif
 };
 
 #ifdef NDEBUG
@@ -120,21 +122,20 @@ public:
     void cleanup();
 
 private:
-    GLFWwindow* window;
-    ImGui_ImplVulkan_InitInfo init_info{};
+    GLFWwindow* mWindow;
 
-    VkInstance instance;
+    VkInstance mInstance;
     VkDebugUtilsMessengerEXT debugMessenger;
-    VkSurfaceKHR surface;
+    VkSurfaceKHR mSurface;
 
-    VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
-    VkDevice device;
+    VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
+    VkDevice mDevice;
 
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
+    VkQueue mGraphicsQueue;
+    VkQueue mPresentQueue;
 
-    VkSwapchainKHR swapChain;
-    std::vector<VkImage> swapChainImages;
+    VkSwapchainKHR mSwapChain;
+    std::vector<VkImage> mSwapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
@@ -157,19 +158,20 @@ private:
     nevk::TextureManager* mTexManager;
 
     nevk::RenderPass mPass;
-    nevk::Model* model;
+    nevk::RenderPass mPbrPass;
+    nevk::ModelLoader* modelLoader;
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
 
-    uint32_t indicesCount = 0;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMemory;
-    VkBuffer materialBuffer;
-    VkDeviceMemory materialBufferMemory;
-    VkBuffer indexBuffer;
-    VkDeviceMemory indexBufferMemory;
+    uint32_t mIndicesCount = 0;
+    VkBuffer mVertexBuffer;
+    VkDeviceMemory mVertexBufferMemory;
+    VkBuffer mMaterialBuffer;
+    VkDeviceMemory mMaterialBufferMemory;
+    VkBuffer mIndexBuffer;
+    VkDeviceMemory mIndexBufferMemory;
 
-    VkDescriptorPool descriptorPool;
+    VkDescriptorPool mDescriptorPool;
 
     struct FrameData
     {
@@ -195,138 +197,21 @@ private:
     nevk::ShaderManager mShaderManager;
     nevk::Scene mScene;
 
+    bool isPBR = true;
 
+    static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
-    static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
-    {
-        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        app->framebufferResized = true;
-        nevk::Scene& mScene = app->getScene();
-        mScene.updateCameraParams(width, height);
-    }
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
-    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-    {
-        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& scene = app->getScene();
-        Camera& camera = scene.getCamera();
+    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 
-        const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
-        switch (key)
+    static void handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypos);
 
-        {
-        case GLFW_KEY_W: {
-            camera.keys.forward = keyState;
-            break;
-        }
-        case GLFW_KEY_S: {
-            camera.keys.back = keyState;
-            break;
-        }
-        case GLFW_KEY_A: {
-            camera.keys.left = keyState;
-            break;
-        }
-        case GLFW_KEY_D: {
-            camera.keys.right = keyState;
-            break;
-        }
-        case GLFW_KEY_Q: {
-            camera.keys.up = keyState;
-            break;
-        }
-        case GLFW_KEY_E: {
-            camera.keys.down = keyState;
-            break;
-        }
-        default:
-            break;
-        }
-    }
-
-    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
-    {
-        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& scene = app->getScene();
-        Camera& camera = scene.getCamera();
-        if (button == GLFW_MOUSE_BUTTON_RIGHT)
-        {
-            if (action == GLFW_PRESS)
-            {
-                camera.mouseButtons.right = true;
-            }
-            else if (action == GLFW_RELEASE)
-            {
-                camera.mouseButtons.right = false;
-            }
-        }
-        else if (button == GLFW_MOUSE_BUTTON_LEFT)
-        {
-            if (action == GLFW_PRESS)
-            {
-                camera.mouseButtons.left = true;
-            }
-            else if (action == GLFW_RELEASE)
-            {
-                camera.mouseButtons.left = false;
-            }
-        }
-    }
-
-    static void handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
-    {
-        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& scene = app->getScene();
-        Camera& camera = scene.getCamera();
-        const float dx = camera.mousePos.x - xpos;
-        const float dy = camera.mousePos.y - ypos;
-
-        ImGuiIO& io = ImGui::GetIO();
-        bool handled = io.WantCaptureMouse;
-        if (handled)
-        {
-            camera.mousePos = glm::vec2((float)xpos, (float)ypos);
-            return;
-        }
-
-        if (camera.mouseButtons.right)
-        {
-            camera.rotate(-dx, -dy);
-        }
-        if (camera.mouseButtons.left)
-        {
-            camera.translate(glm::float3(-0.0f, 0.0f, -dy * .005f * camera.movementSpeed));
-        }
-        if (camera.mouseButtons.middle)
-        {
-            camera.translate(glm::float3(-dx * 0.01f, -dy * 0.01f, 0.0f));
-        }
-        camera.mousePos = glm::float2((float)xpos, (float)ypos);
-    }
-
-    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
-    {
-        ImGuiIO& io = ImGui::GetIO();
-        bool handled = io.WantCaptureMouse;
-        if (handled)
-        {
-            return;
-        }
-
-        auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-        nevk::Scene& mScene = app->getScene();
-        Camera& mCamera = mScene.getCamera();
-
-        mCamera.translate(glm::vec3(0.0f, 0.0f,
-                                    -yoffset * mCamera.movementSpeed));
-    }
-
+    static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
     void mainLoop();
 
     void cleanupSwapChain();
-
-
 
     void recreateSwapChain();
 
@@ -354,26 +239,9 @@ private:
 
     VkFormat findDepthFormat();
 
-    bool hasStencilComponent(VkFormat format)
-    {
-        return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
-    }
+    bool hasStencilComponent(VkFormat format);
 
-    void loadModel(nevk::Model& testmodel)
-    {
-        testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
-
-        Camera& camera = mScene.getCamera();
-        camera.type = Camera::CameraType::firstperson;
-
-        camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
-
-        camera.rotationSpeed = 0.05f;
-
-        camera.movementSpeed = 5.0f;
-        camera.setPosition({ -1.0f, 3.0f, 8.0f });
-        camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
-    }
+    void loadModel(nevk::ModelLoader& testmodel);
 
     void createVertexBuffer();
 
@@ -431,7 +299,7 @@ private:
 public:
     VkPhysicalDevice getPhysicalDevice()
     {
-        return physicalDevice;
+        return mPhysicalDevice;
     }
     QueueFamilyIndices getQueueFamilies(VkPhysicalDevice mdevice)
     {
@@ -439,19 +307,19 @@ public:
     }
     VkDescriptorPool getDescriptorPool()
     {
-        return descriptorPool;
+        return mDescriptorPool;
     }
     VkDevice getDevice()
     {
-        return device;
+        return mDevice;
     }
     VkInstance getInstance()
     {
-        return instance;
+        return mInstance;
     }
     VkQueue getGraphicsQueue()
     {
-        return graphicsQueue;
+        return mGraphicsQueue;
     }
     VkFormat getSwapChainImageFormat()
     {
@@ -459,7 +327,7 @@ public:
     }
     GLFWwindow* getWindow()
     {
-        return window;
+        return mWindow;
     }
     FrameData* getFramesData()
     {
@@ -472,6 +340,10 @@ public:
     std::vector<VkImageView>& getSwapChainImageViews()
     {
         return swapChainImageViews;
+    }
+    size_t getCurrentFrameIndex()
+    {
+        return mCurrentFrame % MAX_FRAMES_IN_FLIGHT;
     }
     FrameData& getCurrentFrameData()
     {

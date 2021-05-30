@@ -46,7 +46,6 @@ public:
         uint32_t tangent;
         uint32_t normal;
         uint32_t uv;
-        uint16_t materialId;
     };
 
     struct Material
@@ -59,11 +58,27 @@ public:
         float opticalDensity; // Ni
         float shininess; // Ns 16 --  блеск материала
         uint32_t illum; // illum 2 -- модель освещения
-        uint32_t texDiffuseId; // map_diffuse
-        uint32_t texAmbientId; // map_ambient
-        uint32_t texSpecularId; // map_specular
-        uint32_t texNormalId; // map_normal - map_Bump
+        int32_t texDiffuseId = -1; // map_diffuse
+
+        int32_t texAmbientId = -1; // map_ambient
+        int32_t texSpecularId = -1; // map_specular
+        int32_t texNormalId = -1; // map_normal - map_Bump
         float d;
+        //====PBR====
+        glm::float4 baseColorFactor;
+
+        float metallicFactor;
+        float roughnessFactor;
+        int32_t metallicRoughnessTexture = -1;
+        int32_t texBaseColor = -1;
+
+        glm::float3 emissiveFactor;
+        int32_t texEmissive = -1;
+
+        int32_t texOcclusion = -1;
+        int32_t pad0;
+        int32_t pad1;
+        int32_t pad2;
 
         bool isTransparent()
         {
@@ -82,7 +97,7 @@ public:
 
     bool transparentMode = true;
     bool opaqueMode = true;
-  
+
     glm::float4 mLightPosition{ 10.0, 10.0, 10.0, 1.0 };
 
     std::vector<Vertex> mVertices;
@@ -166,6 +181,9 @@ public:
                             uint32_t texSpeculaId,
                             uint32_t texNormalId,
                             float d);
+
+    uint32_t addMaterial(const Material& material);
+
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>
@@ -177,9 +195,9 @@ public:
     void removeMesh(uint32_t meshId);
     void removeMaterial(uint32_t materialId);
 
-    std::vector<uint32_t>& getOpaqueInstancesToRender(glm::float3 camPos);
+    std::vector<uint32_t>& getOpaqueInstancesToRender(const glm::float3& camPos);
 
-    std::vector<uint32_t>& getTransparentInstancesToRender(glm::float3 camPos);
+    std::vector<uint32_t>& getTransparentInstancesToRender(const glm::float3& camPos);
 
     /// <summary>
     /// Get set of DirtyInstances

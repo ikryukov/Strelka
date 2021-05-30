@@ -161,10 +161,17 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
+    VkPushConstantRange pushConstant;
+    pushConstant.offset = 0;
+    pushConstant.size = sizeof(InstancePushConstants);
+    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &mDescriptorSetLayout;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
 
     if (vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
     {
@@ -175,7 +182,7 @@ void DepthPass::createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint3
 
     VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
     dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
+    dynamicStateCreateInfo.dynamicStateCount = (uint32_t)dynamicStates.size();
     dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -275,7 +282,7 @@ void DepthPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         updateDescriptorSets(i);
     }
@@ -353,7 +360,7 @@ void DepthPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
+void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     beginLabel(cmd, "Depth Pass", { 0.0f, 0.0f, 1.0f, 1.0f });
 
@@ -366,6 +373,14 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
     {
         imageviewcounter = 0;
         needDesciptorSetUpdate = false;
+    }
+
+    const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
+    const std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera().getPosition());
+
+    if (opaqueIds.empty() && transparentIds.empty())
+    {
+        return;
     }
 
     VkRenderPassBeginInfo renderPassInfo{};
@@ -404,22 +419,27 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
 
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
 
-    std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
-
     const std::vector<Instance>& instances = scene.getInstances();
     const std::vector<Mesh>& meshes = scene.getMeshes();
+    const VkPipelineLayout layout = mPipelineLayout;
 
-    auto renderInstances = [&cmd, &instances, &meshes](const std::vector<uint32_t>& ids) {
+    auto renderInstances = [&cmd, &instances, &meshes, layout](const std::vector<uint32_t>& ids) {
         for (const uint32_t currentInstanceId : ids)
         {
             const uint32_t currentMeshId = instances[currentInstanceId].mMeshId;
             const uint32_t indexOffset = meshes[currentMeshId].mIndex;
             const uint32_t indexCount = meshes[currentMeshId].mCount;
+            InstancePushConstants constants;
+            constants.model = instances[currentInstanceId].transform;
+
+            vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(InstancePushConstants), &constants);
+
             vkCmdDrawIndexed(cmd, indexCount, 1, indexOffset, 0, 0);
         }
     };
 
     renderInstances(opaqueIds);
+    renderInstances(transparentIds);
 
     vkCmdEndRenderPass(cmd);
     endLabel(cmd);

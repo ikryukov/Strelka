@@ -152,7 +152,6 @@ TEST_CASE("test createMaterial complex")
     CHECK(matIdFst == matIdThd);
 }
 
-
 TEST_CASE("test checkMesh")
 {
     nevk::Scene scene;
