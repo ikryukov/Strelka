@@ -1,4 +1,3 @@
-#define TINYOBJLOADER_IMPLEMENTATION
 #include "render.h"
 
 #include "debugUtils.h"
