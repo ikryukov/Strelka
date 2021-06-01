@@ -8,7 +8,6 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
-#include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
@@ -23,29 +22,7 @@ RenderPass::~RenderPass()
 {
 }
 
-VkPipelineLayout RenderPass::createGraphicsPipelineLayout()
-{
-    VkPipelineLayout result = VK_NULL_HANDLE;
-    VkPushConstantRange pushConstant;
-    pushConstant.offset = 0;
-    pushConstant.size = sizeof(InstancePushConstants);
-    pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
-    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &mDescriptorSetLayout;
-    pipelineLayoutInfo.pPushConstantRanges = &pushConstant;
-    pipelineLayoutInfo.pushConstantRangeCount = 1;
-
-    if (vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &result) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create pipeline layout!");
-    }
-    return result;
-}
-
-VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, VkPipelineLayout pipelineLayout, uint32_t width, uint32_t height, bool isTransparent)
+VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height, bool isTransparent)
 {
     VkPipeline mPipeline;
 
@@ -150,11 +127,30 @@ VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, 
     colorBlending.blendConstants[2] = 0.0f;
     colorBlending.blendConstants[3] = 0.0f;
 
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &mDescriptorSetLayout;
+
+    if (isTransparent)
+    {
+        if (vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayoutTransparent) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create pipeline layout!");
+        }
+    }
+    else
+    {
+        if (vkCreatePipelineLayout(mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayoutOpaque) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create pipeline layout!");
+        }
+    }
     std::array<VkDynamicState, 1> dynamicStates = { VK_DYNAMIC_STATE_VIEWPORT };
 
     VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo = {};
     dynamicStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicStateCreateInfo.dynamicStateCount = (uint32_t)dynamicStates.size();
+    dynamicStateCreateInfo.dynamicStateCount = dynamicStates.size();
     dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
 
     VkGraphicsPipelineCreateInfo pipelineInfo{};
@@ -169,7 +165,14 @@ VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, 
     pipelineInfo.pDepthStencilState = &depthStencil;
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicStateCreateInfo;
-    pipelineInfo.layout = pipelineLayout;
+    if (isTransparent)
+    {
+        pipelineInfo.layout = mPipelineLayoutTransparent;
+    }
+    else
+    {
+        pipelineInfo.layout = mPipelineLayoutOpaque;
+    }
     pipelineInfo.renderPass = mRenderPass;
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -180,6 +183,7 @@ VkPipeline RenderPass::createGraphicsPipeline(VkShaderModule& vertShaderModule, 
     }
     return mPipeline;
 }
+
 
 void RenderPass::createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height)
 {
@@ -295,7 +299,7 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t)mTextureImageView.size();
+    texLayoutBinding.descriptorCount = mTextureImageView.size();
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -355,13 +359,13 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
         throw std::runtime_error("failed to allocate descriptor sets!");
     }
 
-    for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         updateDescriptorSets(i);
     }
 }
 
-void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
+void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     beginLabel(cmd, "Geometry Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
 
@@ -374,14 +378,6 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
     {
         imageviewcounter = 0;
         needDesciptorSetUpdate = false;
-    }
-
-    const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
-    const std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera().getPosition());
-
-    if (opaqueIds.empty() && transparentIds.empty())
-    {
-        return;
     }
 
     VkRenderPassBeginInfo renderPassInfo{};
@@ -415,23 +411,20 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
+//    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
+
+    std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
+    std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera().getPosition());
 
     const std::vector<Instance>& instances = scene.getInstances();
     const std::vector<Mesh>& meshes = scene.getMeshes();
 
-    auto renderInstances = [&cmd, &instances, &meshes](VkPipelineLayout layout, const std::vector<uint32_t>& ids) {
+    auto renderInstances = [&cmd, &instances, &meshes](const std::vector<uint32_t>& ids) {
         for (const uint32_t currentInstanceId : ids)
         {
             const uint32_t currentMeshId = instances[currentInstanceId].mMeshId;
             const uint32_t indexOffset = meshes[currentMeshId].mIndex;
             const uint32_t indexCount = meshes[currentMeshId].mCount;
-
-            InstancePushConstants constants{};
-            constants.model = instances[currentInstanceId].transform;
-            constants.materialId = instances[currentInstanceId].mMaterialId;
-
-            vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(InstancePushConstants), &constants);
-
             vkCmdDrawIndexed(cmd, indexCount, 1, indexOffset, 0, 0);
         }
     };
@@ -440,23 +433,23 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
     {
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayoutOpaque, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineOpaque);
-        renderInstances(mPipelineLayoutOpaque, opaqueIds);
+        renderInstances(opaqueIds);
 
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayoutTransparent, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineTransparent);
-        renderInstances(mPipelineLayoutTransparent, transparentIds);
+        renderInstances(transparentIds);
     }
     else if (scene.transparentMode)
     {
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayoutTransparent, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineTransparent);
-        renderInstances(mPipelineLayoutTransparent, transparentIds);
+        renderInstances(transparentIds);
     }
     else if (scene.opaqueMode)
     {
         vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayoutOpaque, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineOpaque);
-        renderInstances(mPipelineLayoutOpaque, opaqueIds);
+        renderInstances(opaqueIds);
     }
 
     vkCmdEndRenderPass(cmd);
@@ -481,12 +474,15 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
 {
     UniformBufferObject ubo{};
     Camera& camera = scene.getCamera();
+    glm::float4x4 model = glm::float4x4(1.0f);
     glm::float4x4 proj = camera.getPerspective();
     glm::float4x4 view = camera.getView();
 
-    ubo.viewToProj = proj;
+    ubo.modelToWorld = model;
+    ubo.modelViewProj = proj * view * model;
     ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
+    ubo.inverseModelToWorld = transpose(inverse(ubo.modelToWorld));
     ubo.lightPosition = scene.mLightPosition;
     ubo.lightSpaceMatrix = lightSpaceMatrix;
     ubo.debugView = (uint32_t)scene.mDebugViewSettings;
@@ -506,8 +502,8 @@ void RenderPass::onDestroy()
     }
     vkDestroyPipeline(mDevice, mPipelineTransparent, nullptr);
     vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
-    vkDestroyPipelineLayout(mDevice, mPipelineLayoutOpaque, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayoutTransparent, nullptr);
+    vkDestroyPipelineLayout(mDevice, mPipelineLayoutOpaque, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
     vkDestroyShaderModule(mDevice, mVS, nullptr);
     vkDestroyShaderModule(mDevice, mPS, nullptr);
@@ -528,13 +524,15 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
         vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
     }
 
-    vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
     vkDestroyPipeline(mDevice, mPipelineTransparent, nullptr);
+    vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
+    vkDestroyPipelineLayout(mDevice, mPipelineLayoutTransparent, nullptr);
+    vkDestroyPipelineLayout(mDevice, mPipelineLayoutOpaque, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
     createRenderPass();
-    mPipelineOpaque = createGraphicsPipeline(mVS, mPS, mPipelineLayoutOpaque, width, height, false);
-    mPipelineTransparent = createGraphicsPipeline(mVS, mPS, mPipelineLayoutTransparent, width, height, true);
+    mPipelineOpaque = createGraphicsPipeline(mVS, mPS, width, height, false);
+    mPipelineTransparent = createGraphicsPipeline(mVS, mPS, width, height, true);
     createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
 }
 
@@ -618,7 +616,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t)mTextureImageView.size();
+        descriptorWrite.descriptorCount = mTextureImageView.size();
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
@@ -633,7 +631,6 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.pImageInfo = &samplerInfo;
         descriptorWrites.push_back(descriptorWrite);
     }
-    if (mMaterialBuffer != VK_NULL_HANDLE)
     {
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
