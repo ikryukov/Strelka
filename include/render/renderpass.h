@@ -15,19 +15,15 @@ class RenderPass
 private:
     struct UniformBufferObject
     {
-        alignas(16) glm::mat4 viewToProj;
+        alignas(16) glm::mat4 modelToWorld;
+        alignas(16) glm::mat4 modelViewProj;
         alignas(16) glm::mat4 worldToView;
+        alignas(16) glm::mat4 inverseModelToWorld;
         alignas(16) glm::mat4 lightSpaceMatrix;
         alignas(16) glm::float4 lightPosition;
         alignas(16) glm::float3 CameraPos;
         float pad;
         alignas(16) uint32_t debugView;
-    };
-
-    struct InstancePushConstants
-    {
-        glm::float4x4 model;
-        int32_t materialId = -1;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -127,6 +123,12 @@ private:
         attributeDescription.offset = offsetof(Scene::Vertex, uv);
         attributeDescriptions.emplace_back(attributeDescription);
 
+        attributeDescription.binding = 0;
+        attributeDescription.location = 4;
+        attributeDescription.format = VK_FORMAT_R16_UINT;
+        attributeDescription.offset = offsetof(Scene::Vertex, materialId);
+        attributeDescriptions.emplace_back(attributeDescription);
+
         return attributeDescriptions;
     }
 
@@ -137,13 +139,11 @@ public:
 
     std::vector<VkImageView> mTextureImageView;
     VkImageView mShadowImageView;
-    VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
+    VkBuffer mMaterialBuffer;
 
     bool needDesciptorSetUpdate;
 
-    VkPipelineLayout createGraphicsPipelineLayout();
-
-    VkPipeline createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, VkPipelineLayout pipelineLayout, uint32_t width, uint32_t height, bool isTransparent);
+    VkPipeline createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, uint32_t width, uint32_t height, bool isTransparent);
 
     void createFrameBuffers(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
 
@@ -178,10 +178,8 @@ public:
         createRenderPass();
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
-        mPipelineLayoutOpaque = createGraphicsPipelineLayout();
-        mPipelineLayoutTransparent = createGraphicsPipelineLayout();
-        mPipelineOpaque = createGraphicsPipeline(mVS, mPS, mPipelineLayoutOpaque, width, height, false);
-        mPipelineTransparent = createGraphicsPipeline(mVS, mPS, mPipelineLayoutTransparent, width, height, true);
+        mPipelineOpaque =  createGraphicsPipeline(mVS, mPS, width, height, false);
+        mPipelineTransparent =  createGraphicsPipeline(mVS, mPS, width, height, true);
     }
 
     void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
@@ -192,6 +190,6 @@ public:
 
     RenderPass(/* args */);
     ~RenderPass();
-    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex);
+    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, uint32_t indicesCount, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex);
 };
 } // namespace nevk
