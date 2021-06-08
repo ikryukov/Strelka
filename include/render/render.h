@@ -42,11 +42,11 @@ const uint32_t SHADOW_MAP_HEIGHT = 1024;
 // const std::string MTL_PATH = "misc/";
 
 // const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
-// const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
-// const std::string MODEL_PATH = "misc/car_scene/scene.gltf";
+const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
+//const std::string MODEL_PATH = "misc/car_scene/scene.gltf";
 
-const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
-const std::string MTL_PATH = "misc/";
+//const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
+//const std::string MTL_PATH = "misc/Cube";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -191,6 +191,12 @@ private:
 
     size_t mCurrentFrame = 0;
 
+    // fps counter
+    clock_t deltaTime = 0;
+    unsigned int frames = 0;
+    double frameRate = 30;
+    double averageFrameTimeMilliseconds = 33.333;
+
     bool framebufferResized = false;
 
     nevk::Ui mUi;
@@ -210,6 +216,8 @@ private:
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
     void mainLoop();
+
+    void fpsCounter(clock_t beginFrame, clock_t endFrame);
 
     void cleanupSwapChain();
 

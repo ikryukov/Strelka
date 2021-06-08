@@ -261,12 +261,30 @@ void Render::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
                                 -yoffset * mCamera.movementSpeed));
 }
 
+void Render::fpsCounter(clock_t beginFrame, clock_t endFrame)
+{
+    deltaTime = endFrame - beginFrame;
+    frames++;
+    if (deltaTime >= 1.0)
+    {
+        frameRate = (double)frames * 0.5 + frameRate * 0.5; //more stable
+        averageFrameTimeMilliseconds = 1000.0 / (frameRate == 0 ? 0.001 : frameRate);
+        frames = 0;
+    }
+}
+
 void Render::mainLoop()
 {
     while (!glfwWindowShouldClose(mWindow))
     {
+        clock_t beginFrame = glfwGetTime();
+
         glfwPollEvents();
         drawFrame();
+
+        clock_t endFrame = glfwGetTime();
+
+        fpsCounter(beginFrame, endFrame);
     }
 
     vkDeviceWaitIdle(mDevice);
@@ -927,7 +945,7 @@ void Render::drawFrame()
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
     mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
-    mUi.updateUI(scene, mDepthPass);
+    mUi.updateUI(scene, mDepthPass, averageFrameTimeMilliseconds);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);
