@@ -205,7 +205,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame)
     ImGui::NewFrame();
 
     ImGui::Begin("Settings:"); // begin window
-    
+
     ImGui::Text("MsPF = %f", msPerFrame);
     ImGui::Text("FPS = %f", 1000.0 / msPerFrame);
 

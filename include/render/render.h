@@ -194,7 +194,6 @@ private:
 
     // fps counter
     uint64_t framesCounter = 0;
-    double elapsedTime = 0.0;
     double msPerFrame = 33.33;
 
     bool framebufferResized = false;
