@@ -263,9 +263,12 @@ void Render::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 
 void Render::fpsCounter(double frameTime)
 {
-    static double elapsedTime;
+    static double elapsedTime = 0.0;
+    static uint64_t framesCounter = 0;
+
     elapsedTime += frameTime;
     ++framesCounter;
+
     if (elapsedTime >= 1000.0)
     {
         msPerFrame = elapsedTime / framesCounter;

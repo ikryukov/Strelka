@@ -193,7 +193,6 @@ private:
     size_t mCurrentFrame = 0;
 
     // fps counter
-    uint64_t framesCounter = 0;
     double msPerFrame = 33.33;
 
     bool framebufferResized = false;
