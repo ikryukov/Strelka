@@ -23,6 +23,7 @@
 #include <ui/ui.h>
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -42,11 +43,11 @@ const uint32_t SHADOW_MAP_HEIGHT = 1024;
 // const std::string MTL_PATH = "misc/";
 
 // const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
-const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
-//const std::string MODEL_PATH = "misc/car_scene/scene.gltf";
+// const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
+// const std::string MODEL_PATH = "misc/car_scene/scene.gltf";
 
-//const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
-//const std::string MTL_PATH = "misc/Cube";
+const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
+const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
