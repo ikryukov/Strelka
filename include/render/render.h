@@ -193,12 +193,9 @@ private:
     size_t mCurrentFrame = 0;
 
     // fps counter
-    long long frames = 0;
-    long double frameTime = 0.f;
-    long double averageFrameTimeMicroseconds = 33000.0;
-    std::chrono::high_resolution_clock::time_point start = std::chrono::high_resolution_clock::now(),
-                                                   finish = std::chrono::high_resolution_clock::now(),
-                                                   lastPrint = std::chrono::high_resolution_clock::now();
+    uint64_t framesCounter = 0;
+    double elapsedTime = 0.0;
+    double msPerFrame = 33.33;
 
     bool framebufferResized = false;
 
@@ -220,7 +217,7 @@ private:
 
     void mainLoop();
 
-    void fpsCounter(clock_t _deltaTime);
+    void fpsCounter(double frameTime);
 
     void cleanupSwapChain();
 

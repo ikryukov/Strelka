@@ -261,16 +261,15 @@ void Render::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
                                 -yoffset * mCamera.movementSpeed));
 }
 
-void Render::fpsCounter(clock_t duration)
+void Render::fpsCounter(double frameTime)
 {
-    frameTime += duration;
-    ++frames;
-    if (std::chrono::duration<double, std::ratio<1>>(finish - lastPrint).count() >= 1.0)
+    elapsedTime += frameTime;
+    ++framesCounter;
+    if (elapsedTime >= 1000.0)
     {
-        lastPrint = std::chrono::high_resolution_clock::now();
-        averageFrameTimeMicroseconds = frameTime / frames;
-        frames = 0;
-        frameTime = 0;
+        msPerFrame = elapsedTime / framesCounter;
+        framesCounter = 0;
+        elapsedTime = 0;
     }
 }
 
@@ -278,15 +277,15 @@ void Render::mainLoop()
 {
     while (!glfwWindowShouldClose(mWindow))
     {
-        start = std::chrono::high_resolution_clock::now();
+        auto start = std::chrono::high_resolution_clock::now();
 
         glfwPollEvents();
         drawFrame();
 
-        finish = std::chrono::high_resolution_clock::now();
+        auto finish = std::chrono::high_resolution_clock::now();
 
-        clock_t duration = std::chrono::duration<double, std::micro>(finish - start).count();
-        fpsCounter(duration);
+        double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
+        fpsCounter(frameTime);
     }
 
     vkDeviceWaitIdle(mDevice);
@@ -947,7 +946,7 @@ void Render::drawFrame()
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
     mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
-    mUi.updateUI(scene, mDepthPass, averageFrameTimeMicroseconds);
+    mUi.updateUI(scene, mDepthPass, msPerFrame);
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);
