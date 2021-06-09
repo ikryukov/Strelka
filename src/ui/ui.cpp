@@ -196,7 +196,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(Scene& scene, DepthPass& depthPass, double averageFrameTimeMilliseconds)
+void Ui::updateUI(Scene& scene, DepthPass& depthPass, double averageFrameTimeMicroseconds)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -205,8 +205,8 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double averageFrameTimeMil
     ImGui::NewFrame();
 
     ImGui::Begin("Settings:"); // begin window
-    ImGui::Text("MsPF = %f", averageFrameTimeMilliseconds);
-    ImGui::Text("FPS = %f", 1.0/averageFrameTimeMilliseconds*1000);
+    ImGui::Text("MsPF = %f", averageFrameTimeMicroseconds / 1000);
+    ImGui::Text("FPS = %f", 1e6f/ averageFrameTimeMicroseconds);
 
     //ImGui::
     ImGui::Text("Light Position");
