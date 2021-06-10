@@ -45,7 +45,7 @@ function(target_set_warnings)
       elseif(WGCC)
         list(APPEND WarningFlags "-Wall" "-Wextra" "-Wpedantic")
       elseif(WCLANG)
-        list(APPEND WarningFlags "-Wall" "-Weverything" "-Wpedantic")
+        list(APPEND WarningFlags "-Wall" "-Wpedantic")
       endif()
     elseif(NOT ${disable_all} EQUAL -1)
       set(SystemIncludes TRUE) # Treat includes as if coming from system

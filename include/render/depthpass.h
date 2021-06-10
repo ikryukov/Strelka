@@ -40,8 +40,6 @@ private:
     std::vector<VkBuffer> uniformBuffers;
     std::vector<VkDeviceMemory> uniformBuffersMemory;
 
-    VkImageView mInImageView;
-
     bool mEnableValidation = false;
 
     void beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::float4& color)
