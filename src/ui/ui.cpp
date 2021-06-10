@@ -196,7 +196,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(Scene& scene, DepthPass& depthPass)
+void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -205,6 +205,9 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass)
     ImGui::NewFrame();
 
     ImGui::Begin("Settings:"); // begin window
+
+    ImGui::Text("MsPF = %f", msPerFrame);
+    ImGui::Text("FPS = %f", 1000.0 / msPerFrame);
 
     ImGui::Text("Light Position");
     ImGui::SliderFloat("pos coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);

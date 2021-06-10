@@ -171,6 +171,9 @@ private:
 
     size_t mCurrentFrame = 0;
 
+    // fps counter
+    double msPerFrame = 33.33;
+
     bool framebufferResized = false;
 
     nevk::Ui mUi;
@@ -190,6 +193,8 @@ private:
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
     void mainLoop();
+
+    double fpsCounter(double frameTime);
 
     void cleanupSwapChain();
 

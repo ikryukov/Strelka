@@ -285,12 +285,37 @@ void Render::scrollCallback(GLFWwindow* window, [[maybe_unused]] double xoffset,
                                 -yoffset * mCamera.movementSpeed));
 }
 
+double Render::fpsCounter(double frameTime)
+{
+    static double elapsedTime = 0.0;
+    static uint64_t framesCounter = 0;
+
+    elapsedTime += frameTime;
+    ++framesCounter;
+
+    if (elapsedTime >= 1000.0)
+    {
+        msPerFrame = elapsedTime / framesCounter;
+        framesCounter = 0;
+        elapsedTime = 0;
+    }
+
+    return msPerFrame;
+}
+
 void Render::mainLoop()
 {
     while (!glfwWindowShouldClose(mWindow))
     {
+        auto start = std::chrono::high_resolution_clock::now();
+
         glfwPollEvents();
         drawFrame();
+
+        auto finish = std::chrono::high_resolution_clock::now();
+
+        double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
+        msPerFrame = fpsCounter(frameTime);
     }
 
     vkDeviceWaitIdle(mDevice);
@@ -952,7 +977,8 @@ void Render::drawFrame()
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
     mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
-    mUi.updateUI(scene, mDepthPass);
+    mUi.updateUI(scene, mDepthPass, msPerFrame);
+    glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);
