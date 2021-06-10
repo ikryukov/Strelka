@@ -273,7 +273,7 @@ void Render::fpsCounter(double frameTime)
     {
         msPerFrame = elapsedTime / framesCounter;
 
-        glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " msPF]").c_str());
+        glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
         framesCounter = 0;
         elapsedTime = 0;
