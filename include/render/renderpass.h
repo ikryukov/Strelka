@@ -80,8 +80,6 @@ private:
     std::vector<VkDescriptorSet> mDescriptorSets;
 
     std::vector<VkFramebuffer> mFrameBuffers;
-
-    VkFramebuffer mShadowFrameBuffer;
     VkFormat mFrameBufferFormat;
 
     VkFormat mDepthBufferFormat;

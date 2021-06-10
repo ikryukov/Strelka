@@ -121,7 +121,6 @@ private:
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
-    VkFormat mFrameBufferFormat;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
