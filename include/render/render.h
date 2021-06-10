@@ -215,7 +215,7 @@ private:
 
     void mainLoop();
 
-    void fpsCounter(double frameTime);
+    double fpsCounter(double frameTime);
 
     void cleanupSwapChain();
 
