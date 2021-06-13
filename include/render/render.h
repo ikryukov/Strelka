@@ -45,8 +45,8 @@ const uint32_t SHADOW_MAP_HEIGHT = 1024;
 // const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
 // const std::string MODEL_PATH = "misc/car_scene/scene.gltf";
 
-const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
-const std::string MTL_PATH = "misc/";
+// const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
+// const std::string MTL_PATH = "misc/";
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -109,6 +109,12 @@ struct SwapChainSupportDetails
 class Render
 {
 public:
+    Render(const std::string& model_path, const std::string& mtl_path)
+    {
+        MODEL_PATH = model_path;
+        MTL_PATH = mtl_path;
+    }
+
     void run()
     {
         initWindow();
@@ -122,6 +128,9 @@ public:
     void cleanup();
 
 private:
+    std::string MODEL_PATH;
+    std::string MTL_PATH;
+
     GLFWwindow* mWindow;
 
     VkInstance mInstance;

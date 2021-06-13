@@ -242,7 +242,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 # target_include_directories(${PROJECT_NAME} PRIVATE external/spdlog/include)
 
 # CXXOPTS
-# target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
+target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
 
 option(NEVK_TESTS "enable tests" ON)
 
