@@ -117,8 +117,8 @@ public:
 
     std::string MODEL_PATH;
     std::string MTL_PATH;
-    uint32_t WIDTH = 800;
-    uint32_t HEIGHT = 600;
+    uint32_t WIDTH;
+    uint32_t HEIGHT;
 
     void initWindow();
     void initVulkan();
