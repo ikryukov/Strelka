@@ -3,9 +3,14 @@
 
 #include <doctest.h>
 
+const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
+
 TEST_CASE("test UI init")
 {
     Render r;
+    r.MODEL_PATH = MODEL_PATH;
+    r.HEIGHT = 600;
+    r.WIDTH = 800;
     r.initWindow();
     r.initVulkan();
     r.getUi().onDestroy();

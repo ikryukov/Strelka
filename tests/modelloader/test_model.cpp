@@ -13,6 +13,10 @@ const std::string TEXPATH3 = "textures/container.jpg";
 TEST_CASE("load model")
 {
     Render r;
+    r.MODEL_PATH = MODELPATH;
+    r.MTL_PATH = MTLPATH;
+    r.HEIGHT = 600;
+    r.WIDTH = 800;
     r.initWindow();
     r.initVulkan();
 
