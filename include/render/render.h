@@ -37,16 +37,6 @@ const int MAX_FRAMES_IN_FLIGHT = 3;
 const uint32_t SHADOW_MAP_WIDTH = 1024;
 const uint32_t SHADOW_MAP_HEIGHT = 1024;
 
-// const std::string MODEL_PATH = "misc/CornellBox-Sphere.obj";
-// const std::string MTL_PATH = "misc/";
-
-// const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
-// const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
-// const std::string MODEL_PATH = "misc/skin/RiggedSimple.gltf";
-
-// const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
-// const std::string MTL_PATH = "misc/";
-
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
