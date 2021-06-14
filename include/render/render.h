@@ -3,6 +3,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#define GLM_FORCE_SILENT_WARNINGS
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
@@ -41,7 +42,7 @@ const uint32_t SHADOW_MAP_HEIGHT = 1024;
 
 // const std::string MODEL_PATH = "misc/MetalRoughSpheresNoTextures/glTF/MetalRoughSpheresNoTextures.gltf";
 // const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
-// const std::string MODEL_PATH = "misc/car_scene/scene.gltf";
+// const std::string MODEL_PATH = "misc/skin/RiggedSimple.gltf";
 
 // const std::string MODEL_PATH = "misc/pica_pica_-_mini_diorama_01/scene.gltf";
 // const std::string MTL_PATH = "misc/";
@@ -64,27 +65,7 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
-{
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != nullptr)
-    {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    }
-    else
-    {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
-}
 
-static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
-{
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr)
-    {
-        func(instance, debugMessenger, pAllocator);
-    }
-}
 
 struct QueueFamilyIndices
 {
@@ -143,7 +124,6 @@ private:
     VkExtent2D swapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
-    VkFormat mFrameBufferFormat;
 
     VkImage depthImage;
     VkDeviceMemory depthImageMemory;
@@ -194,6 +174,9 @@ private:
 
     size_t mCurrentFrame = 0;
 
+    // fps counter
+    double msPerFrame = 33.33;
+
     bool framebufferResized = false;
 
     nevk::Ui mUi;
@@ -213,6 +196,8 @@ private:
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 
     void mainLoop();
+
+    double fpsCounter(double frameTime);
 
     void cleanupSwapChain();
 
@@ -282,7 +267,7 @@ private:
 
     bool checkValidationLayerSupport();
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, [[maybe_unused]] void* pUserData)
     {
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {

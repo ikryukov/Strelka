@@ -4,6 +4,30 @@
 
 #include <chrono>
 
+
+[[maybe_unused]] static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+{
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != nullptr)
+    {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    }
+    else
+    {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+[[maybe_unused]] static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+{
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr)
+    {
+        func(instance, debugMessenger, pAllocator);
+    }
+}
+
+
 void Render::initVulkan()
 {
     createInstance();
@@ -145,7 +169,7 @@ void Render::framebufferResizeCallback(GLFWwindow* window, int width, int height
     mScene.updateCameraParams(width, height);
 }
 
-inline void Render::keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+inline void Render::keyCallback(GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     nevk::Scene& scene = app->getScene();
@@ -184,7 +208,7 @@ inline void Render::keyCallback(GLFWwindow* window, int key, int scancode, int a
     }
 }
 
-inline void Render::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+inline void Render::mouseButtonCallback(GLFWwindow* window, int button, int action, [[maybe_unused]] int mods)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     nevk::Scene& scene = app->getScene();
@@ -244,7 +268,7 @@ void Render::handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypo
     camera.mousePos = glm::float2((float)xpos, (float)ypos);
 }
 
-void Render::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+void Render::scrollCallback(GLFWwindow* window, [[maybe_unused]] double xoffset, double yoffset)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool handled = io.WantCaptureMouse;
@@ -261,12 +285,37 @@ void Render::scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
                                 -yoffset * mCamera.movementSpeed));
 }
 
+double Render::fpsCounter(double frameTime)
+{
+    static double elapsedTime = 0.0;
+    static uint64_t framesCounter = 0;
+
+    elapsedTime += frameTime;
+    ++framesCounter;
+
+    if (elapsedTime >= 1000.0)
+    {
+        msPerFrame = elapsedTime / framesCounter;
+        framesCounter = 0;
+        elapsedTime = 0;
+    }
+
+    return msPerFrame;
+}
+
 void Render::mainLoop()
 {
     while (!glfwWindowShouldClose(mWindow))
     {
+        auto start = std::chrono::high_resolution_clock::now();
+
         glfwPollEvents();
         drawFrame();
+
+        auto finish = std::chrono::high_resolution_clock::now();
+
+        double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
+        msPerFrame = fpsCounter(frameTime);
     }
 
     vkDeviceWaitIdle(mDevice);
@@ -438,6 +487,7 @@ void Render::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT
     createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
 }
+
 
 void Render::setupDebugMessenger()
 {
@@ -927,7 +977,8 @@ void Render::drawFrame()
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
     mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
-    mUi.updateUI(scene, mDepthPass);
+    mUi.updateUI(scene, mDepthPass, msPerFrame);
+    glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmdBuff, 0);
