@@ -1,8 +1,9 @@
 #include <render/render.h>
 
 #include <cxxopts.hpp>
-#include <fstream>
 #include <iostream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 int main(int argc, char** argv)
 {
@@ -26,14 +27,14 @@ int main(int argc, char** argv)
     }
 
     // check params
-    std::ifstream mesh(result["m"].as<std::string>());
-    std::ifstream texture(result["t"].as<std::string>());
-    if (mesh.fail())
+    std::string mesh(result["m"].as<std::string>());
+    std::string texture(result["t"].as<std::string>());
+    if (!fs::exists(mesh))
     {
         std::cerr << "mesh file doesn't exist";
         exit(0);
     }
-    if (texture.fail())
+    if (!fs::exists(texture))
     {
         std::cerr << "texture file doesn't exist";
         exit(0);
@@ -42,8 +43,8 @@ int main(int argc, char** argv)
     // initialise & run render
     Render r;
 
-    r.MODEL_PATH = result["m"].as<std::string>();
-    r.MTL_PATH = result["t"].as<std::string>();
+    r.MODEL_PATH = mesh;
+    r.MTL_PATH = texture;
     r.WIDTH = result["width"].as<uint32_t>();
     r.HEIGHT = result["height"].as<uint32_t>();
 
