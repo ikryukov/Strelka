@@ -5,6 +5,7 @@
 #include <iostream>
 
 const std::string MODELPATH = "misc/test_data/cube.obj";
+const std::string MODELPATHR = "misc/Cube/Cube.gltf";
 const std::string MTLPATH = "misc/test_data";
 const std::string TEXPATH1 = "textures/brickwall.png";
 const std::string TEXPATH2 = "textures/awesomeface.png";
@@ -13,6 +14,10 @@ const std::string TEXPATH3 = "textures/container.jpg";
 TEST_CASE("load model")
 {
     Render r;
+    r.MODEL_PATH = MODELPATHR;
+    r.MTL_PATH = MTLPATH;
+    r.HEIGHT = 600;
+    r.WIDTH = 800;
     r.initWindow();
     r.initVulkan();
 
@@ -37,8 +42,13 @@ TEST_CASE("load model")
 TEST_CASE("load textures")
 {
     Render r;
+    r.MODEL_PATH = MODELPATHR;
+    r.MTL_PATH = MTLPATH;
+    r.HEIGHT = 600;
+    r.WIDTH = 800;
     r.initWindow();
     r.initVulkan();
+
     nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
     nevk::Scene mScene;
 
