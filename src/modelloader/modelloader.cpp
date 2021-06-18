@@ -54,7 +54,7 @@ glm::float2 unpackUV(uint32_t val)
 }
 
 void ModelLoader::computeTangent(std::vector<Scene::Vertex>& vertices,
-                           const std::vector<uint32_t>& indices) const
+                                 const std::vector<uint32_t>& indices) const
 {
     const size_t lastIndex = indices.size();
     Scene::Vertex& v0 = vertices[indices[lastIndex - 3]];
@@ -147,12 +147,12 @@ bool ModelLoader::loadModel(const std::string& modelFile, const std::string& mtl
                 material.d = currMaterial.dissolve;
 
                 uint32_t matId = scene.createMaterial(material.ambient, material.diffuse,
-                                                       material.specular, material.emissive,
-                                                       material.transparency, material.opticalDensity,
-                                                       material.shininess, material.illum,
-                                                       material.texAmbientId, material.texDiffuseId,
-                                                       material.texSpecularId, material.texNormalId,
-                                                       material.d);
+                                                      material.specular, material.emissive,
+                                                      material.transparency, material.opticalDensity,
+                                                      material.shininess, material.illum,
+                                                      material.texAmbientId, material.texDiffuseId,
+                                                      material.texSpecularId, material.texNormalId,
+                                                      material.d);
 
                 uniqueMaterial[matName] = matId;
                 shapeMaterialId = matId;
@@ -490,6 +490,8 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
 
 bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
 {
+    if (modelPath.empty())
+        return false;
     using namespace std;
     tinygltf::Model model;
     tinygltf::TinyGLTF gltf_ctx;
