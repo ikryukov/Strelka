@@ -76,7 +76,9 @@ set(UI_SOURCES
         external/imgui/src/imgui_widgets.cpp
         external/imgui/src/imgui_tables.cpp
         external/imgui/src/imgui_impl_vulkan.cpp
-        external/imgui/src/imgui_impl_glfw.cpp)
+        external/imgui/src/imgui_impl_glfw.cpp
+
+        external/imguiFD/ImGuiFileDialog.cpp)
 set(UILIB_NAME ui)
 add_library(${UILIB_NAME} OBJECT ${UI_SOURCES})
 target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
@@ -171,6 +173,10 @@ target_include_directories(${MODELLIB_NAME} PUBLIC external/tol)
 # STB (image loader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
 target_include_directories(${TEXTURELIB_NAME} PUBLIC external/stb)
+
+# imguiFD
+target_include_directories(${RENDERLIB_NAME} PUBLIC external/imguiFD)
+target_include_directories(${UILIB_NAME} PUBLIC external/imguiFD)
 
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${RESMNGR_NAME})
