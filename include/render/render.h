@@ -56,7 +56,6 @@ const bool enableValidationLayers = true;
 #endif
 
 
-
 struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsFamily;
@@ -136,13 +135,17 @@ private:
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
 
-    uint32_t mIndicesCount = 0;
-    VkBuffer mVertexBuffer;
-    VkDeviceMemory mVertexBufferMemory;
-    VkBuffer mMaterialBuffer;
-    VkDeviceMemory mMaterialBufferMemory;
-    VkBuffer mIndexBuffer;
-    VkDeviceMemory mIndexBufferMemory;
+    struct SceneData
+    {
+        uint32_t mIndicesCount = 0;
+        VkBuffer mVertexBuffer;
+        VkDeviceMemory mVertexBufferMemory;
+        VkBuffer mMaterialBuffer;
+        VkDeviceMemory mMaterialBufferMemory;
+        VkBuffer mIndexBuffer;
+        VkDeviceMemory mIndexBufferMemory;
+    }currentScene;
+    void freeSceneData();
 
     VkDescriptorPool mDescriptorPool;
 
@@ -174,6 +177,23 @@ private:
     nevk::Scene mScene;
 
     bool isPBR = true;
+    bool isEmptyScene = true;
+
+    // shaders data -- struct ?
+    const char* csShaderCode = nullptr;
+    uint32_t csShaderCodeSize = 0;
+    const char* shShaderCode = nullptr;
+    uint32_t shShaderCodeSize = 0;
+    const char* pbrVertShaderCode = nullptr;
+    uint32_t pbrVertShaderCodeSize = 0;
+    const char* pbrFragShaderCode = nullptr;
+    uint32_t pbrFragShaderCodeSize = 0;
+    const char* simpleVertShaderCode = nullptr;
+    uint32_t simpleVertShaderCodeSize = 0;
+    const char* simpleFragShaderCode = nullptr;
+    uint32_t simpleFragShaderCodeSize = 0;
+
+    void loadScene(const std::string& modelPath);
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 

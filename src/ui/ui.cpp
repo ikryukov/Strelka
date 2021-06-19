@@ -196,7 +196,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame)
+void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -218,6 +218,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame)
         if (ImGuiFileDialog::Instance()->IsOk())
         {
             std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+            newModelPath = filePathName;
             std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
         }
         ImGuiFileDialog::Instance()->Close();
