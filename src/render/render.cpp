@@ -4,6 +4,7 @@
 
 #include <chrono>
 
+namespace fs = std::filesystem;
 
 [[maybe_unused]] static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
@@ -72,9 +73,10 @@ void Render::initVulkan()
 
     createDepthResources();
 
-    modelLoader = new nevk::ModelLoader(mTexManager);
+    mScene = new nevk::Scene;
     isEmptyScene = MODEL_PATH.empty();
-    if (!isEmptyScene) loadScene(MODEL_PATH);
+    if (!isEmptyScene)
+        loadScene(MODEL_PATH);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
@@ -101,15 +103,15 @@ void Render::framebufferResizeCallback(GLFWwindow* window, int width, int height
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
-    nevk::Scene& mScene = app->getScene();
-    mScene.updateCameraParams(width, height);
+    nevk::Scene* scene = app->getScene();
+    scene->updateCameraParams(width, height);
 }
 
 inline void Render::keyCallback(GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    nevk::Scene& scene = app->getScene();
-    Camera& camera = scene.getCamera();
+    nevk::Scene* scene = app->getScene();
+    Camera& camera = scene->getCamera();
 
     const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
     switch (key)
@@ -147,8 +149,8 @@ inline void Render::keyCallback(GLFWwindow* window, int key, [[maybe_unused]] in
 inline void Render::mouseButtonCallback(GLFWwindow* window, int button, int action, [[maybe_unused]] int mods)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    nevk::Scene& scene = app->getScene();
-    Camera& camera = scene.getCamera();
+    nevk::Scene* scene = app->getScene();
+    Camera& camera = scene->getCamera();
     if (button == GLFW_MOUSE_BUTTON_RIGHT)
     {
         if (action == GLFW_PRESS)
@@ -176,8 +178,8 @@ inline void Render::mouseButtonCallback(GLFWwindow* window, int button, int acti
 void Render::handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    nevk::Scene& scene = app->getScene();
-    Camera& camera = scene.getCamera();
+    nevk::Scene* scene = app->getScene();
+    Camera& camera = scene->getCamera();
     const float dx = camera.mousePos.x - (float)xpos;
     const float dy = camera.mousePos.y - (float)ypos;
 
@@ -214,8 +216,8 @@ void Render::scrollCallback(GLFWwindow* window, [[maybe_unused]] double xoffset,
     }
 
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    nevk::Scene& mScene = app->getScene();
-    Camera& mCamera = mScene.getCamera();
+    nevk::Scene* mScene = app->getScene();
+    Camera& mCamera = mScene->getCamera();
 
     mCamera.translate(glm::vec3(0.0f, 0.0f,
                                 -yoffset * mCamera.movementSpeed));
@@ -279,7 +281,6 @@ void Render::cleanupSwapChain()
 void Render::cleanup()
 {
     cleanupSwapChain();
-
     if (!isEmptyScene)
     {
         mPbrPass.onDestroy();
@@ -290,8 +291,6 @@ void Render::cleanup()
     mUi.onDestroy();
 
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
-
-    mTexManager->textureDestroy();
 
     if (!isEmptyScene)
     {
@@ -358,7 +357,7 @@ void Render::recreateSwapChain()
     mPbrPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(swapChainImageViews, width, height);
 
-    Camera& camera = mScene.getCamera();
+    Camera& camera = mScene->getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 }
 
@@ -673,13 +672,13 @@ bool Render::hasStencilComponent(VkFormat format)
 void Render::loadModel(nevk::ModelLoader& testmodel)
 {
     isPBR = true;
-    bool res = testmodel.loadModelGltf(MODEL_PATH, mScene);
-    // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
+    bool res = testmodel.loadModelGltf(MODEL_PATH, *mScene);
+    // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, *mScene);
     if (!res)
     {
         return;
     }
-    Camera& camera = mScene.getCamera();
+    Camera& camera = mScene->getCamera();
     camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
     camera.rotationSpeed = 0.05f;
@@ -691,7 +690,7 @@ void Render::loadModel(nevk::ModelLoader& testmodel)
 
 void Render::createVertexBuffer()
 {
-    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene.getVertices();
+    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene->getVertices();
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
     if (bufferSize == 0)
     {
@@ -716,7 +715,7 @@ void Render::createVertexBuffer()
 
 void Render::createMaterialBuffer()
 {
-    std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
+    std::vector<nevk::Scene::Material>& sceneMaterials = mScene->getMaterials();
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
     if (bufferSize == 0)
@@ -743,7 +742,7 @@ void Render::createMaterialBuffer()
 
 void Render::createIndexBuffer()
 {
-    std::vector<uint32_t>& sceneIndices = mScene.getIndices();
+    std::vector<uint32_t>& sceneIndices = mScene->getIndices();
     currentScene.mIndicesCount = (uint32_t)sceneIndices.size();
     VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
     if (bufferSize == 0)
@@ -817,15 +816,15 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     if (!isEmptyScene)
     {
-        mDepthPass.record(cmd, currentScene.mVertexBuffer, currentScene.mIndexBuffer, mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
+        mDepthPass.record(cmd, currentScene.mVertexBuffer, currentScene.mIndexBuffer, *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
 
         if (isPBR)
         {
-            mPbrPass.record(cmd, currentScene.mVertexBuffer, currentScene.mIndexBuffer, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+            mPbrPass.record(cmd, currentScene.mVertexBuffer, currentScene.mIndexBuffer, *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
         }
         else
         {
-            mPass.record(cmd, currentScene.mVertexBuffer, currentScene.mIndexBuffer, mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+            mPass.record(cmd, currentScene.mVertexBuffer, currentScene.mIndexBuffer, *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
         }
     }
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
@@ -891,7 +890,21 @@ void Render::freeSceneData()
 
 void Render::loadScene(const std::string& modelPath)
 {
-    if (!isEmptyScene && currentScene.mIndicesCount) freeSceneData();
+    if (!isEmptyScene && currentScene.mIndicesCount)
+    {
+        freeSceneData();
+
+        if (modelLoader != nullptr) delete modelLoader; // ? deleting null pointer has no effect anyway....
+        if (mScene != nullptr) delete mScene;
+
+        mTexManager->textureDestroy();
+        if (mTexManager != nullptr) delete mTexManager;
+
+        mScene = new nevk::Scene;
+        mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
+    }
+
+    modelLoader = new nevk::ModelLoader(mTexManager);
 
     MODEL_PATH = modelPath;
     loadModel(*modelLoader);
@@ -984,23 +997,24 @@ void Render::drawFrame()
     prevTime = currentTime;
 
     const uint32_t frameIndex = imageIndex;
-    nevk::Scene& scene = getScene();
-    Camera& cam = scene.getCamera();
+    nevk::Scene* scene = getScene();
+    Camera& cam = scene->getCamera();
 
     cam.update((float)deltaTime);
 
     if (!isEmptyScene)
     {
-        const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene.mLightPosition);
+        const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
         mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
-        mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
-        mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
+        mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *mScene);
+        mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *mScene);
     }
 
     std::string newModelPath;
-    mUi.updateUI(scene, mDepthPass, msPerFrame, newModelPath);
-    if(!newModelPath.empty()) loadScene(newModelPath);
+    mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
+    if (!newModelPath.empty() && fs::exists(newModelPath)) //todo last path != new path
+        loadScene(newModelPath);
 
     glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
@@ -1058,7 +1072,6 @@ void Render::drawFrame()
     presentInfo.pImageIndices = &imageIndex;
 
     result = vkQueuePresentKHR(mPresentQueue, &presentInfo);
-
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
     {
         framebufferResized = false;

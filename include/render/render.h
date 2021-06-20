@@ -174,7 +174,7 @@ private:
 
     nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
-    nevk::Scene mScene;
+    nevk::Scene* mScene;
 
     bool isPBR = true;
     bool isEmptyScene = true;
@@ -355,7 +355,7 @@ public:
     {
         return mResManager;
     }
-    nevk::Scene& getScene()
+    nevk::Scene* getScene()
     {
         return mScene;
     }
