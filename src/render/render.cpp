@@ -1013,8 +1013,51 @@ void Render::drawFrame()
 
     std::string newModelPath;
     mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
-    if (!newModelPath.empty() && fs::exists(newModelPath)) //todo last path != new path
+
+    // :)))))))))))))))
+    if (!newModelPath.empty() && fs::exists(newModelPath))
+    { //todo last path != new path
+        VkCommandBuffer& cmdBuffScene = getFrameData(imageIndex).cmdBuffer;
+        vkResetCommandBuffer(cmdBuffScene, 0);
+
+        VkCommandBufferBeginInfo cmdBeginInfoScene = {};
+        cmdBeginInfoScene.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        cmdBeginInfoScene.pNext = nullptr;
+        cmdBeginInfoScene.pInheritanceInfo = nullptr;
+        cmdBeginInfoScene.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT; // ?
+
+        vkBeginCommandBuffer(cmdBuffScene, &cmdBeginInfoScene);
+
         loadScene(newModelPath);
+
+        if (vkEndCommandBuffer(cmdBuffScene) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to record command buffer!");
+        }
+
+        VkSubmitInfo submitInfoScene;
+        submitInfoScene.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+        VkSemaphore waitSemaphoresScene[] = { currFrame.imageAvailable };
+        VkPipelineStageFlags waitStagesScene[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT }; // VK_PIPELINE_STAGE_HOST_BIT ?
+        submitInfoScene.waitSemaphoreCount = 1;
+        submitInfoScene.pWaitSemaphores = waitSemaphoresScene;
+        submitInfoScene.pWaitDstStageMask = waitStagesScene;
+
+        submitInfoScene.commandBufferCount = 1;
+        submitInfoScene.pCommandBuffers = &cmdBuffScene;
+
+        VkSemaphore signalSemaphoresScene[] = { currFrame.renderFinished};
+        submitInfoScene.signalSemaphoreCount = 1;
+        submitInfoScene.pSignalSemaphores = signalSemaphoresScene;
+
+        vkResetFences(mDevice, 1, &currFrame.inFlightFence);
+
+        if (vkQueueSubmit(mGraphicsQueue, 1, &submitInfoScene, currFrame.inFlightFence) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to submit draw command buffer!");
+        }
+    }
 
     glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
