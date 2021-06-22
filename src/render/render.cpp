@@ -3,6 +3,7 @@
 #include "debugUtils.h"
 
 #include <chrono>
+#include <filesystem>
 
 namespace fs = std::filesystem;
 
@@ -894,11 +895,14 @@ void Render::loadScene(const std::string& modelPath)
     {
         freeSceneData();
 
-        if (modelLoader != nullptr) delete modelLoader; // ? deleting null pointer has no effect anyway....
-        if (mScene != nullptr) delete mScene;
+        if (modelLoader != nullptr)
+            delete modelLoader; // ? deleting null pointer has no effect anyway....
+        if (mScene != nullptr)
+            delete mScene;
 
         mTexManager->textureDestroy();
-        if (mTexManager != nullptr) delete mTexManager;
+        if (mTexManager != nullptr)
+            delete mTexManager;
 
         mScene = new nevk::Scene;
         mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
@@ -1047,7 +1051,7 @@ void Render::drawFrame()
         submitInfoScene.commandBufferCount = 1;
         submitInfoScene.pCommandBuffers = &cmdBuffScene;
 
-        VkSemaphore signalSemaphoresScene[] = { currFrame.renderFinished};
+        VkSemaphore signalSemaphoresScene[] = { currFrame.renderFinished };
         submitInfoScene.signalSemaphoreCount = 1;
         submitInfoScene.pSignalSemaphores = signalSemaphoresScene;
 
