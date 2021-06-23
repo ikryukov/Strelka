@@ -178,6 +178,7 @@ private:
 
     bool isPBR = true;
     bool isEmptyScene = true;
+    bool needReload = false;
 
     // shaders data -- struct ?
     const char* csShaderCode = nullptr;
