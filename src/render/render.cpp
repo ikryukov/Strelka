@@ -1026,8 +1026,9 @@ void Render::drawFrame()
         needReload = true;
         savedPath = newModelPath;
     }
-    if (needReload /* + some appropriate condition to destroying buffers */)
+    if (needReload && vkGetFenceStatus(mDevice, currFrame.inFlightFence) == VK_SUCCESS/* + some appropriate condition to destroying buffers */)
         loadScene(savedPath);
+
 
     glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
