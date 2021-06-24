@@ -1067,9 +1067,10 @@ void Render::drawFrame()
             needReload = true; // need to remove last scene data
             savedPath = newModelPath;
         }
-        else {
-         // if the previous one was default we dont need to remove anything just load
-        loadScene(newModelPath);
+        else
+        {
+            // if the previous one was default we dont need to remove anything just load
+            loadScene(newModelPath);
         }
     }
 
@@ -1083,7 +1084,6 @@ void Render::drawFrame()
         countFrames = 0;
         needReload = false;
     }
-    std::cout << countFrames << std::endl;
 
     glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
