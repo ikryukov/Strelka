@@ -884,7 +884,7 @@ void Render::freeSceneData()
 {
     SceneData* sceneData = getSceneData();
 
-    vkDestroyBuffer(mDevice, sceneData->mIndexBuffer, nullptr);
+    vkDestroyBuffer(mDevice, sceneData->mIndexBuffer, nullptr); // seems like im trying to update empty scene
     vkFreeMemory(mDevice, sceneData->mIndexBufferMemory, nullptr);
 
     vkDestroyBuffer(mDevice, sceneData->mMaterialBuffer, nullptr);
@@ -909,12 +909,34 @@ void Render::loadScene(const std::string& modelPath)
     mScene = new nevk::Scene;
     mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
     modelLoader = new nevk::ModelLoader(mTexManager);
-    needReload = false;
     isDefaultScene = false;
     MODEL_PATH = modelPath;
     loadModel(*modelLoader, *mScene);
 
     initPasses();
+}
+
+void Render::setDescriptors() // set on default from drawframe, уыыуу
+{
+    SceneData* sceneData = &defaultSceneData;
+    {
+        mPbrPass.setFrameBufferFormat(swapChainImageFormat);
+        mPbrPass.setDepthBufferFormat(findDepthFormat());
+        mPbrPass.setTextureImageView(mTexManager->textureImageView);
+        mPbrPass.setTextureSampler(mTexManager->textureSampler);
+        mPbrPass.setShadowImageView(shadowImageView);
+        mPbrPass.setShadowSampler(mTexManager->shadowSampler);
+        mPbrPass.setMaterialBuffer(sceneData->mMaterialBuffer);
+    }
+    {
+        mPass.setFrameBufferFormat(swapChainImageFormat);
+        mPass.setDepthBufferFormat(findDepthFormat());
+        mPass.setTextureImageView(mTexManager->textureImageView);
+        mPass.setTextureSampler(mTexManager->textureSampler);
+        mPass.setShadowImageView(shadowImageView);
+        mPass.setShadowSampler(mTexManager->shadowSampler);
+        mPass.setMaterialBuffer(sceneData->mMaterialBuffer);
+    }
 }
 
 void Render::initPasses()
@@ -1035,15 +1057,33 @@ void Render::drawFrame()
     std::string newModelPath;
     std::string savedPath;
     mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
+
     if (!newModelPath.empty() && fs::exists(newModelPath))
     { //todo last path != new path
-        needReload = true;
-        savedPath = newModelPath;
+        if (!isDefaultScene) // if we reload non-default scene
+        {
+            isDefaultScene = true;
+            setDescriptors(); // set descriptors on default scene
+            needReload = true; // need to remove last scene data
+            savedPath = newModelPath;
+        }
+        else {
+         // if the previous one was default we dont need to remove anything just load
+        loadScene(newModelPath);
+        }
     }
 
-    if (needReload /* + some appropriate condition to destroying buffers*/)
-        loadScene(savedPath);
-
+    if (needReload)
+        ++countFrames;
+    if (needReload && countFrames == 3)
+    {
+        isDefaultScene = false;
+        freeSceneData(); // remove past non-default
+        loadScene(savedPath); // load new scene
+        countFrames = 0;
+        needReload = false;
+    }
+    std::cout << countFrames << std::endl;
 
     glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 

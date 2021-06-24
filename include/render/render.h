@@ -181,6 +181,7 @@ private:
     bool isPBR = true;
     bool isDefaultScene = true;
     bool needReload = false;
+    int countFrames = 0;
 
     // shaders data -- struct ?
     const char* csShaderCode = nullptr;
@@ -201,6 +202,8 @@ private:
     void createDefaultScene();
 
     void initPasses();
+
+    void setDescriptors();
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
