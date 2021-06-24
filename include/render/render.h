@@ -144,7 +144,8 @@ private:
         VkDeviceMemory mMaterialBufferMemory;
         VkBuffer mIndexBuffer;
         VkDeviceMemory mIndexBufferMemory;
-    }currentScene;
+    } currentSceneData, defaultSceneData;
+
     void freeSceneData();
 
     VkDescriptorPool mDescriptorPool;
@@ -175,9 +176,10 @@ private:
     nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
     nevk::Scene* mScene;
+    nevk::Scene* mDefaultScene;
 
     bool isPBR = true;
-    bool isEmptyScene = true;
+    bool isDefaultScene = true;
     bool needReload = false;
 
     // shaders data -- struct ?
@@ -195,6 +197,10 @@ private:
     uint32_t simpleFragShaderCodeSize = 0;
 
     void loadScene(const std::string& modelPath);
+
+    void createDefaultScene();
+
+    void initPasses();
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
@@ -240,13 +246,11 @@ private:
 
     bool hasStencilComponent(VkFormat format);
 
-    void loadModel(nevk::ModelLoader& testmodel);
+    void loadModel(nevk::ModelLoader& testmodel, nevk::Scene& scene);
 
-    void createVertexBuffer();
-
-    void createMaterialBuffer();
-
-    void createIndexBuffer();
+    void createVertexBuffer(nevk::Scene& scene);
+    void createMaterialBuffer(nevk::Scene& scene);
+    void createIndexBuffer(nevk::Scene& scene);
 
     void createDescriptorPool();
 
@@ -356,10 +360,23 @@ public:
     {
         return mResManager;
     }
+
     nevk::Scene* getScene()
     {
-        return mScene;
+        if (isDefaultScene)
+            return mDefaultScene;
+        else
+            return mScene;
     }
+
+    SceneData* getSceneData()
+    {
+        if (isDefaultScene)
+            return &defaultSceneData;
+        else
+            return &currentSceneData;
+    }
+
     void setDepthResources()
     {
         createDepthResources();

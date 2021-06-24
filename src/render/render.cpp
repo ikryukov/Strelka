@@ -74,10 +74,7 @@ void Render::initVulkan()
 
     createDepthResources();
 
-    mScene = new nevk::Scene;
-    isEmptyScene = MODEL_PATH.empty();
-    if (!isEmptyScene)
-        loadScene(MODEL_PATH);
+    createDefaultScene();
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
@@ -282,21 +279,29 @@ void Render::cleanupSwapChain()
 void Render::cleanup()
 {
     cleanupSwapChain();
-    if (!isEmptyScene)
-    {
-        mPbrPass.onDestroy();
-        mPass.onDestroy();
-        mDepthPass.onDestroy();
-    }
 
+    mPbrPass.onDestroy();
+    mPass.onDestroy();
+    mDepthPass.onDestroy();
     mUi.onDestroy();
 
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 
-    if (!isEmptyScene)
-    {
-        freeSceneData();
-    }
+    mTexManager->textureDestroy();
+
+    vkDestroyImageView(mDevice, textureCompImageView, nullptr);
+    vkDestroyImage(mDevice, textureCompImage, nullptr);
+    vkFreeMemory(mDevice, textureCompImageMemory, nullptr);
+
+    // different for default and normal scene ?
+    vkDestroyImageView(mDevice, shadowImageView, nullptr);
+    vkDestroyImage(mDevice, shadowImage, nullptr);
+    vkFreeMemory(mDevice, shadowImageMemory, nullptr);
+
+    isDefaultScene = true;
+    freeSceneData();
+    isDefaultScene = false;
+    freeSceneData();
 
     for (FrameData& fd : mFramesData)
     {
@@ -358,7 +363,8 @@ void Render::recreateSwapChain()
     mPbrPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(swapChainImageViews, width, height);
 
-    Camera& camera = mScene->getCamera();
+    nevk::Scene* scene = getScene();
+    Camera& camera = scene->getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 }
 
@@ -670,16 +676,16 @@ bool Render::hasStencilComponent(VkFormat format)
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Render::loadModel(nevk::ModelLoader& testmodel)
+void Render::loadModel(nevk::ModelLoader& testmodel, nevk::Scene& scene)
 {
     isPBR = true;
-    bool res = testmodel.loadModelGltf(MODEL_PATH, *mScene);
+    bool res = testmodel.loadModelGltf(MODEL_PATH, scene);
     // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, *mScene);
-    if (!res)
+    if (!res && !isDefaultScene)
     {
         return;
     }
-    Camera& camera = mScene->getCamera();
+    Camera& camera = scene.getCamera();
     camera.type = Camera::CameraType::firstperson;
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
     camera.rotationSpeed = 0.05f;
@@ -689,9 +695,10 @@ void Render::loadModel(nevk::ModelLoader& testmodel)
     camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 }
 
-void Render::createVertexBuffer()
+void Render::createVertexBuffer(nevk::Scene& scene)
 {
-    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene->getVertices();
+    SceneData* sceneData = getSceneData();
+    std::vector<nevk::Scene::Vertex>& sceneVertices = scene.getVertices();
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
     if (bufferSize == 0)
     {
@@ -706,17 +713,18 @@ void Render::createVertexBuffer()
     memcpy(data, sceneVertices.data(), (size_t)bufferSize);
     vkUnmapMemory(mDevice, stagingBufferMemory);
 
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, currentScene.mVertexBuffer, currentScene.mVertexBufferMemory);
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sceneData->mVertexBuffer, sceneData->mVertexBufferMemory);
 
-    mResManager->copyBuffer(stagingBuffer, currentScene.mVertexBuffer, bufferSize);
+    mResManager->copyBuffer(stagingBuffer, sceneData->mVertexBuffer, bufferSize);
 
     vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
     vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
 }
 
-void Render::createMaterialBuffer()
+void Render::createMaterialBuffer(nevk::Scene& scene)
 {
-    std::vector<nevk::Scene::Material>& sceneMaterials = mScene->getMaterials();
+    SceneData* sceneData = getSceneData();
+    std::vector<nevk::Scene::Material>& sceneMaterials = scene.getMaterials();
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
     if (bufferSize == 0)
@@ -733,18 +741,19 @@ void Render::createMaterialBuffer()
     memcpy(data, sceneMaterials.data(), (size_t)bufferSize);
     vkUnmapMemory(mDevice, stagingBufferMemory);
 
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, currentScene.mMaterialBuffer, currentScene.mMaterialBufferMemory);
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sceneData->mMaterialBuffer, sceneData->mMaterialBufferMemory);
 
-    mResManager->copyBuffer(stagingBuffer, currentScene.mMaterialBuffer, bufferSize);
+    mResManager->copyBuffer(stagingBuffer, sceneData->mMaterialBuffer, bufferSize);
 
     vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
     vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
 }
 
-void Render::createIndexBuffer()
+void Render::createIndexBuffer(nevk::Scene& scene)
 {
-    std::vector<uint32_t>& sceneIndices = mScene->getIndices();
-    currentScene.mIndicesCount = (uint32_t)sceneIndices.size();
+    SceneData* sceneData = getSceneData();
+    std::vector<uint32_t>& sceneIndices = scene.getIndices();
+    sceneData->mIndicesCount = (uint32_t)sceneIndices.size();
     VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
     if (bufferSize == 0)
     {
@@ -760,9 +769,9 @@ void Render::createIndexBuffer()
     memcpy(data, sceneIndices.data(), (size_t)bufferSize);
     vkUnmapMemory(mDevice, stagingBufferMemory);
 
-    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, currentScene.mIndexBuffer, currentScene.mIndexBufferMemory);
+    mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, sceneData->mIndexBuffer, sceneData->mIndexBufferMemory);
 
-    mResManager->copyBuffer(stagingBuffer, currentScene.mIndexBuffer, bufferSize);
+    mResManager->copyBuffer(stagingBuffer, sceneData->mIndexBuffer, bufferSize);
 
     vkDestroyBuffer(mDevice, stagingBuffer, nullptr);
     vkFreeMemory(mDevice, stagingBufferMemory, nullptr);
@@ -815,19 +824,20 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    if (!isEmptyScene)
-    {
-        mDepthPass.record(cmd, currentScene.mVertexBuffer, currentScene.mIndexBuffer, *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
+    SceneData* sceneData = getSceneData();
+    nevk::Scene* scene = getScene();
 
-        if (isPBR)
-        {
-            mPbrPass.record(cmd, currentScene.mVertexBuffer, currentScene.mIndexBuffer, *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
-        }
-        else
-        {
-            mPass.record(cmd, currentScene.mVertexBuffer, currentScene.mIndexBuffer, *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
-        }
+    mDepthPass.record(cmd, sceneData->mVertexBuffer, sceneData->mIndexBuffer, *scene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
+
+    if (isPBR)
+    {
+        mPbrPass.record(cmd, sceneData->mVertexBuffer, sceneData->mIndexBuffer, *scene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
+    else
+    {
+        mPass.record(cmd, sceneData->mVertexBuffer, sceneData->mIndexBuffer, *scene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    }
+
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
@@ -868,56 +878,50 @@ void Render::createSyncObjects()
         }
     }
 }
+
 // dumbest destroyer ever, that doesnt even work properly, but i can pretend as it is and the only dumb here is me.
 void Render::freeSceneData()
 {
-    vkDestroyImageView(mDevice, textureCompImageView, nullptr);
-    vkDestroyImage(mDevice, textureCompImage, nullptr);
-    vkFreeMemory(mDevice, textureCompImageMemory, nullptr);
+    SceneData* sceneData = getSceneData();
 
-    vkDestroyImageView(mDevice, shadowImageView, nullptr);
-    vkDestroyImage(mDevice, shadowImage, nullptr);
-    vkFreeMemory(mDevice, shadowImageMemory, nullptr);
+    vkDestroyBuffer(mDevice, sceneData->mIndexBuffer, nullptr);
+    vkFreeMemory(mDevice, sceneData->mIndexBufferMemory, nullptr);
 
-    vkDestroyBuffer(mDevice, currentScene.mIndexBuffer, nullptr);
-    vkFreeMemory(mDevice, currentScene.mIndexBufferMemory, nullptr);
+    vkDestroyBuffer(mDevice, sceneData->mMaterialBuffer, nullptr);
+    vkFreeMemory(mDevice, sceneData->mMaterialBufferMemory, nullptr);
 
-    vkDestroyBuffer(mDevice, currentScene.mMaterialBuffer, nullptr);
-    vkFreeMemory(mDevice, currentScene.mMaterialBufferMemory, nullptr);
-
-    vkDestroyBuffer(mDevice, currentScene.mVertexBuffer, nullptr);
-    vkFreeMemory(mDevice, currentScene.mVertexBufferMemory, nullptr);
+    vkDestroyBuffer(mDevice, sceneData->mVertexBuffer, nullptr);
+    vkFreeMemory(mDevice, sceneData->mVertexBufferMemory, nullptr);
 }
 
+// load into normal scene
 void Render::loadScene(const std::string& modelPath)
 {
-    if (!isEmptyScene && currentScene.mIndicesCount)
-    {
-        freeSceneData();
+    // freeSceneData();
+    // different managers for default and normal scene ?
+    if (modelLoader != nullptr)
+        delete modelLoader; // ? deleting null pointer has no effect anyway....
+    if (mScene != nullptr)
+        delete mScene;
+    if (mTexManager != nullptr)
+        delete mTexManager;
 
-        if (modelLoader != nullptr)
-            delete modelLoader; // ? deleting null pointer has no effect anyway....
-        if (mScene != nullptr)
-            delete mScene;
-
-        mTexManager->textureDestroy();
-        if (mTexManager != nullptr)
-            delete mTexManager;
-
-        mScene = new nevk::Scene;
-        mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
-    }
-
-    needReload = false;
-
+    mScene = new nevk::Scene;
+    mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
     modelLoader = new nevk::ModelLoader(mTexManager);
-
+    needReload = false;
+    isDefaultScene = false;
     MODEL_PATH = modelPath;
-    loadModel(*modelLoader);
-    isEmptyScene = false;
+    loadModel(*modelLoader, *mScene);
 
-    createMaterialBuffer();
+    initPasses();
+}
 
+void Render::initPasses()
+{
+    SceneData* sceneData = getSceneData();
+    nevk::Scene* scene = getScene();
+    createMaterialBuffer(*scene);
     {
         mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
                                  VK_IMAGE_TILING_OPTIMAL,
@@ -941,7 +945,7 @@ void Render::loadScene(const std::string& modelPath)
         mPbrPass.setTextureSampler(mTexManager->textureSampler);
         mPbrPass.setShadowImageView(shadowImageView);
         mPbrPass.setShadowSampler(mTexManager->shadowSampler);
-        mPbrPass.setMaterialBuffer(currentScene.mMaterialBuffer);
+        mPbrPass.setMaterialBuffer(sceneData->mMaterialBuffer);
         mPbrPass.init(mDevice, enableValidationLayers, pbrVertShaderCode, pbrVertShaderCodeSize, pbrFragShaderCode, pbrFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
         mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
@@ -954,7 +958,7 @@ void Render::loadScene(const std::string& modelPath)
         mPass.setTextureSampler(mTexManager->textureSampler);
         mPass.setShadowImageView(shadowImageView);
         mPass.setShadowSampler(mTexManager->shadowSampler);
-        mPass.setMaterialBuffer(currentScene.mMaterialBuffer);
+        mPass.setMaterialBuffer(sceneData->mMaterialBuffer);
         mPass.init(mDevice, enableValidationLayers, simpleVertShaderCode, simpleVertShaderCodeSize, simpleFragShaderCode, simpleFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
 
         mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
@@ -968,9 +972,22 @@ void Render::loadScene(const std::string& modelPath)
     mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    createIndexBuffer();
-    createVertexBuffer();
+    createIndexBuffer(*scene);
+    createVertexBuffer(*scene);
 }
+
+// set default scene
+void Render::createDefaultScene()
+{
+    mDefaultScene = new nevk::Scene;
+
+    modelLoader = new nevk::ModelLoader(mTexManager);
+
+    loadModel(*modelLoader, *mDefaultScene);
+
+    initPasses();
+}
+
 void Render::drawFrame()
 {
     FrameData& currFrame = getCurrentFrameData();
@@ -1003,30 +1020,28 @@ void Render::drawFrame()
     prevTime = currentTime;
 
     const uint32_t frameIndex = imageIndex;
+
     nevk::Scene* scene = getScene();
     Camera& cam = scene->getCamera();
 
     cam.update((float)deltaTime);
 
-    if (!isEmptyScene)
-    {
-        const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
+    const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
-        mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
-        mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *mScene);
-        mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *mScene);
-    }
+    mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
+    mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
+    mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
 
     std::string newModelPath;
     std::string savedPath;
     mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
-
     if (!newModelPath.empty() && fs::exists(newModelPath))
     { //todo last path != new path
         needReload = true;
         savedPath = newModelPath;
     }
-    if (needReload && vkGetFenceStatus(mDevice, currFrame.inFlightFence) == VK_SUCCESS/* + some appropriate condition to destroying buffers */)
+
+    if (needReload /* + some appropriate condition to destroying buffers*/)
         loadScene(savedPath);
 
 
