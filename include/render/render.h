@@ -87,6 +87,8 @@ public:
 
     std::string MODEL_PATH;
     std::string MTL_PATH;
+    std::string savedPath;
+
     uint32_t WIDTH;
     uint32_t HEIGHT;
 
@@ -126,12 +128,13 @@ private:
     VkDeviceMemory shadowImageMemory;
     VkImageView shadowImageView;
 
-    nevk::ResourceManager* mResManager;
-    nevk::TextureManager* mTexManager;
+    nevk::ResourceManager* mResManager = nullptr;
+    nevk::TextureManager* mTexManager = nullptr;
 
     nevk::RenderPass mPass;
     nevk::RenderPass mPbrPass;
-    nevk::ModelLoader* modelLoader;
+    nevk::ModelLoader* modelLoader = nullptr;
+    nevk::ModelLoader* defaultModelLoader = nullptr;
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
 
@@ -175,8 +178,9 @@ private:
 
     nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
-    nevk::Scene* mScene;
-    nevk::Scene* mDefaultScene;
+    nevk::Scene* mScene = nullptr;
+    nevk::Scene* mDefaultScene = nullptr;
+    nevk::TextureManager* mDefaultTexManager;
 
     bool isPBR = true;
     bool isDefaultScene = true;
@@ -355,10 +359,7 @@ public:
     {
         return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
     }
-    nevk::TextureManager* getTexManager()
-    {
-        return mTexManager;
-    }
+
     nevk::ResourceManager* getResManager()
     {
         return mResManager;
@@ -370,6 +371,14 @@ public:
             return mDefaultScene;
         else
             return mScene;
+    }
+
+    nevk::TextureManager* getTexManager()
+    {
+        if (isDefaultScene)
+            return mDefaultTexManager;
+        else
+            return mTexManager;
     }
 
     SceneData* getSceneData()
