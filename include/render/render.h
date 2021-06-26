@@ -139,12 +139,12 @@ private:
     struct SceneData
     {
         uint32_t mIndicesCount = 0;
-        VkBuffer mVertexBuffer;
-        VkDeviceMemory mVertexBufferMemory;
-        VkBuffer mMaterialBuffer;
-        VkDeviceMemory mMaterialBufferMemory;
-        VkBuffer mIndexBuffer;
-        VkDeviceMemory mIndexBufferMemory;
+        VkBuffer mVertexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory mVertexBufferMemory = VK_NULL_HANDLE;
+        VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory mMaterialBufferMemory = VK_NULL_HANDLE;
+        VkBuffer mIndexBuffer = VK_NULL_HANDLE;
+        VkDeviceMemory mIndexBufferMemory = VK_NULL_HANDLE;
     } currentSceneData, defaultSceneData;
 
     void freeSceneData();
