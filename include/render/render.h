@@ -87,7 +87,6 @@ public:
 
     std::string MODEL_PATH;
     std::string MTL_PATH;
-    std::string savedPath;
 
     uint32_t WIDTH;
     uint32_t HEIGHT;
@@ -134,7 +133,6 @@ private:
     nevk::RenderPass mPass;
     nevk::RenderPass mPbrPass;
     nevk::ModelLoader* modelLoader = nullptr;
-    nevk::ModelLoader* defaultModelLoader = nullptr;
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
 

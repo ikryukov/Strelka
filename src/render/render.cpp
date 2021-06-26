@@ -300,9 +300,9 @@ void Render::cleanup()
     vkDestroyImage(mDevice, shadowImage, nullptr);
     vkFreeMemory(mDevice, shadowImageMemory, nullptr);
 
-    isDefaultScene = true;
-    freeSceneData();
     isDefaultScene = false;
+    freeSceneData();
+    isDefaultScene = true;
     freeSceneData();
 
     for (FrameData& fd : mFramesData)
@@ -1010,10 +1010,8 @@ void Render::initPasses()
 void Render::createDefaultScene()
 {
     mDefaultScene = new nevk::Scene;
-
-    defaultModelLoader = new nevk::ModelLoader(mDefaultTexManager);
-
-    loadModel(*defaultModelLoader, *mDefaultScene);
+    modelLoader = new nevk::ModelLoader(mDefaultTexManager);
+    loadModel(*modelLoader, *mDefaultScene);
 
     initPasses();
 }
@@ -1062,6 +1060,7 @@ void Render::drawFrame()
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
     mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
     std::string newModelPath;
+    static std::string savedPath;
     mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
 
     if (!newModelPath.empty() && fs::exists(newModelPath))
@@ -1086,9 +1085,6 @@ void Render::drawFrame()
     {
         isDefaultScene = false;
         freeSceneData(); // remove past non-default
-        mPbrPass.onDestroy();
-        mPass.onDestroy();
-        mDepthPass.onDestroy();
         loadScene(savedPath); // load new scene
         countFrames = 0;
         needReload = false;
