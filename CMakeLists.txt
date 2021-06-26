@@ -106,6 +106,10 @@ target_include_directories(${RESMNGR_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/
 target_include_directories(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 
+# VMA (Vulkan Memory Allocator)
+#target_include_directories(${RENDERLIB_NAME} PUBLIC external/vma/src)
+target_include_directories(${RESMNGR_NAME}  PUBLIC external/vma/src)
+
 # Render lib
 set(RENDER_SOURCES
         include/render/render.h
@@ -236,9 +240,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 # if (MSVC)
 #	target_link_libraries(${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/external/imgui/imgui.lib")
 # endif()
-
-# VMA (Vulkan Memory Allocator)
-# target_include_directories(${PROJECT_NAME} PRIVATE external/vma/src)
 
 # GLM (OpenGL Mathematics)
 # target_include_directories(${PROJECT_NAME} PRIVATE external/glm)

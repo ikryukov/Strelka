@@ -65,7 +65,7 @@ void Render::initVulkan()
     createDescriptorPool();
     createCommandPool();
 
-    mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, getCurrentFrameData().cmdPool, mGraphicsQueue);
+    mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, getCurrentFrameData().cmdPool, mGraphicsQueue, mInstance);
     mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
     mDefaultTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
 

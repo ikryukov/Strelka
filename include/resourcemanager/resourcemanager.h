@@ -11,20 +11,21 @@ private:
     VkPhysicalDevice mPhysicalDevice;
     VkCommandPool mCommandPool;
     VkQueue mGraphicsQueue;
-
+    VkInstance mInstance;
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
+    void fillAllocator();
 
 public:
-    ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue)
+    ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkCommandPool commandPool, VkQueue graphicsQueue, VkInstance instance)
         : mDevice(device),
           mPhysicalDevice(physicalDevice),
           mCommandPool(commandPool),
-          mGraphicsQueue(graphicsQueue)
+          mGraphicsQueue(graphicsQueue),
+          mInstance(instance)
     {
     }
 
     void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
-
     void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
 
     VkCommandBuffer beginSingleTimeCommands();

@@ -2,8 +2,23 @@
 
 #include <stdexcept>
 
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
+VmaAllocator allocator;
+
 namespace nevk
 {
+
+void ResourceManager::fillAllocator()
+{
+    VmaAllocatorCreateInfo allocatorInfo = {};
+    allocatorInfo.physicalDevice = mPhysicalDevice;
+    allocatorInfo.device = mDevice;
+    allocatorInfo.instance = mInstance;
+
+    vmaCreateAllocator(&allocatorInfo, &allocator);
+}
 
 uint32_t ResourceManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
@@ -29,10 +44,21 @@ void ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateBuffer(mDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+    VmaAllocationCreateInfo vmaAllocInfo = {};
+    vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+    VmaAllocation allocation;
+    fillAllocator();
+
+    if (vmaCreateBuffer(allocator, &bufferInfo, &vmaAllocInfo, &buffer, &allocation, nullptr) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create buffer!");
     }
+
+    /*  if (vkCreateBuffer(mDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+      {
+         throw std::runtime_error("failed to create buffer!");
+      }
+      */
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(mDevice, buffer, &memRequirements);
