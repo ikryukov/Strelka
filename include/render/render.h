@@ -203,7 +203,7 @@ private:
 
     void createDefaultScene();
 
-    void initPasses();
+    void updatePasses();
 
     void setDescriptors();
 

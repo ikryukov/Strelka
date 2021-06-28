@@ -46,19 +46,18 @@ void ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
 
     VmaAllocationCreateInfo vmaAllocInfo = {};
     vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
     VmaAllocation allocation;
-    fillAllocator();
 
-    if (vmaCreateBuffer(allocator, &bufferInfo, &vmaAllocInfo, &buffer, &allocation, nullptr) != VK_SUCCESS)
+   /* if (vmaCreateBuffer(allocator, &bufferInfo, &vmaAllocInfo, &buffer, &allocation, nullptr) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create buffer!");
+    }*/
+
+    if (vkCreateBuffer(mDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create buffer!");
     }
-
-    /*  if (vkCreateBuffer(mDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-      {
-         throw std::runtime_error("failed to create buffer!");
-      }
-      */
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(mDevice, buffer, &memRequirements);
@@ -74,6 +73,11 @@ void ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
     }
 
     //vkBindBufferMemory(mDevice, buffer, bufferMemory, 0);
+}
+
+void ResourceManager::destroyBuffer()
+{
+    //  vmaDestroyBuffer(allocator, buffer, allocation);
 }
 
 void ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)

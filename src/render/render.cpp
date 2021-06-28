@@ -66,6 +66,7 @@ void Render::initVulkan()
     createCommandPool();
 
     mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, getCurrentFrameData().cmdPool, mGraphicsQueue, mInstance);
+    mResManager->fillAllocator();
     mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
     mDefaultTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
 
@@ -76,6 +77,16 @@ void Render::initVulkan()
     createDepthResources();
 
     createDefaultScene();
+
+    //init passes
+    mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+
+    mPbrPass.init(mDevice, enableValidationLayers, pbrVertShaderCode, pbrVertShaderCodeSize, pbrFragShaderCode, pbrFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+    mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
+    mPass.init(mDevice, enableValidationLayers, simpleVertShaderCode, simpleVertShaderCodeSize, simpleFragShaderCode, simpleFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+    mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
@@ -918,7 +929,7 @@ void Render::loadScene(const std::string& modelPath)
     MODEL_PATH = modelPath;
     loadModel(*modelLoader, *mScene);
 
-    initPasses();
+    updatePasses();
 }
 
 void Render::setDescriptors()
@@ -945,7 +956,7 @@ void Render::setDescriptors()
     }
 }
 
-void Render::initPasses()
+void Render::updatePasses()
 {
     SceneData* sceneData = getSceneData();
     nevk::Scene* scene = getScene();
@@ -959,9 +970,11 @@ void Render::initPasses()
                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                  shadowImage, shadowImageMemory);
         shadowImageView = texManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
-
-        mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-        mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+        if (!isDefaultScene)
+        {
+            mDepthPass.updateResourses(mDevice, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+            mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+        }
     }
 
     texManager->createShadowSampler();
@@ -976,9 +989,11 @@ void Render::initPasses()
         mPbrPass.setShadowImageView(shadowImageView);
         mPbrPass.setShadowSampler(texManager->shadowSampler);
         mPbrPass.setMaterialBuffer(sceneData->mMaterialBuffer);
-        mPbrPass.init(mDevice, enableValidationLayers, pbrVertShaderCode, pbrVertShaderCodeSize, pbrFragShaderCode, pbrFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
-
-        mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+        if (!isDefaultScene)
+        {
+            mPbrPass.updateResourses(mDevice, swapChainExtent.width, swapChainExtent.height);
+            mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+        }
     }
     // Simple
     {
@@ -989,9 +1004,11 @@ void Render::initPasses()
         mPass.setShadowImageView(shadowImageView);
         mPass.setShadowSampler(texManager->shadowSampler);
         mPass.setMaterialBuffer(sceneData->mMaterialBuffer);
-        mPass.init(mDevice, enableValidationLayers, simpleVertShaderCode, simpleVertShaderCodeSize, simpleFragShaderCode, simpleFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
-
-        mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+        if (!isDefaultScene)
+        {
+            mPass.updateResourses(mDevice, swapChainExtent.width, swapChainExtent.height);
+            mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+        }
     }
 
     mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -1013,7 +1030,7 @@ void Render::createDefaultScene()
     modelLoader = new nevk::ModelLoader(mDefaultTexManager);
     loadModel(*modelLoader, *mDefaultScene);
 
-    initPasses();
+    updatePasses();
 }
 
 void Render::drawFrame()
