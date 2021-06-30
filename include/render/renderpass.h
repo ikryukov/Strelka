@@ -182,10 +182,18 @@ public:
         mPipelineTransparent = createGraphicsPipeline(mVS, mPS, mPipelineLayoutTransparent, width, height, true);
     }
 
-    void updateResourses(/*VkDevice& device,*/ uint32_t width, uint32_t height)
+    void updateResourses(uint32_t width, uint32_t height)
     {
+        vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
+
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
+
+        vkDestroyPipeline(mDevice, mPipelineTransparent, nullptr);
+        vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
+        vkDestroyPipelineLayout(mDevice, mPipelineLayoutOpaque, nullptr);
+        vkDestroyPipelineLayout(mDevice, mPipelineLayoutTransparent, nullptr);
+
         mPipelineLayoutOpaque = createGraphicsPipelineLayout();
         mPipelineLayoutTransparent = createGraphicsPipelineLayout();
         mPipelineOpaque = createGraphicsPipeline(mVS, mPS, mPipelineLayoutOpaque, width, height, false);

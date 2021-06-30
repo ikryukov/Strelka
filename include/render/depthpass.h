@@ -93,8 +93,12 @@ public:
 
     void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix);
 
-    void updateResourses(/*VkDevice& device,*/ uint32_t width, uint32_t height)
+    void updateResourses(uint32_t width, uint32_t height)
     {
+        vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
+        vkDestroyPipeline(mDevice, mPipeline, nullptr);
+        vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
+
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
         createGraphicsPipeline(mSS, width, height);

@@ -77,6 +77,7 @@ void Render::initVulkan()
     createDepthResources();
 
     createDefaultScene();
+    modelLoader = new nevk::ModelLoader(mTexManager);
 
     //init passes
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
@@ -894,7 +895,6 @@ void Render::createSyncObjects()
     }
 }
 
-// dumbest destroyer ever, that doesnt even work properly, but i can pretend as it is and the only dumb here is me.
 void Render::freeSceneData()
 {
     SceneData* sceneData = getSceneData();
@@ -912,20 +912,13 @@ void Render::freeSceneData()
 // load into normal scene
 void Render::loadScene(const std::string& modelPath)
 {
-    if (modelLoader != nullptr)
-        delete modelLoader;
+    isDefaultScene = false;
+
     if (mScene != nullptr)
         delete mScene;
-    if (mTexManager != nullptr)
-    {
-        mTexManager->textureDestroy();
-        delete mTexManager;
-    }
-
     mScene = new nevk::Scene;
-    mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
-    modelLoader = new nevk::ModelLoader(mTexManager);
-    isDefaultScene = false;
+
+    mTexManager->textureDestroy();
     MODEL_PATH = modelPath;
     loadModel(*modelLoader, *mScene);
 
@@ -934,8 +927,9 @@ void Render::loadScene(const std::string& modelPath)
 
 void Render::setDescriptors()
 {
-    nevk::TextureManager* texManager = getTexManager(); // suppose to be a default tex manager
-    SceneData* sceneData = &defaultSceneData;
+    nevk::TextureManager* texManager = getTexManager();
+    SceneData* sceneData = getSceneData();
+
     {
         mPbrPass.setFrameBufferFormat(swapChainImageFormat);
         mPbrPass.setDepthBufferFormat(findDepthFormat());
@@ -958,66 +952,19 @@ void Render::setDescriptors()
 
 void Render::updatePasses()
 {
-    SceneData* sceneData = getSceneData();
     nevk::Scene* scene = getScene();
     nevk::TextureManager* texManager = getTexManager();
 
     createMaterialBuffer(*scene);
-    {
-        mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
-                                 VK_IMAGE_TILING_OPTIMAL,
-                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                 shadowImage, shadowImageMemory);
-        shadowImageView = texManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
-        if (!isDefaultScene)
-        {
-            mDepthPass.updateResourses(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-            mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-        }
-    }
 
     texManager->createShadowSampler();
     texManager->createTextureSampler();
 
-    // PBR
-    {
-        mPbrPass.setFrameBufferFormat(swapChainImageFormat);
-        mPbrPass.setDepthBufferFormat(findDepthFormat());
-        mPbrPass.setTextureImageView(texManager->textureImageView);
-        mPbrPass.setTextureSampler(texManager->textureSampler);
-        mPbrPass.setShadowImageView(shadowImageView);
-        mPbrPass.setShadowSampler(texManager->shadowSampler);
-        mPbrPass.setMaterialBuffer(sceneData->mMaterialBuffer);
-        if (!isDefaultScene)
-        {
-            mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
-            mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
-        }
-    }
-    // Simple
-    {
-        mPass.setFrameBufferFormat(swapChainImageFormat);
-        mPass.setDepthBufferFormat(findDepthFormat());
-        mPass.setTextureImageView(texManager->textureImageView);
-        mPass.setTextureSampler(texManager->textureSampler);
-        mPass.setShadowImageView(shadowImageView);
-        mPass.setShadowSampler(texManager->shadowSampler);
-        mPass.setMaterialBuffer(sceneData->mMaterialBuffer);
-        if (!isDefaultScene)
-        {
-            mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
-            mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
-        }
-    }
+    setDescriptors();
 
-    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                             VK_IMAGE_TILING_OPTIMAL,
-                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                             textureCompImage, textureCompImageMemory);
-    texManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    textureCompImageView = texManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    mDepthPass.updateResourses(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
+    mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
 
     createIndexBuffer(*scene);
     createVertexBuffer(*scene);
@@ -1030,7 +977,31 @@ void Render::createDefaultScene()
     modelLoader = new nevk::ModelLoader(mDefaultTexManager);
     loadModel(*modelLoader, *mDefaultScene);
 
-    updatePasses();
+    createMaterialBuffer(*mDefaultScene);
+    {
+        mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
+                                 VK_IMAGE_TILING_OPTIMAL,
+                                 VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                 shadowImage, shadowImageMemory);
+        shadowImageView = mDefaultTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+
+    mDefaultTexManager->createShadowSampler();
+    mDefaultTexManager->createTextureSampler();
+
+    setDescriptors();
+
+    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                             VK_IMAGE_TILING_OPTIMAL,
+                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                             textureCompImage, textureCompImageMemory);
+    mDefaultTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    textureCompImageView = mDefaultTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+    createIndexBuffer(*mDefaultScene);
+    createVertexBuffer(*mDefaultScene);
 }
 
 void Render::drawFrame()

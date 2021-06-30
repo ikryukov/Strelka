@@ -42,7 +42,6 @@ public:
     int findTexture(const std::string& name);
 
     Texture createTextureImage(const std::string& texture_path);
-    
     Texture createTextureImage(const void* pixels, uint32_t width, uint32_t height);
 
     void createTextureImageView(Texture& texture);
@@ -71,6 +70,10 @@ public:
             vkDestroyImage(mDevice, tex.textureImage, nullptr);
             vkFreeMemory(mDevice, tex.textureImageMemory, nullptr);
         }
+
+        textures.clear();
+        textureImageView.clear();
+        mNameToID.clear();
     }
 };
 } // namespace nevk
