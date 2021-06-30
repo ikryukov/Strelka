@@ -72,7 +72,7 @@ void ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
         throw std::runtime_error("failed to allocate buffer memory!");
     }
 
-    //vkBindBufferMemory(mDevice, buffer, bufferMemory, 0);
+    vkBindBufferMemory(mDevice, buffer, bufferMemory, 0);
 }
 
 void ResourceManager::destroyBuffer()

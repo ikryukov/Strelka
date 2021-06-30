@@ -182,7 +182,7 @@ public:
         mPipelineTransparent = createGraphicsPipeline(mVS, mPS, mPipelineLayoutTransparent, width, height, true);
     }
 
-    void updateResourses(VkDevice& device, uint32_t width, uint32_t height)
+    void updateResourses(/*VkDevice& device,*/ uint32_t width, uint32_t height)
     {
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);

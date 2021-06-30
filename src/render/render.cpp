@@ -972,7 +972,7 @@ void Render::updatePasses()
         shadowImageView = texManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
         if (!isDefaultScene)
         {
-            mDepthPass.updateResourses(mDevice, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+            mDepthPass.updateResourses(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
             mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
         }
     }
@@ -991,7 +991,7 @@ void Render::updatePasses()
         mPbrPass.setMaterialBuffer(sceneData->mMaterialBuffer);
         if (!isDefaultScene)
         {
-            mPbrPass.updateResourses(mDevice, swapChainExtent.width, swapChainExtent.height);
+            mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
             mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
         }
     }
@@ -1006,7 +1006,7 @@ void Render::updatePasses()
         mPass.setMaterialBuffer(sceneData->mMaterialBuffer);
         if (!isDefaultScene)
         {
-            mPass.updateResourses(mDevice, swapChainExtent.width, swapChainExtent.height);
+            mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
             mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
         }
     }
