@@ -178,10 +178,8 @@ private:
     nevk::ShaderManager mShaderManager;
     nevk::Scene* mScene = nullptr;
     nevk::Scene* mDefaultScene = nullptr;
-    nevk::TextureManager* mDefaultTexManager;
 
     bool isPBR = true;
-    bool isDefaultScene = true;
     bool needReload = false;
     int countFrames = 0;
 
@@ -365,23 +363,17 @@ public:
 
     nevk::Scene* getScene()
     {
-        if (isDefaultScene)
-            return mDefaultScene;
-        else
-            return mScene;
+        return mScene;
     }
 
     nevk::TextureManager* getTexManager()
     {
-        if (isDefaultScene)
-            return mDefaultTexManager;
-        else
-            return mTexManager;
+        return mTexManager;
     }
 
     SceneRenderData* getSceneData()
     {
-        if (isDefaultScene)
+        if (mScene == mDefaultScene)
             return &defaultSceneData;
         else
             return &currentSceneData;

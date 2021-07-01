@@ -68,7 +68,6 @@ void Render::initVulkan()
     mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, getCurrentFrameData().cmdPool, mGraphicsQueue, mInstance);
     mResManager->fillAllocator();
     mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
-    mDefaultTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
 
     createImageViews();
     createCommandBuffers();
@@ -77,7 +76,6 @@ void Render::initVulkan()
     createDepthResources();
 
     createDefaultScene();
-    modelLoader = new nevk::ModelLoader(mTexManager);
 
     //init passes
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
@@ -301,7 +299,6 @@ void Render::cleanup()
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 
     mTexManager->textureDestroy();
-    mDefaultTexManager->textureDestroy();
 
     vkDestroyImageView(mDevice, textureCompImageView, nullptr);
     vkDestroyImage(mDevice, textureCompImage, nullptr);
@@ -312,9 +309,8 @@ void Render::cleanup()
     vkDestroyImage(mDevice, shadowImage, nullptr);
     vkFreeMemory(mDevice, shadowImageMemory, nullptr);
 
-    isDefaultScene = false;
     freeSceneData();
-    isDefaultScene = true;
+    mScene = mDefaultScene;
     freeSceneData();
 
     for (FrameData& fd : mFramesData)
@@ -697,7 +693,7 @@ void Render::loadModel(nevk::ModelLoader& testmodel, nevk::Scene& scene)
     isPBR = true;
     bool res = testmodel.loadModelGltf(MODEL_PATH, scene);
     // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, *mScene);
-    if (!res && !isDefaultScene)
+    if (!res && mScene != mDefaultScene)
     {
         return;
     }
@@ -912,9 +908,7 @@ void Render::freeSceneData()
 // load into normal scene
 void Render::loadScene(const std::string& modelPath)
 {
-    isDefaultScene = false;
-
-    if (mScene != nullptr)
+    if (mScene != nullptr && mScene != mDefaultScene)
         delete mScene;
     mScene = new nevk::Scene;
 
@@ -970,21 +964,22 @@ void Render::updatePasses()
 void Render::createDefaultScene()
 {
     mDefaultScene = new nevk::Scene;
-    modelLoader = new nevk::ModelLoader(mDefaultTexManager);
-    loadModel(*modelLoader, *mDefaultScene);
+    mScene = mDefaultScene;
+    modelLoader = new nevk::ModelLoader(mTexManager);
+    loadModel(*modelLoader, *mScene);
 
-    createMaterialBuffer(*mDefaultScene);
+    createMaterialBuffer(*mScene);
     {
         mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
                                  VK_IMAGE_TILING_OPTIMAL,
                                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                                  shadowImage, shadowImageMemory);
-        shadowImageView = mDefaultTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
+        shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
     }
 
-    mDefaultTexManager->createShadowSampler();
-    mDefaultTexManager->createTextureSampler();
+    mTexManager->createShadowSampler();
+    mTexManager->createTextureSampler();
 
     mPbrPass.setFrameBufferFormat(swapChainImageFormat);
     mPbrPass.setDepthBufferFormat(findDepthFormat());
@@ -999,11 +994,11 @@ void Render::createDefaultScene()
                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                              textureCompImage, textureCompImageMemory);
-    mDefaultTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    textureCompImageView = mDefaultTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    createIndexBuffer(*mDefaultScene);
-    createVertexBuffer(*mDefaultScene);
+    createIndexBuffer(*mScene);
+    createVertexBuffer(*mScene);
 }
 
 void Render::drawFrame()
@@ -1051,13 +1046,15 @@ void Render::drawFrame()
     mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
     std::string newModelPath;
     static std::string savedPath;
+    static nevk::Scene* toRemoveScene;
     mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
 
     if (!newModelPath.empty() && fs::exists(newModelPath))
     { //todo last path != new path
-        if (!isDefaultScene) // if we reload non-default scene
+        if (mScene != mDefaultScene) // if we reload non-default scene
         {
-            isDefaultScene = true;
+            toRemoveScene = mScene;
+            mScene = mDefaultScene;
             setDescriptors(); // set descriptors on default scene
             needReload = true; // need to remove last scene data
             savedPath = newModelPath;
@@ -1073,7 +1070,7 @@ void Render::drawFrame()
         ++countFrames;
     if (needReload && countFrames == 3)
     {
-        isDefaultScene = false;
+        mScene = toRemoveScene;
         freeSceneData(); // remove past non-default
         loadScene(savedPath); // load new scene
         countFrames = 0;
