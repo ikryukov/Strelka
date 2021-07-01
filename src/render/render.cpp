@@ -713,7 +713,7 @@ void Render::loadModel(nevk::ModelLoader& testmodel, nevk::Scene& scene)
 
 void Render::createVertexBuffer(nevk::Scene& scene)
 {
-    SceneData* sceneData = getSceneData();
+    SceneRenderData* sceneData = getSceneData();
     std::vector<nevk::Scene::Vertex>& sceneVertices = scene.getVertices();
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
     if (bufferSize == 0)
@@ -739,7 +739,7 @@ void Render::createVertexBuffer(nevk::Scene& scene)
 
 void Render::createMaterialBuffer(nevk::Scene& scene)
 {
-    SceneData* sceneData = getSceneData();
+    SceneRenderData* sceneData = getSceneData();
     std::vector<nevk::Scene::Material>& sceneMaterials = scene.getMaterials();
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
@@ -767,7 +767,7 @@ void Render::createMaterialBuffer(nevk::Scene& scene)
 
 void Render::createIndexBuffer(nevk::Scene& scene)
 {
-    SceneData* sceneData = getSceneData();
+    SceneRenderData* sceneData = getSceneData();
     std::vector<uint32_t>& sceneIndices = scene.getIndices();
     sceneData->mIndicesCount = (uint32_t)sceneIndices.size();
     VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
@@ -840,7 +840,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    SceneData* sceneData = getSceneData();
+    SceneRenderData* sceneData = getSceneData();
     nevk::Scene* scene = getScene();
 
     mDepthPass.record(cmd, sceneData->mVertexBuffer, sceneData->mIndexBuffer, *scene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
@@ -897,7 +897,7 @@ void Render::createSyncObjects()
 
 void Render::freeSceneData()
 {
-    SceneData* sceneData = getSceneData();
+    SceneRenderData* sceneData = getSceneData();
 
     vkDestroyBuffer(mDevice, sceneData->mIndexBuffer, nullptr);
     vkFreeMemory(mDevice, sceneData->mIndexBufferMemory, nullptr);
@@ -928,11 +928,9 @@ void Render::loadScene(const std::string& modelPath)
 void Render::setDescriptors()
 {
     nevk::TextureManager* texManager = getTexManager();
-    SceneData* sceneData = getSceneData();
+    SceneRenderData* sceneData = getSceneData();
 
     {
-        mPbrPass.setFrameBufferFormat(swapChainImageFormat);
-        mPbrPass.setDepthBufferFormat(findDepthFormat());
         mPbrPass.setTextureImageView(texManager->textureImageView);
         mPbrPass.setTextureSampler(texManager->textureSampler);
         mPbrPass.setShadowImageView(shadowImageView);
@@ -940,8 +938,6 @@ void Render::setDescriptors()
         mPbrPass.setMaterialBuffer(sceneData->mMaterialBuffer);
     }
     {
-        mPass.setFrameBufferFormat(swapChainImageFormat);
-        mPass.setDepthBufferFormat(findDepthFormat());
         mPass.setTextureImageView(texManager->textureImageView);
         mPass.setTextureSampler(texManager->textureSampler);
         mPass.setShadowImageView(shadowImageView);
@@ -989,6 +985,12 @@ void Render::createDefaultScene()
 
     mDefaultTexManager->createShadowSampler();
     mDefaultTexManager->createTextureSampler();
+
+    mPbrPass.setFrameBufferFormat(swapChainImageFormat);
+    mPbrPass.setDepthBufferFormat(findDepthFormat());
+
+    mPass.setFrameBufferFormat(swapChainImageFormat);
+    mPass.setDepthBufferFormat(findDepthFormat());
 
     setDescriptors();
 

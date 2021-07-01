@@ -136,7 +136,7 @@ private:
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
 
-    struct SceneData
+    struct SceneRenderData
     {
         uint32_t mIndicesCount = 0;
         VkBuffer mVertexBuffer = VK_NULL_HANDLE;
@@ -379,7 +379,7 @@ public:
             return mTexManager;
     }
 
-    SceneData* getSceneData()
+    SceneRenderData* getSceneData()
     {
         if (isDefaultScene)
             return &defaultSceneData;
