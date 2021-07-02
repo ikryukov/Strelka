@@ -112,7 +112,10 @@ public:
 
     void destroyBuffer(Buffer* buffer)
     {
+        assert(buffer);
         vmaDestroyBuffer(mAllocator, buffer->handle, buffer->allocation);
+        delete buffer;
+        buffer = nullptr;
     }
 
     VkBuffer getVkBuffer(const Buffer* buffer)
@@ -157,7 +160,10 @@ public:
 
     void destroyImage(Image* image)
     {
+        assert(image);
         vmaDestroyImage(mAllocator, image->handle, image->allocation);
+        delete image;
+        image = nullptr;
     }
 
     VkImage getVkImage(const Image* image)
