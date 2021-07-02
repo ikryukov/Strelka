@@ -13,6 +13,12 @@ struct Buffer
     VmaAllocation allocation = VK_NULL_HANDLE;
 };
 
+struct Image
+{
+    VkImage handle = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+};
+
 class ResourceManager::Context
 {
     VkDevice mDevice;
@@ -79,10 +85,9 @@ public:
         VmaAllocationCreateInfo vmaAllocInfo = {};
         vmaAllocInfo.usage = memUsage;
         vmaAllocInfo.flags = allocFlags;
-        VmaAllocationInfo allocInfo = {};
 
         Buffer* ret = new Buffer();
-        if (vmaCreateBuffer(mAllocator, &bufferInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, &allocInfo) != VK_SUCCESS)
+        if (vmaCreateBuffer(mAllocator, &bufferInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, nullptr) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create buffer!");
         }
@@ -105,6 +110,45 @@ public:
     {
         return buffer->handle;
     }
+
+    Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
+    {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = width;
+        imageInfo.extent.height = height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 1;
+        imageInfo.format = format;
+        imageInfo.tiling = tiling;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = usage;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VmaAllocationCreateInfo vmaAllocInfo = {};
+        vmaAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        VmaAllocationInfo allocInfo = {};
+        
+        Image* ret = new Image();
+        if (vmaCreateImage(mAllocator, &imageInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, nullptr) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create image!");
+        }
+        return ret;
+    }
+
+    void destroyImage(Image* image)
+    {
+        vmaDestroyImage(mAllocator, image->handle, image->allocation);
+    }
+
+    VkImage getVkImage(const Image* image)
+    {
+        return image->handle;
+    }
 };
 
 ResourceManager::ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkInstance instance, VkCommandPool commandPool, VkQueue graphicsQueue)
@@ -114,22 +158,6 @@ ResourceManager::ResourceManager(VkDevice device, VkPhysicalDevice physicalDevic
     mCommandPool = commandPool;
     mGraphicsQueue = graphicsQueue;
     mContext = std::make_unique<Context>(device, physicalDevice, instance);
-}
-
-uint32_t ResourceManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
-{
-    VkPhysicalDeviceMemoryProperties memProperties;
-    vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &memProperties);
-
-    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
-    {
-        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-        {
-            return i;
-        }
-    }
-
-    throw std::runtime_error("failed to find suitable memory type!");
 }
 
 Buffer* ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
@@ -152,43 +180,21 @@ VkBuffer ResourceManager::getVkBuffer(const Buffer* buffer)
     return mContext->getVkBuffer(buffer);
 }
 
-void ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)
+Image* ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
 {
-    VkImageCreateInfo imageInfo{};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.imageType = VK_IMAGE_TYPE_2D;
-    imageInfo.extent.width = width;
-    imageInfo.extent.height = height;
-    imageInfo.extent.depth = 1;
-    imageInfo.mipLevels = 1;
-    imageInfo.arrayLayers = 1;
-    imageInfo.format = format;
-    imageInfo.tiling = tiling;
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imageInfo.usage = usage;
-    imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-    imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateImage(mDevice, &imageInfo, nullptr, &image) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create image!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(mDevice, image, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(mDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to allocate image memory!");
-    }
-
-    vkBindImageMemory(mDevice, image, imageMemory, 0);
+    return mContext->createImage(width, height, format, tiling, usage, properties);
 }
+
+void ResourceManager::destroyImage(Image* image)
+{
+    return mContext->destroyImage(image);
+}
+
+VkImage ResourceManager::getVkImage(const Image* image)
+{
+    return mContext->getVkImage(image);
+}
+
 VkCommandBuffer ResourceManager::beginSingleTimeCommands()
 {
     VkCommandBufferAllocateInfo allocInfo{};

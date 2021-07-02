@@ -115,16 +115,13 @@ private:
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
+    nevk::Image* depthImage;
     VkImageView depthImageView;
 
-    VkImage textureCompImage;
-    VkDeviceMemory textureCompImageMemory;
+    nevk::Image* textureCompImage;
     VkImageView textureCompImageView;
 
-    VkImage shadowImage;
-    VkDeviceMemory shadowImageMemory;
+    nevk::Image* shadowImage;
     VkImageView shadowImageView;
 
     nevk::ResourceManager* mResManager;

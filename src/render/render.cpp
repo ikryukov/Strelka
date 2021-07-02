@@ -81,12 +81,11 @@ void Render::initVulkan()
         const char* shShaderCode = nullptr;
         uint32_t shShaderCodeSize = 0;
         mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);
-        mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
+        shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
                                  VK_IMAGE_TILING_OPTIMAL,
                                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                 shadowImage, shadowImageMemory);
-        shadowImageView = mTexManager->createImageView(shadowImage, findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
+                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
 
         mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
         mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
@@ -145,13 +144,12 @@ void Render::initVulkan()
 
         mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
     }
-    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                             VK_IMAGE_TILING_OPTIMAL,
-                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                             textureCompImage, textureCompImageMemory);
-    mTexManager->transitionImageLayout(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    textureCompImageView = mTexManager->createImageView(textureCompImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                VK_IMAGE_TILING_OPTIMAL,
+                                                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
     //mComputePass.setOutputImageView(textureCompImageView);
     //mComputePass.setInImageView();
@@ -325,8 +323,7 @@ void Render::mainLoop()
 void Render::cleanupSwapChain()
 {
     vkDestroyImageView(mDevice, depthImageView, nullptr);
-    vkDestroyImage(mDevice, depthImage, nullptr);
-    vkFreeMemory(mDevice, depthImageMemory, nullptr);
+    mResManager->destroyImage(depthImage);
 
     for (auto& framebuffer : swapChainFramebuffers)
     {
@@ -355,12 +352,10 @@ void Render::cleanup()
     mTexManager->textureDestroy();
 
     vkDestroyImageView(mDevice, textureCompImageView, nullptr);
-    vkDestroyImage(mDevice, textureCompImage, nullptr);
-    vkFreeMemory(mDevice, textureCompImageMemory, nullptr);
+    mResManager->destroyImage(textureCompImage);
 
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
-    vkDestroyImage(mDevice, shadowImage, nullptr);
-    vkFreeMemory(mDevice, shadowImageMemory, nullptr);
+    mResManager->destroyImage(shadowImage);
 
     mResManager->destroyBuffer(mVertexBuffer);
     mResManager->destroyBuffer(mIndexBuffer);
@@ -700,9 +695,8 @@ void Render::createCommandPool()
 void Render::createDepthResources()
 {
     VkFormat depthFormat = findDepthFormat();
-
-    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-    depthImageView = mTexManager->createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    depthImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    depthImageView = mTexManager->createImageView(mResManager->getVkImage(depthImage), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 VkFormat Render::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)

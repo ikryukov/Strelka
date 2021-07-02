@@ -7,6 +7,7 @@ namespace nevk
 {
 
 struct Buffer;
+struct Image;
 
 class ResourceManager
 {
@@ -18,18 +19,18 @@ class ResourceManager
     VkCommandPool mCommandPool;
     VkQueue mGraphicsQueue;
 
-    uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
-
 public:
     ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkInstance instance, VkCommandPool commandPool, VkQueue graphicsQueue);
 
+    // Buffer
     Buffer* createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
     void destroyBuffer(Buffer* buffer);
     void* getMappedMemory(const Buffer* buffer);
     VkBuffer getVkBuffer(const Buffer* buffer);
-
-    void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-
+    // Image
+    Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
+    void destroyImage(Image* image);
+    VkImage getVkImage(const Image* image);
 
     VkCommandBuffer beginSingleTimeCommands();
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
