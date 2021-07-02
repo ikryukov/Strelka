@@ -2,23 +2,8 @@
 
 #include <stdexcept>
 
-#define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
-
-VmaAllocator allocator;
-
 namespace nevk
 {
-
-void ResourceManager::fillAllocator()
-{
-    VmaAllocatorCreateInfo allocatorInfo = {};
-    allocatorInfo.physicalDevice = mPhysicalDevice;
-    allocatorInfo.device = mDevice;
-    allocatorInfo.instance = mInstance;
-
-    vmaCreateAllocator(&allocatorInfo, &allocator);
-}
 
 uint32_t ResourceManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
@@ -44,16 +29,6 @@ void ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
     bufferInfo.usage = usage;
     bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VmaAllocationCreateInfo vmaAllocInfo = {};
-    vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-    vmaAllocInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    VmaAllocation allocation;
-
-   /* if (vmaCreateBuffer(allocator, &bufferInfo, &vmaAllocInfo, &buffer, &allocation, nullptr) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create buffer!");
-    }*/
-
     if (vkCreateBuffer(mDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create buffer!");
@@ -73,11 +48,6 @@ void ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, 
     }
 
     vkBindBufferMemory(mDevice, buffer, bufferMemory, 0);
-}
-
-void ResourceManager::destroyBuffer()
-{
-    //  vmaDestroyBuffer(allocator, buffer, allocation);
 }
 
 void ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)

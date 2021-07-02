@@ -96,12 +96,9 @@ public:
     void updateResourses(uint32_t width, uint32_t height)
     {
         vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
-        vkDestroyPipeline(mDevice, mPipeline, nullptr);
-        vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
 
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
-        createGraphicsPipeline(mSS, width, height);
     }
 };
 } // namespace nevk

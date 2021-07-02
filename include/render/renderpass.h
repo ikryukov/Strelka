@@ -188,16 +188,6 @@ public:
 
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
-
-        vkDestroyPipeline(mDevice, mPipelineTransparent, nullptr);
-        vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
-        vkDestroyPipelineLayout(mDevice, mPipelineLayoutOpaque, nullptr);
-        vkDestroyPipelineLayout(mDevice, mPipelineLayoutTransparent, nullptr);
-
-        mPipelineLayoutOpaque = createGraphicsPipelineLayout();
-        mPipelineLayoutTransparent = createGraphicsPipelineLayout();
-        mPipelineOpaque = createGraphicsPipeline(mVS, mPS, mPipelineLayoutOpaque, width, height, false);
-        mPipelineTransparent = createGraphicsPipeline(mVS, mPS, mPipelineLayoutTransparent, width, height, true);
     }
 
     void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);

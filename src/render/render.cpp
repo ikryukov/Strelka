@@ -44,6 +44,19 @@ void Render::initVulkan()
     createSwapChain();
 
     // load shaders
+    const char* csShaderCode = nullptr;
+    uint32_t csShaderCodeSize = 0;
+    const char* shShaderCode = nullptr;
+    uint32_t shShaderCodeSize = 0;
+    const char* pbrVertShaderCode = nullptr;
+    uint32_t pbrVertShaderCodeSize = 0;
+    const char* pbrFragShaderCode = nullptr;
+    uint32_t pbrFragShaderCodeSize = 0;
+    const char* simpleVertShaderCode = nullptr;
+    uint32_t simpleVertShaderCodeSize = 0;
+    const char* simpleFragShaderCode = nullptr;
+    uint32_t simpleFragShaderCodeSize = 0;
+
     uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
     mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
 
@@ -65,8 +78,7 @@ void Render::initVulkan()
     createDescriptorPool();
     createCommandPool();
 
-    mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, getCurrentFrameData().cmdPool, mGraphicsQueue, mInstance);
-    mResManager->fillAllocator();
+    mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, getCurrentFrameData().cmdPool, mGraphicsQueue);
     mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
 
     createImageViews();
@@ -304,7 +316,6 @@ void Render::cleanup()
     vkDestroyImage(mDevice, textureCompImage, nullptr);
     vkFreeMemory(mDevice, textureCompImageMemory, nullptr);
 
-    // different for default and normal scene ?
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
     vkDestroyImage(mDevice, shadowImage, nullptr);
     vkFreeMemory(mDevice, shadowImageMemory, nullptr);
@@ -619,12 +630,11 @@ void Render::createSwapChain()
 
 void Render::createImageViews()
 {
-    nevk::TextureManager* texManager = getTexManager();
     swapChainImageViews.resize(mSwapChainImages.size());
 
     for (uint32_t i = 0; i < mSwapChainImages.size(); i++)
     {
-        swapChainImageViews[i] = texManager->createImageView(mSwapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+        swapChainImageViews[i] = mTexManager->createImageView(mSwapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 
@@ -648,11 +658,10 @@ void Render::createCommandPool()
 
 void Render::createDepthResources()
 {
-    nevk::TextureManager* texManager = getTexManager();
     VkFormat depthFormat = findDepthFormat();
 
     mResManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-    depthImageView = texManager->createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    depthImageView = mTexManager->createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 VkFormat Render::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
@@ -921,21 +930,20 @@ void Render::loadScene(const std::string& modelPath)
 
 void Render::setDescriptors()
 {
-    nevk::TextureManager* texManager = getTexManager();
     SceneRenderData* sceneData = getSceneData();
 
     {
-        mPbrPass.setTextureImageView(texManager->textureImageView);
-        mPbrPass.setTextureSampler(texManager->textureSampler);
+        mPbrPass.setTextureImageView(mTexManager->textureImageView);
+        mPbrPass.setTextureSampler(mTexManager->textureSampler);
         mPbrPass.setShadowImageView(shadowImageView);
-        mPbrPass.setShadowSampler(texManager->shadowSampler);
+        mPbrPass.setShadowSampler(mTexManager->shadowSampler);
         mPbrPass.setMaterialBuffer(sceneData->mMaterialBuffer);
     }
     {
-        mPass.setTextureImageView(texManager->textureImageView);
-        mPass.setTextureSampler(texManager->textureSampler);
+        mPass.setTextureImageView(mTexManager->textureImageView);
+        mPass.setTextureSampler(mTexManager->textureSampler);
         mPass.setShadowImageView(shadowImageView);
-        mPass.setShadowSampler(texManager->shadowSampler);
+        mPass.setShadowSampler(mTexManager->shadowSampler);
         mPass.setMaterialBuffer(sceneData->mMaterialBuffer);
     }
 }
@@ -943,12 +951,11 @@ void Render::setDescriptors()
 void Render::updatePasses()
 {
     nevk::Scene* scene = getScene();
-    nevk::TextureManager* texManager = getTexManager();
 
     createMaterialBuffer(*scene);
 
-    texManager->createShadowSampler();
-    texManager->createTextureSampler();
+    mTexManager->createShadowSampler();
+    mTexManager->createTextureSampler();
 
     setDescriptors();
 
@@ -1044,9 +1051,13 @@ void Render::drawFrame()
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
     mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
-    std::string newModelPath;
+
+    static int countFrames = 0;
+    static bool needReload = false;
     static std::string savedPath;
     static nevk::Scene* toRemoveScene;
+    std::string newModelPath;
+
     mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
 
     if (!newModelPath.empty() && fs::exists(newModelPath))

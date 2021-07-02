@@ -180,22 +180,6 @@ private:
     nevk::Scene* mDefaultScene = nullptr;
 
     bool isPBR = true;
-    bool needReload = false;
-    int countFrames = 0;
-
-    // shaders data -- struct ?
-    const char* csShaderCode = nullptr;
-    uint32_t csShaderCodeSize = 0;
-    const char* shShaderCode = nullptr;
-    uint32_t shShaderCodeSize = 0;
-    const char* pbrVertShaderCode = nullptr;
-    uint32_t pbrVertShaderCodeSize = 0;
-    const char* pbrFragShaderCode = nullptr;
-    uint32_t pbrFragShaderCodeSize = 0;
-    const char* simpleVertShaderCode = nullptr;
-    uint32_t simpleVertShaderCodeSize = 0;
-    const char* simpleFragShaderCode = nullptr;
-    uint32_t simpleFragShaderCodeSize = 0;
 
     void loadScene(const std::string& modelPath);
 

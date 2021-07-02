@@ -25,7 +25,5 @@ public:
     // TODO: could be static
     void computeTangent(std::vector<Scene::Vertex>& _vertices,
                         const std::vector<uint32_t>& _indices) const;
-
-    bool isDefaultScene = false;
 };
 } // namespace nevk

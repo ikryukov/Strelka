@@ -427,7 +427,7 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
 void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
 {
     // default texture
-    if (model.defaultScene)
+    if (model.textures.empty())
     {
         int texId = textureManager.loadTexture("textures/brickwall.png", "misc/"); // dont really know if we need it, anyway a thousand apologies for that.
         assert(texId != -1);
@@ -465,7 +465,7 @@ void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textur
 void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
 {
     // default materials
-    if (model.defaultScene)
+    if (model.materials.empty())
     {
         Scene::Material currMaterial{};
         currMaterial.diffuse = glm::float4(0.f, 0.f, 0.f, 0.f);
@@ -516,10 +516,9 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
 
 bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
 {
+    // load default model
     if (modelPath.empty())
     {
-        isDefaultScene = true;
-
         tinygltf::Model model;
         loadTextures(model, scene, *mTexManager);
         loadMaterials(model, scene, *mTexManager);
@@ -527,7 +526,6 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene
         return false;
     }
 
-    isDefaultScene = false;
     using namespace std;
     tinygltf::Model model;
     tinygltf::TinyGLTF gltf_ctx;
