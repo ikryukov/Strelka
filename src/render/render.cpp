@@ -900,8 +900,8 @@ void Render::loadScene(const std::string& modelPath)
     setDescriptors();
 
     // уыыуу
-    mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
-    mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
+    //mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
+    //mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
