@@ -1,9 +1,120 @@
 #include "resourcemanager.h"
 
 #include <stdexcept>
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
 namespace nevk
 {
+
+struct Buffer
+{
+    VkBuffer handle = VK_NULL_HANDLE;
+    VmaAllocation allocation = VK_NULL_HANDLE;
+};
+
+class ResourceManager::Context
+{
+    VkDevice mDevice;
+    VkPhysicalDevice mPhysicalDevice;
+    VkInstance mInstance;
+
+    VmaAllocator mAllocator = VK_NULL_HANDLE;
+
+    VkResult createAllocator()
+    {
+        VmaAllocatorCreateInfo allocatorInfo = {};
+        allocatorInfo.device = mDevice;
+        allocatorInfo.physicalDevice = mPhysicalDevice;
+        allocatorInfo.instance = mInstance;
+        return vmaCreateAllocator(&allocatorInfo, &mAllocator);
+    }
+
+public:
+    Context(VkDevice device, VkPhysicalDevice physicalDevice, VkInstance instance)
+        : mDevice(device),
+          mPhysicalDevice(physicalDevice),
+          mInstance(instance)
+    {
+        createAllocator();
+    }
+    ~Context()
+    {
+        if (mAllocator)
+        {
+            vmaDestroyAllocator(mAllocator);
+            mAllocator = VK_NULL_HANDLE;
+        }
+    }
+
+    Buffer* createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
+    {
+
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = size;
+        bufferInfo.usage = usage;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        VmaAllocationCreateFlags allocFlags = {};
+        VmaMemoryUsage memUsage = {};
+        // TODO: need to introduce flag isDevice to api?
+        switch (usage)
+        {
+        case VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT:
+        case VK_BUFFER_USAGE_TRANSFER_SRC_BIT: {
+            memUsage = VMA_MEMORY_USAGE_CPU_ONLY;
+            allocFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            break;
+        }
+        case VK_BUFFER_USAGE_TRANSFER_DST_BIT: {
+            memUsage = VMA_MEMORY_USAGE_GPU_ONLY;
+            allocFlags = 0;
+            break;
+        }
+        default:
+            break;
+        }
+
+        VmaAllocationCreateInfo vmaAllocInfo = {};
+        vmaAllocInfo.usage = memUsage;
+        vmaAllocInfo.flags = allocFlags;
+        VmaAllocationInfo allocInfo = {};
+
+        Buffer* ret = new Buffer();
+        if (vmaCreateBuffer(mAllocator, &bufferInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, &allocInfo) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create buffer!");
+        }
+
+        return ret;
+    }
+    void* getMappedMemory(const Buffer* buffer)
+    {
+        VmaAllocationInfo allocInfo = {};
+        vmaGetAllocationInfo(mAllocator, buffer->allocation, &allocInfo);
+        return allocInfo.pMappedData;
+    }
+
+    void destroyBuffer(Buffer* buffer)
+    {
+        vmaDestroyBuffer(mAllocator, buffer->handle, buffer->allocation);
+    }
+
+    VkBuffer getVkBuffer(const Buffer* buffer)
+    {
+        return buffer->handle;
+    }
+};
+
+ResourceManager::ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkInstance instance, VkCommandPool commandPool, VkQueue graphicsQueue)
+{
+    mDevice = device;
+    mPhysicalDevice = physicalDevice;
+    mCommandPool = commandPool;
+    mGraphicsQueue = graphicsQueue;
+    mContext = std::make_unique<Context>(device, physicalDevice, instance);
+}
 
 uint32_t ResourceManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
@@ -21,33 +132,24 @@ uint32_t ResourceManager::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFl
     throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
+Buffer* ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    return mContext->createBuffer(size, usage, properties);
+}
 
-    if (vkCreateBuffer(mDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create buffer!");
-    }
+void* ResourceManager::getMappedMemory(const Buffer* buffer)
+{
+    return mContext->getMappedMemory(buffer);
+}
 
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(mDevice, buffer, &memRequirements);
+void ResourceManager::destroyBuffer(Buffer* buffer)
+{
+    mContext->destroyBuffer(buffer);
+}
 
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(mDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(mDevice, buffer, bufferMemory, 0);
+VkBuffer ResourceManager::getVkBuffer(const Buffer* buffer)
+{
+    return mContext->getVkBuffer(buffer);
 }
 
 void ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory)

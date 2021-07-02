@@ -137,12 +137,9 @@ private:
     nevk::DepthPass mDepthPass;
 
     uint32_t mIndicesCount = 0;
-    VkBuffer mVertexBuffer;
-    VkDeviceMemory mVertexBufferMemory;
-    VkBuffer mMaterialBuffer;
-    VkDeviceMemory mMaterialBufferMemory;
-    VkBuffer mIndexBuffer;
-    VkDeviceMemory mIndexBufferMemory;
+    nevk::Buffer* mVertexBuffer;
+    nevk::Buffer* mMaterialBuffer;
+    nevk::Buffer* mIndexBuffer;
 
     VkDescriptorPool mDescriptorPool;
 

@@ -100,6 +100,8 @@ set(RESMNGR_NAME resourcemanager)
 add_library(${RESMNGR_NAME} OBJECT ${RESMNGR_SOURCES})
 target_include_directories(${RESMNGR_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${RESMNGR_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/resourcemanager)
+## VMA
+target_include_directories(${RESMNGR_NAME} PUBLIC external/vma/src)
 ## Vulkan
 target_include_directories(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)

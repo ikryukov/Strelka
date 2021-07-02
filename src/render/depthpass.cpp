@@ -292,7 +292,7 @@ void DepthPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
 {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = uniformBuffers[descSetIndex];
+    bufferInfo.buffer = mResMngr->getVkBuffer(uniformBuffers[descSetIndex]);
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -317,11 +317,10 @@ void DepthPass::createUniformBuffers()
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
     uniformBuffers.resize(MAX_FRAMES_IN_FLIGHT);
-    uniformBuffersMemory.resize(MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        mResMngr->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
+        uniformBuffers[i] = mResMngr->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
@@ -340,18 +339,15 @@ void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& 
     UniformBufferObject ubo{};
     ubo.lightSpaceMatrix = lightSpaceMatrix;
 
-    void* data;
-    vkMapMemory(mDevice, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
+    void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));
-    vkUnmapMemory(mDevice, uniformBuffersMemory[currentImage]);
 }
 
 void DepthPass::onDestroy()
 {
     for (size_t i = 0; i < uniformBuffers.size(); ++i)
     {
-        vkDestroyBuffer(mDevice, uniformBuffers[i], nullptr);
-        vkFreeMemory(mDevice, uniformBuffersMemory[i], nullptr);
+        mResMngr->destroyBuffer(uniformBuffers[i]);
     }
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
