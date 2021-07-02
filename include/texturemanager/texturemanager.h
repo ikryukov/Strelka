@@ -24,10 +24,9 @@ public:
 
     struct Texture
     {
-        VkImage textureImage;
+        Image* textureImage;
         uint32_t texWidth;
         uint32_t texHeight;
-        VkDeviceMemory textureImageMemory;
     };
 
     std::unordered_map<std::string, uint32_t> mNameToID{};
@@ -67,8 +66,7 @@ public:
 
         for (Texture& tex : textures)
         {
-            vkDestroyImage(mDevice, tex.textureImage, nullptr);
-            vkFreeMemory(mDevice, tex.textureImageMemory, nullptr);
+            mResManager->destroyImage(tex.textureImage);
         }
 
         textures.clear();

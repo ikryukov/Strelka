@@ -37,8 +37,7 @@ private:
     VkDescriptorSetLayout mDescriptorSetLayout;
     std::vector<VkDescriptorSet> mDescriptorSets;
 
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
+    std::vector<Buffer*> uniformBuffers;
 
     bool mEnableValidation = false;
 

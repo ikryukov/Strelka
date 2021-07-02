@@ -29,6 +29,7 @@ namespace fs = std::filesystem;
     }
 }
 
+using namespace nevk;
 
 void Render::initVulkan()
 {
@@ -78,7 +79,7 @@ void Render::initVulkan()
     createDescriptorPool();
     createCommandPool();
 
-    mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, getCurrentFrameData().cmdPool, mGraphicsQueue);
+    mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, mInstance, getCurrentFrameData().cmdPool, mGraphicsQueue);
     mTexManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mResManager);
 
     createImageViews();
@@ -283,8 +284,7 @@ void Render::mainLoop()
 void Render::cleanupSwapChain()
 {
     vkDestroyImageView(mDevice, depthImageView, nullptr);
-    vkDestroyImage(mDevice, depthImage, nullptr);
-    vkFreeMemory(mDevice, depthImageMemory, nullptr);
+    mResManager->destroyImage(depthImage);
 
     for (auto& framebuffer : swapChainFramebuffers)
     {
@@ -313,10 +313,14 @@ void Render::cleanup()
     mTexManager->textureDestroy();
 
     vkDestroyImageView(mDevice, textureCompImageView, nullptr);
-    vkDestroyImage(mDevice, textureCompImage, nullptr);
-    vkFreeMemory(mDevice, textureCompImageMemory, nullptr);
+    mResManager->destroyImage(textureCompImage);
 
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
+    mResManager->destroyImage(shadowImage);
+
+    mResManager->destroyBuffer(mVertexBuffer);
+    mResManager->destroyBuffer(mIndexBuffer);
+    mResManager->destroyBuffer(mMaterialBuffer);
     vkDestroyImage(mDevice, shadowImage, nullptr);
     vkFreeMemory(mDevice, shadowImageMemory, nullptr);
 
@@ -333,6 +337,8 @@ void Render::cleanup()
 
         vkDestroyCommandPool(mDevice, fd.cmdPool, nullptr);
     }
+
+    delete mResManager;
 
     vkDestroyDevice(mDevice, nullptr);
 
@@ -660,9 +666,8 @@ void Render::createCommandPool()
 void Render::createDepthResources()
 {
     VkFormat depthFormat = findDepthFormat();
-
-    mResManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, depthImage, depthImageMemory);
-    depthImageView = mTexManager->createImageView(depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    depthImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    depthImageView = mTexManager->createImageView(mResManager->getVkImage(depthImage), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 VkFormat Render::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
@@ -726,6 +731,12 @@ void Render::createVertexBuffer(nevk::Scene& scene)
     {
         return;
     }
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    memcpy(stagingBufferMemory, sceneVertices.data(), (size_t)bufferSize);
+    mVertexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "VB");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mVertexBuffer), bufferSize);
+    mResManager->destroyBuffer(stagingBuffer);
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
     mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
@@ -745,6 +756,7 @@ void Render::createVertexBuffer(nevk::Scene& scene)
 
 void Render::createMaterialBuffer(nevk::Scene& scene)
 {
+    std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
     SceneRenderData* sceneData = getSceneData();
     std::vector<nevk::Scene::Material>& sceneMaterials = scene.getMaterials();
 
@@ -753,6 +765,12 @@ void Render::createMaterialBuffer(nevk::Scene& scene)
     {
         return;
     }
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    memcpy(stagingBufferMemory, sceneMaterials.data(), (size_t)bufferSize);
+    mMaterialBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Materials");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mMaterialBuffer), bufferSize);
+    mResManager->destroyBuffer(stagingBuffer);
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -781,6 +799,12 @@ void Render::createIndexBuffer(nevk::Scene& scene)
     {
         return;
     }
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    memcpy(stagingBufferMemory, sceneIndices.data(), (size_t)bufferSize);
+    mIndexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "IB");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mIndexBuffer), bufferSize);
+    mResManager->destroyBuffer(stagingBuffer);
 
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingBufferMemory;
@@ -846,6 +870,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
+    mDepthPass.record(cmd, mResManager->getVkBuffer(mVertexBuffer), mResManager->getVkBuffer(mIndexBuffer), mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
     SceneRenderData* sceneData = getSceneData();
     nevk::Scene* scene = getScene();
 
@@ -853,10 +878,12 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 
     if (isPBR)
     {
+        mPbrPass.record(cmd, mResManager->getVkBuffer(mVertexBuffer), mResManager->getVkBuffer(mIndexBuffer), mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
         mPbrPass.record(cmd, sceneData->mVertexBuffer, sceneData->mIndexBuffer, *scene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
     else
     {
+        mPass.record(cmd, mResManager->getVkBuffer(mVertexBuffer), mResManager->getVkBuffer(mIndexBuffer), mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
         mPass.record(cmd, sceneData->mVertexBuffer, sceneData->mIndexBuffer, *scene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
 
@@ -932,7 +959,7 @@ void Render::loadScene(const std::string& modelPath)
     mTexManager->createTextureSampler();
 
     setDescriptors();
-    
+
     // уыыуу
     mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
     mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);

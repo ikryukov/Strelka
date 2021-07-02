@@ -87,7 +87,6 @@ public:
 
     std::string MODEL_PATH;
     std::string MTL_PATH;
-
     uint32_t WIDTH;
     uint32_t HEIGHT;
 
@@ -115,16 +114,13 @@ private:
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
+    nevk::Image* depthImage;
     VkImageView depthImageView;
 
-    VkImage textureCompImage;
-    VkDeviceMemory textureCompImageMemory;
+    nevk::Image* textureCompImage;
     VkImageView textureCompImageView;
 
-    VkImage shadowImage;
-    VkDeviceMemory shadowImageMemory;
+    nevk::Image* shadowImage;
     VkImageView shadowImageView;
 
     nevk::ResourceManager* mResManager = nullptr;
@@ -136,6 +132,10 @@ private:
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
 
+    uint32_t mIndicesCount = 0;
+    nevk::Buffer* mVertexBuffer;
+    nevk::Buffer* mMaterialBuffer;
+    nevk::Buffer* mIndexBuffer;
     struct SceneRenderData
     {
         uint32_t mIndicesCount = 0;
