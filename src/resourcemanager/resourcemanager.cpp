@@ -112,7 +112,8 @@ public:
 
     void destroyBuffer(Buffer* buffer)
     {
-        assert(buffer);
+        if (!buffer)
+            return;
         vmaDestroyBuffer(mAllocator, buffer->handle, buffer->allocation);
         delete buffer;
         buffer = nullptr;
@@ -120,7 +121,10 @@ public:
 
     VkBuffer getVkBuffer(const Buffer* buffer)
     {
-        return buffer->handle;
+        if (buffer)
+            return buffer->handle;
+        else
+            return nullptr;
     }
 
     Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr)

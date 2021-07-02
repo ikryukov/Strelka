@@ -132,19 +132,12 @@ private:
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
 
-    uint32_t mIndicesCount = 0;
-    nevk::Buffer* mVertexBuffer;
-    nevk::Buffer* mMaterialBuffer;
-    nevk::Buffer* mIndexBuffer;
     struct SceneRenderData
     {
         uint32_t mIndicesCount = 0;
-        VkBuffer mVertexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory mVertexBufferMemory = VK_NULL_HANDLE;
-        VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory mMaterialBufferMemory = VK_NULL_HANDLE;
-        VkBuffer mIndexBuffer = VK_NULL_HANDLE;
-        VkDeviceMemory mIndexBufferMemory = VK_NULL_HANDLE;
+        nevk::Buffer* mVertexBuffer = nullptr;
+        nevk::Buffer* mMaterialBuffer = nullptr;
+        nevk::Buffer* mIndexBuffer = nullptr;
     } currentSceneRenderData, defaultSceneRenderData;
 
     void freeSceneData();
