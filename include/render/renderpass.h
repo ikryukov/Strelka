@@ -64,8 +64,7 @@ private:
 
     ResourceManager* mResMngr;
     VkDescriptorPool mDescriptorPool;
-    std::vector<VkBuffer> uniformBuffers;
-    std::vector<VkDeviceMemory> uniformBuffersMemory;
+    std::vector<Buffer*> uniformBuffers;
 
     VkSampler mTextureSampler = VK_NULL_HANDLE;
     VkSampler mShadowSampler = VK_NULL_HANDLE;

@@ -115,16 +115,13 @@ private:
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    VkImage depthImage;
-    VkDeviceMemory depthImageMemory;
+    nevk::Image* depthImage;
     VkImageView depthImageView;
 
-    VkImage textureCompImage;
-    VkDeviceMemory textureCompImageMemory;
+    nevk::Image* textureCompImage;
     VkImageView textureCompImageView;
 
-    VkImage shadowImage;
-    VkDeviceMemory shadowImageMemory;
+    nevk::Image* shadowImage;
     VkImageView shadowImageView;
 
     nevk::ResourceManager* mResManager;
@@ -137,12 +134,9 @@ private:
     nevk::DepthPass mDepthPass;
 
     uint32_t mIndicesCount = 0;
-    VkBuffer mVertexBuffer;
-    VkDeviceMemory mVertexBufferMemory;
-    VkBuffer mMaterialBuffer;
-    VkDeviceMemory mMaterialBufferMemory;
-    VkBuffer mIndexBuffer;
-    VkDeviceMemory mIndexBufferMemory;
+    nevk::Buffer* mVertexBuffer;
+    nevk::Buffer* mMaterialBuffer;
+    nevk::Buffer* mIndexBuffer;
 
     VkDescriptorPool mDescriptorPool;
 
