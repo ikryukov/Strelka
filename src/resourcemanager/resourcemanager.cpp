@@ -53,9 +53,8 @@ public:
         }
     }
 
-    Buffer* createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
+    Buffer* createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr)
     {
-
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
         bufferInfo.size = size;
@@ -67,7 +66,11 @@ public:
         // TODO: need to introduce flag isDevice to api?
         switch (usage)
         {
-        case VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT:
+        case VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT: {
+            memUsage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+            allocFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            break;
+        }
         case VK_BUFFER_USAGE_TRANSFER_SRC_BIT: {
             memUsage = VMA_MEMORY_USAGE_CPU_ONLY;
             allocFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
@@ -85,6 +88,12 @@ public:
         VmaAllocationCreateInfo vmaAllocInfo = {};
         vmaAllocInfo.usage = memUsage;
         vmaAllocInfo.flags = allocFlags;
+        if (name)
+        {
+            vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+            std::string bufferName = "Buffer: " + std::string(name);
+            vmaAllocInfo.pUserData = (void*)bufferName.c_str();
+        }
 
         Buffer* ret = new Buffer();
         if (vmaCreateBuffer(mAllocator, &bufferInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, nullptr) != VK_SUCCESS)
@@ -111,7 +120,7 @@ public:
         return buffer->handle;
     }
 
-    Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
+    Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr)
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -131,7 +140,13 @@ public:
         VmaAllocationCreateInfo vmaAllocInfo = {};
         vmaAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
         VmaAllocationInfo allocInfo = {};
-        
+        if (name)
+        {
+            vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+            std::string imageName = "Image: " + std::string(name);
+            vmaAllocInfo.pUserData = (void*)imageName.c_str();
+        }
+
         Image* ret = new Image();
         if (vmaCreateImage(mAllocator, &imageInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, nullptr) != VK_SUCCESS)
         {
@@ -165,9 +180,9 @@ ResourceManager::~ResourceManager()
     mContext.reset(nullptr);
 }
 
-Buffer* ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
+Buffer* ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, const char* name)
 {
-    return mContext->createBuffer(size, usage, properties);
+    return mContext->createBuffer(size, usage, properties, name);
 }
 
 void* ResourceManager::getMappedMemory(const Buffer* buffer)
@@ -185,9 +200,9 @@ VkBuffer ResourceManager::getVkBuffer(const Buffer* buffer)
     return mContext->getVkBuffer(buffer);
 }
 
-Image* ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
+Image* ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name)
 {
-    return mContext->createImage(width, height, format, tiling, usage, properties);
+    return mContext->createImage(width, height, format, tiling, usage, properties, name);
 }
 
 void ResourceManager::destroyImage(Image* image)
