@@ -160,6 +160,11 @@ ResourceManager::ResourceManager(VkDevice device, VkPhysicalDevice physicalDevic
     mContext = std::make_unique<Context>(device, physicalDevice, instance);
 }
 
+ResourceManager::~ResourceManager()
+{
+    mContext.reset(nullptr);
+}
+
 Buffer* ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 {
     return mContext->createBuffer(size, usage, properties);

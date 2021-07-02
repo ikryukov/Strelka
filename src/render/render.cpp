@@ -370,6 +370,8 @@ void Render::cleanup()
         vkDestroyCommandPool(mDevice, fd.cmdPool, nullptr);
     }
 
+    delete mResManager;
+
     vkDestroyDevice(mDevice, nullptr);
 
     if (enableValidationLayers)

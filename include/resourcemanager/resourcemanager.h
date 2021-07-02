@@ -21,6 +21,7 @@ class ResourceManager
 
 public:
     ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkInstance instance, VkCommandPool commandPool, VkQueue graphicsQueue);
+    ~ResourceManager();
 
     // Buffer
     Buffer* createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
