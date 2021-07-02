@@ -320,7 +320,8 @@ void Render::cleanup()
     vkDestroyImage(mDevice, shadowImage, nullptr);
     vkFreeMemory(mDevice, shadowImageMemory, nullptr);
 
-    freeSceneData();
+    if (mScene != mDefaultScene)
+        freeSceneData();
     mScene = mDefaultScene;
     freeSceneData();
 
@@ -925,7 +926,19 @@ void Render::loadScene(const std::string& modelPath)
     MODEL_PATH = modelPath;
     loadModel(*modelLoader, *mScene);
 
-    updatePasses();
+    createMaterialBuffer(*mScene);
+
+    mTexManager->createShadowSampler();
+    mTexManager->createTextureSampler();
+
+    setDescriptors();
+    
+    // уыыуу
+    mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
+    mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
+
+    createIndexBuffer(*mScene);
+    createVertexBuffer(*mScene);
 }
 
 void Render::setDescriptors()
@@ -946,25 +959,6 @@ void Render::setDescriptors()
         mPass.setShadowSampler(mTexManager->shadowSampler);
         mPass.setMaterialBuffer(sceneData->mMaterialBuffer);
     }
-}
-
-void Render::updatePasses()
-{
-    nevk::Scene* scene = getScene();
-
-    createMaterialBuffer(*scene);
-
-    mTexManager->createShadowSampler();
-    mTexManager->createTextureSampler();
-
-    setDescriptors();
-
-    mDepthPass.updateResourses(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-    mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
-    mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
-
-    createIndexBuffer(*scene);
-    createVertexBuffer(*scene);
 }
 
 // set default scene

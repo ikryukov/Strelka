@@ -31,7 +31,7 @@ Use vscode with preset env variable
 
       nevk [MODEL PATH] [MTL PATH] [OPTION...] positional parameters
       
-        -m, --mesh arg     mesh path (default: misc/Cube/Cube.glt)
+        -m, --mesh arg     mesh path (default: misc/Cube/Cube.gltf)
         -t, --texture arg  texture path (default: misc/)
             --width arg    window width (default: 800)
             --height arg   window height (default: 600)

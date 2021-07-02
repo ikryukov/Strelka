@@ -92,13 +92,5 @@ public:
     void onDestroy();
 
     void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix);
-
-    void updateResourses(uint32_t width, uint32_t height)
-    {
-        vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
-
-        createDescriptorSetLayout();
-        createDescriptorSets(mDescriptorPool);
-    }
 };
 } // namespace nevk

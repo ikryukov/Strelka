@@ -366,20 +366,19 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 {
     beginLabel(cmd, "Geometry Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
 
-    if (needDesciptorSetUpdate && imageviewcounter < 3)
+    if (needDesciptorSetUpdate && imageViewCounter < 3)
     {
-        imageviewcounter++;
+        imageViewCounter++;
         updateDescriptorSets(imageIndex);
     }
     else
     {
-        imageviewcounter = 0;
+        imageViewCounter = 0;
         needDesciptorSetUpdate = false;
     }
 
     const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
     const std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera().getPosition());
-
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -539,7 +538,7 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
 void RenderPass::setTextureImageView(std::vector<VkImageView> textureImageView)
 {
     mTextureImageView = textureImageView;
-    imageviewcounter = 0;
+    imageViewCounter = 0;
     needDesciptorSetUpdate = true;
 }
 

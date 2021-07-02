@@ -145,7 +145,7 @@ private:
         VkDeviceMemory mMaterialBufferMemory = VK_NULL_HANDLE;
         VkBuffer mIndexBuffer = VK_NULL_HANDLE;
         VkDeviceMemory mIndexBufferMemory = VK_NULL_HANDLE;
-    } currentSceneData, defaultSceneData;
+    } currentSceneRenderData, defaultSceneRenderData;
 
     void freeSceneData();
 
@@ -184,8 +184,6 @@ private:
     void loadScene(const std::string& modelPath);
 
     void createDefaultScene();
-
-    void updatePasses();
 
     void setDescriptors();
 
@@ -358,9 +356,9 @@ public:
     SceneRenderData* getSceneData()
     {
         if (mScene == mDefaultScene)
-            return &defaultSceneData;
+            return &defaultSceneRenderData;
         else
-            return &currentSceneData;
+            return &currentSceneRenderData;
     }
 
     void setDepthResources()
