@@ -140,7 +140,7 @@ private:
         nevk::Buffer* mIndexBuffer = nullptr;
     } currentSceneRenderData, defaultSceneRenderData;
 
-    void freeSceneData();
+    void freeSceneData(SceneRenderData* sceneData);
 
     VkDescriptorPool mDescriptorPool;
 

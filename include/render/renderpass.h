@@ -181,6 +181,14 @@ public:
         mPipelineTransparent = createGraphicsPipeline(mVS, mPS, mPipelineLayoutTransparent, width, height, true);
     }
 
+    void updateResourses(uint32_t width, uint32_t height)
+    {
+        vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
+
+        createDescriptorSetLayout();
+        createDescriptorSets(mDescriptorPool);
+    }
+
     void onResize(std::vector<VkImageView>& imageViews, VkImageView& depthImageView, uint32_t width, uint32_t height);
 
     void onDestroy();

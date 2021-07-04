@@ -319,9 +319,8 @@ void Render::cleanup()
     mResManager->destroyImage(shadowImage);
 
     if (mScene != mDefaultScene)
-        freeSceneData();
-    mScene = mDefaultScene;
-    freeSceneData();
+        freeSceneData(&currentSceneRenderData);
+    freeSceneData(&defaultSceneRenderData);
 
     for (FrameData& fd : mFramesData)
     {
@@ -872,10 +871,8 @@ void Render::createSyncObjects()
     }
 }
 
-void Render::freeSceneData()
+void Render::freeSceneData(SceneRenderData* sceneData)
 {
-    SceneRenderData* sceneData = getSceneData();
-
     mResManager->destroyBuffer(sceneData->mVertexBuffer);
     mResManager->destroyBuffer(sceneData->mIndexBuffer);
     mResManager->destroyBuffer(sceneData->mMaterialBuffer);
@@ -900,8 +897,8 @@ void Render::loadScene(const std::string& modelPath)
     setDescriptors();
 
     // уыыуу
-    //mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
-    //mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
+    mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
+    mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
@@ -1012,8 +1009,7 @@ void Render::drawFrame()
 
     static int countFrames = 0;
     static bool needReload = false;
-    static std::string savedPath;
-    static nevk::Scene* toRemoveScene;
+    static SceneRenderData toRemoveSceneData;
     std::string newModelPath;
 
     mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
@@ -1022,26 +1018,20 @@ void Render::drawFrame()
     { //todo last path != new path
         if (mScene != mDefaultScene) // if we reload non-default scene
         {
-            toRemoveScene = mScene;
-            mScene = mDefaultScene;
-            setDescriptors(); // set descriptors on default scene
-            needReload = true; // need to remove last scene data
-            savedPath = newModelPath;
+            // save scene data to remove
+            toRemoveSceneData = currentSceneRenderData;
+            needReload = true;
         }
-        else
-        {
-            // if the previous one was default we dont need to remove anything just load
-            loadScene(newModelPath);
-        }
+
+        loadScene(newModelPath);
     }
 
     if (needReload)
         ++countFrames;
     if (needReload && countFrames == 3)
     {
-        mScene = toRemoveScene;
-        freeSceneData(); // remove past non-default
-        loadScene(savedPath); // load new scene
+        freeSceneData(&toRemoveSceneData);
+
         countFrames = 0;
         needReload = false;
     }
