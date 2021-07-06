@@ -429,7 +429,7 @@ void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textur
     // default texture
     if (model.textures.empty())
     {
-        int texId = textureManager.loadTexture("textures/brickwall.png", "misc/"); // dont really know if we need it, anyway a thousand apologies for that.
+        int texId = textureManager.loadTexture("textures/brickwall.png", "misc/");
         assert(texId != -1);
     }
     for (const tinygltf::Texture& tex : model.textures)

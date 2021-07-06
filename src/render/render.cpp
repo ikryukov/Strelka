@@ -311,6 +311,7 @@ void Render::cleanup()
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 
     mTexManager->textureDestroy();
+    mTexManager->delTexturesFromQueue();
 
     vkDestroyImageView(mDevice, textureCompImageView, nullptr);
     mResManager->destroyImage(textureCompImage);
@@ -384,8 +385,7 @@ void Render::recreateSwapChain()
     mPbrPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(swapChainImageViews, width, height);
 
-    nevk::Scene* scene = getScene();
-    Camera& camera = scene->getCamera();
+    Camera& camera = mScene->getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 }
 
@@ -818,16 +818,15 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     SceneRenderData* sceneData = getSceneData();
-    nevk::Scene* scene = getScene();
 
-    mDepthPass.record(cmd, mResManager->getVkBuffer(sceneData->mVertexBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer),*scene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
+    mDepthPass.record(cmd, mResManager->getVkBuffer(sceneData->mVertexBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer),*mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
     if (isPBR)
     {
-        mPbrPass.record(cmd, mResManager->getVkBuffer(sceneData->mVertexBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer), *scene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+        mPbrPass.record(cmd, mResManager->getVkBuffer(sceneData->mVertexBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
     else
     {
-        mPass.record(cmd, mResManager->getVkBuffer(sceneData->mVertexBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer), *scene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+        mPass.record(cmd, mResManager->getVkBuffer(sceneData->mVertexBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
 
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
@@ -885,7 +884,6 @@ void Render::loadScene(const std::string& modelPath)
         delete mScene;
     mScene = new nevk::Scene;
 
-    mTexManager->textureDestroy();
     MODEL_PATH = modelPath;
     loadModel(*modelLoader, *mScene);
 
@@ -1022,7 +1020,7 @@ void Render::drawFrame()
             toRemoveSceneData = currentSceneRenderData;
             needReload = true;
         }
-
+        mTexManager->saveTexturesInDelQueue();
         loadScene(newModelPath);
     }
 
@@ -1030,8 +1028,8 @@ void Render::drawFrame()
         ++countFrames;
     if (needReload && countFrames == 3)
     {
+        mTexManager->delTexturesFromQueue();
         freeSceneData(&toRemoveSceneData);
-
         countFrames = 0;
         needReload = false;
     }
