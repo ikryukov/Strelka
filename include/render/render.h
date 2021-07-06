@@ -140,8 +140,8 @@ private:
         nevk::Buffer* mIndexBuffer = nullptr;
     };
 
-    SceneRenderData* currentSceneRenderData = nullptr;
-    SceneRenderData* defaultSceneRenderData = nullptr;
+    SceneRenderData* mCurrentSceneRenderData = nullptr;
+    SceneRenderData* mDefaultSceneRenderData = nullptr;
 
     void freeSceneData(SceneRenderData* sceneData);
 
@@ -351,7 +351,7 @@ public:
 
     SceneRenderData* getSceneData()
     {
-        return currentSceneRenderData;
+        return mCurrentSceneRenderData;
     }
 
     void setDepthResources()
