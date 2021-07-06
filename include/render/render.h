@@ -227,7 +227,7 @@ private:
 
     bool hasStencilComponent(VkFormat format);
 
-    void loadModel(nevk::ModelLoader& testmodel, nevk::Scene& scene);
+    void loadModel(nevk::Scene& scene, std::string& modelPath);
 
     void createVertexBuffer(nevk::Scene& scene);
     void createMaterialBuffer(nevk::Scene& scene);

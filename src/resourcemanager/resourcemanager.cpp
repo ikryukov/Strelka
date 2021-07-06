@@ -112,8 +112,7 @@ public:
 
     void destroyBuffer(Buffer* buffer)
     {
-        if (!buffer)
-            return;
+        assert(buffer);
         vmaDestroyBuffer(mAllocator, buffer->handle, buffer->allocation);
         delete buffer;
         buffer = nullptr;

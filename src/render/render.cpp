@@ -88,7 +88,13 @@ void Render::initVulkan()
 
     createDepthResources();
 
+    modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
+    if (!MODEL_PATH.empty())
+    {
+        mTexManager->saveTexturesInDelQueue();
+        loadScene(MODEL_PATH);
+    }
 
     //init passes
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
@@ -321,7 +327,7 @@ void Render::cleanup()
 
     if (mScene != mDefaultScene)
         freeSceneData(currentSceneRenderData);
-    freeSceneData(defaultSceneRenderData);
+    mResManager->destroyBuffer(defaultSceneRenderData->mMaterialBuffer);
 
     for (FrameData& fd : mFramesData)
     {
@@ -696,10 +702,10 @@ bool Render::hasStencilComponent(VkFormat format)
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Render::loadModel(nevk::ModelLoader& testmodel, nevk::Scene& scene)
+void Render::loadModel(nevk::Scene& scene, std::string& modelPath)
 {
     isPBR = true;
-    bool res = testmodel.loadModelGltf(MODEL_PATH, scene);
+    bool res = modelLoader->loadModelGltf(modelPath, scene);
     // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, *mScene);
     if (!res && mScene != mDefaultScene)
     {
@@ -881,7 +887,7 @@ void Render::loadScene(const std::string& modelPath)
         delete currentSceneRenderData;
     currentSceneRenderData = new SceneRenderData;
     MODEL_PATH = modelPath;
-    loadModel(*modelLoader, *mScene);
+    loadModel(*mScene, MODEL_PATH);
 
     createMaterialBuffer(*mScene);
 
@@ -889,10 +895,6 @@ void Render::loadScene(const std::string& modelPath)
     mTexManager->createTextureSampler();
 
     setDescriptors();
-
-    // уыыуу
-    mPbrPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
-    mPass.updateResourses(swapChainExtent.width, swapChainExtent.height);
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
@@ -923,8 +925,7 @@ void Render::createDefaultScene()
     mScene = mDefaultScene;
     defaultSceneRenderData = new SceneRenderData;
     currentSceneRenderData = defaultSceneRenderData;
-    modelLoader = new nevk::ModelLoader(mTexManager);
-    loadModel(*modelLoader, *mScene);
+    loadModel(*mScene, (std::string&)"");
 
     createMaterialBuffer(*mScene);
     {
@@ -1008,8 +1009,8 @@ void Render::drawFrame()
 
     mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
 
-    if (!newModelPath.empty() && fs::exists(newModelPath))
-    { //todo last path != new path
+    if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
+    {
         if (mScene != mDefaultScene) // if we reload non-default scene
         {
             // save scene data to remove
@@ -1018,11 +1019,14 @@ void Render::drawFrame()
         }
         mTexManager->saveTexturesInDelQueue();
         loadScene(newModelPath);
+        // уыыуу
+        mPbrPass.recreateDescriptorSets();
+        mPass.recreateDescriptorSets();
     }
 
     if (needReload)
         ++countFrames;
-    if (needReload && countFrames == 3)
+    if (needReload && countFrames == MAX_FRAMES_IN_FLIGHT)
     {
         mTexManager->delTexturesFromQueue();
         freeSceneData(&toRemoveSceneData);

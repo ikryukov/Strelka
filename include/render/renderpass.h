@@ -181,7 +181,7 @@ public:
         mPipelineTransparent = createGraphicsPipeline(mVS, mPS, mPipelineLayoutTransparent, width, height, true);
     }
 
-    void updateResourses(uint32_t width, uint32_t height)
+    void recreateDescriptorSets()
     {
         vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 
