@@ -427,11 +427,11 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
 void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
 {
     // default texture
-    if (model.textures.empty())
-    {
-        int texId = textureManager.loadTexture("textures/brickwall.png", "misc/");
-        assert(texId != -1);
-    }
+    //if (model.textures.empty())
+    //{
+    //    int texId = textureManager.loadTexture("textures/brickwall.png", "misc/");
+    //    assert(texId != -1);
+    //}
     for (const tinygltf::Texture& tex : model.textures)
     {
         const tinygltf::Image& image = model.images[tex.source];

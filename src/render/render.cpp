@@ -319,8 +319,8 @@ void Render::cleanup()
     mTexManager->textureDestroy();
     mTexManager->delTexturesFromQueue();
 
-    vkDestroyImageView(mDevice, textureCompImageView, nullptr);
-    mResManager->destroyImage(textureCompImage);
+    //vkDestroyImageView(mDevice, textureCompImageView, nullptr);
+    //mResManager->destroyImage(textureCompImage);
 
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
     mResManager->destroyImage(shadowImage);
@@ -947,12 +947,12 @@ void Render::createDefaultScene()
 
     setDescriptors();
 
-    textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                VK_IMAGE_TILING_OPTIMAL,
-                                                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    //textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+    //                                            VK_IMAGE_TILING_OPTIMAL,
+    //                                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    //                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    //mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    //textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
