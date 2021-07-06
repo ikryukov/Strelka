@@ -1020,8 +1020,8 @@ void Render::drawFrame()
         mTexManager->saveTexturesInDelQueue();
         loadScene(newModelPath);
         // уыыуу
-        mPbrPass.recreateDescriptorSets();
-        mPass.recreateDescriptorSets();
+        // mPbrPass.recreateDescriptorSets();
+        // mPass.recreateDescriptorSets();
     }
 
     if (needReload)
