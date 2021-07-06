@@ -138,7 +138,10 @@ private:
         nevk::Buffer* mVertexBuffer = nullptr;
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
-    } currentSceneRenderData, defaultSceneRenderData;
+    };
+
+    SceneRenderData* currentSceneRenderData = nullptr;
+    SceneRenderData* defaultSceneRenderData = nullptr;
 
     void freeSceneData(SceneRenderData* sceneData);
 
@@ -348,10 +351,7 @@ public:
 
     SceneRenderData* getSceneData()
     {
-        if (mScene == mDefaultScene)
-            return &defaultSceneRenderData;
-        else
-            return &currentSceneRenderData;
+        return currentSceneRenderData;
     }
 
     void setDepthResources()

@@ -320,8 +320,8 @@ void Render::cleanup()
     mResManager->destroyImage(shadowImage);
 
     if (mScene != mDefaultScene)
-        freeSceneData(&currentSceneRenderData);
-    freeSceneData(&defaultSceneRenderData);
+        freeSceneData(currentSceneRenderData);
+    freeSceneData(defaultSceneRenderData);
 
     for (FrameData& fd : mFramesData)
     {
@@ -717,7 +717,6 @@ void Render::loadModel(nevk::ModelLoader& testmodel, nevk::Scene& scene)
 
 void Render::createVertexBuffer(nevk::Scene& scene)
 {
-    SceneRenderData* sceneData = getSceneData();
     std::vector<nevk::Scene::Vertex>& sceneVertices = scene.getVertices();
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
     if (bufferSize == 0)
@@ -727,14 +726,13 @@ void Render::createVertexBuffer(nevk::Scene& scene)
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneVertices.data(), (size_t)bufferSize);
-    sceneData->mVertexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "VB");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(sceneData->mVertexBuffer), bufferSize);
+    currentSceneRenderData->mVertexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "VB");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(currentSceneRenderData->mVertexBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
 
 void Render::createMaterialBuffer(nevk::Scene& scene)
 {
-    SceneRenderData* sceneData = getSceneData();
     std::vector<nevk::Scene::Material>& sceneMaterials = scene.getMaterials();
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
@@ -745,17 +743,15 @@ void Render::createMaterialBuffer(nevk::Scene& scene)
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneMaterials.data(), (size_t)bufferSize);
-    sceneData->mMaterialBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Materials");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(sceneData->mMaterialBuffer), bufferSize);
+    currentSceneRenderData->mMaterialBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Materials");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(currentSceneRenderData->mMaterialBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
 
 void Render::createIndexBuffer(nevk::Scene& scene)
 {
-    SceneRenderData* sceneData = getSceneData();
-
     std::vector<uint32_t>& sceneIndices = scene.getIndices();
-    sceneData->mIndicesCount = (uint32_t)sceneIndices.size();
+    currentSceneRenderData->mIndicesCount = (uint32_t)sceneIndices.size();
     VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
     if (bufferSize == 0)
     {
@@ -765,8 +761,8 @@ void Render::createIndexBuffer(nevk::Scene& scene)
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneIndices.data(), (size_t)bufferSize);
-    sceneData->mIndexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "IB");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer), bufferSize);
+    currentSceneRenderData->mIndexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "IB");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(currentSceneRenderData->mIndexBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
 
@@ -817,16 +813,14 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    SceneRenderData* sceneData = getSceneData();
-
-    mDepthPass.record(cmd, mResManager->getVkBuffer(sceneData->mVertexBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer),*mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
+    mDepthPass.record(cmd, mResManager->getVkBuffer(currentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(currentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
     if (isPBR)
     {
-        mPbrPass.record(cmd, mResManager->getVkBuffer(sceneData->mVertexBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+        mPbrPass.record(cmd, mResManager->getVkBuffer(currentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(currentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
     else
     {
-        mPass.record(cmd, mResManager->getVkBuffer(sceneData->mVertexBuffer), mResManager->getVkBuffer(sceneData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+        mPass.record(cmd, mResManager->getVkBuffer(currentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(currentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
 
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
@@ -883,7 +877,9 @@ void Render::loadScene(const std::string& modelPath)
     if (mScene != nullptr && mScene != mDefaultScene)
         delete mScene;
     mScene = new nevk::Scene;
-
+    if (currentSceneRenderData != nullptr && currentSceneRenderData != defaultSceneRenderData)
+        delete currentSceneRenderData;
+    currentSceneRenderData = new SceneRenderData;
     MODEL_PATH = modelPath;
     loadModel(*modelLoader, *mScene);
 
@@ -904,21 +900,19 @@ void Render::loadScene(const std::string& modelPath)
 
 void Render::setDescriptors()
 {
-    SceneRenderData* sceneData = getSceneData();
-
     {
         mPbrPass.setTextureImageView(mTexManager->textureImageView);
         mPbrPass.setTextureSampler(mTexManager->textureSampler);
         mPbrPass.setShadowImageView(shadowImageView);
         mPbrPass.setShadowSampler(mTexManager->shadowSampler);
-        mPbrPass.setMaterialBuffer(mResManager->getVkBuffer(sceneData->mMaterialBuffer));
+        mPbrPass.setMaterialBuffer(mResManager->getVkBuffer(currentSceneRenderData->mMaterialBuffer));
     }
     {
         mPass.setTextureImageView(mTexManager->textureImageView);
         mPass.setTextureSampler(mTexManager->textureSampler);
         mPass.setShadowImageView(shadowImageView);
         mPass.setShadowSampler(mTexManager->shadowSampler);
-        mPass.setMaterialBuffer(mResManager->getVkBuffer(sceneData->mMaterialBuffer));
+        mPass.setMaterialBuffer(mResManager->getVkBuffer(currentSceneRenderData->mMaterialBuffer));
     }
 }
 
@@ -927,6 +921,8 @@ void Render::createDefaultScene()
 {
     mDefaultScene = new nevk::Scene;
     mScene = mDefaultScene;
+    defaultSceneRenderData = new SceneRenderData;
+    currentSceneRenderData = defaultSceneRenderData;
     modelLoader = new nevk::ModelLoader(mTexManager);
     loadModel(*modelLoader, *mScene);
 
@@ -1017,7 +1013,7 @@ void Render::drawFrame()
         if (mScene != mDefaultScene) // if we reload non-default scene
         {
             // save scene data to remove
-            toRemoveSceneData = currentSceneRenderData;
+            toRemoveSceneData = *currentSceneRenderData;
             needReload = true;
         }
         mTexManager->saveTexturesInDelQueue();
