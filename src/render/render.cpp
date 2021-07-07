@@ -1022,8 +1022,8 @@ void Render::drawFrame()
             toRemoveSceneData = mCurrentSceneRenderData;
             needReload = true;
             releaseAfterFrames = MAX_FRAMES_IN_FLIGHT;
-            mTexManager->saveTexturesInDelQueue();
-        }        
+        }
+        mTexManager->saveTexturesInDelQueue();
         loadScene(newModelPath);
     }
 
