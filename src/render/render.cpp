@@ -547,9 +547,14 @@ void Render::createLogicalDevice()
     indexingFeatures.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
     indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
+    VkPhysicalDeviceRobustness2FeaturesEXT robustnessFeatures{};
+    robustnessFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+    robustnessFeatures.nullDescriptor = VK_TRUE;
+    robustnessFeatures.pNext = &indexingFeatures;
+
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pNext = &indexingFeatures;
+    createInfo.pNext = &robustnessFeatures;
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 

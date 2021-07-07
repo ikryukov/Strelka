@@ -296,7 +296,7 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t)2048; // mTextureImageView.size() // TODO:
+    texLayoutBinding.descriptorCount = (uint32_t) 2048; // mTextureImageView.size() // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -565,7 +565,9 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
-    std::vector<VkDescriptorImageInfo> imageInfo(mTextureImageView.size());
+    std::vector<VkDescriptorImageInfo> imageInfo;
+    imageInfo.resize(2048);
+
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
         imageInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -603,7 +605,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrites.push_back(descriptorWrite);
     }
 
-    if (!mTextureImageView.empty())
+    //if (!mTextureImageView.empty())
     {
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -611,7 +613,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t)mTextureImageView.size();
+        descriptorWrite.descriptorCount = (uint32_t) 2048;
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
