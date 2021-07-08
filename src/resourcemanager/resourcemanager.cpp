@@ -105,6 +105,7 @@ public:
     }
     void* getMappedMemory(const Buffer* buffer)
     {
+        assert(buffer);
         VmaAllocationInfo allocInfo = {};
         vmaGetAllocationInfo(mAllocator, buffer->allocation, &allocInfo);
         return allocInfo.pMappedData;
