@@ -88,6 +88,17 @@ void Render::initVulkan()
 
     createDepthResources();
 
+    {
+        shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
+                                               VK_IMAGE_TILING_OPTIMAL,
+                                               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "ShadowMap");
+        shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+
+    mTexManager->createShadowSampler();
+    mTexManager->createTextureSampler();
+
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
     if (!MODEL_PATH.empty())
@@ -97,6 +108,12 @@ void Render::initVulkan()
     }
 
     //init passes
+    mPbrPass.setFrameBufferFormat(swapChainImageFormat);
+    mPbrPass.setDepthBufferFormat(findDepthFormat());
+
+    mPass.setFrameBufferFormat(swapChainImageFormat);
+    mPass.setDepthBufferFormat(findDepthFormat());
+
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
 
@@ -917,23 +934,6 @@ void Render::createDefaultScene()
     mCurrentSceneRenderData = mDefaultSceneRenderData;
 
     setCamera();
-
-    {
-        shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
-                                               VK_IMAGE_TILING_OPTIMAL,
-                                               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "ShadowMap");
-        shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
-    }
-
-    mTexManager->createShadowSampler();
-    mTexManager->createTextureSampler();
-
-    mPbrPass.setFrameBufferFormat(swapChainImageFormat);
-    mPbrPass.setDepthBufferFormat(findDepthFormat());
-
-    mPass.setFrameBufferFormat(swapChainImageFormat);
-    mPass.setDepthBufferFormat(findDepthFormat());
 
     setDescriptors();
 
