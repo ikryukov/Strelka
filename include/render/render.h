@@ -138,12 +138,18 @@ private:
         nevk::Buffer* mVertexBuffer = nullptr;
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
+
+        nevk::ResourceManager* resManager = nullptr;
+        ~SceneRenderData()
+        {
+            resManager->destroyBuffer(mVertexBuffer);
+            resManager->destroyBuffer(mIndexBuffer);
+            resManager->destroyBuffer(mMaterialBuffer);
+        }
     };
 
     SceneRenderData* mCurrentSceneRenderData = nullptr;
     SceneRenderData* mDefaultSceneRenderData = nullptr;
-
-    void freeSceneData(SceneRenderData* sceneData);
 
     VkDescriptorPool mDescriptorPool;
 

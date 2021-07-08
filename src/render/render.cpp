@@ -321,7 +321,7 @@ void Render::cleanup()
     mResManager->destroyImage(shadowImage);
 
     if (mScene != mDefaultScene)
-        freeSceneData(mCurrentSceneRenderData);
+        delete mCurrentSceneRenderData;
 
     for (FrameData& fd : mFramesData)
     {
@@ -857,13 +857,6 @@ void Render::createSyncObjects()
     }
 }
 
-void Render::freeSceneData(SceneRenderData* sceneData)
-{
-    mResManager->destroyBuffer(sceneData->mVertexBuffer);
-    mResManager->destroyBuffer(sceneData->mIndexBuffer);
-    mResManager->destroyBuffer(sceneData->mMaterialBuffer);
-}
-
 // load into normal scene
 void Render::loadScene(const std::string& modelPath)
 {
@@ -872,6 +865,7 @@ void Render::loadScene(const std::string& modelPath)
     mScene = new nevk::Scene;
 
     mCurrentSceneRenderData = new SceneRenderData;
+    mCurrentSceneRenderData->resManager = mResManager;
     MODEL_PATH = modelPath;
 
     isPBR = true;
@@ -919,6 +913,7 @@ void Render::createDefaultScene()
     mDefaultScene = new nevk::Scene;
     mScene = mDefaultScene;
     mDefaultSceneRenderData = new SceneRenderData;
+    mDefaultSceneRenderData->resManager = mResManager;
     mCurrentSceneRenderData = mDefaultSceneRenderData;
 
     setCamera();
@@ -1013,7 +1008,6 @@ void Render::drawFrame()
     if (needReload && releaseAfterFrames == 0)
     {
         mTexManager->delTexturesFromQueue();
-        freeSceneData(toRemoveSceneData);
         delete toRemoveSceneData;
         needReload = false;
     }
