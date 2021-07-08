@@ -120,11 +120,6 @@ void Render::initVulkan()
 
     mUi.init(init_info, swapChainImageFormat, mWindow, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(mDevice, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
-
-    //mComputePass.setOutputImageView(textureCompImageView);
-    //mComputePass.setInImageView();
-    //mComputePass.setTextureSampler(mTexManager->textureSampler);
-    //mComputePass.init(device, csShaderCode, csShaderCodeSize, descriptorPool, mResManager);
 }
 
 void Render::framebufferResizeCallback(GLFWwindow* window, int width, int height)
@@ -951,13 +946,6 @@ void Render::createDefaultScene()
     mPass.setDepthBufferFormat(findDepthFormat());
 
     setDescriptors();
-
-    //textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-    //                                            VK_IMAGE_TILING_OPTIMAL,
-    //                                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-    //                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    //mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    //textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
