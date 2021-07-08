@@ -322,7 +322,6 @@ void Render::cleanup()
 
     if (mScene != mDefaultScene)
         freeSceneData(mCurrentSceneRenderData);
-    mResManager->destroyBuffer(mDefaultSceneRenderData->mMaterialBuffer);
 
     for (FrameData& fd : mFramesData)
     {
@@ -702,22 +701,10 @@ bool Render::hasStencilComponent(VkFormat format)
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Render::loadModel(nevk::Scene& scene, std::string& modelPath)
+void Render::setCamera()
 {
-    isPBR = true;
-    bool res = modelLoader->loadModelGltf(modelPath, scene);
-    // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, *mScene);
-    if (!res && mScene != mDefaultScene)
-    {
-        return;
-    }
-    Camera& camera = scene.getCamera();
-    camera.type = Camera::CameraType::firstperson;
+    Camera& camera = mScene->getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
-    camera.rotationSpeed = 0.05f;
-    camera.movementSpeed = 5.0f;
-    //camera.setPosition({ -1.0f, 3.0f, 8.0f });
-    camera.setPosition({ 0.0f, 0.0f, 10.0f });
     camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 }
 
@@ -886,7 +873,16 @@ void Render::loadScene(const std::string& modelPath)
 
     mCurrentSceneRenderData = new SceneRenderData;
     MODEL_PATH = modelPath;
-    loadModel(*mScene, MODEL_PATH);
+
+    isPBR = true;
+    bool res = modelLoader->loadModelGltf(MODEL_PATH, *mScene);
+    // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, *mScene);
+    if (!res)
+    {
+        return;
+    }
+
+    setCamera();
 
     createMaterialBuffer(*mScene);
 
@@ -924,10 +920,9 @@ void Render::createDefaultScene()
     mScene = mDefaultScene;
     mDefaultSceneRenderData = new SceneRenderData;
     mCurrentSceneRenderData = mDefaultSceneRenderData;
-    std::string defaultPath = "";
-    loadModel(*mScene, defaultPath);
 
-    createMaterialBuffer(*mScene);
+    setCamera();
+
     {
         shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
                                                VK_IMAGE_TILING_OPTIMAL,

@@ -426,12 +426,6 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
 
 void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
 {
-    // default texture
-    //if (model.textures.empty())
-    //{
-    //    int texId = textureManager.loadTexture("textures/brickwall.png", "misc/");
-    //    assert(texId != -1);
-    //}
     for (const tinygltf::Texture& tex : model.textures)
     {
         const tinygltf::Image& image = model.images[tex.source];
@@ -464,65 +458,40 @@ void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textur
 
 void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
 {
-    // default materials
-    if (model.materials.empty())
+    for (const tinygltf::Material& material : model.materials)
     {
         Scene::Material currMaterial{};
-        currMaterial.diffuse = glm::float4(0.f, 0.f, 0.f, 0.f);
-        currMaterial.texNormalId = -1;
-        currMaterial.baseColorFactor = glm::float4(0.f, 0.f, 0.f, 0.f);
-        currMaterial.texBaseColor = -1;
-        currMaterial.roughnessFactor = -1;
-        currMaterial.metallicFactor = -1;
-        currMaterial.emissiveFactor = glm::float3(0, 0, 0);
-        currMaterial.texEmissive = -1;
-        currMaterial.texOcclusion = -1;
-        currMaterial.d = -1;
-        currMaterial.illum = -1;
+
+        currMaterial.diffuse = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
+                                           material.pbrMetallicRoughness.baseColorFactor[1],
+                                           material.pbrMetallicRoughness.baseColorFactor[2],
+                                           material.pbrMetallicRoughness.baseColorFactor[3]);
+        currMaterial.texNormalId = material.normalTexture.index;
+
+        currMaterial.baseColorFactor = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
+                                                   material.pbrMetallicRoughness.baseColorFactor[1],
+                                                   material.pbrMetallicRoughness.baseColorFactor[2],
+                                                   material.pbrMetallicRoughness.baseColorFactor[3]);
+        currMaterial.texBaseColor = material.pbrMetallicRoughness.baseColorTexture.index;
+        currMaterial.roughnessFactor = (float)material.pbrMetallicRoughness.roughnessFactor;
+        currMaterial.metallicFactor = (float)material.pbrMetallicRoughness.metallicFactor;
+
+        currMaterial.emissiveFactor = glm::float3(material.emissiveFactor[0],
+                                                  material.emissiveFactor[1],
+                                                  material.emissiveFactor[2]);
+        currMaterial.texEmissive = material.emissiveTexture.index;
+        currMaterial.texOcclusion = material.occlusionTexture.index;
+        currMaterial.d = (float)material.pbrMetallicRoughness.baseColorFactor[3];
+
+        currMaterial.illum = material.alphaMode == "OPAQUE" ? 2 : 1;
         scene.addMaterial(currMaterial);
-    }
-    else
-    {
-        for (const tinygltf::Material& material : model.materials)
-        {
-            Scene::Material currMaterial{};
-
-            currMaterial.diffuse = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
-                                               material.pbrMetallicRoughness.baseColorFactor[1],
-                                               material.pbrMetallicRoughness.baseColorFactor[2],
-                                               material.pbrMetallicRoughness.baseColorFactor[3]);
-            currMaterial.texNormalId = material.normalTexture.index;
-
-            currMaterial.baseColorFactor = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
-                                                       material.pbrMetallicRoughness.baseColorFactor[1],
-                                                       material.pbrMetallicRoughness.baseColorFactor[2],
-                                                       material.pbrMetallicRoughness.baseColorFactor[3]);
-            currMaterial.texBaseColor = material.pbrMetallicRoughness.baseColorTexture.index;
-            currMaterial.roughnessFactor = (float)material.pbrMetallicRoughness.roughnessFactor;
-            currMaterial.metallicFactor = (float)material.pbrMetallicRoughness.metallicFactor;
-
-            currMaterial.emissiveFactor = glm::float3(material.emissiveFactor[0],
-                                                      material.emissiveFactor[1],
-                                                      material.emissiveFactor[2]);
-            currMaterial.texEmissive = material.emissiveTexture.index;
-            currMaterial.texOcclusion = material.occlusionTexture.index;
-            currMaterial.d = (float)material.pbrMetallicRoughness.baseColorFactor[3];
-
-            currMaterial.illum = material.alphaMode == "OPAQUE" ? 2 : 1;
-            scene.addMaterial(currMaterial);
-        }
     }
 }
 
 bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
 {
-    // load default model
     if (modelPath.empty())
     {
-        tinygltf::Model model;
-        loadTextures(model, scene, *mTexManager);
-        loadMaterials(model, scene, *mTexManager);
-
         return false;
     }
 
