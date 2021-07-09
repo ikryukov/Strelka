@@ -11,9 +11,12 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/compatibility.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 #include <iostream>
 #include <tiny_gltf.h>
+
+#include "camera.h"
 
 namespace nevk
 {
@@ -428,6 +431,18 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
         const tinygltf::Mesh& mesh = model.meshes[node.mesh];
         processMesh(model, scene, mesh, globalTransform, globalScale);
     }
+    else if (node.camera != -1) // camera node
+    {
+        glm::vec3 scale;
+        glm::quat rotation;
+        glm::vec3 translation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(globalTransform, scale, rotation, translation, skew, perspective);
+        scene.getCamera(node.camera).position = translation;
+        scene.getCamera(node.camera).mOrientation = rotation;
+        scene.getCamera(node.camera).updateViewMatrix();
+    }
 
     for (int i = 0; i < node.children.size(); ++i)
     {
@@ -499,6 +514,34 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
     }
 }
 
+void loadCameras(const tinygltf::Model& model, nevk::Scene& scene)
+{
+    for (uint32_t i = 0; i < model.cameras.size(); ++i)
+    {
+        const tinygltf::Camera& cameraGltf = model.cameras[i];
+        if (strcmp(cameraGltf.type.c_str(), "perspective") == 0)
+        {
+            nevk::Camera camera;
+            camera.fov = cameraGltf.perspective.yfov * (180.0f / 3.1415926f);
+            camera.znear = cameraGltf.perspective.znear;
+            camera.zfar = cameraGltf.perspective.zfar;
+            camera.name = cameraGltf.name;
+            scene.addCamera(camera);
+        }
+        else
+        {
+            // not supported
+        }        
+    }
+    if (scene.getCameraCount() == 0)
+    {
+        // add default camera
+        Camera camera;
+        camera.updateViewMatrix();
+        scene.addCamera(camera);        
+    }
+}
+
 bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
 {
     if (modelPath.empty())
@@ -527,6 +570,8 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene
     loadTextures(model, scene, *mTexManager);
     loadMaterials(model, scene, *mTexManager);
 
+    loadCameras(model, scene);
+
     const float globalScale = 1.0f;
 
     for (int i = 0; i < model.scenes[sceneId].nodes.size(); ++i)
@@ -534,7 +579,6 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene
         const int rootNodeIdx = model.scenes[sceneId].nodes[i];
         processNode(model, scene, model.nodes[rootNodeIdx], glm::float4x4(1.0f), globalScale);
     }
-
     return res;
 }
 } // namespace nevk

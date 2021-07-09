@@ -8,26 +8,29 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/compatibility.hpp>
 
+#include <string>
+
+namespace nevk
+{
+
 class Camera
 {
-private:
-    float fov;
-    float znear, zfar;
-
-    void updateViewMatrix();
-
 public:
-    enum CameraType
+    std::string name = "Default camera";
+    enum class CameraType : uint32_t
     {
         lookat,
         firstperson
     };
     CameraType type = CameraType::firstperson;
 
-    glm::quat mOrientation;
-    glm::float3 position = { 0.0f, 0.0f, 10.0f }; // { -1.0f, 3.0f, 8.0f };
+    float fov = 45.0f;
+    float znear = 0.1f, zfar = 1000.0f;
 
-    float rotationSpeed = 0.05f;
+    glm::quat mOrientation = { 1.0f, 0.0f, 0.0f, 0.0f };
+    glm::float3 position = { 0.0f, 0.0f, 10.0f };
+
+    float rotationSpeed = 0.005f;
     float movementSpeed = 5.0f;
 
     bool updated = false;
@@ -48,6 +51,7 @@ public:
         glm::float4x4 view;
     } matrices;
 
+    void updateViewMatrix();
 
     struct
     {
@@ -65,6 +69,7 @@ public:
     bool moving();
     float getNearClip();
     float getFarClip();
+    void setFov(float fov);
     void setPerspective(float fov, float aspect, float znear, float zfar);
     glm::float4x4& getPerspective();
     glm::float4x4 getView();
@@ -77,3 +82,4 @@ public:
     void translate(glm::float3 delta);
     void update(float deltaTime);
 };
+} // namespace nevk

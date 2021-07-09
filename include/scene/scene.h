@@ -30,7 +30,8 @@ struct Instance
 class Scene
 {
 private:
-    Camera mCamera;
+    std::vector<Camera> mCameras;
+
     std::stack<uint32_t> mDelInstances;
     std::stack<uint32_t> mDelMesh;
     std::stack<uint32_t> mDelMaterial;
@@ -129,9 +130,20 @@ public:
         return mMaterials;
     }
 
-    Camera& getCamera()
+    void addCamera(Camera camera)
     {
-        return mCamera;
+        mCameras.push_back(camera);
+    }
+
+    Camera& getCamera(uint32_t index)
+    {
+        assert(index < mCameras.size());
+        return mCameras[index];
+    }
+
+    size_t getCameraCount()
+    {
+        return mCameras.size();
     }
 
     const std::vector<Instance>& getInstances() const
@@ -144,9 +156,12 @@ public:
         return mMeshes;
     }
 
-    void updateCameraParams(int width, int height)
+    void updateCamerasParams(int width, int height)
     {
-        mCamera.setPerspective(45.0f, (float)width / (float)height, 0.1f, 256.0f);
+        for (Camera& camera: mCameras)
+        {
+            camera.updateAspectRatio((float)width / height);
+        }        
     }
     /// <summary>
     /// Create Mesh geometry

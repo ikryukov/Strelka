@@ -230,7 +230,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     ImGui::SliderFloat("pos coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
     if (ImGui::Button("Copy from current camera to light position"))
     {
-        (glm::float3&)scene.mLightPosition = scene.getCamera().getPosition();
+        (glm::float3&)scene.mLightPosition = scene.getCamera(0).getPosition();
     }
 
     ImGui::Text("Light At");
@@ -239,7 +239,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     ImGui::SliderFloat("coordinate Z", &depthPass.lightAt.z, -100.0f, 100.0f);
     if (ImGui::Button("Copy from current camera to light at"))
     {
-        depthPass.lightAt = scene.getCamera().getPosition();
+        depthPass.lightAt = scene.getCamera(0).getPosition();
     }
 
     ImGui::Text("Light Direction Upwards");

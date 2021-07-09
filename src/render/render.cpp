@@ -144,14 +144,14 @@ void Render::framebufferResizeCallback(GLFWwindow* window, int width, int height
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
     nevk::Scene* scene = app->getScene();
-    scene->updateCameraParams(width, height);
+    scene->updateCamerasParams(width, height);
 }
 
 inline void Render::keyCallback(GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     nevk::Scene* scene = app->getScene();
-    Camera& camera = scene->getCamera();
+    Camera& camera = scene->getCamera(app->getActiveCameraIndex());
 
     const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
     switch (key)
@@ -190,7 +190,7 @@ inline void Render::mouseButtonCallback(GLFWwindow* window, int button, int acti
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     nevk::Scene* scene = app->getScene();
-    Camera& camera = scene->getCamera();
+    Camera& camera = scene->getCamera(app->getActiveCameraIndex());
     if (button == GLFW_MOUSE_BUTTON_RIGHT)
     {
         if (action == GLFW_PRESS)
@@ -219,7 +219,7 @@ void Render::handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypo
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     nevk::Scene* scene = app->getScene();
-    Camera& camera = scene->getCamera();
+    Camera& camera = scene->getCamera(app->getActiveCameraIndex());
     const float dx = camera.mousePos.x - (float)xpos;
     const float dy = camera.mousePos.y - (float)ypos;
 
@@ -257,7 +257,7 @@ void Render::scrollCallback(GLFWwindow* window, [[maybe_unused]] double xoffset,
 
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     nevk::Scene* mScene = app->getScene();
-    Camera& mCamera = mScene->getCamera();
+    Camera& mCamera = mScene->getCamera(app->getActiveCameraIndex());
 
     mCamera.translate(glm::vec3(0.0f, 0.0f,
                                 -yoffset * mCamera.movementSpeed));
@@ -402,8 +402,8 @@ void Render::recreateSwapChain()
     mPbrPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(swapChainImageViews, width, height);
 
-    Camera& camera = mScene->getCamera();
-    camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
+    // update all cameras
+    mScene->updateCamerasParams(swapChainExtent.width, swapChainExtent.height);
 }
 
 void Render::createInstance()
@@ -720,7 +720,7 @@ bool Render::hasStencilComponent(VkFormat format)
 
 void Render::setCamera()
 {
-    Camera& camera = mScene->getCamera();
+    Camera& camera = mScene->getCamera(getActiveCameraIndex());
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
     camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 }
@@ -823,14 +823,14 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mDepthPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
+    mDepthPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex, getActiveCameraIndex());
     if (isPBR)
     {
-        mPbrPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+        mPbrPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
     }
     else
     {
-        mPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+        mPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
     }
 
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
@@ -892,8 +892,6 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
-    setCamera();
-
     createMaterialBuffer(*mScene);
 
     mTexManager->createShadowSampler();
@@ -931,7 +929,11 @@ void Render::createDefaultScene()
     mDefaultSceneRenderData = new SceneRenderData(mResManager);
     mCurrentSceneRenderData = mDefaultSceneRenderData;
 
-    setCamera();
+    Camera camera = {};
+    camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
+    camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
+
+    mScene->addCamera(camera);
 
     setDescriptors();
 
@@ -973,15 +975,15 @@ void Render::drawFrame()
     const uint32_t frameIndex = imageIndex;
 
     nevk::Scene* scene = getScene();
-    Camera& cam = scene->getCamera();
-
+    scene->updateCamerasParams(swapChainExtent.width, swapChainExtent.height);
+    Camera& cam = scene->getCamera(getActiveCameraIndex());
     cam.update((float)deltaTime);
 
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
-    mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
-    mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
+    mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
+    mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
 
     static int releaseAfterFrames = 0;
     static bool needReload = false;

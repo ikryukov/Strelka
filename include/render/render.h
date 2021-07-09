@@ -134,6 +134,7 @@ private:
 
     struct SceneRenderData
     {
+        uint32_t cameraIndex = 0;
         uint32_t mIndicesCount = 0;
         nevk::Buffer* mVertexBuffer = nullptr;
         nevk::Buffer* mMaterialBuffer = nullptr;
@@ -362,6 +363,11 @@ public:
     nevk::Scene* getScene()
     {
         return mScene;
+    }
+
+    uint32_t getActiveCameraIndex()
+    {
+        return mCurrentSceneRenderData->cameraIndex;
     }
 
     nevk::TextureManager* getTexManager()

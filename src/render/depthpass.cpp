@@ -357,7 +357,7 @@ void DepthPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
+void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex, uint32_t cameraIndex)
 {
     beginLabel(cmd, "Depth Pass", { 0.0f, 0.0f, 1.0f, 1.0f });
 
@@ -372,8 +372,8 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
         needDesciptorSetUpdate = false;
     }
 
-    const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
-    const std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera().getPosition());
+    const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera(cameraIndex).getPosition());
+    const std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera(cameraIndex).getPosition());
 
     if (opaqueIds.empty() && transparentIds.empty())
     {

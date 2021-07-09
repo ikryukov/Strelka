@@ -4,6 +4,9 @@
 
 #include <scene/glm-wrapper.hpp>
 
+namespace nevk
+{
+
 void Camera::updateViewMatrix()
 {
     glm::mat4 rotM = mat4_cast(mOrientation);
@@ -47,6 +50,11 @@ float Camera::getNearClip()
 float Camera::getFarClip()
 {
     return zfar;
+}
+
+void Camera::setFov(float fov)
+{
+    this->fov = fov;
 }
 
 void Camera::setPerspective(float _fov, float _aspect, float _znear, float _zfar)
@@ -133,3 +141,5 @@ void Camera::update(float deltaTime)
         }
     }
 }
+
+} // namespace nevk

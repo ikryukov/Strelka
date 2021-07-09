@@ -362,7 +362,7 @@ void RenderPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
     }
 }
 
-void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex)
+void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex, uint32_t cameraIndex)
 {
     beginLabel(cmd, "Geometry Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
 
@@ -377,8 +377,8 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
         needDesciptorSetUpdate = false;
     }
 
-    const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
-    const std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera().getPosition());
+    const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera(cameraIndex).getPosition());
+    const std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera(cameraIndex).getPosition());
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -473,10 +473,10 @@ void RenderPass::createUniformBuffers()
     }
 }
 
-void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene)
+void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex)
 {
     UniformBufferObject ubo{};
-    Camera& camera = scene.getCamera();
+    Camera& camera = scene.getCamera(cameraIndex);
     glm::float4x4 proj = camera.getPerspective();
     glm::float4x4 view = camera.getView();
 
