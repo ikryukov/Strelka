@@ -167,7 +167,37 @@
       {
          "mesh" : 0,
          "name" : "Cube"
+      },
+      {
+         "translation" : [ 0.5, 0.5, 3.0 ],
+         "camera" : 0
+      },
+      {
+         "translation" : [ 0.5, 0.5, 3.0 ],
+         "camera" : 1
       }
+   ],
+   "cameras" : [
+    {
+      "name": "cam1",
+      "type": "perspective",
+      "perspective": {
+        "aspectRatio": 1.0,
+        "yfov": 0.7,
+        "zfar": 100,
+        "znear": 0.01
+      }
+    },
+    {
+      "name": "cam2",
+      "type": "perspective",
+      "perspective": {
+        "aspectRatio": 1.0,
+        "yfov": 1.2,
+        "zfar": 100,
+        "znear": 0.01
+      }
+    }
    ],
    "samplers" : [
       {}
@@ -176,7 +206,7 @@
    "scenes" : [
       {
          "nodes" : [
-            0
+            0, 1, 2
          ]
       }
    ],
