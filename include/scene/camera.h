@@ -34,7 +34,6 @@ public:
     float movementSpeed = 5.0f;
 
     bool updated = false;
-    glm::float3 directionVector;
 
     struct MouseButtons
     {
