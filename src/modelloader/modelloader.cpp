@@ -284,7 +284,11 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         texCoord0Stride = uvAccessor.ByteStride(uvView) / sizeof(float);
     }
 
-    const int matId = primitive.material;
+    int matId = primitive.material;
+    if (matId == -1)
+    {
+        matId = 0; // TODO: should be index of default material
+    }
 
     glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
     std::vector<nevk::Scene::Vertex> vertices;
@@ -374,7 +378,7 @@ glm::float4x4 getTransform(const tinygltf::Node& node, const float globalScale)
         {
             scale = glm::make_vec3(node.scale.data());
             // check that scale is uniform, otherwise we have to support it in shader
-            assert(scale.x == scale.y && scale.y == scale.z);
+            // assert(scale.x == scale.y && scale.y == scale.z);
         }
 
         glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -518,7 +522,11 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene
 
     const float globalScale = 1.0f;
 
-    processNode(model, scene, model.nodes[sceneId], glm::float4x4(1.0f), globalScale);
+    for (int i = 0; i < model.scenes[sceneId].nodes.size(); ++i)
+    {
+        const int rootNodeIdx = model.scenes[sceneId].nodes[i];
+        processNode(model, scene, model.nodes[rootNodeIdx], glm::float4x4(1.0f), globalScale);    
+    }    
 
     return res;
 }
