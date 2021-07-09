@@ -1013,7 +1013,7 @@ void Render::drawFrame()
     {
         --releaseAfterFrames;
     }
-        
+
     glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
