@@ -196,7 +196,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame)
+void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -208,6 +208,21 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame)
 
     ImGui::Text("MsPF = %f", msPerFrame);
     ImGui::Text("FPS = %f", 1000.0 / msPerFrame);
+
+    // open Dialog Simple
+    if (ImGui::Button("Open File Dialog"))
+        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gltf,.obj", ".");
+    // display
+    if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
+    {
+        if (ImGuiFileDialog::Instance()->IsOk())
+        {
+            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+            newModelPath = filePathName;
+            std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+        }
+        ImGuiFileDialog::Instance()->Close();
+    }
 
     ImGui::Text("Light Position");
     ImGui::SliderFloat("pos coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);

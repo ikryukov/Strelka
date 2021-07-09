@@ -130,7 +130,7 @@ private:
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
 
 public:
-    int imageviewcounter = 0;
+    int imageViewCounter = 0;
 
     std::vector<VkImageView> mTextureImageView;
     VkImageView mShadowImageView;
@@ -155,7 +155,7 @@ public:
     }
 
     void setShadowImageView(VkImageView shadowImageView);
-    void setTextureImageView(std::vector<VkImageView> textureImageView);
+    void setTextureImageView(const std::vector<VkImageView>& textureImageView);
     void setTextureSampler(VkSampler textureSampler);
     void setShadowSampler(VkSampler shadowSampler);
     void setMaterialBuffer(VkBuffer materialBuffer);

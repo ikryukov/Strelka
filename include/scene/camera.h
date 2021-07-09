@@ -25,10 +25,10 @@ public:
     CameraType type = CameraType::firstperson;
 
     glm::quat mOrientation;
-    glm::float3 position;
+    glm::float3 position = { 0.0f, 0.0f, 10.0f }; // { -1.0f, 3.0f, 8.0f };
 
-    float rotationSpeed;
-    float movementSpeed;
+    float rotationSpeed = 0.05f;
+    float movementSpeed = 5.0f;
 
     bool updated = false;
     glm::float3 directionVector;

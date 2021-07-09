@@ -11,7 +11,7 @@ int main(int argc, char** argv)
     cxxopts::Options options("nevk [MODEL PATH] [MTL PATH]", "commands");
 
     options.add_options()
-        ("m, mesh", "mesh path", cxxopts::value<std::string>()->default_value("misc/Cube/Cube.gltf"))
+        ("m, mesh", "mesh path", cxxopts::value<std::string>()->default_value("")) //misc/Cube/Cube.gltf
         ("t, texture", "texture path", cxxopts::value<std::string>()->default_value("misc/"))
                 ("width", "window width", cxxopts::value<uint32_t>()->default_value("800"))
                 ("height", "window height", cxxopts::value<uint32_t>()->default_value("600"))
@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     // check params
     std::string mesh(result["m"].as<std::string>());
     std::string texture(result["t"].as<std::string>());
-    if (!fs::exists(mesh))
+    if (!fs::exists(mesh) && !mesh.empty())
     {
         std::cerr << "mesh file doesn't exist";
         exit(0);

@@ -56,7 +56,6 @@ const bool enableValidationLayers = true;
 #endif
 
 
-
 struct QueueFamilyIndices
 {
     std::optional<uint32_t> graphicsFamily;
@@ -118,25 +117,43 @@ private:
     nevk::Image* depthImage;
     VkImageView depthImageView;
 
-    nevk::Image* textureCompImage;
-    VkImageView textureCompImageView;
+    // nevk::Image* textureCompImage;
+    // VkImageView textureCompImageView;
 
     nevk::Image* shadowImage;
     VkImageView shadowImageView;
 
-    nevk::ResourceManager* mResManager;
-    nevk::TextureManager* mTexManager;
+    nevk::ResourceManager* mResManager = nullptr;
+    nevk::TextureManager* mTexManager = nullptr;
 
     nevk::RenderPass mPass;
     nevk::RenderPass mPbrPass;
-    nevk::ModelLoader* modelLoader;
+    nevk::ModelLoader* modelLoader = nullptr;
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
 
-    uint32_t mIndicesCount = 0;
-    nevk::Buffer* mVertexBuffer;
-    nevk::Buffer* mMaterialBuffer;
-    nevk::Buffer* mIndexBuffer;
+    struct SceneRenderData
+    {
+        uint32_t mIndicesCount = 0;
+        nevk::Buffer* mVertexBuffer = nullptr;
+        nevk::Buffer* mMaterialBuffer = nullptr;
+        nevk::Buffer* mIndexBuffer = nullptr;
+
+        nevk::ResourceManager* mResManager = nullptr;
+        explicit SceneRenderData(nevk::ResourceManager* resManager)
+        {
+            mResManager = resManager;
+        }
+        ~SceneRenderData()
+        {
+            mResManager->destroyBuffer(mVertexBuffer);
+            mResManager->destroyBuffer(mIndexBuffer);
+            mResManager->destroyBuffer(mMaterialBuffer);
+        }
+    };
+
+    SceneRenderData* mCurrentSceneRenderData = nullptr;
+    SceneRenderData* mDefaultSceneRenderData = nullptr;
 
     VkDescriptorPool mDescriptorPool;
 
@@ -165,9 +182,16 @@ private:
 
     nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
-    nevk::Scene mScene;
+    nevk::Scene* mScene = nullptr;
+    nevk::Scene* mDefaultScene = nullptr;
 
     bool isPBR = true;
+
+    void loadScene(const std::string& modelPath);
+
+    void createDefaultScene();
+
+    void setDescriptors();
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
@@ -213,13 +237,11 @@ private:
 
     bool hasStencilComponent(VkFormat format);
 
-    void loadModel(nevk::ModelLoader& testmodel);
+    void setCamera();
 
-    void createVertexBuffer();
-
-    void createMaterialBuffer();
-
-    void createIndexBuffer();
+    void createVertexBuffer(nevk::Scene& scene);
+    void createMaterialBuffer(nevk::Scene& scene);
+    void createIndexBuffer(nevk::Scene& scene);
 
     void createDescriptorPool();
 
@@ -321,18 +343,27 @@ public:
     {
         return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
     }
-    nevk::TextureManager* getTexManager()
-    {
-        return mTexManager;
-    }
+
     nevk::ResourceManager* getResManager()
     {
         return mResManager;
     }
-    nevk::Scene& getScene()
+
+    nevk::Scene* getScene()
     {
         return mScene;
     }
+
+    nevk::TextureManager* getTexManager()
+    {
+        return mTexManager;
+    }
+
+    SceneRenderData* getSceneData()
+    {
+        return mCurrentSceneRenderData;
+    }
+
     void setDepthResources()
     {
         createDepthResources();

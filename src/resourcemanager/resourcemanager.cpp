@@ -105,6 +105,7 @@ public:
     }
     void* getMappedMemory(const Buffer* buffer)
     {
+        assert(buffer);
         VmaAllocationInfo allocInfo = {};
         vmaGetAllocationInfo(mAllocator, buffer->allocation, &allocInfo);
         return allocInfo.pMappedData;
@@ -120,7 +121,10 @@ public:
 
     VkBuffer getVkBuffer(const Buffer* buffer)
     {
-        return buffer->handle;
+        if (buffer)
+            return buffer->handle;
+        else
+            return nullptr;
     }
 
     Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr)

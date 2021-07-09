@@ -296,7 +296,7 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t)mTextureImageView.size();
+    texLayoutBinding.descriptorCount = (uint32_t) 2048; // mTextureImageView.size() // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -366,24 +366,19 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 {
     beginLabel(cmd, "Geometry Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
 
-    if (needDesciptorSetUpdate && imageviewcounter < 3)
+    if (needDesciptorSetUpdate && imageViewCounter < 3)
     {
-        imageviewcounter++;
+        imageViewCounter++;
         updateDescriptorSets(imageIndex);
     }
     else
     {
-        imageviewcounter = 0;
+        imageViewCounter = 0;
         needDesciptorSetUpdate = false;
     }
 
     const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera().getPosition());
     const std::vector<uint32_t>& transparentIds = scene.getTransparentInstancesToRender(scene.getCamera().getPosition());
-
-    if (opaqueIds.empty() && transparentIds.empty())
-    {
-        return;
-    }
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -412,10 +407,11 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 
     VkBuffer vertexBuffers[] = { vertexBuffer };
     VkDeviceSize offsets[] = { 0 };
-    vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
-
-    vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-
+    if (vertexBuffer)
+    {
+        vkCmdBindVertexBuffers(cmd, 0, 1, vertexBuffers, offsets);
+        vkCmdBindIndexBuffer(cmd, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+    }
 
     const std::vector<Instance>& instances = scene.getInstances();
     const std::vector<Mesh>& meshes = scene.getMeshes();
@@ -535,10 +531,10 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
     createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
 }
 
-void RenderPass::setTextureImageView(std::vector<VkImageView> textureImageView)
+void RenderPass::setTextureImageView(const std::vector<VkImageView>& textureImageView)
 {
     mTextureImageView = textureImageView;
-    imageviewcounter = 0;
+    imageViewCounter = 0;
     needDesciptorSetUpdate = true;
 }
 
@@ -569,7 +565,9 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
-    std::vector<VkDescriptorImageInfo> imageInfo(mTextureImageView.size());
+    std::vector<VkDescriptorImageInfo> imageInfo;
+    imageInfo.resize(2048);
+
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
         imageInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -607,7 +605,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrites.push_back(descriptorWrite);
     }
 
-    if (!mTextureImageView.empty())
+    //if (!mTextureImageView.empty())
     {
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -615,7 +613,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t)mTextureImageView.size();
+        descriptorWrite.descriptorCount = (uint32_t) 2048;
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }

@@ -3,7 +3,9 @@
 #include "debugUtils.h"
 
 #include <chrono>
+#include <filesystem>
 
+namespace fs = std::filesystem;
 
 [[maybe_unused]] static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
@@ -42,12 +44,37 @@ void Render::initVulkan()
     createLogicalDevice();
     createSwapChain();
 
-    uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-
+    // load shaders
     const char* csShaderCode = nullptr;
     uint32_t csShaderCodeSize = 0;
+    const char* shShaderCode = nullptr;
+    uint32_t shShaderCodeSize = 0;
+    const char* pbrVertShaderCode = nullptr;
+    uint32_t pbrVertShaderCodeSize = 0;
+    const char* pbrFragShaderCode = nullptr;
+    uint32_t pbrFragShaderCodeSize = 0;
+    const char* simpleVertShaderCode = nullptr;
+    uint32_t simpleVertShaderCodeSize = 0;
+    const char* simpleFragShaderCode = nullptr;
+    uint32_t simpleFragShaderCodeSize = 0;
+
+    uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
     mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
 
+    uint32_t shId = mShaderManager.loadShader("shaders/shadowmap.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+    mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);
+
+    uint32_t pbrVertId = mShaderManager.loadShader("shaders/pbr.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+    uint32_t pbrFragId = mShaderManager.loadShader("shaders/pbr.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+
+    mShaderManager.getShaderCode(pbrVertId, pbrVertShaderCode, pbrVertShaderCodeSize);
+    mShaderManager.getShaderCode(pbrFragId, pbrFragShaderCode, pbrFragShaderCodeSize);
+
+    uint32_t simpleVertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+    uint32_t simpleFragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+
+    mShaderManager.getShaderCode(simpleVertId, simpleVertShaderCode, simpleVertShaderCodeSize);
+    mShaderManager.getShaderCode(simpleFragId, simpleFragShaderCode, simpleFragShaderCodeSize);
 
     createDescriptorPool();
     createCommandPool();
@@ -60,10 +87,42 @@ void Render::initVulkan()
     createSyncObjects();
 
     createDepthResources();
-    modelLoader = new nevk::ModelLoader(mTexManager);
-    loadModel(*modelLoader);
 
-    createMaterialBuffer();
+    {
+        shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
+                                               VK_IMAGE_TILING_OPTIMAL,
+                                               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "ShadowMap");
+        shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+
+    mTexManager->createShadowSampler();
+    mTexManager->createTextureSampler();
+
+    modelLoader = new nevk::ModelLoader(mTexManager);
+    createDefaultScene();
+    if (!MODEL_PATH.empty())
+    {
+        mTexManager->saveTexturesInDelQueue();
+        loadScene(MODEL_PATH);
+    }
+
+    //init passes
+    mPbrPass.setFrameBufferFormat(swapChainImageFormat);
+    mPbrPass.setDepthBufferFormat(findDepthFormat());
+
+    mPass.setFrameBufferFormat(swapChainImageFormat);
+    mPass.setDepthBufferFormat(findDepthFormat());
+
+    mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+
+    mPbrPass.init(mDevice, enableValidationLayers, pbrVertShaderCode, pbrVertShaderCodeSize, pbrFragShaderCode, pbrFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+    mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
+    mPass.init(mDevice, enableValidationLayers, simpleVertShaderCode, simpleVertShaderCodeSize, simpleFragShaderCode, simpleFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
+    mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
+
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
     ImGui_ImplVulkan_InitInfo init_info{};
@@ -76,103 +135,23 @@ void Render::initVulkan()
     init_info.Queue = mGraphicsQueue;
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
-    {
-        uint32_t shId = mShaderManager.loadShader("shaders/shadowmap.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
-        const char* shShaderCode = nullptr;
-        uint32_t shShaderCodeSize = 0;
-        mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);
-        shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
-                                               VK_IMAGE_TILING_OPTIMAL,
-                                               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "ShadowMap");
-        shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
-
-        mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-        mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-    }
-
-    mTexManager->createShadowSampler();
-    mTexManager->createTextureSampler();
-
     mUi.init(init_info, swapChainImageFormat, mWindow, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(mDevice, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
-    // PBR
-    {
-        uint32_t vertId = mShaderManager.loadShader("shaders/pbr.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
-        uint32_t fragId = mShaderManager.loadShader("shaders/pbr.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
-
-        const char* vertShaderCode = nullptr;
-        uint32_t vertShaderCodeSize = 0;
-        mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
-
-        const char* fragShaderCode = nullptr;
-        uint32_t fragShaderCodeSize = 0;
-        mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
-
-        mPbrPass.setFrameBufferFormat(swapChainImageFormat);
-        mPbrPass.setDepthBufferFormat(findDepthFormat());
-        mPbrPass.setTextureImageView(mTexManager->textureImageView);
-        mPbrPass.setTextureSampler(mTexManager->textureSampler);
-        mPbrPass.setShadowImageView(shadowImageView);
-        mPbrPass.setShadowSampler(mTexManager->shadowSampler);
-        mPbrPass.setMaterialBuffer(mResManager->getVkBuffer(mMaterialBuffer));
-        mPbrPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
-
-        mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
-    }
-    // Simple
-    {
-        uint32_t vertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
-        uint32_t fragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
-
-        const char* vertShaderCode = nullptr;
-        uint32_t vertShaderCodeSize = 0;
-        mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
-
-        const char* fragShaderCode = nullptr;
-        uint32_t fragShaderCodeSize = 0;
-        mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
-
-        mPass.setFrameBufferFormat(swapChainImageFormat);
-        mPass.setDepthBufferFormat(findDepthFormat());
-        mPass.setTextureImageView(mTexManager->textureImageView);
-        mPass.setTextureSampler(mTexManager->textureSampler);
-        mPass.setShadowImageView(shadowImageView);
-        mPass.setShadowSampler(mTexManager->shadowSampler);
-        mPass.setMaterialBuffer(mResManager->getVkBuffer(mMaterialBuffer));
-        mPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
-
-        mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
-    }
-    textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                VK_IMAGE_TILING_OPTIMAL,
-                                                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    //mComputePass.setOutputImageView(textureCompImageView);
-    //mComputePass.setInImageView();
-    //mComputePass.setTextureSampler(mTexManager->textureSampler);
-    //mComputePass.init(device, csShaderCode, csShaderCodeSize, descriptorPool, mResManager);
-
-    createIndexBuffer();
-    createVertexBuffer();
 }
 
 void Render::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
-    nevk::Scene& mScene = app->getScene();
-    mScene.updateCameraParams(width, height);
+    nevk::Scene* scene = app->getScene();
+    scene->updateCameraParams(width, height);
 }
 
 inline void Render::keyCallback(GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    nevk::Scene& scene = app->getScene();
-    Camera& camera = scene.getCamera();
+    nevk::Scene* scene = app->getScene();
+    Camera& camera = scene->getCamera();
 
     const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
     switch (key)
@@ -210,8 +189,8 @@ inline void Render::keyCallback(GLFWwindow* window, int key, [[maybe_unused]] in
 inline void Render::mouseButtonCallback(GLFWwindow* window, int button, int action, [[maybe_unused]] int mods)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    nevk::Scene& scene = app->getScene();
-    Camera& camera = scene.getCamera();
+    nevk::Scene* scene = app->getScene();
+    Camera& camera = scene->getCamera();
     if (button == GLFW_MOUSE_BUTTON_RIGHT)
     {
         if (action == GLFW_PRESS)
@@ -239,8 +218,8 @@ inline void Render::mouseButtonCallback(GLFWwindow* window, int button, int acti
 void Render::handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypos)
 {
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    nevk::Scene& scene = app->getScene();
-    Camera& camera = scene.getCamera();
+    nevk::Scene* scene = app->getScene();
+    Camera& camera = scene->getCamera();
     const float dx = camera.mousePos.x - (float)xpos;
     const float dy = camera.mousePos.y - (float)ypos;
 
@@ -277,8 +256,8 @@ void Render::scrollCallback(GLFWwindow* window, [[maybe_unused]] double xoffset,
     }
 
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    nevk::Scene& mScene = app->getScene();
-    Camera& mCamera = mScene.getCamera();
+    nevk::Scene* mScene = app->getScene();
+    Camera& mCamera = mScene->getCamera();
 
     mCamera.translate(glm::vec3(0.0f, 0.0f,
                                 -yoffset * mCamera.movementSpeed));
@@ -350,16 +329,16 @@ void Render::cleanup()
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
 
     mTexManager->textureDestroy();
+    mTexManager->delTexturesFromQueue();
 
-    vkDestroyImageView(mDevice, textureCompImageView, nullptr);
-    mResManager->destroyImage(textureCompImage);
+    //vkDestroyImageView(mDevice, textureCompImageView, nullptr);
+    //mResManager->destroyImage(textureCompImage);
 
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
     mResManager->destroyImage(shadowImage);
 
-    mResManager->destroyBuffer(mVertexBuffer);
-    mResManager->destroyBuffer(mIndexBuffer);
-    mResManager->destroyBuffer(mMaterialBuffer);
+    if (mScene != mDefaultScene)
+        delete mCurrentSceneRenderData;
 
     for (FrameData& fd : mFramesData)
     {
@@ -423,7 +402,7 @@ void Render::recreateSwapChain()
     mPbrPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(swapChainImageViews, width, height);
 
-    Camera& camera = mScene.getCamera();
+    Camera& camera = mScene->getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
 }
 
@@ -579,9 +558,14 @@ void Render::createLogicalDevice()
     indexingFeatures.shaderStorageImageArrayNonUniformIndexing = VK_TRUE;
     indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 
+    VkPhysicalDeviceRobustness2FeaturesEXT robustnessFeatures{};
+    robustnessFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+    robustnessFeatures.nullDescriptor = VK_TRUE;
+    robustnessFeatures.pNext = &indexingFeatures;
+
     VkDeviceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    createInfo.pNext = &indexingFeatures;
+    createInfo.pNext = &robustnessFeatures;
     createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
@@ -734,28 +718,16 @@ bool Render::hasStencilComponent(VkFormat format)
     return format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT;
 }
 
-void Render::loadModel(nevk::ModelLoader& testmodel)
+void Render::setCamera()
 {
-    isPBR = true;
-    bool res = testmodel.loadModelGltf(MODEL_PATH, mScene);
-    // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, mScene);
-    if (!res)
-    {
-        return;
-    }
-    Camera& camera = mScene.getCamera();
-    camera.type = Camera::CameraType::firstperson;
+    Camera& camera = mScene->getCamera();
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
-    camera.rotationSpeed = 0.05f;
-    camera.movementSpeed = 5.0f;
-    //camera.setPosition({ -1.0f, 3.0f, 8.0f });
-    camera.setPosition({ 0.0f, 0.0f, 10.0f });
     camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 }
 
-void Render::createVertexBuffer()
+void Render::createVertexBuffer(nevk::Scene& scene)
 {
-    std::vector<nevk::Scene::Vertex>& sceneVertices = mScene.getVertices();
+    std::vector<nevk::Scene::Vertex>& sceneVertices = scene.getVertices();
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
     if (bufferSize == 0)
     {
@@ -764,14 +736,15 @@ void Render::createVertexBuffer()
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneVertices.data(), (size_t)bufferSize);
-    mVertexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "VB");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mVertexBuffer), bufferSize);
+    mCurrentSceneRenderData->mVertexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "VB");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
 
-void Render::createMaterialBuffer()
+void Render::createMaterialBuffer(nevk::Scene& scene)
 {
-    std::vector<nevk::Scene::Material>& sceneMaterials = mScene.getMaterials();
+    std::vector<nevk::Scene::Material>& sceneMaterials = scene.getMaterials();
+
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
     if (bufferSize == 0)
     {
@@ -780,25 +753,26 @@ void Render::createMaterialBuffer()
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneMaterials.data(), (size_t)bufferSize);
-    mMaterialBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Materials");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mMaterialBuffer), bufferSize);
+    mCurrentSceneRenderData->mMaterialBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Materials");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
 
-void Render::createIndexBuffer()
+void Render::createIndexBuffer(nevk::Scene& scene)
 {
-    std::vector<uint32_t>& sceneIndices = mScene.getIndices();
-    mIndicesCount = (uint32_t)sceneIndices.size();
+    std::vector<uint32_t>& sceneIndices = scene.getIndices();
+    mCurrentSceneRenderData->mIndicesCount = (uint32_t)sceneIndices.size();
     VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
     if (bufferSize == 0)
     {
         return;
     }
+
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneIndices.data(), (size_t)bufferSize);
-    mIndexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "IB");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mIndexBuffer), bufferSize);
+    mCurrentSceneRenderData->mIndexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "IB");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
 
@@ -849,15 +823,16 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mDepthPass.record(cmd, mResManager->getVkBuffer(mVertexBuffer), mResManager->getVkBuffer(mIndexBuffer), mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
+    mDepthPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex);
     if (isPBR)
     {
-        mPbrPass.record(cmd, mResManager->getVkBuffer(mVertexBuffer), mResManager->getVkBuffer(mIndexBuffer), mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+        mPbrPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
     else
     {
-        mPass.record(cmd, mResManager->getVkBuffer(mVertexBuffer), mResManager->getVkBuffer(mIndexBuffer), mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
+        mPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex);
     }
+
     //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
@@ -899,6 +874,71 @@ void Render::createSyncObjects()
     }
 }
 
+// load into normal scene
+void Render::loadScene(const std::string& modelPath)
+{
+    if (mScene != nullptr && mScene != mDefaultScene)
+        delete mScene;
+    mScene = new nevk::Scene;
+
+    mCurrentSceneRenderData = new SceneRenderData(mResManager);
+    MODEL_PATH = modelPath;
+
+    isPBR = true;
+    bool res = modelLoader->loadModelGltf(MODEL_PATH, *mScene);
+    // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, *mScene);
+    if (!res)
+    {
+        return;
+    }
+
+    setCamera();
+
+    createMaterialBuffer(*mScene);
+
+    mTexManager->createShadowSampler();
+    mTexManager->createTextureSampler();
+
+    setDescriptors();
+
+    createIndexBuffer(*mScene);
+    createVertexBuffer(*mScene);
+}
+
+void Render::setDescriptors()
+{
+    {
+        mPbrPass.setTextureImageView(mTexManager->textureImageView);
+        mPbrPass.setTextureSampler(mTexManager->textureSampler);
+        mPbrPass.setShadowImageView(shadowImageView);
+        mPbrPass.setShadowSampler(mTexManager->shadowSampler);
+        mPbrPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+    }
+    {
+        mPass.setTextureImageView(mTexManager->textureImageView);
+        mPass.setTextureSampler(mTexManager->textureSampler);
+        mPass.setShadowImageView(shadowImageView);
+        mPass.setShadowSampler(mTexManager->shadowSampler);
+        mPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+    }
+}
+
+// set default scene
+void Render::createDefaultScene()
+{
+    mDefaultScene = new nevk::Scene;
+    mScene = mDefaultScene;
+    mDefaultSceneRenderData = new SceneRenderData(mResManager);
+    mCurrentSceneRenderData = mDefaultSceneRenderData;
+
+    setCamera();
+
+    setDescriptors();
+
+    createIndexBuffer(*mScene);
+    createVertexBuffer(*mScene);
+}
+
 void Render::drawFrame()
 {
     FrameData& currFrame = getCurrentFrameData();
@@ -931,15 +971,49 @@ void Render::drawFrame()
     prevTime = currentTime;
 
     const uint32_t frameIndex = imageIndex;
-    nevk::Scene& scene = getScene();
-    Camera& cam = scene.getCamera();
+
+    nevk::Scene* scene = getScene();
+    Camera& cam = scene->getCamera();
 
     cam.update((float)deltaTime);
-    const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene.mLightPosition);
+
+    const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
+
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
-    mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
-    mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, mScene);
-    mUi.updateUI(scene, mDepthPass, msPerFrame);
+    mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
+    mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene);
+
+    static int releaseAfterFrames = 0;
+    static bool needReload = false;
+    static SceneRenderData* toRemoveSceneData = nullptr;
+    std::string newModelPath;
+
+    mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
+
+    if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
+    {
+        if (mScene != mDefaultScene) // if we reload non-default scene
+        {
+            // save scene data to remove
+            toRemoveSceneData = mCurrentSceneRenderData;
+            needReload = true;
+            releaseAfterFrames = MAX_FRAMES_IN_FLIGHT;
+        }
+        mTexManager->saveTexturesInDelQueue();
+        loadScene(newModelPath);
+    }
+
+    if (needReload && releaseAfterFrames == 0)
+    {
+        mTexManager->delTexturesFromQueue();
+        delete toRemoveSceneData;
+        needReload = false;
+    }
+    if (needReload)
+    {
+        --releaseAfterFrames;
+    }
+
     glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
     VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
@@ -996,7 +1070,6 @@ void Render::drawFrame()
     presentInfo.pImageIndices = &imageIndex;
 
     result = vkQueuePresentKHR(mPresentQueue, &presentInfo);
-
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
     {
         framebufferResized = false;

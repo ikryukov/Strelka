@@ -35,13 +35,17 @@ public:
     VkSampler textureSampler = VK_NULL_HANDLE;
     VkSampler shadowSampler = VK_NULL_HANDLE;
 
+    std::vector<Image*> delTextures;
+    std::vector<VkImageView> delTextureImageView;
+    std::vector<VkSampler> delTextureSampler;
+    std::vector<VkSampler> delShadowSampler;
+
     int loadTexture(const std::string& texture_path, const std::string& MTL_PATH);
 
     int loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name);
     int findTexture(const std::string& name);
 
     Texture createTextureImage(const std::string& texture_path);
-    
     Texture createTextureImage(const void* pixels, uint32_t width, uint32_t height);
 
     void createTextureImageView(Texture& texture);
@@ -57,11 +61,11 @@ public:
         vkDestroySampler(mDevice, textureSampler, nullptr);
         vkDestroySampler(mDevice, shadowSampler, nullptr);
 
-        for (VkImageView& image_view : textureImageView)
+        for (VkImageView& imageView : textureImageView)
         {
-            if (image_view != VK_NULL_HANDLE)
+            if (imageView != VK_NULL_HANDLE)
             {
-                vkDestroyImageView(mDevice, image_view, nullptr);
+                vkDestroyImageView(mDevice, imageView, nullptr);
             }
         }
 
@@ -69,6 +73,68 @@ public:
         {
             mResManager->destroyImage(tex.textureImage);
         }
+
+        textures.clear();
+        textureImageView.clear();
+        mNameToID.clear();
+    }
+
+    void saveTexturesInDelQueue()
+    {
+        delShadowSampler.push_back(shadowSampler);
+        delTextureSampler.push_back(textureSampler);
+
+        for (VkImageView& imageView : textureImageView)
+        {
+            if (imageView != VK_NULL_HANDLE)
+            {
+                delTextureImageView.push_back(imageView);
+            }
+        }
+
+        for (Texture& tex : textures)
+        {
+            delTextures.push_back(tex.textureImage);
+        }
+
+        textureImageView.clear();
+        textures.clear();
+        mNameToID.clear();
+        textureSampler = VK_NULL_HANDLE;
+        shadowSampler = VK_NULL_HANDLE;
+    }
+
+    void delTexturesFromQueue()
+    {
+        for (VkSampler sampler : delTextureSampler)
+        {
+            if (sampler != VK_NULL_HANDLE)
+                vkDestroySampler(mDevice, sampler, nullptr);
+        }
+
+        for (VkSampler sampler : delShadowSampler)
+        {
+            if (sampler != VK_NULL_HANDLE)
+                vkDestroySampler(mDevice, sampler, nullptr);
+        }
+
+        for (VkImageView imageView : delTextureImageView)
+        {
+            if (imageView != VK_NULL_HANDLE)
+            {
+                vkDestroyImageView(mDevice, imageView, nullptr);
+            }
+        }
+
+        for (Image* delTexture : delTextures)
+        {
+            mResManager->destroyImage(delTexture);
+        }
+
+        delTextures.clear();
+        delTextureImageView.clear();
+        delTextureSampler.clear();
+        delShadowSampler.clear();
     }
 };
 } // namespace nevk
