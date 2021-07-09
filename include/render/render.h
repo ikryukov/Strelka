@@ -139,16 +139,16 @@ private:
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
 
-        nevk::ResourceManager* resManager = nullptr;
-        explicit SceneRenderData(nevk::ResourceManager* mResManager)
+        nevk::ResourceManager* mResManager = nullptr;
+        explicit SceneRenderData(nevk::ResourceManager* resManager)
         {
-            resManager = mResManager;
+            mResManager = resManager;
         }
         ~SceneRenderData()
         {
-            resManager->destroyBuffer(mVertexBuffer);
-            resManager->destroyBuffer(mIndexBuffer);
-            resManager->destroyBuffer(mMaterialBuffer);
+            mResManager->destroyBuffer(mVertexBuffer);
+            mResManager->destroyBuffer(mIndexBuffer);
+            mResManager->destroyBuffer(mMaterialBuffer);
         }
     };
 

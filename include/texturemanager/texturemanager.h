@@ -61,11 +61,11 @@ public:
         vkDestroySampler(mDevice, textureSampler, nullptr);
         vkDestroySampler(mDevice, shadowSampler, nullptr);
 
-        for (VkImageView& image_view : textureImageView)
+        for (VkImageView& imageView : textureImageView)
         {
-            if (image_view != VK_NULL_HANDLE)
+            if (imageView != VK_NULL_HANDLE)
             {
-                vkDestroyImageView(mDevice, image_view, nullptr);
+                vkDestroyImageView(mDevice, imageView, nullptr);
             }
         }
 
@@ -84,11 +84,11 @@ public:
         delShadowSampler.push_back(shadowSampler);
         delTextureSampler.push_back(textureSampler);
 
-        for (VkImageView& image_view : textureImageView)
+        for (VkImageView& imageView : textureImageView)
         {
-            if (image_view != VK_NULL_HANDLE)
+            if (imageView != VK_NULL_HANDLE)
             {
-                delTextureImageView.push_back(image_view);
+                delTextureImageView.push_back(imageView);
             }
         }
 
@@ -118,11 +118,11 @@ public:
                 vkDestroySampler(mDevice, sampler, nullptr);
         }
 
-        for (VkImageView image_view : delTextureImageView)
+        for (VkImageView imageView : delTextureImageView)
         {
-            if (image_view != VK_NULL_HANDLE)
+            if (imageView != VK_NULL_HANDLE)
             {
-                vkDestroyImageView(mDevice, image_view, nullptr);
+                vkDestroyImageView(mDevice, imageView, nullptr);
             }
         }
 
