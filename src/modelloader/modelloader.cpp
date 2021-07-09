@@ -1,11 +1,14 @@
 #include "modelloader.h"
 
+#include "camera.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 #define TINYGLTF_IMPLEMENTATION
+#include "tiny_gltf.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -14,9 +17,6 @@
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include <iostream>
-#include <tiny_gltf.h>
-
-#include "camera.h"
 
 namespace nevk
 {
@@ -531,14 +531,14 @@ void loadCameras(const tinygltf::Model& model, nevk::Scene& scene)
         else
         {
             // not supported
-        }        
+        }
     }
     if (scene.getCameraCount() == 0)
     {
         // add default camera
         Camera camera;
         camera.updateViewMatrix();
-        scene.addCamera(camera);        
+        scene.addCamera(camera);
     }
 }
 
