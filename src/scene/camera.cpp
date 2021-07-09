@@ -99,8 +99,8 @@ void Camera::setRotation(glm::quat rotation)
 
 void Camera::rotate(float rightAngle, float upAngle)
 {
-    glm::quat a = glm::angleAxis(glm::radians(upAngle), glm::float3(1.0f, 0.0f, 0.0f));
-    glm::quat b = glm::angleAxis(glm::radians(rightAngle), glm::float3(0.0f, 1.0f, 0.0f));
+    glm::quat a = glm::angleAxis(glm::radians(upAngle) * rotationSpeed, glm::float3(1.0f, 0.0f, 0.0f));
+    glm::quat b = glm::angleAxis(glm::radians(rightAngle) * rotationSpeed, glm::float3(0.0f, 1.0f, 0.0f));
     mOrientation = glm::normalize(a * mOrientation * b);
     updateViewMatrix();
 }

@@ -30,7 +30,7 @@ public:
     glm::quat mOrientation = { 1.0f, 0.0f, 0.0f, 0.0f };
     glm::float3 position = { 0.0f, 0.0f, 10.0f };
 
-    float rotationSpeed = 0.005f;
+    float rotationSpeed = 0.025f;
     float movementSpeed = 5.0f;
 
     bool updated = false;
