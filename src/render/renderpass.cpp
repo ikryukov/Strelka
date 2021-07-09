@@ -531,7 +531,7 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
     createFrameBuffers(imageViews, depthImageView, mWidth, mHeight);
 }
 
-void RenderPass::setTextureImageView(std::vector<VkImageView> textureImageView)
+void RenderPass::setTextureImageView(const std::vector<VkImageView>& textureImageView)
 {
     mTextureImageView = textureImageView;
     imageViewCounter = 0;
