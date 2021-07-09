@@ -990,7 +990,7 @@ void Render::drawFrame()
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
 
-    mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath);
+    mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {

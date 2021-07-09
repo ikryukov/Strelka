@@ -141,6 +141,11 @@ public:
         return mCameras[index];
     }
 
+    const std::vector<Camera>& getCameras() const
+    {
+        return mCameras;
+    }
+
     size_t getCameraCount()
     {
         return mCameras.size();
