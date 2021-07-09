@@ -881,8 +881,7 @@ void Render::loadScene(const std::string& modelPath)
         delete mScene;
     mScene = new nevk::Scene;
 
-    mCurrentSceneRenderData = new SceneRenderData;
-    mCurrentSceneRenderData->resManager = mResManager;
+    mCurrentSceneRenderData = new SceneRenderData(mResManager);
     MODEL_PATH = modelPath;
 
     isPBR = true;
@@ -929,8 +928,7 @@ void Render::createDefaultScene()
 {
     mDefaultScene = new nevk::Scene;
     mScene = mDefaultScene;
-    mDefaultSceneRenderData = new SceneRenderData;
-    mDefaultSceneRenderData->resManager = mResManager;
+    mDefaultSceneRenderData = new SceneRenderData(mResManager);
     mCurrentSceneRenderData = mDefaultSceneRenderData;
 
     setCamera();
