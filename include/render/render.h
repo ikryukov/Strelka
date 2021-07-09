@@ -146,9 +146,19 @@ private:
         }
         ~SceneRenderData()
         {
-            mResManager->destroyBuffer(mVertexBuffer);
-            mResManager->destroyBuffer(mIndexBuffer);
-            mResManager->destroyBuffer(mMaterialBuffer);
+            assert(mResManager);
+            if (mVertexBuffer)
+            {
+                mResManager->destroyBuffer(mVertexBuffer);
+            }
+            if (mIndexBuffer)
+            {
+                mResManager->destroyBuffer(mIndexBuffer);
+            }
+            if (mMaterialBuffer)
+            {
+                mResManager->destroyBuffer(mMaterialBuffer);
+            }
         }
     };
 
