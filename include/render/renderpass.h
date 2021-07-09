@@ -155,7 +155,7 @@ public:
     }
 
     void setShadowImageView(VkImageView shadowImageView);
-    void setTextureImageView(std::vector<VkImageView> textureImageView);
+    void setTextureImageView(const std::vector<VkImageView>& textureImageView);
     void setTextureSampler(VkSampler textureSampler);
     void setShadowSampler(VkSampler shadowSampler);
     void setMaterialBuffer(VkBuffer materialBuffer);
