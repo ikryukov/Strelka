@@ -376,7 +376,7 @@ glm::float4x4 getTransform(const tinygltf::Node& node, const float globalScale)
         glm::float3 scale{ 1.0f };
         if (!node.scale.empty())
         {
-            scale = glm::make_vec3(node.scale.data());
+            scale = glm::float3((float)node.scale[0], (float)node.scale[1], (float)node.scale[2]);
             // check that scale is uniform, otherwise we have to support it in shader
             // assert(scale.x == scale.y && scale.y == scale.z);
         }
@@ -384,21 +384,28 @@ glm::float4x4 getTransform(const tinygltf::Node& node, const float globalScale)
         glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
         if (!node.rotation.empty())
         {
-            rotation = glm::make_quat(node.rotation.data());
+            const float floatRotation[4] = {
+                (float)node.rotation[0],
+                (float)node.rotation[1],
+                (float)node.rotation[2],
+                (float)node.rotation[3]
+            };
+            rotation = glm::make_quat(floatRotation);
         }
 
         glm::float3 translation{ 0.0f };
         if (!node.translation.empty())
         {
-            translation = { node.translation[0], node.translation[1], node.translation[2] };
+            translation = glm::float3((float)node.translation[0], (float)node.translation[1], (float)node.translation[2]);
             translation *= globalScale;
         }
-        glm::float4x4 localTransform{ 1.0f };
 
-        localTransform = glm::scale(localTransform, scale);
-        glm::float4x4 rot = glm::float4x4(rotation);
-        localTransform *= rot;
-        localTransform = glm::translate(localTransform, translation);
+        const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), translation);
+        const glm::float4x4 rotationMatrix{ rotation };
+        const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
+
+        const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;
+
         return localTransform;
     }
     else
@@ -525,8 +532,8 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene
     for (int i = 0; i < model.scenes[sceneId].nodes.size(); ++i)
     {
         const int rootNodeIdx = model.scenes[sceneId].nodes[i];
-        processNode(model, scene, model.nodes[rootNodeIdx], glm::float4x4(1.0f), globalScale);    
-    }    
+        processNode(model, scene, model.nodes[rootNodeIdx], glm::float4x4(1.0f), globalScale);
+    }
 
     return res;
 }
