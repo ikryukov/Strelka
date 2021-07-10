@@ -778,6 +778,7 @@ void Render::createIndexBuffer(nevk::Scene& scene)
 
 void Render::createInstanceBuffer(nevk::Scene& scene)
 {
+    // This struct should match shader's version
     struct InstanceConstants
     {
         glm::float4x4 model;
