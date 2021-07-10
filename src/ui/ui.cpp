@@ -83,7 +83,7 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
         ret = false;
     }
 
-    setDarkThemeColors();
+    // setDarkThemeColors();
 
     return ret;
 }
@@ -196,7 +196,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
     return err == 0;
 }
 
-void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath)
+void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
 {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -209,6 +209,28 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     ImGui::Text("MsPF = %f", msPerFrame);
     ImGui::Text("FPS = %f", 1000.0 / msPerFrame);
 
+    const std::vector<nevk::Camera>& cameras = scene.getCameras();
+    assert(selectedCamera < cameras.size());
+    const char* currentCameraName = cameras[selectedCamera].name.c_str();
+
+    if (ImGui::BeginCombo("Camera", currentCameraName))
+    {
+        for (size_t i = 0; i < cameras.size(); ++i)
+        {
+            bool isSelected = (currentCameraName == cameras[i].name.c_str());
+            if (ImGui::Selectable(cameras[i].name.c_str(), isSelected))
+            {
+                currentCameraName = cameras[i].name.c_str();
+                selectedCamera = i;
+            }
+            if (isSelected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
     // open Dialog Simple
     if (ImGui::Button("Open File Dialog"))
         ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gltf,.obj", ".");
@@ -217,9 +239,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     {
         if (ImGuiFileDialog::Instance()->IsOk())
         {
-            std::string filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-            newModelPath = filePathName;
-            std::string filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+            newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
         }
         ImGuiFileDialog::Instance()->Close();
     }
@@ -230,7 +250,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     ImGui::SliderFloat("pos coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
     if (ImGui::Button("Copy from current camera to light position"))
     {
-        (glm::float3&)scene.mLightPosition = scene.getCamera().getPosition();
+        (glm::float3&)scene.mLightPosition = scene.getCamera(selectedCamera).getPosition();
     }
 
     ImGui::Text("Light At");
@@ -239,7 +259,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     ImGui::SliderFloat("coordinate Z", &depthPass.lightAt.z, -100.0f, 100.0f);
     if (ImGui::Button("Copy from current camera to light at"))
     {
-        depthPass.lightAt = scene.getCamera().getPosition();
+        depthPass.lightAt = scene.getCamera(selectedCamera).getPosition();
     }
 
     ImGui::Text("Light Direction Upwards");

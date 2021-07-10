@@ -4,6 +4,9 @@
 
 #include <scene/glm-wrapper.hpp>
 
+namespace nevk
+{
+
 void Camera::updateViewMatrix()
 {
     glm::mat4 rotM = mat4_cast(mOrientation);
@@ -49,6 +52,11 @@ float Camera::getFarClip()
     return zfar;
 }
 
+void Camera::setFov(float fov)
+{
+    this->fov = fov;
+}
+
 void Camera::setPerspective(float _fov, float _aspect, float _znear, float _zfar)
 {
     fov = _fov;
@@ -91,8 +99,8 @@ void Camera::setRotation(glm::quat rotation)
 
 void Camera::rotate(float rightAngle, float upAngle)
 {
-    glm::quat a = glm::angleAxis(glm::radians(upAngle), glm::float3(1.0f, 0.0f, 0.0f));
-    glm::quat b = glm::angleAxis(glm::radians(rightAngle), glm::float3(0.0f, 1.0f, 0.0f));
+    glm::quat a = glm::angleAxis(glm::radians(upAngle) * rotationSpeed, glm::float3(1.0f, 0.0f, 0.0f));
+    glm::quat b = glm::angleAxis(glm::radians(rightAngle) * rotationSpeed, glm::float3(0.0f, 1.0f, 0.0f));
     mOrientation = glm::normalize(a * mOrientation * b);
     updateViewMatrix();
 }
@@ -133,3 +141,5 @@ void Camera::update(float deltaTime)
         }
     }
 }
+
+} // namespace nevk
