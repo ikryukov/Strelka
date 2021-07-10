@@ -46,6 +46,9 @@ struct InstanceConstants
     float4x4 model;
     float4x4 normalMatrix;
     int32_t materialId;
+    int32_t pad0;
+    int32_t pad1;
+    int32_t pad2;
 };
 
 struct PS_INPUT
