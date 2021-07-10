@@ -40,6 +40,16 @@ struct Material
     int32_t pad2;
 };
 
+struct InstanceConstants
+{
+    float4x4 model;
+    float4x4 normalMatrix;
+    int32_t materialId;
+    int32_t pad0;
+    int32_t pad1;
+    int32_t pad2;
+};
+
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
@@ -52,8 +62,7 @@ struct PS_INPUT
 
 struct InstancePushConstants 
 {
-    float4x4 model;
-    int32_t materialId;
+    int32_t instanceId;
 };
 [[vk::push_constant]] ConstantBuffer<InstancePushConstants> pconst;
 
@@ -73,6 +82,7 @@ SamplerState gSampler;
 StructuredBuffer<Material> materials;
 Texture2D shadowMap;
 SamplerState shadowSamp;
+StructuredBuffer<InstanceConstants> instanceConstants;
 
 static const float4x4 biasMatrix = float4x4(
   0.5, 0.0, 0.0, 0.5,
@@ -84,13 +94,14 @@ static const float4x4 biasMatrix = float4x4(
 PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
-    float4 wpos = mul(pconst.model, float4(vi.position, 1.0f));
+    InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
+    float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
     out.pos = mul(viewToProj, mul(worldToView, wpos));
     out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, wpos));
     out.uv = unpackUV(vi.uv);
     // assume that we don't use non-uniform scales
     // TODO:
-    out.normal = unpackNormal(vi.normal);
+    out.normal = mul((float3x3)constants.normalMatrix, unpackNormal(vi.normal));
     out.tangent = unpackTangent(vi.tangent);
     out.wPos = wpos.xyz / wpos.w; 
     return out;
@@ -128,7 +139,8 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-   Material material = materials[NonUniformResourceIndex(pconst.materialId)];
+   InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
+   Material material = materials[NonUniformResourceIndex(constants.materialId)];
 
    float3 emissive = float3(material.emissive.rgb);
    float opticalDensity = material.opticalDensity;

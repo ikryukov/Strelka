@@ -136,9 +136,11 @@ private:
     {
         uint32_t cameraIndex = 0;
         uint32_t mIndicesCount = 0;
+        uint32_t mInstanceCount = 0;
         nevk::Buffer* mVertexBuffer = nullptr;
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
+        nevk::Buffer* mInstanceBuffer = nullptr;
 
         nevk::ResourceManager* mResManager = nullptr;
         explicit SceneRenderData(nevk::ResourceManager* resManager)
@@ -159,6 +161,10 @@ private:
             if (mMaterialBuffer)
             {
                 mResManager->destroyBuffer(mMaterialBuffer);
+            }
+            if (mInstanceBuffer)
+            {
+                mResManager->destroyBuffer(mInstanceBuffer);
             }
         }
     };
@@ -253,6 +259,7 @@ private:
     void createVertexBuffer(nevk::Scene& scene);
     void createMaterialBuffer(nevk::Scene& scene);
     void createIndexBuffer(nevk::Scene& scene);
+    void createInstanceBuffer(nevk::Scene& scene);
 
     void createDescriptorPool();
 

@@ -41,6 +41,13 @@ struct Material
     int32_t pad2;
 };
 
+struct InstanceConstants
+{
+    float4x4 model;
+    float4x4 normalMatrix;
+    int32_t materialId;
+};
+
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
@@ -53,8 +60,7 @@ struct PS_INPUT
 
 struct InstancePushConstants 
 {
-    float4x4 model;
-    int32_t materialId;
+    int32_t instanceId;
 };
 [[vk::push_constant]] ConstantBuffer<InstancePushConstants> pconst;
 
@@ -74,6 +80,7 @@ SamplerState gSampler;
 StructuredBuffer<Material> materials;
 Texture2D shadowMap;
 SamplerState shadowSamp;
+StructuredBuffer<InstanceConstants> instanceConstants;
 
 static const float4x4 biasMatrix = float4x4(
   0.5, 0.0, 0.0, 0.5,
@@ -85,7 +92,8 @@ static const float4x4 biasMatrix = float4x4(
 PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
-    float4 wpos = mul(pconst.model, float4(vi.position, 1.0f));
+    InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
+    float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
     out.pos = mul(viewToProj, mul(worldToView, wpos));
     out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, wpos));
     out.uv = unpackUV(vi.uv);
@@ -179,7 +187,8 @@ float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
 [shader("fragment")]
 float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 {
-    Material material = materials[NonUniformResourceIndex(pconst.materialId)];
+    InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
+    Material material = materials[NonUniformResourceIndex(constants.materialId)];
 
     int32_t texNormalId = material.texNormalId;
 
