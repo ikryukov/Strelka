@@ -256,7 +256,14 @@ void DepthPass::createDescriptorSetLayout()
     uboLayoutBinding.pImmutableSamplers = nullptr;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 1> bindings = { uboLayoutBinding };
+    VkDescriptorSetLayoutBinding instanceLayoutBinding{};
+    instanceLayoutBinding.binding = 1;
+    instanceLayoutBinding.descriptorCount = 1;
+    instanceLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    instanceLayoutBinding.pImmutableSamplers = nullptr;
+    instanceLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, instanceLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -296,6 +303,11 @@ void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
+    VkDescriptorBufferInfo instanceInfo{};
+    instanceInfo.buffer = mInstanceBuffer;
+    instanceInfo.offset = 0;
+    instanceInfo.range = VK_WHOLE_SIZE;
+
     std::vector<VkWriteDescriptorSet> descriptorWrites{};
     {
         VkWriteDescriptorSet descriptorWrite{};
@@ -306,6 +318,19 @@ void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pBufferInfo = &bufferInfo;
+        descriptorWrites.push_back(descriptorWrite);
+    }
+
+    if (mInstanceBuffer != VK_NULL_HANDLE)
+    {
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
+        descriptorWrite.dstBinding = 1;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &instanceInfo;
         descriptorWrites.push_back(descriptorWrite);
     }
 
@@ -341,6 +366,13 @@ void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& 
 
     void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));
+}
+
+void DepthPass::setInstanceBuffer(VkBuffer instanceBuffer)
+{
+    mInstanceBuffer = instanceBuffer;
+    needDesciptorSetUpdate = true;
+    imageviewcounter = 0;
 }
 
 void DepthPass::onDestroy()
@@ -426,8 +458,8 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
             const uint32_t currentMeshId = instances[currentInstanceId].mMeshId;
             const uint32_t indexOffset = meshes[currentMeshId].mIndex;
             const uint32_t indexCount = meshes[currentMeshId].mCount;
-            InstancePushConstants constants;
-            constants.model = instances[currentInstanceId].transform;
+            InstancePushConstants constants = {};
+            constants.instanceId = currentInstanceId;
 
             vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(InstancePushConstants), &constants);
 

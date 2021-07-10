@@ -19,7 +19,7 @@ private:
 
     struct InstancePushConstants
     {
-        glm::float4x4 model;
+        int32_t instanceId = -1;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -31,6 +31,7 @@ private:
     VkPipeline mPipeline;
     VkPipelineLayout mPipelineLayout;
     VkShaderModule mSS;
+    VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
 
     ResourceManager* mResMngr;
 
@@ -85,11 +86,15 @@ public:
     float zFar = 50.f;
 
     void createShadowPass();
-    void init(VkDevice& device, bool enableValidation, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height);
-    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex, uint32_t cameraIndex);
+    void init(VkDevice& device, bool enableValidation, const char* ssCode, uint32_t ssCodeSize, VkDescriptorPool descpool,
+        ResourceManager* resMngr, uint32_t width, uint32_t height);
+    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, 
+        uint32_t width, uint32_t height, uint32_t imageIndex, uint32_t cameraIndex);
     void createFrameBuffers(VkImageView& shadowImageView, uint32_t width, uint32_t height);
     void onDestroy();
 
     void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix);
+    
+    void setInstanceBuffer(VkBuffer instanceBuffer);
 };
 } // namespace nevk

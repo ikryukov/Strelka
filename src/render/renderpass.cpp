@@ -329,7 +329,15 @@ void RenderPass::createDescriptorSetLayout()
     shadowSamplerLayoutBinding.pImmutableSamplers = nullptr;
     shadowSamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 6> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, materialLayoutBinding, shadowImageLayoutBinding, shadowSamplerLayoutBinding };
+    VkDescriptorSetLayoutBinding instanceLayoutBinding{};
+    instanceLayoutBinding.binding = 6;
+    instanceLayoutBinding.descriptorCount = 1;
+    instanceLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    instanceLayoutBinding.pImmutableSamplers = nullptr;
+    instanceLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+
+    std::array<VkDescriptorSetLayoutBinding, 7> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, 
+        materialLayoutBinding, shadowImageLayoutBinding, shadowSamplerLayoutBinding, instanceLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -423,9 +431,8 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
             const uint32_t indexOffset = meshes[currentMeshId].mIndex;
             const uint32_t indexCount = meshes[currentMeshId].mCount;
 
-            InstancePushConstants constants{};
-            constants.model = instances[currentInstanceId].transform;
-            constants.materialId = instances[currentInstanceId].mMaterialId;
+            InstancePushConstants constants = {};
+            constants.instanceId = currentInstanceId;
 
             vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(InstancePushConstants), &constants);
 
@@ -541,21 +548,36 @@ void RenderPass::setTextureImageView(const std::vector<VkImageView>& textureImag
 void RenderPass::setShadowImageView(VkImageView shadowImageView)
 {
     mShadowImageView = shadowImageView;
+    imageViewCounter = 0;
+    needDesciptorSetUpdate = true;
 }
 
 void RenderPass::setTextureSampler(VkSampler textureSampler)
 {
     mTextureSampler = textureSampler;
+    imageViewCounter = 0;
+    needDesciptorSetUpdate = true;
 }
 
 void RenderPass::setShadowSampler(VkSampler shadowSampler)
 {
     mShadowSampler = shadowSampler;
+    imageViewCounter = 0;
+    needDesciptorSetUpdate = true;
 }
 
 void RenderPass::setMaterialBuffer(VkBuffer materialBuffer)
 {
     mMaterialBuffer = materialBuffer;
+    imageViewCounter = 0;
+    needDesciptorSetUpdate = true;
+}
+
+void RenderPass::setInstanceBuffer(VkBuffer instanceBuffer)
+{
+    mInstanceBuffer = instanceBuffer;
+    imageViewCounter = 0;
+    needDesciptorSetUpdate = true;
 }
 
 void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
@@ -582,6 +604,11 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     materialInfo.buffer = mMaterialBuffer;
     materialInfo.offset = 0;
     materialInfo.range = VK_WHOLE_SIZE;
+
+    VkDescriptorBufferInfo instanceInfo{};
+    instanceInfo.buffer = mInstanceBuffer;
+    instanceInfo.offset = 0;
+    instanceInfo.range = VK_WHOLE_SIZE;
 
     VkDescriptorImageInfo shadowImageInfo{};
     shadowImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
@@ -660,6 +687,19 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
         descriptorWrite.descriptorCount = 1;
         descriptorWrite.pImageInfo = &shadowSamplerInfo;
+        descriptorWrites.push_back(descriptorWrite);
+    }
+
+    if (mInstanceBuffer != VK_NULL_HANDLE)
+    {
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
+        descriptorWrite.dstBinding = 6;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrite.descriptorCount = 1;
+        descriptorWrite.pBufferInfo = &instanceInfo;
         descriptorWrites.push_back(descriptorWrite);
     }
 

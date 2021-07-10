@@ -776,6 +776,43 @@ void Render::createIndexBuffer(nevk::Scene& scene)
     mResManager->destroyBuffer(stagingBuffer);
 }
 
+void Render::createInstanceBuffer(nevk::Scene& scene)
+{
+    // This struct should match shader's version
+    struct InstanceConstants
+    {
+        glm::float4x4 model;
+        glm::float4x4 normalMatrix;
+        int32_t materialId;
+        int32_t pad0;
+        int32_t pad1;
+        int32_t pad2;
+    };
+
+    const std::vector<nevk::Instance>& sceneInstances = scene.getInstances();
+    mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
+    VkDeviceSize bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
+    if (bufferSize == 0)
+    {
+        return;
+    }
+    std::vector<InstanceConstants> instanceConsts;
+    instanceConsts.resize(sceneInstances.size());
+    for (int i = 0; i < sceneInstances.size(); ++i)
+    {
+        instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
+        instanceConsts[i].model = sceneInstances[i].transform;
+        instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
+    }
+
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    memcpy(stagingBufferMemory, instanceConsts.data(), (size_t)bufferSize);
+    mCurrentSceneRenderData->mInstanceBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), bufferSize);
+    mResManager->destroyBuffer(stagingBuffer);
+}
+
 void Render::createDescriptorPool()
 {
     VkDescriptorPoolSize pool_sizes[] = {
@@ -893,6 +930,7 @@ void Render::loadScene(const std::string& modelPath)
     }
 
     createMaterialBuffer(*mScene);
+    createInstanceBuffer(*mScene);
 
     mTexManager->createShadowSampler();
     mTexManager->createTextureSampler();
@@ -906,11 +944,15 @@ void Render::loadScene(const std::string& modelPath)
 void Render::setDescriptors()
 {
     {
+        mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
+    }
+    {
         mPbrPass.setTextureImageView(mTexManager->textureImageView);
         mPbrPass.setTextureSampler(mTexManager->textureSampler);
         mPbrPass.setShadowImageView(shadowImageView);
         mPbrPass.setShadowSampler(mTexManager->shadowSampler);
         mPbrPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+        mPbrPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
     {
         mPass.setTextureImageView(mTexManager->textureImageView);
@@ -918,6 +960,7 @@ void Render::setDescriptors()
         mPass.setShadowImageView(shadowImageView);
         mPass.setShadowSampler(mTexManager->shadowSampler);
         mPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+        mPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
 }
 
@@ -934,6 +977,9 @@ void Render::createDefaultScene()
     camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 
     mScene->addCamera(camera);
+
+    createMaterialBuffer(*mScene);
+    createInstanceBuffer(*mScene);
 
     setDescriptors();
 

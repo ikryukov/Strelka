@@ -26,8 +26,7 @@ private:
 
     struct InstancePushConstants
     {
-        glm::float4x4 model;
-        int32_t materialId = -1;
+        int32_t instanceId = -1;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -133,8 +132,9 @@ public:
     int imageViewCounter = 0;
 
     std::vector<VkImageView> mTextureImageView;
-    VkImageView mShadowImageView;
+    VkImageView mShadowImageView = VK_NULL_HANDLE;
     VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
+    VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
 
     bool needDesciptorSetUpdate;
 
@@ -159,6 +159,7 @@ public:
     void setTextureSampler(VkSampler textureSampler);
     void setShadowSampler(VkSampler shadowSampler);
     void setMaterialBuffer(VkBuffer materialBuffer);
+    void setInstanceBuffer(VkBuffer instanceBuffer);
 
     void init(VkDevice& device, bool enableValidation, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, uint32_t width, uint32_t height)
     {
