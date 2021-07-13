@@ -29,7 +29,8 @@ public:
         uint32_t texHeight;
     };
 
-    struct TextureSampler {
+    struct TextureSamplerDesc
+    {
         VkFilter magFilter;
         VkFilter minFilter;
         VkSamplerAddressMode addressModeU;
@@ -52,7 +53,7 @@ public:
     int loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name);
     int findTexture(const std::string& name);
 
-    void createTextureSamplerGltf(TextureSampler texSamplerData);
+    void createTextureSampler(TextureSamplerDesc& texSamplerData);
 
     Texture createTextureImage(const std::string& texture_path);
     Texture createTextureImage(const void* pixels, uint32_t width, uint32_t height);

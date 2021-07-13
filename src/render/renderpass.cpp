@@ -13,8 +13,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
-uint32_t texDescCount = 2048;
-uint32_t sampDescCount = 100;
+const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
+const uint32_t BINDLESS_SAMPLERS_COUNT = 100;
 
 namespace nevk
 {
@@ -298,14 +298,14 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t) texDescCount; // mTextureImageView.size() // TODO:
+    texLayoutBinding.descriptorCount = (uint32_t)BINDLESS_TEXTURE_COUNT; // mTextureImageView.size() // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 2;
-    samplerLayoutBinding.descriptorCount = (uint32_t) sampDescCount;
+    samplerLayoutBinding.descriptorCount = (uint32_t)BINDLESS_SAMPLERS_COUNT;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -338,8 +338,8 @@ void RenderPass::createDescriptorSetLayout()
     instanceLayoutBinding.pImmutableSamplers = nullptr;
     instanceLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 7> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, 
-        materialLayoutBinding, shadowImageLayoutBinding, shadowSamplerLayoutBinding, instanceLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 7> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding,
+                                                             materialLayoutBinding, shadowImageLayoutBinding, shadowSamplerLayoutBinding, instanceLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -590,7 +590,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     bufferInfo.range = sizeof(UniformBufferObject);
 
     std::vector<VkDescriptorImageInfo> imageInfo;
-    imageInfo.resize(texDescCount);
+    imageInfo.resize(BINDLESS_TEXTURE_COUNT);
 
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
@@ -599,7 +599,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     }
 
     std::vector<VkDescriptorImageInfo> samplerInfo;
-    samplerInfo.resize(sampDescCount);
+    samplerInfo.resize(BINDLESS_SAMPLERS_COUNT);
     for (uint32_t j = 0; j < mTextureSampler.size(); ++j)
     {
         samplerInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -646,7 +646,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t) texDescCount;
+        descriptorWrite.descriptorCount = (uint32_t)BINDLESS_TEXTURE_COUNT;
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
@@ -657,7 +657,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 2;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        descriptorWrite.descriptorCount = (uint32_t) sampDescCount;
+        descriptorWrite.descriptorCount = (uint32_t)BINDLESS_SAMPLERS_COUNT;
         descriptorWrite.pImageInfo = samplerInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }

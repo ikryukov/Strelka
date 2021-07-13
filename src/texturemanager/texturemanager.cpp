@@ -96,7 +96,7 @@ void nevk::TextureManager::createTextureImageView(Texture& texture)
     textureImageView.push_back(createImageView(mResManager->getVkImage(texture.textureImage), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
 }
 
-void nevk::TextureManager::createTextureSamplerGltf(TextureSampler texSamplerData)
+void nevk::TextureManager::createTextureSampler(TextureSamplerDesc& texSamplerData)
 {
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(mPhysicalDevice, &properties);
