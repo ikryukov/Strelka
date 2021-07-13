@@ -14,7 +14,6 @@
 #include <glm/gtx/hash.hpp>
 
 const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
-const uint32_t BINDLESS_SAMPLERS_COUNT = 100;
 
 namespace nevk
 {
@@ -305,7 +304,7 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 2;
-    samplerLayoutBinding.descriptorCount = (uint32_t)BINDLESS_SAMPLERS_COUNT;
+    samplerLayoutBinding.descriptorCount = (uint32_t)mTextureSampler.size();
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -599,7 +598,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     }
 
     std::vector<VkDescriptorImageInfo> samplerInfo;
-    samplerInfo.resize(BINDLESS_SAMPLERS_COUNT);
+    samplerInfo.resize(mTextureSampler.size());
     for (uint32_t j = 0; j < mTextureSampler.size(); ++j)
     {
         samplerInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -657,7 +656,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 2;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        descriptorWrite.descriptorCount = (uint32_t)BINDLESS_SAMPLERS_COUNT;
+        descriptorWrite.descriptorCount = (uint32_t)mTextureSampler.size();
         descriptorWrite.pImageInfo = samplerInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }

@@ -97,6 +97,8 @@ void Render::initVulkan()
     }
 
     mTexManager->createShadowSampler();
+    nevk::TextureManager::TextureSamplerDesc def = {VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+    mTexManager->createTextureSampler(def);
 
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
@@ -954,7 +956,7 @@ void Render::setDescriptors()
     }
     {
         mPass.setTextureImageView(mTexManager->textureImageView);
-        //mPass.setTextureSampler(mTexManager->texSamplers);
+        mPass.setTextureSampler(mTexManager->texSamplers);
         mPass.setShadowImageView(shadowImageView);
         mPass.setShadowSampler(mTexManager->shadowSampler);
         mPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
