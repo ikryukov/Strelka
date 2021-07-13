@@ -243,7 +243,7 @@ bool ModelLoader::loadModel(const std::string& modelFile, const std::string& mtl
         assert(instId != -1);
     }
 
-    mTexManager->createTextureSampler();
+    //mTexManager->createTextureSampler();
 
     return ret;
 }
@@ -450,6 +450,50 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
     }
 }
 
+VkSamplerAddressMode getVkWrapMode(int32_t wrapMode)
+{
+    switch (wrapMode) {
+    case -1: // default
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    case 10497:
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    case 33071:
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    case 33648:
+        return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    }
+}
+
+VkFilter getVkFilterMode(int32_t filterMode)
+{
+    switch (filterMode) {
+    case -1: // default
+        return VK_FILTER_LINEAR;
+    case 9728:
+        return VK_FILTER_NEAREST;
+    case 9729:
+        return VK_FILTER_LINEAR;
+    case 9984:
+        return VK_FILTER_NEAREST;
+    case 9985:
+        return VK_FILTER_NEAREST;
+    case 9986:
+        return VK_FILTER_LINEAR;
+    case 9987:
+        return VK_FILTER_LINEAR;
+    }
+}
+
+void loadTextureSamplers(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
+{
+    //default w/ index 0 ?
+    textureManager.createTextureSamplerGltf({VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT});
+    for (const tinygltf::Sampler& sampler : model.samplers)
+    {
+        textureManager.createTextureSamplerGltf({getVkFilterMode(sampler.minFilter), getVkFilterMode(sampler.magFilter), getVkWrapMode(sampler.wrapS),getVkWrapMode(sampler.wrapT)});
+    }
+}
+
 void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
 {
     for (const tinygltf::Texture& tex : model.textures)
@@ -476,6 +520,14 @@ void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textur
         uint32_t height = image.height;
 
         const std::string name = image.uri;
+
+
+        if (tex.sampler == -1) {
+            // default
+        }
+        else {
+            // todo connect w/ samplers
+        }
 
         int texId = textureManager.loadTextureGltf(data, width, height, name);
         assert(texId != -1);
@@ -567,6 +619,7 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene
 
     int sceneId = model.defaultScene;
 
+    loadTextureSamplers(model, scene, *mTexManager);
     loadTextures(model, scene, *mTexManager);
     loadMaterials(model, scene, *mTexManager);
 

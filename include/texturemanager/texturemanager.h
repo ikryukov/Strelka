@@ -29,10 +29,17 @@ public:
         uint32_t texHeight;
     };
 
+    struct TextureSampler {
+        VkFilter magFilter;
+        VkFilter minFilter;
+        VkSamplerAddressMode addressModeU;
+        VkSamplerAddressMode addressModeV;
+    };
+
     std::unordered_map<std::string, uint32_t> mNameToID{};
     std::vector<Texture> textures;
+    std::vector<VkSampler> texSamplers;
     std::vector<VkImageView> textureImageView;
-    VkSampler textureSampler = VK_NULL_HANDLE;
     VkSampler shadowSampler = VK_NULL_HANDLE;
 
     std::vector<Image*> delTextures;
@@ -45,11 +52,12 @@ public:
     int loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name);
     int findTexture(const std::string& name);
 
+    void createTextureSamplerGltf(TextureSampler texSamplerData);
+
     Texture createTextureImage(const std::string& texture_path);
     Texture createTextureImage(const void* pixels, uint32_t width, uint32_t height);
 
     void createTextureImageView(Texture& texture);
-    void createTextureSampler();
     void createShadowSampler();
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
@@ -58,8 +66,13 @@ public:
 
     void textureDestroy()
     {
-        vkDestroySampler(mDevice, textureSampler, nullptr);
         vkDestroySampler(mDevice, shadowSampler, nullptr);
+
+        for (VkSampler sampler : texSamplers)
+        {
+            if (sampler != VK_NULL_HANDLE)
+                vkDestroySampler(mDevice, sampler, nullptr);
+        }
 
         for (VkImageView& imageView : textureImageView)
         {
@@ -82,7 +95,12 @@ public:
     void saveTexturesInDelQueue()
     {
         delShadowSampler.push_back(shadowSampler);
-        delTextureSampler.push_back(textureSampler);
+
+        for (VkSampler sampler : texSamplers)
+        {
+            if (sampler != VK_NULL_HANDLE)
+                delTextureSampler.push_back(sampler);
+        }
 
         for (VkImageView& imageView : textureImageView)
         {
@@ -98,9 +116,9 @@ public:
         }
 
         textureImageView.clear();
+        texSamplers.clear();
         textures.clear();
         mNameToID.clear();
-        textureSampler = VK_NULL_HANDLE;
         shadowSampler = VK_NULL_HANDLE;
     }
 

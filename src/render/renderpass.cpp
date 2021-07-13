@@ -13,6 +13,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
+uint32_t texDescCount = 2048;
+uint32_t sampDescCount = 100;
 
 namespace nevk
 {
@@ -296,14 +298,14 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t) 2048; // mTextureImageView.size() // TODO:
+    texLayoutBinding.descriptorCount = (uint32_t) texDescCount; // mTextureImageView.size() // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 2;
-    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorCount = (uint32_t) sampDescCount;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -552,7 +554,7 @@ void RenderPass::setShadowImageView(VkImageView shadowImageView)
     needDesciptorSetUpdate = true;
 }
 
-void RenderPass::setTextureSampler(VkSampler textureSampler)
+void RenderPass::setTextureSampler(const std::vector<VkSampler>& textureSampler)
 {
     mTextureSampler = textureSampler;
     imageViewCounter = 0;
@@ -588,7 +590,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     bufferInfo.range = sizeof(UniformBufferObject);
 
     std::vector<VkDescriptorImageInfo> imageInfo;
-    imageInfo.resize(2048);
+    imageInfo.resize(texDescCount);
 
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
@@ -596,9 +598,13 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         imageInfo[j].imageView = mTextureImageView[j];
     }
 
-    VkDescriptorImageInfo samplerInfo{};
-    samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    samplerInfo.sampler = mTextureSampler;
+    std::vector<VkDescriptorImageInfo> samplerInfo;
+    samplerInfo.resize(sampDescCount);
+    for (uint32_t j = 0; j < mTextureSampler.size(); ++j)
+    {
+        samplerInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        samplerInfo[j].sampler = mTextureSampler[j];
+    }
 
     VkDescriptorBufferInfo materialInfo{};
     materialInfo.buffer = mMaterialBuffer;
@@ -640,7 +646,7 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t) 2048;
+        descriptorWrite.descriptorCount = (uint32_t) texDescCount;
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
@@ -651,8 +657,8 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 2;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &samplerInfo;
+        descriptorWrite.descriptorCount = (uint32_t) sampDescCount;
+        descriptorWrite.pImageInfo = samplerInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
     if (mMaterialBuffer != VK_NULL_HANDLE)

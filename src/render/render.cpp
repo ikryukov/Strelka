@@ -97,7 +97,6 @@ void Render::initVulkan()
     }
 
     mTexManager->createShadowSampler();
-    mTexManager->createTextureSampler();
 
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
@@ -933,7 +932,6 @@ void Render::loadScene(const std::string& modelPath)
     createInstanceBuffer(*mScene);
 
     mTexManager->createShadowSampler();
-    mTexManager->createTextureSampler();
 
     setDescriptors();
 
@@ -948,7 +946,7 @@ void Render::setDescriptors()
     }
     {
         mPbrPass.setTextureImageView(mTexManager->textureImageView);
-        mPbrPass.setTextureSampler(mTexManager->textureSampler);
+        mPbrPass.setTextureSampler(mTexManager->texSamplers);
         mPbrPass.setShadowImageView(shadowImageView);
         mPbrPass.setShadowSampler(mTexManager->shadowSampler);
         mPbrPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
@@ -956,7 +954,7 @@ void Render::setDescriptors()
     }
     {
         mPass.setTextureImageView(mTexManager->textureImageView);
-        mPass.setTextureSampler(mTexManager->textureSampler);
+        //mPass.setTextureSampler(mTexManager->texSamplers);
         mPass.setShadowImageView(shadowImageView);
         mPass.setShadowSampler(mTexManager->shadowSampler);
         mPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));

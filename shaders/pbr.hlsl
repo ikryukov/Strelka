@@ -36,6 +36,7 @@ struct Material
     int32_t texEmissive;
 
     int32_t texOcclusion;
+
     int32_t pad0;
     int32_t pad1;
     int32_t pad2;
@@ -79,7 +80,7 @@ cbuffer ubo
 }
 
 Texture2D textures[];
-SamplerState gSampler;
+SamplerState gSampler[];
 StructuredBuffer<Material> materials;
 Texture2D shadowMap;
 SamplerState shadowSamp;
@@ -108,14 +109,14 @@ PS_INPUT vertexMain(VertexInput vi)
     return out;
 }
 
-float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
+float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId, uint32_t texSamplerId)
 {
     float3 Normal = normalize(inp.normal);
     float3 Tangent = -normalize(inp.tangent);
     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
     float3 Bitangent = cross(Normal, Tangent);
 
-    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(gSampler, inp.uv).xyz;
+    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(gSampler[texSamplerId], inp.uv).xyz;
     BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
 
     float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
@@ -178,7 +179,7 @@ float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
     float3 albedo = material.baseColorFactor.rgb;
     if (material.texBaseColor != INVALID_INDEX)
     {
-        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler, uv).rgb;
+        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler[0], uv).rgb;
     }
 
 
@@ -194,11 +195,12 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     Material material = materials[NonUniformResourceIndex(constants.materialId)];
 
     int32_t texNormalId = material.texNormalId;
+    int32_t texSamplerId = 0; // todo connect w/ texture
 
     float3 N = normalize(inp.normal);
     if (texNormalId != INVALID_INDEX)
     {
-        N = CalcBumpedNormal(inp, texNormalId);
+        N = CalcBumpedNormal(inp, texNormalId, texSamplerId);
     }
     float3 L = normalize(lightPosition.xyz - inp.wPos);
 
@@ -217,12 +219,12 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 
     if (material.texEmissive != INVALID_INDEX)
     {
-        float3 emissive = textures[NonUniformResourceIndex(material.texEmissive)].Sample(gSampler, inp.uv).rgb;
+        float3 emissive = textures[NonUniformResourceIndex(material.texEmissive)].Sample(gSampler[texSamplerId], inp.uv).rgb;
         result += emissive;
     }
     if (material.texOcclusion != INVALID_INDEX)
     {
-        float occlusion = textures[NonUniformResourceIndex(material.texOcclusion)].Sample(gSampler, inp.uv).r;
+        float occlusion = textures[NonUniformResourceIndex(material.texOcclusion)].Sample(gSampler[texSamplerId], inp.uv).r;
         result *= occlusion;
     }
     float shadow = ShadowCalculation(inp.posLightSpace);
