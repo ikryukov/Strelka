@@ -70,22 +70,20 @@ public:
         float metallicFactor;
         float roughnessFactor;
         int32_t metallicRoughnessTexture = -1; // ? need sampler ?
-
         int32_t texBaseColor = -1;
 
         glm::float3 emissiveFactor;
         int32_t texEmissive = -1;
-        int32_t sampEmissiveId = -1;
 
+        int32_t sampEmissiveId = -1;
         int32_t texOcclusion = -1;
         int32_t sampOcclusionId = -1;
-
         int32_t sampBaseId = -1;
-        int32_t sampNormalId = -1;
 
-        //int32_t pad0;
-        //int32_t pad1;
-        //int32_t pad2;
+        int32_t sampNormalId = -1;
+        int32_t pad0;
+        int32_t pad1;
+        int32_t pad2;
 
         bool isTransparent()
         {

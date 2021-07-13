@@ -29,22 +29,20 @@ struct Material
     float metallicFactor;
     float roughnessFactor;
     int32_t metallicRoughnessTexture;
-
     int32_t texBaseColor;
+
     float3 emissiveFactor;
-
     int32_t texEmissive;
-    int32_t sampEmissiveId;
 
+    int32_t sampEmissiveId;
     int32_t texOcclusion;
     int32_t sampOcclusionId;
-
     int32_t sampBaseId;
-    int32_t sampNormalId;
 
-    //int32_t pad0;
-    //int32_t pad1;
-    //int32_t pad2;
+    int32_t sampNormalId;
+    int32_t pad0;
+    int32_t pad1;
+    int32_t pad2;
 };
 
 struct InstanceConstants
