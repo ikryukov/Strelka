@@ -97,8 +97,7 @@ void Render::initVulkan()
     }
 
     mTexManager->createShadowSampler();
-    nevk::TextureManager::TextureSamplerDesc def = {VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
-    mTexManager->createTextureSampler(def);
+    mTexManager->initSamplers();
 
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();

@@ -45,7 +45,6 @@ public:
 
     std::vector<Image*> delTextures;
     std::vector<VkImageView> delTextureImageView;
-    std::vector<VkSampler> delTextureSampler;
     std::vector<VkSampler> delShadowSampler;
 
     int loadTexture(const std::string& texture_path, const std::string& MTL_PATH);
@@ -97,12 +96,6 @@ public:
     {
         delShadowSampler.push_back(shadowSampler);
 
-        for (VkSampler sampler : texSamplers)
-        {
-            if (sampler != VK_NULL_HANDLE)
-                delTextureSampler.push_back(sampler);
-        }
-
         for (VkImageView& imageView : textureImageView)
         {
             if (imageView != VK_NULL_HANDLE)
@@ -117,7 +110,6 @@ public:
         }
 
         textureImageView.clear();
-        texSamplers.clear();
         textures.clear();
         mNameToID.clear();
         shadowSampler = VK_NULL_HANDLE;
@@ -125,12 +117,6 @@ public:
 
     void delTexturesFromQueue()
     {
-        for (VkSampler sampler : delTextureSampler)
-        {
-            if (sampler != VK_NULL_HANDLE)
-                vkDestroySampler(mDevice, sampler, nullptr);
-        }
-
         for (VkSampler sampler : delShadowSampler)
         {
             if (sampler != VK_NULL_HANDLE)
@@ -152,8 +138,14 @@ public:
 
         delTextures.clear();
         delTextureImageView.clear();
-        delTextureSampler.clear();
         delShadowSampler.clear();
+    }
+
+    void initSamplers(){
+        //todo create all combinations
+        TextureSamplerDesc def = {VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(def);
+        createTextureSampler(def);
     }
 };
 } // namespace nevk
