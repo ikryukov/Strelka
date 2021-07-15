@@ -37,7 +37,7 @@ void Render::initVulkan()
     setupDebugMessenger();
     if (enableValidationLayers)
     {
-        nevk::debug::setupDebug(mInstance);
+        //nevk::debug::setupDebug(mInstance);
     }
     createSurface();
     pickPhysicalDevice();
@@ -401,6 +401,10 @@ void Render::recreateSwapChain()
     createImageViews();
     createDepthResources();
 
+    // TODO: add release prev gbuffer
+    mGbuffer = createGbuffer(width, height);
+    mGbufferPass.onResize(&mGbuffer);
+
     mPass.onResize(swapChainImageViews, depthImageView, width, height);
     mPbrPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(swapChainImageViews, width, height);
@@ -732,7 +736,7 @@ void Render::createGbufferPass()
     mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
 
     mGbufferPass.setTextureSampler(mTexManager->textureSampler);
-    mGbufferPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, mGbuffer);
+    mGbufferPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, &mGbuffer);
     mGbufferPass.createFrameBuffers(mGbuffer);
 }
 
@@ -937,6 +941,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mDepthPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex, getActiveCameraIndex());
+    mGbufferPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
     if (isPBR)
     {
         mPbrPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
@@ -1102,6 +1107,8 @@ void Render::drawFrame()
     cam.update((float)deltaTime);
 
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
+
+    mGbufferPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());

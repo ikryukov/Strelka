@@ -319,7 +319,7 @@ void GbufferPass::createRenderPass()
     }
 
     VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = mGbuffer.depthFormat;
+    depthAttachment.format = mGbuffer->depthFormat;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -436,7 +436,7 @@ void GbufferPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex, uint32_t cameraIndex)
 {
-    beginLabel(cmd, "Geometry Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
+    beginLabel(cmd, "GbufferPass Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
 
     if (needDesciptorSetUpdate && imageViewCounter < 3)
     {
@@ -458,9 +458,15 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { width, height };
 
-    std::array<VkClearValue, 2> clearValues{};
+    std::array<VkClearValue, 8> clearValues{};
     clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-    clearValues[1].depthStencil = { 1.0f, 0 };
+    clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    clearValues[3].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    clearValues[4].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    clearValues[5].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    clearValues[6].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    clearValues[7].depthStencil = { 1.0f, 0 };
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
@@ -560,11 +566,10 @@ void GbufferPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void GbufferPass::onResize(GBuffer& gbuffer, uint32_t width, uint32_t height)
+void GbufferPass::onResize(GBuffer* gbuffer)
 {
-    mWidth = width;
-    mHeight = height;
-
+    assert(gbuffer);
+    mGbuffer = gbuffer;
     for (auto& framebuffer : mFrameBuffers)
     {
         vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
@@ -574,8 +579,8 @@ void GbufferPass::onResize(GBuffer& gbuffer, uint32_t width, uint32_t height)
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
     createRenderPass();
-    mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, width, height);
-    createFrameBuffers(gbuffer);
+    mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, mGbuffer->width, mGbuffer->height);
+    createFrameBuffers(*mGbuffer);
 }
 
 void GbufferPass::setTextureImageView(const std::vector<VkImageView>& textureImageView)

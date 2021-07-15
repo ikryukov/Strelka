@@ -76,7 +76,7 @@ private:
 
     std::vector<VkDescriptorSet> mDescriptorSets;
 
-    GBuffer mGbuffer;
+    GBuffer* mGbuffer;
     std::vector<VkFramebuffer> mFrameBuffers;
 
     uint32_t mWidth, mHeight;
@@ -150,7 +150,7 @@ public:
     void setInstanceBuffer(VkBuffer instanceBuffer);
 
     void init(VkDevice& device, bool enableValidation, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, 
-        VkDescriptorPool descpool, ResourceManager* resMngr, GBuffer& gbuffer)
+        VkDescriptorPool descpool, ResourceManager* resMngr, GBuffer* gbuffer)
     {
         mEnableValidation = enableValidation;
         mDevice = device;
@@ -165,10 +165,10 @@ public:
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
         mPipelineLayout = createGraphicsPipelineLayout();
-        mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, mGbuffer.width, mGbuffer.height);
+        mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, mGbuffer->width, mGbuffer->height);
     }
 
-    void onResize(GBuffer& gbuffer, uint32_t width, uint32_t height);
+    void onResize(GBuffer* gbuffer);
 
     void onDestroy();
 
