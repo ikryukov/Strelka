@@ -715,7 +715,7 @@ GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
     {
         res.instId = mResManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
-        res.uvView = mTexManager->createImageView(mResManager->getVkImage(res.instId), VK_FORMAT_R32_SINT, VK_IMAGE_ASPECT_COLOR_BIT);
+        res.instIdView = mTexManager->createImageView(mResManager->getVkImage(res.instId), VK_FORMAT_R32_SINT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     return res;
 }
@@ -733,6 +733,7 @@ void Render::createGbufferPass()
 
     mGbufferPass.setTextureSampler(mTexManager->textureSampler);
     mGbufferPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, mGbuffer);
+    mGbufferPass.createFrameBuffers(mGbuffer);
 }
 
 void Render::createCommandPool()

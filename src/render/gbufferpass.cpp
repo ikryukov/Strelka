@@ -27,7 +27,7 @@ GbufferPass::~GbufferPass()
 VkPipelineLayout GbufferPass::createGraphicsPipelineLayout()
 {
     VkPipelineLayout result = VK_NULL_HANDLE;
-    VkPushConstantRange pushConstant;
+    VkPushConstantRange pushConstant = {};
     pushConstant.offset = 0;
     pushConstant.size = sizeof(InstancePushConstants);
     pushConstant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -171,7 +171,7 @@ VkPipeline GbufferPass::createGraphicsPipeline(VkShaderModule& vertShaderModule,
     return res;
 }
 
-void GbufferPass::createFrameBuffers(GBuffer& gbuffer, uint32_t width, uint32_t height)
+void GbufferPass::createFrameBuffers(GBuffer& gbuffer)
 {
     mFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
@@ -188,8 +188,8 @@ void GbufferPass::createFrameBuffers(GBuffer& gbuffer, uint32_t width, uint32_t 
         framebufferInfo.renderPass = mRenderPass;
         framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
         framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = width;
-        framebufferInfo.height = height;
+        framebufferInfo.width = gbuffer.width;
+        framebufferInfo.height = gbuffer.height;
         framebufferInfo.layers = 1;
 
         if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFrameBuffers[i]) != VK_SUCCESS)
@@ -575,7 +575,7 @@ void GbufferPass::onResize(GBuffer& gbuffer, uint32_t width, uint32_t height)
 
     createRenderPass();
     mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, width, height);
-    createFrameBuffers(gbuffer, mWidth, mHeight);
+    createFrameBuffers(gbuffer);
 }
 
 void GbufferPass::setTextureImageView(const std::vector<VkImageView>& textureImageView)

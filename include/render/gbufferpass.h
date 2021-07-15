@@ -140,7 +140,7 @@ public:
 
     VkPipeline createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, VkPipelineLayout pipelineLayout, uint32_t width, uint32_t height);
 
-    void createFrameBuffers(GBuffer& gbuffer, uint32_t width, uint32_t height);
+    void createFrameBuffers(GBuffer& gbuffer);
 
     void setShadowImageView(VkImageView shadowImageView);
     void setTextureImageView(const std::vector<VkImageView>& textureImageView);
