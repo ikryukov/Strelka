@@ -1025,6 +1025,12 @@ void Render::loadScene(const std::string& modelPath)
 void Render::setDescriptors()
 {
     {
+        mGbufferPass.setTextureImageView(mTexManager->textureImageView);
+        mGbufferPass.setTextureSampler(mTexManager->textureSampler);
+        mGbufferPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+        mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
+    }
+    {
         mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
     {
