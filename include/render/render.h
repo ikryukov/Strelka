@@ -13,9 +13,11 @@
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
+#include "gbuffer.h"
 #include "computepass.h"
 #include "depthpass.h"
 #include "renderpass.h"
+#include "gbufferpass.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -125,6 +127,9 @@ private:
 
     nevk::ResourceManager* mResManager = nullptr;
     nevk::TextureManager* mTexManager = nullptr;
+
+    GBuffer mGbuffer;
+    nevk::GbufferPass mGbufferPass;
 
     nevk::RenderPass mPass;
     nevk::RenderPass mPbrPass;
@@ -243,6 +248,9 @@ private:
     void createSwapChain();
 
     void createImageViews();
+
+    GBuffer createGbuffer(uint32_t width, uint32_t height);
+    void createGbufferPass();
 
     void createCommandPool();
 

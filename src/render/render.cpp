@@ -95,10 +95,12 @@ void Render::initVulkan()
                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "ShadowMap");
         shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
     }
-
     mTexManager->createShadowSampler();
     mTexManager->createTextureSampler();
 
+    mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
+    createGbufferPass();
+    
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
     if (!MODEL_PATH.empty())
@@ -108,6 +110,7 @@ void Render::initVulkan()
     }
 
     //init passes
+
     mPbrPass.setFrameBufferFormat(swapChainImageFormat);
     mPbrPass.setDepthBufferFormat(findDepthFormat());
 
@@ -658,6 +661,78 @@ void Render::createImageViews()
     {
         swapChainImageViews[i] = mTexManager->createImageView(mSwapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
     }
+}
+
+GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
+{
+    GBuffer res {};
+    res.width = width;
+    res.height = height;
+    // Depth
+    {
+        res.depthFormat = findDepthFormat();
+        res.depth = mResManager->createImage(width, height, res.depthFormat, VK_IMAGE_TILING_OPTIMAL,
+                                                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
+        res.depthView = mTexManager->createImageView(mResManager->getVkImage(res.depth), res.depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+    // Normals
+    {
+        res.normal = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
+        res.normalView = mTexManager->createImageView(mResManager->getVkImage(res.normal), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    // Tangent
+    {
+        res.tangent = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
+        res.tangentView = mTexManager->createImageView(mResManager->getVkImage(res.tangent), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    // Pos
+    {
+        res.pos = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "pos");
+        res.posView = mTexManager->createImageView(mResManager->getVkImage(res.pos), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    // posLightSpace
+    {
+        res.posLightSpace = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "posLightSpace");
+        res.posLightSpaceView = mTexManager->createImageView(mResManager->getVkImage(res.posLightSpace), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    // wPos
+    {
+        res.wPos = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
+        res.wPosView = mTexManager->createImageView(mResManager->getVkImage(res.wPos), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    // UV
+    {
+        res.uv = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
+        res.uvView = mTexManager->createImageView(mResManager->getVkImage(res.uv), VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    // InstId
+    {
+        res.instId = mResManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
+                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
+        res.uvView = mTexManager->createImageView(mResManager->getVkImage(res.instId), VK_FORMAT_R32_SINT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    return res;
+}
+
+void Render::createGbufferPass()
+{
+    uint32_t vertId = mShaderManager.loadShader("shaders/gbuffer.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+    uint32_t fragId = mShaderManager.loadShader("shaders/gbuffer.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+    const char* vertShaderCode = nullptr;
+    uint32_t vertShaderCodeSize = 0;
+    const char* fragShaderCode = nullptr;
+    uint32_t fragShaderCodeSize = 0;
+    mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+    mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+
+    mGbufferPass.setTextureSampler(mTexManager->textureSampler);
+    mGbufferPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, mGbuffer);
 }
 
 void Render::createCommandPool()
