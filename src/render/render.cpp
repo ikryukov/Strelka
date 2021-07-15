@@ -110,6 +110,18 @@ void Render::initVulkan()
     }
 
     //init passes
+    {
+        textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                    VK_IMAGE_TILING_OPTIMAL,
+                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Shading result");
+        textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    mComputePass.setGbuffer(&mGbuffer);
+    mComputePass.setOutputImageView(textureCompImageView);
+    mComputePass.setTextureSampler(mTexManager->textureSampler);
+    mComputePass.init(mDevice, csShaderCode, csShaderCodeSize, mDescriptorPool, mResManager);
+
 
     mPbrPass.setFrameBufferFormat(swapChainImageFormat);
     mPbrPass.setDepthBufferFormat(findDepthFormat());
@@ -334,8 +346,8 @@ void Render::cleanup()
     mTexManager->textureDestroy();
     mTexManager->delTexturesFromQueue();
 
-    //vkDestroyImageView(mDevice, textureCompImageView, nullptr);
-    //mResManager->destroyImage(textureCompImage);
+    vkDestroyImageView(mDevice, textureCompImageView, nullptr);
+    mResManager->destroyImage(textureCompImage);
 
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
     mResManager->destroyImage(shadowImage);
@@ -676,7 +688,7 @@ GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
     {
         res.depthFormat = findDepthFormat();
         res.depth = mResManager->createImage(width, height, res.depthFormat, VK_IMAGE_TILING_OPTIMAL,
-                                                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
+                                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
         res.depthView = mTexManager->createImageView(mResManager->getVkImage(res.depth), res.depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
     // Normals
@@ -942,6 +954,10 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
     mDepthPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex, getActiveCameraIndex());
     mGbufferPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
+    // barriers
+    {
+
+    }
     if (isPBR)
     {
         mPbrPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
@@ -951,7 +967,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         mPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
     }
 
-    //mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     mUi.render(cmd, imageIndex);
 }
 
@@ -1049,6 +1065,9 @@ void Render::setDescriptors()
         mPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
+    {
+        mComputePass.setGbuffer(&mGbuffer);
+    }
 }
 
 // set default scene
@@ -1119,6 +1138,7 @@ void Render::drawFrame()
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
     mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
+    mComputePass.updateUniformBuffer(frameIndex, swapChainExtent.width, swapChainExtent.height);
 
     static int releaseAfterFrames = 0;
     static bool needReload = false;

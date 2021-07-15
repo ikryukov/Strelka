@@ -5,6 +5,8 @@
 #include <resourcemanager.h>
 #include <vector>
 
+#include "gbuffer.h"
+
 namespace nevk
 {
 class ComputePass
@@ -30,7 +32,7 @@ private:
 
     std::vector<Buffer*> uniformBuffers;
 
-    VkImageView mInImageView;
+    GBuffer* mGbuffer;
     VkImageView mOutImageView;
     VkSampler mTextureSampler;
 
@@ -51,7 +53,7 @@ public:
     void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
     void onDestroy();
 
-    void setInImageView(VkImageView textureImageView);
+    void setGbuffer(GBuffer* gbuffer);
     void setOutputImageView(VkImageView imageView);
     void setTextureSampler(VkSampler textureSampler);
     void updateUniformBuffer(uint32_t currentImage, const uint32_t width, const uint32_t height);

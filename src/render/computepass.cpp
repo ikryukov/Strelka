@@ -85,21 +85,31 @@ void ComputePass::createDescriptorSetLayout()
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
+    bindings.push_back(uboLayoutBinding);
+    for (int i = 0; i < 8; ++i)
+    {
+        texLayoutBinding.binding = 1 + i;
+        bindings.push_back(texLayoutBinding);
+    }
+
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 2;
+    samplerLayoutBinding.binding = 9;
     samplerLayoutBinding.descriptorCount = 1;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
     VkDescriptorSetLayoutBinding outLayoutBinding{};
-    outLayoutBinding.binding = 3;
+    outLayoutBinding.binding = 10;
     outLayoutBinding.descriptorCount = 1;
     outLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     outLayoutBinding.pImmutableSamplers = nullptr;
     outLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 4> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, outLayoutBinding };
+    bindings.push_back(samplerLayoutBinding);
+    bindings.push_back(outLayoutBinding);
+    
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -136,10 +146,6 @@ void ComputePass::updateDescriptorSets()
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = mInImageView;
-
         VkDescriptorImageInfo samplerInfo{};
         samplerInfo.sampler = mTextureSampler;
 
@@ -147,7 +153,7 @@ void ComputePass::updateDescriptorSets()
         outputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
         outputImageInfo.imageView = mOutImageView;
 
-        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 11> descriptorWrites{};
 
         descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[0].dstSet = mDescriptorSets[i];
@@ -157,29 +163,125 @@ void ComputePass::updateDescriptorSets()
         descriptorWrites[0].descriptorCount = 1;
         descriptorWrites[0].pBufferInfo = &bufferInfo;
 
-        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = mDescriptorSets[i];
-        descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].dstArrayElement = 0;
-        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = mGbuffer->depthView;
 
-        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[2].dstSet = mDescriptorSets[i];
-        descriptorWrites[2].dstBinding = 2;
-        descriptorWrites[2].dstArrayElement = 0;
-        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        descriptorWrites[2].descriptorCount = 1;
-        descriptorWrites[2].pImageInfo = &samplerInfo;
+            descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[1].dstSet = mDescriptorSets[i];
+            descriptorWrites[1].dstBinding = 1;
+            descriptorWrites[1].dstArrayElement = 0;
+            descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            descriptorWrites[1].descriptorCount = 1;
+            descriptorWrites[1].pImageInfo = &imageInfo;
+        }
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = mGbuffer->posView;
 
-        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[3].dstSet = mDescriptorSets[i];
-        descriptorWrites[3].dstBinding = 3;
-        descriptorWrites[3].dstArrayElement = 0;
-        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        descriptorWrites[3].descriptorCount = 1;
-        descriptorWrites[3].pImageInfo = &outputImageInfo;
+            descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[2].dstSet = mDescriptorSets[i];
+            descriptorWrites[2].dstBinding = 2;
+            descriptorWrites[2].dstArrayElement = 0;
+            descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            descriptorWrites[2].descriptorCount = 1;
+            descriptorWrites[2].pImageInfo = &imageInfo;
+        }
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = mGbuffer->wPosView;
+
+            descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[3].dstSet = mDescriptorSets[i];
+            descriptorWrites[3].dstBinding = 3;
+            descriptorWrites[3].dstArrayElement = 0;
+            descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            descriptorWrites[3].descriptorCount = 1;
+            descriptorWrites[3].pImageInfo = &imageInfo;
+        }
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = mGbuffer->posLightSpaceView;
+
+            descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[4].dstSet = mDescriptorSets[i];
+            descriptorWrites[4].dstBinding = 4;
+            descriptorWrites[4].dstArrayElement = 0;
+            descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            descriptorWrites[4].descriptorCount = 1;
+            descriptorWrites[4].pImageInfo = &imageInfo;
+        }
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = mGbuffer->normalView;
+
+            descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[5].dstSet = mDescriptorSets[i];
+            descriptorWrites[5].dstBinding = 5;
+            descriptorWrites[5].dstArrayElement = 0;
+            descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            descriptorWrites[5].descriptorCount = 1;
+            descriptorWrites[5].pImageInfo = &imageInfo;
+        }
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = mGbuffer->tangentView;
+
+            descriptorWrites[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[6].dstSet = mDescriptorSets[i];
+            descriptorWrites[6].dstBinding = 6;
+            descriptorWrites[6].dstArrayElement = 0;
+            descriptorWrites[6].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            descriptorWrites[6].descriptorCount = 1;
+            descriptorWrites[6].pImageInfo = &imageInfo;
+        }
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = mGbuffer->uvView;
+
+            descriptorWrites[7].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[7].dstSet = mDescriptorSets[i];
+            descriptorWrites[7].dstBinding = 7;
+            descriptorWrites[7].dstArrayElement = 0;
+            descriptorWrites[7].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            descriptorWrites[7].descriptorCount = 1;
+            descriptorWrites[7].pImageInfo = &imageInfo;
+        }
+        {
+            VkDescriptorImageInfo imageInfo{};
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView = mGbuffer->instIdView;
+
+            descriptorWrites[8].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descriptorWrites[8].dstSet = mDescriptorSets[i];
+            descriptorWrites[8].dstBinding = 8;
+            descriptorWrites[8].dstArrayElement = 0;
+            descriptorWrites[8].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            descriptorWrites[8].descriptorCount = 1;
+            descriptorWrites[8].pImageInfo = &imageInfo;
+        }
+        descriptorWrites[9].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[9].dstSet = mDescriptorSets[i];
+        descriptorWrites[9].dstBinding = 9;
+        descriptorWrites[9].dstArrayElement = 0;
+        descriptorWrites[9].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorWrites[9].descriptorCount = 1;
+        descriptorWrites[9].pImageInfo = &samplerInfo;
+
+        descriptorWrites[10].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[10].dstSet = mDescriptorSets[i];
+        descriptorWrites[10].dstBinding = 10;
+        descriptorWrites[10].dstArrayElement = 0;
+        descriptorWrites[10].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        descriptorWrites[10].descriptorCount = 1;
+        descriptorWrites[10].pImageInfo = &outputImageInfo;
 
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
@@ -228,9 +330,9 @@ void ComputePass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void ComputePass::setInImageView(VkImageView textureImageView)
+void ComputePass::setGbuffer(GBuffer* gbuffer)
 {
-    mInImageView = textureImageView;
+    mGbuffer = gbuffer;
 }
 
 void ComputePass::setOutputImageView(VkImageView imageView)

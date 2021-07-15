@@ -119,8 +119,8 @@ private:
     nevk::Image* depthImage;
     VkImageView depthImageView;
 
-    // nevk::Image* textureCompImage;
-    // VkImageView textureCompImageView;
+    nevk::Image* textureCompImage;
+    VkImageView textureCompImageView;
 
     nevk::Image* shadowImage;
     VkImageView shadowImageView;
