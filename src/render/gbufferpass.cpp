@@ -706,7 +706,7 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
-        descriptorWrite.dstBinding = 6;
+        descriptorWrite.dstBinding = 4;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descriptorWrite.descriptorCount = 1;
