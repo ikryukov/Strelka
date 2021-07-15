@@ -49,26 +49,23 @@ public:
 
         bool operator==(const TextureSamplerDesc& samplerDesc) const
         {
-            if (magFilter == samplerDesc.magFilter && minFilter == samplerDesc.minFilter && addressModeU == samplerDesc.addressModeU && addressModeV == samplerDesc.addressModeV)
-                return true;
-            else
-                return false;
+            return (magFilter == samplerDesc.magFilter && minFilter == samplerDesc.minFilter && addressModeU == samplerDesc.addressModeU && addressModeV == samplerDesc.addressModeV);
         }
 
         struct HashFunction
         {
-            size_t operator()(TextureSamplerDesc& samplerDesc) const
+            size_t operator()(const TextureSamplerDesc& samplerDesc) const
             {
                 return (((((std::hash<VkFilter>()(samplerDesc.magFilter) ^
-                            (std::hash<VkFilter>()(samplerDesc.minFilter) << 1)) >> 1) ^
-                            (std::hash<VkSamplerAddressMode>()(samplerDesc.addressModeU) << 1)) >> 1) ^
-                            (std::hash<VkSamplerAddressMode>()(samplerDesc.addressModeV) << 1));
+                    (std::hash<VkFilter>()(samplerDesc.minFilter) << 1)) >> 1) ^
+                    (std::hash<VkSamplerAddressMode>()(samplerDesc.addressModeU) << 1)) >> 1) ^
+                    (std::hash<VkSamplerAddressMode>()(samplerDesc.addressModeV) << 1));
             }
         };
     };
 
     std::unordered_map<std::string, uint32_t> mNameToID{};
-   // std::unordered_map<TextureSamplerDesc, uint32_t, TextureSamplerDesc::HashFunction> sampDescToId; // уыыы
+    std::unordered_map<TextureSamplerDesc, uint32_t, TextureSamplerDesc::HashFunction> sampDescToId;
     std::vector<Texture> textures;
     std::vector<VkSampler> texSamplers;
     std::vector<VkImageView> textureImageView;
@@ -174,14 +171,114 @@ public:
 
     void initSamplers()
     {
-        //todo create all combinations
         TextureSamplerDesc sampler{};
 
         sampler = { VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
         createTextureSampler(sampler);
 
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
 
-        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE };
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT };
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_LINEAR, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE};
+        createTextureSampler(sampler);
+
+        sampler = { VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT};
         createTextureSampler(sampler);
     }
 };

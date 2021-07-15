@@ -122,7 +122,7 @@ void nevk::TextureManager::createTextureSampler(TextureSamplerDesc& texSamplerDa
         throw std::runtime_error("failed to create texture sampler!");
     }
 
-    //sampDescToId[texSamplerData] = texSamplers.size();
+    sampDescToId[texSamplerData] = texSamplers.size();
     texSamplers.push_back(tmpSampler);
 }
 
