@@ -1142,6 +1142,10 @@ void Render::setDescriptors()
     }
     {
         mComputePass.setGbuffer(&mGbuffer);
+        mComputePass.setTextureImageViews(mTexManager->textureImageView);
+        mComputePass.setTextureSampler(mTexManager->textureSampler);
+        mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+        mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
 }
 
