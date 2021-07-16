@@ -308,11 +308,21 @@ void ComputePass::createUniformBuffers()
     }
 }
 
-void ComputePass::updateUniformBuffer(uint32_t currentImage, const uint32_t width, const uint32_t height)
+void ComputePass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height)
 {
     UniformBufferObject ubo{};
     ubo.dimension.x = width;
     ubo.dimension.y = height;
+    Camera& camera = scene.getCamera(cameraIndex);
+    glm::float4x4 proj = camera.getPerspective();
+    glm::float4x4 view = camera.getView();
+
+    ubo.viewToProj = proj;
+    ubo.CameraPos = camera.getPosition();
+    ubo.worldToView = view;
+    ubo.lightPosition = scene.mLightPosition;
+    ubo.lightSpaceMatrix = lightSpaceMatrix;
+    ubo.debugView = (uint32_t)scene.mDebugViewSettings;
 
     void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));

@@ -1213,7 +1213,7 @@ void Render::drawFrame()
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
     mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
-    mComputePass.updateUniformBuffer(frameIndex, swapChainExtent.width, swapChainExtent.height);
+    mComputePass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     static int releaseAfterFrames = 0;
     static bool needReload = false;

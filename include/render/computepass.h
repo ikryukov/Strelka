@@ -14,7 +14,15 @@ class ComputePass
 private:
     struct UniformBufferObject
     {
+        glm::float4x4 viewToProj;
+        glm::float4x4 worldToView;
+        glm::float4x4 lightSpaceMatrix;
+        glm::float4 lightPosition;
+        glm::float3 CameraPos;
+        float pad0;
         glm::int2 dimension;
+        uint32_t debugView;
+        float pad1;
     };
 
     static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
@@ -56,6 +64,6 @@ public:
     void setGbuffer(GBuffer* gbuffer);
     void setOutputImageView(VkImageView imageView);
     void setTextureSampler(VkSampler textureSampler);
-    void updateUniformBuffer(uint32_t currentImage, const uint32_t width, const uint32_t height);
+    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
 };
 } // namespace nevk

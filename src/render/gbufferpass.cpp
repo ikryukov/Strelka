@@ -465,7 +465,7 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
     clearValues[3].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
     clearValues[4].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
     clearValues[5].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-    clearValues[6].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    clearValues[6].color = { { -1, 0, 0, 0 } }; // inst IDs
     clearValues[7].depthStencil = { 1.0f, 0 };
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
