@@ -123,20 +123,8 @@ void Render::initVulkan()
     mComputePass.setTextureSampler(mTexManager->textureSampler);
     mComputePass.init(mDevice, csShaderCode, csShaderCodeSize, mDescriptorPool, mResManager);
 
-    mPbrPass.setFrameBufferFormat(swapChainImageFormat);
-    mPbrPass.setDepthBufferFormat(findDepthFormat());
-
-    mPass.setFrameBufferFormat(swapChainImageFormat);
-    mPass.setDepthBufferFormat(findDepthFormat());
-
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-
-    mPbrPass.init(mDevice, enableValidationLayers, pbrVertShaderCode, pbrVertShaderCodeSize, pbrFragShaderCode, pbrFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
-    mPbrPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
-
-    mPass.init(mDevice, enableValidationLayers, simpleVertShaderCode, simpleVertShaderCodeSize, simpleFragShaderCode, simpleFragShaderCodeSize, mDescriptorPool, mResManager, swapChainExtent.width, swapChainExtent.height);
-    mPass.createFrameBuffers(swapChainImageViews, depthImageView, swapChainExtent.width, swapChainExtent.height);
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
@@ -156,6 +144,10 @@ void Render::initVulkan()
 
 void Render::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
+    if (width == 0 || height == 0)
+    {
+        return;
+    }
     auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
     nevk::Scene* scene = app->getScene();
@@ -336,9 +328,10 @@ void Render::cleanup()
 {
     cleanupSwapChain();
 
-    mPbrPass.onDestroy();
-    mPass.onDestroy();
     mDepthPass.onDestroy();
+    mGbufferPass.onDestroy();
+    mComputePass.onDestroy();
+
     mUi.onDestroy();
 
     vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
@@ -414,11 +407,19 @@ void Render::recreateSwapChain()
     createDepthResources();
 
     // TODO: add release prev gbuffer
+    {
+        textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                    VK_IMAGE_TILING_OPTIMAL,
+                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Shading result");
+        textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+        mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    }
+    mComputePass.setOutputImageView(textureCompImageView);
+
     mGbuffer = createGbuffer(width, height);
     mGbufferPass.onResize(&mGbuffer);
 
-    mPass.onResize(swapChainImageViews, depthImageView, width, height);
-    mPbrPass.onResize(swapChainImageViews, depthImageView, width, height);
     mUi.onResize(swapChainImageViews, width, height);
 
     // update all cameras
@@ -983,15 +984,6 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     mDepthPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex, getActiveCameraIndex());
     mGbufferPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
 
-    if (isPBR)
-    {
-        mPbrPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
-    }
-    else
-    {
-        mPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
-    }
-
     // barriers
     {
         recordBarrier(cmd, mResManager->getVkImage(mGbuffer.pos), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -1020,7 +1012,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         recordBarrier(cmd, mResManager->getVkImage(textureCompImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-        recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
         VkOffset3D blitSize{};
@@ -1125,22 +1117,6 @@ void Render::setDescriptors()
         mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
     {
-        mPbrPass.setTextureImageView(mTexManager->textureImageView);
-        mPbrPass.setTextureSampler(mTexManager->textureSampler);
-        mPbrPass.setShadowImageView(shadowImageView);
-        mPbrPass.setShadowSampler(mTexManager->shadowSampler);
-        mPbrPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
-        mPbrPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-    }
-    {
-        mPass.setTextureImageView(mTexManager->textureImageView);
-        mPass.setTextureSampler(mTexManager->textureSampler);
-        mPass.setShadowImageView(shadowImageView);
-        mPass.setShadowSampler(mTexManager->shadowSampler);
-        mPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
-        mPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-    }
-    {
         mComputePass.setGbuffer(&mGbuffer);
         mComputePass.setTextureImageViews(mTexManager->textureImageView);
         mComputePass.setTextureSampler(mTexManager->textureSampler);
@@ -1215,8 +1191,6 @@ void Render::drawFrame()
     mGbufferPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
-    mPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
-    mPbrPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
     mComputePass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     static int releaseAfterFrames = 0;

@@ -131,8 +131,6 @@ private:
     GBuffer mGbuffer;
     nevk::GbufferPass mGbufferPass;
 
-    nevk::RenderPass mPass;
-    nevk::RenderPass mPbrPass;
     nevk::ModelLoader* modelLoader = nullptr;
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
