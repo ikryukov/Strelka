@@ -159,7 +159,17 @@ float4 calc(uint2 pixelIndex)
 
     float3 result = cookTorrance(material, pointData, uv);
 
-    //return float4(float3(pointData.NL), 1.0);
+    if (material.texEmissive != INVALID_INDEX)
+    {
+        float3 emissive = textures[NonUniformResourceIndex(material.texEmissive)].Sample(gSampler, uv).rgb;
+        result += emissive;
+    }
+    if (material.texOcclusion != INVALID_INDEX)
+    {
+        float occlusion = textures[NonUniformResourceIndex(material.texOcclusion)].Sample(gSampler, uv).r;
+        result *= occlusion;
+    }
+
     return float4(result, 1.0);
 }
 
