@@ -121,7 +121,7 @@ VkPipeline GbufferPass::createGraphicsPipeline(VkShaderModule& vertShaderModule,
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.stencilTestEnable = VK_FALSE;
 
-    std::array<VkPipelineColorBlendAttachmentState, 7> gbufferAttachments = {};
+    std::array<VkPipelineColorBlendAttachmentState, 5> gbufferAttachments = {};
     for (VkPipelineColorBlendAttachmentState& colorBlendAttachment : gbufferAttachments)
     {
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -177,8 +177,8 @@ void GbufferPass::createFrameBuffers(GBuffer& gbuffer)
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        std::array<VkImageView, 8> attachments = {
-            gbuffer.posView, gbuffer.wPosView, gbuffer.posLightSpaceView, gbuffer.normalView,
+        std::array<VkImageView, 6> attachments = {
+            gbuffer.wPosView, gbuffer.normalView,
             gbuffer.tangentView, gbuffer.uvView, gbuffer.instIdView,
             gbuffer.depthView
         };
@@ -219,7 +219,7 @@ void GbufferPass::createRenderPass()
 {
     std::vector<VkAttachmentDescription> gbuffAttachments;
     std::vector<VkAttachmentReference> gbuffReferences;
-    // pos
+    // wPos
     {
         VkAttachmentDescription colorAttachment{};
         colorAttachment.format = VK_FORMAT_R32G32B32A32_SFLOAT;
@@ -233,34 +233,6 @@ void GbufferPass::createRenderPass()
         gbuffAttachments.push_back(colorAttachment);
         gbuffReferences.push_back({ 0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
     }
-    // wPos
-    {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        gbuffAttachments.push_back(colorAttachment);
-        gbuffReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-    }
-    // posLightSpace
-    {
-        VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        gbuffAttachments.push_back(colorAttachment);
-        gbuffReferences.push_back({ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
-    } 
     // Normals
     {
         VkAttachmentDescription colorAttachment{};
@@ -273,7 +245,7 @@ void GbufferPass::createRenderPass()
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         gbuffAttachments.push_back(colorAttachment);
-        gbuffReferences.push_back({ 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+        gbuffReferences.push_back({ 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
     }
     // Tangent
     {
@@ -287,7 +259,7 @@ void GbufferPass::createRenderPass()
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         gbuffAttachments.push_back(colorAttachment);
-        gbuffReferences.push_back({ 4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+        gbuffReferences.push_back({ 2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
     }
     // UV
     {
@@ -301,7 +273,7 @@ void GbufferPass::createRenderPass()
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         gbuffAttachments.push_back(colorAttachment);
-        gbuffReferences.push_back({ 5, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+        gbuffReferences.push_back({ 3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
     }
     // InstId
     {
@@ -315,7 +287,7 @@ void GbufferPass::createRenderPass()
         colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         gbuffAttachments.push_back(colorAttachment);
-        gbuffReferences.push_back({ 6, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+        gbuffReferences.push_back({ 4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
     }
 
     VkAttachmentDescription depthAttachment{};
@@ -458,15 +430,13 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { width, height };
 
-    std::array<VkClearValue, 8> clearValues{};
+    std::array<VkClearValue, 6> clearValues{};
     clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
     clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
     clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
     clearValues[3].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-    clearValues[4].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-    clearValues[5].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-    clearValues[6].color = { { -1, 0, 0, 0 } }; // inst IDs
-    clearValues[7].depthStencil = { 1.0f, 0 };
+    clearValues[4].color = { { -1, 0, 0, 0 } }; // inst IDs
+    clearValues[5].depthStencil = { 1.0f, 0 };
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();

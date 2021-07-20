@@ -55,12 +55,10 @@ struct InstanceConstants
 
 
 Texture2D<float> gbDepth;
-Texture2D<float4> gbPos;
 Texture2D<float4> gbWPos;
-Texture2D<float4> gbPosLightSpace;
 Texture2D<float4> gbNormal;
 Texture2D<float4> gbTangent;
-Texture2D<float4> gbUV;
+Texture2D<float2> gbUV;
 Texture2D<int> gbInstId;
 
 Texture2D textures[]; // bindless

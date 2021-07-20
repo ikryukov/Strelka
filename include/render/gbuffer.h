@@ -4,12 +4,8 @@
 
 struct GBuffer
 {
-    nevk::Image* pos;
-    VkImageView posView;
     nevk::Image* wPos;
     VkImageView wPosView;
-    nevk::Image* posLightSpace;
-    VkImageView posLightSpaceView;
     nevk::Image* depth;
     VkImageView depthView;
     nevk::Image* normal;

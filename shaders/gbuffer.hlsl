@@ -126,13 +126,11 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
 
 struct FSOutput
 {
-    float4 pos : SV_TARGET0;
-    float4 wPos : SV_TARGET1;
-    float4 posLightSpace : SV_TARGET2;
-    float4 normal : SV_TARGET3;
-    float4 tangent : SV_TARGET4;
-    float2 uv : SV_TARGET5;
-    int instId : SV_TARGET6;
+    float4 wPos : SV_TARGET0;
+    float4 normal : SV_TARGET1;
+    float4 tangent : SV_TARGET2;
+    float2 uv : SV_TARGET3;
+    int instId : SV_TARGET4;
 };
 
 // Fragment Shader
@@ -151,10 +149,7 @@ FSOutput fragmentMain(PS_INPUT inp) : SV_TARGET
     }
 
     FSOutput ret;
-
-    ret.pos = inp.pos;
     ret.wPos = float4(inp.wPos, 1.0);
-    ret.posLightSpace = inp.posLightSpace;
     ret.normal = float4(N, 0.0);
     ret.tangent = float4(inp.tangent, 0.0);
     ret.uv = inp.uv;
