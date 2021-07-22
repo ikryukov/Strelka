@@ -14,17 +14,8 @@ struct GBuffer
     VkImageView tangentView;
     nevk::Image* uv;
     VkImageView uvView;
-
     nevk::Image* instId;
     VkImageView instIdView;
-
-    // packed
-    nevk::Image* gbuffer1;
-    VkImageView gbuffer1View;
-    nevk::Image* gbuffer2;
-    VkImageView gbuffer2View;
-    nevk::Image* gbuffer3;
-    VkImageView gbuffer3View;
 
     // utils
     VkFormat depthFormat;
