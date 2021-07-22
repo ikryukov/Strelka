@@ -13,11 +13,11 @@
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
-#include "gbuffer.h"
 #include "computepass.h"
 #include "depthpass.h"
-#include "renderpass.h"
+#include "gbuffer.h"
 #include "gbufferpass.h"
+#include "renderpass.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -248,6 +248,7 @@ private:
     void createImageViews();
 
     GBuffer createGbuffer(uint32_t width, uint32_t height);
+    void destroyGbuffer(GBuffer& gbuffer);
     void createGbufferPass();
 
     void createCommandPool();
@@ -271,8 +272,7 @@ private:
 
     uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 
-    void recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, 
-        VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
+    void recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
 
     void recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex);
 

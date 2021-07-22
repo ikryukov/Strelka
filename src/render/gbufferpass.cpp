@@ -132,7 +132,7 @@ VkPipeline GbufferPass::createGraphicsPipeline(VkShaderModule& vertShaderModule,
     colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     colorBlending.logicOpEnable = VK_FALSE;
     colorBlending.logicOp = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount = (uint32_t) gbufferAttachments.size();
+    colorBlending.attachmentCount = (uint32_t)gbufferAttachments.size();
     colorBlending.pAttachments = gbufferAttachments.data();
     colorBlending.blendConstants[0] = 0.0f;
     colorBlending.blendConstants[1] = 0.0f;
@@ -346,7 +346,7 @@ void GbufferPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t) 2048; // mTextureImageView.size() // TODO:
+    texLayoutBinding.descriptorCount = (uint32_t)2048; // mTextureImageView.size() // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -644,7 +644,7 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t) 2048;
+        descriptorWrite.descriptorCount = (uint32_t)2048;
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }

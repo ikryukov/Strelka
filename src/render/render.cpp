@@ -100,7 +100,7 @@ void Render::initVulkan()
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
-    
+
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
     if (!MODEL_PATH.empty())
@@ -345,6 +345,8 @@ void Render::cleanup()
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
     mResManager->destroyImage(shadowImage);
 
+    destroyGbuffer(mGbuffer);
+
     if (mScene != mDefaultScene)
         delete mCurrentSceneRenderData;
 
@@ -408,6 +410,10 @@ void Render::recreateSwapChain()
 
     // TODO: add release prev gbuffer
     {
+        mResManager->destroyImage(textureCompImage);
+        vkDestroyImageView(mDevice, textureCompImageView, nullptr);
+    }
+    {
         textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
                                                     VK_IMAGE_TILING_OPTIMAL,
                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
@@ -416,7 +422,7 @@ void Render::recreateSwapChain()
         mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
     mComputePass.setOutputImageView(textureCompImageView);
-
+    destroyGbuffer(mGbuffer);
     mGbuffer = createGbuffer(width, height);
     mGbufferPass.onResize(&mGbuffer);
 
@@ -682,7 +688,7 @@ void Render::createImageViews()
 
 GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
 {
-    GBuffer res {};
+    GBuffer res{};
     res.width = width;
     res.height = height;
     // Depth
@@ -695,34 +701,50 @@ GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
     // Normals
     {
         res.normal = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
+                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
         res.normalView = mTexManager->createImageView(mResManager->getVkImage(res.normal), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // Tangent
     {
         res.tangent = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
+                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
         res.tangentView = mTexManager->createImageView(mResManager->getVkImage(res.tangent), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // wPos
     {
         res.wPos = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
+                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
         res.wPosView = mTexManager->createImageView(mResManager->getVkImage(res.wPos), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // UV
     {
         res.uv = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
         res.uvView = mTexManager->createImageView(mResManager->getVkImage(res.uv), VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // InstId
     {
         res.instId = mResManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
-                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
+                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
         res.instIdView = mTexManager->createImageView(mResManager->getVkImage(res.instId), VK_FORMAT_R32_SINT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     return res;
+}
+
+void Render::destroyGbuffer(GBuffer& gbuffer)
+{
+    mResManager->destroyImage(gbuffer.depth);
+    vkDestroyImageView(mDevice, gbuffer.depthView, nullptr);
+    mResManager->destroyImage(gbuffer.wPos);
+    vkDestroyImageView(mDevice, gbuffer.wPosView, nullptr);
+    mResManager->destroyImage(gbuffer.normal);
+    vkDestroyImageView(mDevice, gbuffer.normalView, nullptr);
+    mResManager->destroyImage(gbuffer.tangent);
+    vkDestroyImageView(mDevice, gbuffer.tangentView, nullptr);
+    mResManager->destroyImage(gbuffer.uv);
+    vkDestroyImageView(mDevice, gbuffer.uvView, nullptr);
+    mResManager->destroyImage(gbuffer.instId);
+    vkDestroyImageView(mDevice, gbuffer.instIdView, nullptr);
 }
 
 void Render::createGbufferPass()
@@ -939,8 +961,7 @@ uint32_t Render::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags prope
     throw std::runtime_error("failed to find suitable memory type!");
 }
 
-void Render::recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, 
-    VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask)
+void Render::recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask)
 {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -984,7 +1005,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         recordBarrier(cmd, mResManager->getVkImage(mGbuffer.instId), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        
+
         recordBarrier(cmd, mResManager->getVkImage(mGbuffer.depth), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
@@ -1012,7 +1033,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         imageBlitRegion.dstOffsets[1] = blitSize;
         vkCmdBlitImage(cmd, mResManager->getVkImage(textureCompImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
 
-        recordBarrier(cmd, mResManager->getVkImage(textureCompImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL, 
+        recordBarrier(cmd, mResManager->getVkImage(textureCompImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
                       VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,

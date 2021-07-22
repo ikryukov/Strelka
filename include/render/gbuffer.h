@@ -1,6 +1,6 @@
 #pragma once
-#include <vulkan/vulkan.h>
 #include <resourcemanager/resourcemanager.h>
+#include <vulkan/vulkan.h>
 
 struct GBuffer
 {

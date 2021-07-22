@@ -53,7 +53,6 @@ struct InstanceConstants
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
-    float4 posLightSpace;
     float3 tangent;
     float3 normal;
     float3 wPos;
@@ -82,12 +81,6 @@ SamplerState gSampler;
 StructuredBuffer<Material> materials;
 StructuredBuffer<InstanceConstants> instanceConstants;
 
-static const float4x4 biasMatrix = float4x4(
-  0.5, 0.0, 0.0, 0.5,
-  0.0, -0.5, 0.0, 0.5,
-  0.0, 0.0, 1.0, 0.0,
-  0.0, 0.0, 0.0, 1.0 );
-
 [shader("vertex")]
 PS_INPUT vertexMain(VertexInput vi)
 {
@@ -95,7 +88,6 @@ PS_INPUT vertexMain(VertexInput vi)
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
     float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
     out.pos = mul(viewToProj, mul(worldToView, wpos));
-    out.posLightSpace = mul(biasMatrix, mul(lightSpaceMatrix, wpos));
     out.uv = unpackUV(vi.uv);
     // assume that we don't use non-uniform scales
     // TODO:
