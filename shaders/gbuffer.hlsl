@@ -19,7 +19,6 @@ struct Material
     float shininess; // Ns 16 --  блеск материала
     uint32_t illum; // illum 2 -- модель освещения
     int32_t texDiffuseId; // map_diffuse
-
     int32_t texAmbientId; // map_ambient
     int32_t texSpecularId; // map_specular
     int32_t texNormalId; // map_normal - map_Bump
@@ -34,7 +33,12 @@ struct Material
     float3 emissiveFactor;
     int32_t texEmissive;
 
+    int32_t sampEmissiveId;
     int32_t texOcclusion;
+    int32_t sampOcclusionId;
+    int32_t sampBaseId;
+
+    int32_t sampNormalId;
     int32_t pad0;
     int32_t pad1;
     int32_t pad2;
