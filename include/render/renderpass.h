@@ -65,7 +65,7 @@ private:
     VkDescriptorPool mDescriptorPool;
     std::vector<Buffer*> uniformBuffers;
 
-    VkSampler mTextureSampler = VK_NULL_HANDLE;
+    std::vector<VkSampler> mTextureSampler;
     VkSampler mShadowSampler = VK_NULL_HANDLE;
 
     void createRenderPass();
@@ -156,7 +156,7 @@ public:
 
     void setShadowImageView(VkImageView shadowImageView);
     void setTextureImageView(const std::vector<VkImageView>& textureImageView);
-    void setTextureSampler(VkSampler textureSampler);
+    void setTextureSampler(const std::vector<VkSampler>&  textureSampler);
     void setShadowSampler(VkSampler shadowSampler);
     void setMaterialBuffer(VkBuffer materialBuffer);
     void setInstanceBuffer(VkBuffer instanceBuffer);

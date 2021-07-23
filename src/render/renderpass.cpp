@@ -13,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
+const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
 
 namespace nevk
 {
@@ -296,16 +297,16 @@ void RenderPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t) 2048; // mTextureImageView.size() // TODO:
+    texLayoutBinding.descriptorCount = (uint32_t)BINDLESS_TEXTURE_COUNT; // mTextureImageView.size() // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 2;
-    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorCount = (uint32_t)mTextureSampler.size();
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.pImmutableSamplers = mTextureSampler.data();
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding materialLayoutBinding{};
@@ -336,8 +337,8 @@ void RenderPass::createDescriptorSetLayout()
     instanceLayoutBinding.pImmutableSamplers = nullptr;
     instanceLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    std::array<VkDescriptorSetLayoutBinding, 7> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding, 
-        materialLayoutBinding, shadowImageLayoutBinding, shadowSamplerLayoutBinding, instanceLayoutBinding };
+    std::array<VkDescriptorSetLayoutBinding, 7> bindings = { uboLayoutBinding, texLayoutBinding, samplerLayoutBinding,
+                                                             materialLayoutBinding, shadowImageLayoutBinding, shadowSamplerLayoutBinding, instanceLayoutBinding };
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -552,7 +553,7 @@ void RenderPass::setShadowImageView(VkImageView shadowImageView)
     needDesciptorSetUpdate = true;
 }
 
-void RenderPass::setTextureSampler(VkSampler textureSampler)
+void RenderPass::setTextureSampler(const std::vector<VkSampler>& textureSampler)
 {
     mTextureSampler = textureSampler;
     imageViewCounter = 0;
@@ -588,17 +589,13 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     bufferInfo.range = sizeof(UniformBufferObject);
 
     std::vector<VkDescriptorImageInfo> imageInfo;
-    imageInfo.resize(2048);
+    imageInfo.resize(BINDLESS_TEXTURE_COUNT);
 
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
         imageInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         imageInfo[j].imageView = mTextureImageView[j];
     }
-
-    VkDescriptorImageInfo samplerInfo{};
-    samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    samplerInfo.sampler = mTextureSampler;
 
     VkDescriptorBufferInfo materialInfo{};
     materialInfo.buffer = mMaterialBuffer;
@@ -640,19 +637,8 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t) 2048;
+        descriptorWrite.descriptorCount = (uint32_t)BINDLESS_TEXTURE_COUNT;
         descriptorWrite.pImageInfo = imageInfo.data();
-        descriptorWrites.push_back(descriptorWrite);
-    }
-    {
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
-        descriptorWrite.dstBinding = 2;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &samplerInfo;
         descriptorWrites.push_back(descriptorWrite);
     }
     if (mMaterialBuffer != VK_NULL_HANDLE)

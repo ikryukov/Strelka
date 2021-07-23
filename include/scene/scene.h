@@ -60,7 +60,6 @@ public:
         float shininess; // Ns 16 --  блеск материала
         uint32_t illum; // illum 2 -- модель освещения
         int32_t texDiffuseId = -1; // map_diffuse
-
         int32_t texAmbientId = -1; // map_ambient
         int32_t texSpecularId = -1; // map_specular
         int32_t texNormalId = -1; // map_normal - map_Bump
@@ -70,13 +69,18 @@ public:
 
         float metallicFactor;
         float roughnessFactor;
-        int32_t metallicRoughnessTexture = -1;
+        int32_t metallicRoughnessTexture = -1; // ? need sampler ?
         int32_t texBaseColor = -1;
 
         glm::float3 emissiveFactor;
         int32_t texEmissive = -1;
 
+        int32_t sampEmissiveId = -1;
         int32_t texOcclusion = -1;
+        int32_t sampOcclusionId = -1;
+        int32_t sampBaseId = -1;
+
+        int32_t sampNormalId = -1;
         int32_t pad0;
         int32_t pad1;
         int32_t pad2;
@@ -163,10 +167,10 @@ public:
 
     void updateCamerasParams(int width, int height)
     {
-        for (Camera& camera: mCameras)
+        for (Camera& camera : mCameras)
         {
             camera.updateAspectRatio((float)width / height);
-        }        
+        }
     }
     /// <summary>
     /// Create Mesh geometry
