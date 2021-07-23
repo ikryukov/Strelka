@@ -103,9 +103,9 @@ void ComputePass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 8;
-    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorCount = (uint32_t)mTextureSamplers.size();
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.pImmutableSamplers = mTextureSamplers.data();
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     bindings.push_back(samplerLayoutBinding);
 
@@ -162,7 +162,7 @@ void ComputePass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void ComputePass::updateDescriptorSet(uint32_t descIndex)
 {
-    std::array<VkWriteDescriptorSet, 12> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 11> descriptorWrites{};
 
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = mResMngr->getVkBuffer(uniformBuffers[descIndex]);
@@ -266,54 +266,59 @@ void ComputePass::updateDescriptorSet(uint32_t descIndex)
     descriptorWrites[7].descriptorCount = (uint32_t)2048;
     descriptorWrites[7].pImageInfo = imageInfoBindless.data();
 
-    VkDescriptorImageInfo samplerInfo{};
-    samplerInfo.sampler = mTextureSampler;
+    //std::vector<VkDescriptorImageInfo> samplerInfo;
+    //samplerInfo.resize(mTextureSamplers.size());
+    //for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
+    //{
+    //    samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    //    samplerInfo[i].sampler = mTextureSamplers[i];
+    //}
 
-    descriptorWrites[8].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[8].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[8].dstBinding = 8;
-    descriptorWrites[8].dstArrayElement = 0;
-    descriptorWrites[8].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    descriptorWrites[8].descriptorCount = 1;
-    descriptorWrites[8].pImageInfo = &samplerInfo;
+    //descriptorWrites[8].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //descriptorWrites[8].dstSet = mDescriptorSets[descIndex];
+    //descriptorWrites[8].dstBinding = 8;
+    //descriptorWrites[8].dstArrayElement = 0;
+    //descriptorWrites[8].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    //descriptorWrites[8].descriptorCount = (uint32_t) samplerInfo.size();
+    //descriptorWrites[8].pImageInfo = samplerInfo.data();
 
     VkDescriptorBufferInfo materialInfo{};
     materialInfo.buffer = mMaterialBuffer;
     materialInfo.offset = 0;
     materialInfo.range = VK_WHOLE_SIZE;
 
-    descriptorWrites[9].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[9].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[9].dstBinding = 9;
-    descriptorWrites[9].dstArrayElement = 0;
-    descriptorWrites[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    descriptorWrites[9].descriptorCount = 1;
-    descriptorWrites[9].pBufferInfo = &materialInfo;
+    descriptorWrites[8].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[8].dstSet = mDescriptorSets[descIndex];
+    descriptorWrites[8].dstBinding = 9;
+    descriptorWrites[8].dstArrayElement = 0;
+    descriptorWrites[8].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[8].descriptorCount = 1;
+    descriptorWrites[8].pBufferInfo = &materialInfo;
 
     VkDescriptorBufferInfo instanceInfo{};
     instanceInfo.buffer = mInstanceBuffer;
     instanceInfo.offset = 0;
     instanceInfo.range = VK_WHOLE_SIZE;
 
-    descriptorWrites[10].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[10].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[10].dstBinding = 10;
-    descriptorWrites[10].dstArrayElement = 0;
-    descriptorWrites[10].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    descriptorWrites[10].descriptorCount = 1;
-    descriptorWrites[10].pBufferInfo = &instanceInfo;
+    descriptorWrites[9].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[9].dstSet = mDescriptorSets[descIndex];
+    descriptorWrites[9].dstBinding = 10;
+    descriptorWrites[9].dstArrayElement = 0;
+    descriptorWrites[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[9].descriptorCount = 1;
+    descriptorWrites[9].pBufferInfo = &instanceInfo;
 
     VkDescriptorImageInfo outputImageInfo{};
     outputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     outputImageInfo.imageView = mOutImageView;
 
-    descriptorWrites[11].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[11].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[11].dstBinding = 11;
-    descriptorWrites[11].dstArrayElement = 0;
-    descriptorWrites[11].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    descriptorWrites[11].descriptorCount = 1;
-    descriptorWrites[11].pImageInfo = &outputImageInfo;
+    descriptorWrites[10].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[10].dstSet = mDescriptorSets[descIndex];
+    descriptorWrites[10].dstBinding = 11;
+    descriptorWrites[10].dstArrayElement = 0;
+    descriptorWrites[10].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    descriptorWrites[10].descriptorCount = 1;
+    descriptorWrites[10].pImageInfo = &outputImageInfo;
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
@@ -417,9 +422,9 @@ void ComputePass::setOutputImageView(VkImageView imageView)
     needDesciptorSetUpdate = true;
 }
 
-void ComputePass::setTextureSampler(VkSampler textureSampler)
+void ComputePass::setTextureSamplers(std::vector<VkSampler>& textureSamplers)
 {
-    mTextureSampler = textureSampler;
+    mTextureSamplers = textureSamplers;
     imageViewCounter = 0;
     needDesciptorSetUpdate = true;
 }

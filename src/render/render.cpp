@@ -120,7 +120,7 @@ void Render::initVulkan()
     }
     mComputePass.setGbuffer(&mGbuffer);
     mComputePass.setOutputImageView(textureCompImageView);
-    mComputePass.setTextureSampler(mTexManager->textureSampler);
+    mComputePass.setTextureSamplers(mTexManager->texSamplers);
     mComputePass.init(mDevice, csShaderCode, csShaderCodeSize, mDescriptorPool, mResManager);
 
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
@@ -758,7 +758,7 @@ void Render::createGbufferPass()
     mShaderManager.getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
     mShaderManager.getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
 
-    mGbufferPass.setTextureSampler(mTexManager->textureSampler);
+    mGbufferPass.setTextureSamplers(mTexManager->texSamplers);
     mGbufferPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, mDescriptorPool, mResManager, &mGbuffer);
     mGbufferPass.createFrameBuffers(mGbuffer);
 }
@@ -1113,7 +1113,7 @@ void Render::setDescriptors()
 {
     {
         mGbufferPass.setTextureImageView(mTexManager->textureImageView);
-        mGbufferPass.setTextureSampler(mTexManager->textureSamplers);
+        mGbufferPass.setTextureSamplers(mTexManager->texSamplers);
         mGbufferPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
@@ -1123,7 +1123,7 @@ void Render::setDescriptors()
     {
         mComputePass.setGbuffer(&mGbuffer);
         mComputePass.setTextureImageViews(mTexManager->textureImageView);
-        mComputePass.setTextureSampler(mTexManager->textureSamplers);
+        mComputePass.setTextureSamplers(mTexManager->texSamplers);
         mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }

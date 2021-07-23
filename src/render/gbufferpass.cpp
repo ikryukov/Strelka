@@ -353,9 +353,9 @@ void GbufferPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 2;
-    samplerLayoutBinding.descriptorCount = 1;
+    samplerLayoutBinding.descriptorCount = (uint32_t) mTextureSamplers.size();
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.pImmutableSamplers = mTextureSamplers.data();
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding materialLayoutBinding{};
@@ -567,9 +567,9 @@ void GbufferPass::setShadowImageView(VkImageView shadowImageView)
     needDesciptorSetUpdate = true;
 }
 
-void GbufferPass::setTextureSampler(VkSampler textureSampler)
+void GbufferPass::setTextureSamplers(std::vector<VkSampler>& textureSamplers)
 {
-    mTextureSampler = textureSampler;
+    mTextureSamplers = textureSamplers;
     imageViewCounter = 0;
     needDesciptorSetUpdate = true;
 }
@@ -611,9 +611,13 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
         imageInfo[j].imageView = mTextureImageView[j];
     }
 
-    VkDescriptorImageInfo samplerInfo{};
-    samplerInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    samplerInfo.sampler = mTextureSampler;
+    //std::vector<VkDescriptorImageInfo> samplerInfo;
+    //samplerInfo.resize(mTextureSamplers.size());
+    //for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
+    //{
+    //    samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    //    samplerInfo[i].sampler = mTextureSamplers[i];
+    //}
 
     VkDescriptorBufferInfo materialInfo{};
     materialInfo.buffer = mMaterialBuffer;
@@ -648,17 +652,17 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
-    {
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
-        descriptorWrite.dstBinding = 2;
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pImageInfo = &samplerInfo;
-        descriptorWrites.push_back(descriptorWrite);
-    }
+    //{
+    //    VkWriteDescriptorSet descriptorWrite{};
+    //    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //    descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
+    //    descriptorWrite.dstBinding = 2;
+    //    descriptorWrite.dstArrayElement = 0;
+    //    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    //    descriptorWrite.descriptorCount = (uint32_t) samplerInfo.size();
+    //    descriptorWrite.pImageInfo = samplerInfo.data();
+    //    descriptorWrites.push_back(descriptorWrite);
+    //}
     if (mMaterialBuffer != VK_NULL_HANDLE)
     {
         VkWriteDescriptorSet descriptorWrite{};

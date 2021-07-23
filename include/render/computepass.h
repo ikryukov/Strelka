@@ -49,7 +49,7 @@ private:
     VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
 
     VkImageView mOutImageView;
-    VkSampler mTextureSampler;
+    std::vector<VkSampler> mTextureSamplers;
 
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
@@ -73,7 +73,7 @@ public:
     void setInstanceBuffer(VkBuffer instanceBuffer);
     void setGbuffer(GBuffer* gbuffer);
     void setOutputImageView(VkImageView imageView);
-    void setTextureSampler(VkSampler textureSampler);
+    void setTextureSamplers(std::vector<VkSampler>& textureSamplers);
     void setTextureImageViews(const std::vector<VkImageView>& texImages);
     void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
 };
