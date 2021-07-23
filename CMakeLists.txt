@@ -115,12 +115,14 @@ set(RENDER_SOURCES
         include/render/renderpass.h
         include/render/gbufferpass.h
         include/render/computepass.h
+        include/render/rtshadowpass.h
         include/render/depthpass.h
         include/render/debugUtils.h
         src/render/render.cpp
         src/render/renderpass.cpp
         src/render/gbufferpass.cpp
         src/render/computepass.cpp
+        src/render/rtshadowpass.cpp
         src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )
