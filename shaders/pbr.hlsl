@@ -20,7 +20,6 @@ struct Material
     float shininess; // Ns 16 --  блеск материала
     uint32_t illum; // illum 2 -- модель освещения
     int32_t texDiffuseId; // map_diffuse
-
     int32_t texAmbientId; // map_ambient
     int32_t texSpecularId; // map_specular
     int32_t texNormalId; // map_normal - map_Bump
@@ -35,7 +34,12 @@ struct Material
     float3 emissiveFactor;
     int32_t texEmissive;
 
+    int32_t sampEmissiveId;
     int32_t texOcclusion;
+    int32_t sampOcclusionId;
+    int32_t sampBaseId;
+
+    int32_t sampNormalId;
     int32_t pad0;
     int32_t pad1;
     int32_t pad2;
@@ -61,7 +65,7 @@ struct PS_INPUT
     float2 uv;
 };
 
-struct InstancePushConstants 
+struct InstancePushConstants
 {
     int32_t instanceId;
 };
@@ -79,21 +83,16 @@ cbuffer ubo
 }
 
 Texture2D textures[];
-SamplerState gSampler;
+SamplerState gSampler[];
 StructuredBuffer<Material> materials;
 Texture2D shadowMap;
 SamplerState shadowSamp;
 StructuredBuffer<InstanceConstants> instanceConstants;
 
 static const float4x4 biasMatrix = float4x4(
-  0.5, 0.0, 0.0, 0.5,
-  0.0, -0.5, 0.0, 0.5,
-  0.0, 0.0, 1.0, 0.0,
-  0.0, 0.0, 0.0, 1.0 );
+    0.5, 0.0, 0.0, 0.5, 0.0, -0.5, 0.0, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
 
-[shader("vertex")]
-PS_INPUT vertexMain(VertexInput vi)
-{
+[shader("vertex")] PS_INPUT vertexMain(VertexInput vi) {
     PS_INPUT out;
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
     float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
@@ -104,18 +103,18 @@ PS_INPUT vertexMain(VertexInput vi)
     // TODO:
     out.normal = unpackNormal(vi.normal);
     out.tangent = unpackTangent(vi.tangent);
-    out.wPos = wpos.xyz / wpos.w; 
+    out.wPos = wpos.xyz / wpos.w;
     return out;
 }
 
-float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
+float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId, uint32_t texSamplerId)
 {
     float3 Normal = normalize(inp.normal);
     float3 Tangent = -normalize(inp.tangent);
     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
     float3 Bitangent = cross(Normal, Tangent);
 
-    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(gSampler, inp.uv).xyz;
+    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(gSampler[texSamplerId], inp.uv).xyz;
     BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
 
     float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
@@ -127,15 +126,15 @@ float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
 #define INVALID_INDEX -1
 #define PI 3.1415926535897
 
-float GGX_PartialGeometry(float cosThetaN, float alpha) 
+float GGX_PartialGeometry(float cosThetaN, float alpha)
 {
-    float cosTheta_sqr = saturate(cosThetaN*cosThetaN);
+    float cosTheta_sqr = saturate(cosThetaN * cosThetaN);
     float tan2 = (1.0 - cosTheta_sqr) / cosTheta_sqr;
     float GP = 2.0 / (1.0 + sqrt(1.0 + alpha * alpha * tan2));
     return GP;
 }
 
-float GGX_Distribution(float cosThetaNH, float alpha) 
+float GGX_Distribution(float cosThetaNH, float alpha)
 {
     float alpha2 = alpha * alpha;
     float NH_sqr = saturate(cosThetaNH * cosThetaNH);
@@ -143,7 +142,7 @@ float GGX_Distribution(float cosThetaNH, float alpha)
     return alpha2 / (PI * den * den);
 }
 
-float3 FresnelSchlick(float3 F0, float cosTheta) 
+float3 FresnelSchlick(float3 F0, float cosTheta)
 {
     return F0 + (1.0 - F0) * pow(1.0 - saturate(cosTheta), 5.0);
 }
@@ -178,7 +177,7 @@ float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
     float3 albedo = material.baseColorFactor.rgb;
     if (material.texBaseColor != INVALID_INDEX)
     {
-        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler, uv).rgb;
+        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler[material.sampBaseId], uv).rgb;
     }
 
 
@@ -187,8 +186,8 @@ float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
 }
 
 // Fragment Shader
-[shader("fragment")]
-float4 fragmentMain(PS_INPUT inp) : SV_TARGET
+[shader("fragment")] float4 fragmentMain(PS_INPUT inp)
+    : SV_TARGET
 {
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
     Material material = materials[NonUniformResourceIndex(constants.materialId)];
@@ -198,7 +197,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     float3 N = normalize(inp.normal);
     if (texNormalId != INVALID_INDEX)
     {
-        N = CalcBumpedNormal(inp, texNormalId);
+        N = CalcBumpedNormal(inp, texNormalId, material.sampNormalId);
     }
     float3 L = normalize(lightPosition.xyz - inp.wPos);
 
@@ -217,12 +216,12 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
 
     if (material.texEmissive != INVALID_INDEX)
     {
-        float3 emissive = textures[NonUniformResourceIndex(material.texEmissive)].Sample(gSampler, inp.uv).rgb;
+        float3 emissive = textures[NonUniformResourceIndex(material.texEmissive)].Sample(gSampler[material.sampEmissiveId], inp.uv).rgb;
         result += emissive;
     }
     if (material.texOcclusion != INVALID_INDEX)
     {
-        float occlusion = textures[NonUniformResourceIndex(material.texOcclusion)].Sample(gSampler, inp.uv).r;
+        float occlusion = textures[NonUniformResourceIndex(material.texOcclusion)].Sample(gSampler[material.sampOcclusionId], inp.uv).r;
         result *= occlusion;
     }
     float shadow = ShadowCalculation(inp.posLightSpace);
@@ -230,12 +229,12 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     // Normals
     if (debugView == 1)
     {
-      return float4(abs(N), 1.0);
+        return float4(abs(N), 1.0);
     }
     // Shadow b&w
     if (debugView == 2)
     {
-       return float4(dot(N, L) * shadow, 1.0);
+        return float4(dot(N, L) * shadow, 1.0);
     }
     // pcf shadow
     if (debugView == 3)
@@ -252,7 +251,7 @@ float4 fragmentMain(PS_INPUT inp) : SV_TARGET
     {
         shadow = ShadowCalculationPoissonPCF(inp.posLightSpace, inp.wPos);
     }
-    
+
     result *= shadow;
 
     float alpha = material.d;

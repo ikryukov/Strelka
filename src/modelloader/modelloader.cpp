@@ -243,7 +243,7 @@ bool ModelLoader::loadModel(const std::string& modelFile, const std::string& mtl
         assert(instId != -1);
     }
 
-    mTexManager->createTextureSampler();
+    //mTexManager->createTextureSampler();
 
     return ret;
 }
@@ -450,8 +450,60 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
     }
 }
 
+VkSamplerAddressMode getVkWrapMode(int32_t wrapMode)
+{
+    switch (wrapMode)
+    {
+    case 10497:
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    case 33071:
+        return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    case 33648:
+        return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+    default:
+        return VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    }
+}
+
+VkFilter getVkFilterMode(int32_t filterMode)
+{
+    switch (filterMode)
+    {
+    case 9728:
+        return VK_FILTER_NEAREST;
+    case 9729:
+        return VK_FILTER_LINEAR;
+    case 9984:
+        return VK_FILTER_NEAREST;
+    case 9985:
+        return VK_FILTER_NEAREST;
+    case 9986:
+        return VK_FILTER_LINEAR;
+    case 9987:
+        return VK_FILTER_LINEAR;
+    default:
+        return VK_FILTER_LINEAR;
+    }
+}
+std::unordered_map<uint32_t, uint32_t> texIdToModelSamp{};
+std::unordered_map<uint32_t, uint32_t> modelSampIdToLoadedSampId{};
+
+void findTextureSamplers(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
+{
+    nevk::TextureManager::TextureSamplerDesc currentSamplerDesc{};
+    uint32_t samplerNumber = 0;
+
+    for (const tinygltf::Sampler& sampler : model.samplers)
+    {
+        currentSamplerDesc = { getVkFilterMode(sampler.minFilter), getVkFilterMode(sampler.magFilter), getVkWrapMode(sampler.wrapS), getVkWrapMode(sampler.wrapT) };
+        modelSampIdToLoadedSampId[samplerNumber] = textureManager.sampDescToId.find(currentSamplerDesc)->second;
+        ++samplerNumber;
+    }
+}
+
 void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
 {
+    texIdToModelSamp[-1] = 0;
     for (const tinygltf::Texture& tex : model.textures)
     {
         const tinygltf::Image& image = model.images[tex.source];
@@ -479,6 +531,8 @@ void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textur
 
         int texId = textureManager.loadTextureGltf(data, width, height, name);
         assert(texId != -1);
+
+        texIdToModelSamp[texId] = modelSampIdToLoadedSampId.find(tex.sampler)->second;
     }
 }
 
@@ -493,12 +547,16 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                            material.pbrMetallicRoughness.baseColorFactor[2],
                                            material.pbrMetallicRoughness.baseColorFactor[3]);
         currMaterial.texNormalId = material.normalTexture.index;
+        currMaterial.sampNormalId = texIdToModelSamp.find(currMaterial.texNormalId)->second;
 
         currMaterial.baseColorFactor = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
                                                    material.pbrMetallicRoughness.baseColorFactor[1],
                                                    material.pbrMetallicRoughness.baseColorFactor[2],
                                                    material.pbrMetallicRoughness.baseColorFactor[3]);
+
         currMaterial.texBaseColor = material.pbrMetallicRoughness.baseColorTexture.index;
+        currMaterial.sampBaseId = texIdToModelSamp.find(currMaterial.texBaseColor)->second;
+
         currMaterial.roughnessFactor = (float)material.pbrMetallicRoughness.roughnessFactor;
         currMaterial.metallicFactor = (float)material.pbrMetallicRoughness.metallicFactor;
 
@@ -506,7 +564,11 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                                   material.emissiveFactor[1],
                                                   material.emissiveFactor[2]);
         currMaterial.texEmissive = material.emissiveTexture.index;
+       currMaterial.sampEmissiveId = texIdToModelSamp.find(currMaterial.texEmissive)->second;
+
         currMaterial.texOcclusion = material.occlusionTexture.index;
+        currMaterial.sampOcclusionId = texIdToModelSamp.find(currMaterial.texOcclusion)->second;
+
         currMaterial.d = (float)material.pbrMetallicRoughness.baseColorFactor[3];
 
         currMaterial.illum = material.alphaMode == "OPAQUE" ? 2 : 1;
@@ -567,6 +629,7 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene
 
     int sceneId = model.defaultScene;
 
+    findTextureSamplers(model, scene, *mTexManager);
     loadTextures(model, scene, *mTexManager);
     loadMaterials(model, scene, *mTexManager);
 

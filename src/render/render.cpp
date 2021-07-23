@@ -96,7 +96,7 @@ void Render::initVulkan()
         shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
     }
     mTexManager->createShadowSampler();
-    mTexManager->createTextureSampler();
+    mTexManager->initSamplers();
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
@@ -1102,7 +1102,6 @@ void Render::loadScene(const std::string& modelPath)
     createInstanceBuffer(*mScene);
 
     mTexManager->createShadowSampler();
-    mTexManager->createTextureSampler();
 
     setDescriptors();
 
@@ -1114,7 +1113,7 @@ void Render::setDescriptors()
 {
     {
         mGbufferPass.setTextureImageView(mTexManager->textureImageView);
-        mGbufferPass.setTextureSampler(mTexManager->textureSampler);
+        mGbufferPass.setTextureSampler(mTexManager->textureSamplers);
         mGbufferPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
@@ -1124,7 +1123,7 @@ void Render::setDescriptors()
     {
         mComputePass.setGbuffer(&mGbuffer);
         mComputePass.setTextureImageViews(mTexManager->textureImageView);
-        mComputePass.setTextureSampler(mTexManager->textureSampler);
+        mComputePass.setTextureSampler(mTexManager->textureSamplers);
         mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }

@@ -96,18 +96,18 @@ void nevk::TextureManager::createTextureImageView(Texture& texture)
     textureImageView.push_back(createImageView(mResManager->getVkImage(texture.textureImage), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
 }
 
-void nevk::TextureManager::createTextureSampler()
+void nevk::TextureManager::createTextureSampler(TextureSamplerDesc& texSamplerData)
 {
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(mPhysicalDevice, &properties);
 
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter = VK_FILTER_LINEAR;
-    samplerInfo.minFilter = VK_FILTER_LINEAR;
-    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    samplerInfo.magFilter = texSamplerData.magFilter;
+    samplerInfo.minFilter = texSamplerData.minFilter;
+    samplerInfo.addressModeU = texSamplerData.addressModeU;
+    samplerInfo.addressModeV = texSamplerData.addressModeV;
+    samplerInfo.addressModeW = texSamplerData.addressModeV;
     samplerInfo.anisotropyEnable = VK_TRUE;
     samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
     samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
@@ -116,10 +116,14 @@ void nevk::TextureManager::createTextureSampler()
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    if (vkCreateSampler(mDevice, &samplerInfo, nullptr, &textureSampler) != VK_SUCCESS)
+    VkSampler tmpSampler;
+    if (vkCreateSampler(mDevice, &samplerInfo, nullptr, &tmpSampler) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create texture sampler!");
     }
+
+    sampDescToId[texSamplerData] = texSamplers.size();
+    texSamplers.push_back(tmpSampler);
 }
 
 void nevk::TextureManager::createShadowSampler()
