@@ -33,7 +33,7 @@ private:
     VkPipelineLayout mPipelineLayout;
     VkShaderModule mCS;
 
-    ResourceManager* mResMngr;
+    ResourceManager* mResMngr = nullptr;
 
     VkDescriptorSetLayout mDescriptorSetLayout;
     std::vector<VkDescriptorSet> mDescriptorSets;
@@ -43,13 +43,11 @@ private:
     
     std::vector<Buffer*> uniformBuffers;
 
-    GBuffer* mGbuffer;
-    std::vector<VkImageView> mTextureImageView;
-    VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
-    VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
+    GBuffer* mGbuffer = nullptr;
+    VkBuffer mBvhBuffer = VK_NULL_HANDLE;
+    VkBuffer mLightsBuffer = VK_NULL_HANDLE;
 
-    VkImageView mOutImageView;
-    std::vector<VkSampler> mTextureSamplers;
+    VkImageView mOutImageView = VK_NULL_HANDLE;
 
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
@@ -69,12 +67,10 @@ public:
     void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
     void onDestroy();
 
-    void setMaterialBuffer(VkBuffer materialBuffer);
-    void setInstanceBuffer(VkBuffer instanceBuffer);
+    void setBvhBuffer(VkBuffer buffer);
+    void setLightsBuffer(VkBuffer buffer);
     void setGbuffer(GBuffer* gbuffer);
     void setOutputImageView(VkImageView imageView);
-    void setTextureSamplers(std::vector<VkSampler>& textureSamplers);
-    void setTextureImageViews(const std::vector<VkImageView>& texImages);
     void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
 };
 } // namespace nevk

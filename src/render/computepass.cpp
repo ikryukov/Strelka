@@ -415,6 +415,13 @@ void ComputePass::setGbuffer(GBuffer* gbuffer)
     needDesciptorSetUpdate = true;
 }
 
+void ComputePass::setRtShadowImageView(VkImageView imageView)
+{
+    mRtShadowImageView = imageView;
+    imageViewCounter = 0;
+    needDesciptorSetUpdate = true;
+}
+
 void ComputePass::setOutputImageView(VkImageView imageView)
 {
     mOutImageView = imageView;

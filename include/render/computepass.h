@@ -48,6 +48,8 @@ private:
     VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
     VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
 
+    VkImageView mRtShadowImageView = VK_NULL_HANDLE;
+
     VkImageView mOutImageView;
     std::vector<VkSampler> mTextureSamplers;
 
@@ -72,6 +74,7 @@ public:
     void setMaterialBuffer(VkBuffer materialBuffer);
     void setInstanceBuffer(VkBuffer instanceBuffer);
     void setGbuffer(GBuffer* gbuffer);
+    void setRtShadowImageView(VkImageView imageView);
     void setOutputImageView(VkImageView imageView);
     void setTextureSamplers(std::vector<VkSampler>& textureSamplers);
     void setTextureImageViews(const std::vector<VkImageView>& texImages);

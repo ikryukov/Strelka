@@ -78,55 +78,47 @@ void RtShadowPass::createDescriptorSetLayout()
     uboLayoutBinding.pImmutableSamplers = nullptr;
     uboLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
+    bindings.push_back(uboLayoutBinding);
+
+    // gbuffer wpos
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
     texLayoutBinding.descriptorCount = 1;
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    texLayoutBinding.binding = 1;
+    bindings.push_back(texLayoutBinding);
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings;
-    bindings.push_back(uboLayoutBinding);
-    for (int i = 0; i < 6; ++i)
-    {
-        texLayoutBinding.binding = 1 + i;
-        bindings.push_back(texLayoutBinding);
-    }
+    // gbuffer normal
+    VkDescriptorSetLayoutBinding texNormalLayoutBinding{};
+    texNormalLayoutBinding.binding = 1;
+    texNormalLayoutBinding.descriptorCount = 1;
+    texNormalLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    texNormalLayoutBinding.pImmutableSamplers = nullptr;
+    texNormalLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    texNormalLayoutBinding.binding = 2;
+    bindings.push_back(texNormalLayoutBinding);
 
-    VkDescriptorSetLayoutBinding texBindlessLayoutBinding{};
-    texBindlessLayoutBinding.binding = 7;
-    texBindlessLayoutBinding.descriptorCount = (uint32_t)2048;
-    texBindlessLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    texBindlessLayoutBinding.pImmutableSamplers = nullptr;
-    texBindlessLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    bindings.push_back(texBindlessLayoutBinding);
+    VkDescriptorSetLayoutBinding bvhLayoutBinding{};
+    bvhLayoutBinding.binding = 3;
+    bvhLayoutBinding.descriptorCount = 1;
+    bvhLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bvhLayoutBinding.pImmutableSamplers = nullptr;
+    bvhLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(bvhLayoutBinding);
 
-    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    samplerLayoutBinding.binding = 8;
-    samplerLayoutBinding.descriptorCount = (uint32_t)mTextureSamplers.size();
-    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = mTextureSamplers.data();
-    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    bindings.push_back(samplerLayoutBinding);
-
-    VkDescriptorSetLayoutBinding materialLayoutBinding{};
-    materialLayoutBinding.binding = 9;
-    materialLayoutBinding.descriptorCount = 1;
-    materialLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    materialLayoutBinding.pImmutableSamplers = nullptr;
-    materialLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    bindings.push_back(materialLayoutBinding);
-
-    VkDescriptorSetLayoutBinding instanceLayoutBinding{};
-    instanceLayoutBinding.binding = 10;
-    instanceLayoutBinding.descriptorCount = 1;
-    instanceLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    instanceLayoutBinding.pImmutableSamplers = nullptr;
-    instanceLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    bindings.push_back(instanceLayoutBinding);
+    VkDescriptorSetLayoutBinding lightsLayoutBinding{};
+    lightsLayoutBinding.binding = 4;
+    lightsLayoutBinding.descriptorCount = 1;
+    lightsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    lightsLayoutBinding.pImmutableSamplers = nullptr;
+    lightsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(lightsLayoutBinding);
 
     VkDescriptorSetLayoutBinding outLayoutBinding{};
-    outLayoutBinding.binding = 11;
+    outLayoutBinding.binding = 5;
     outLayoutBinding.descriptorCount = 1;
     outLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     outLayoutBinding.pImmutableSamplers = nullptr;
@@ -162,163 +154,108 @@ void RtShadowPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void RtShadowPass::updateDescriptorSet(uint32_t descIndex)
 {
-    std::array<VkWriteDescriptorSet, 11> descriptorWrites{};
+    VkDescriptorSet& dstDescSet = mDescriptorSets[descIndex];
 
+    std::vector<VkWriteDescriptorSet> descriptorWrites;
+    
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = mResMngr->getVkBuffer(uniformBuffers[descIndex]);
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
-    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[0].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[0].dstBinding = 0;
-    descriptorWrites[0].dstArrayElement = 0;
-    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    descriptorWrites[0].descriptorCount = 1;
-    descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-    VkDescriptorImageInfo imageInfoDepth{};
-    imageInfoDepth.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoDepth.imageView = mGbuffer->depthView;
-
-    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[1].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[1].dstBinding = 1;
-    descriptorWrites[1].dstArrayElement = 0;
-    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    descriptorWrites[1].descriptorCount = 1;
-    descriptorWrites[1].pImageInfo = &imageInfoDepth;
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 0;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        descWrite.descriptorCount = 1;
+        descWrite.pBufferInfo = &bufferInfo;
+        descriptorWrites.push_back(descWrite);
+    }
 
     VkDescriptorImageInfo imageInfoWPos{};
     imageInfoWPos.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoWPos.imageView = mGbuffer->wPosView;
+    imageInfoWPos.imageView = mGbuffer ? mGbuffer->wPosView : VK_NULL_HANDLE;
 
-    descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[2].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[2].dstBinding = 2;
-    descriptorWrites[2].dstArrayElement = 0;
-    descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    descriptorWrites[2].descriptorCount = 1;
-    descriptorWrites[2].pImageInfo = &imageInfoWPos;
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 1;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        descWrite.descriptorCount = 1;
+        descWrite.pImageInfo = &imageInfoWPos;
+        descriptorWrites.push_back(descWrite);
+    }
 
     VkDescriptorImageInfo imageInfoNormal{};
     imageInfoNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoNormal.imageView = mGbuffer->normalView;
+    imageInfoNormal.imageView = mGbuffer ? mGbuffer->normalView : VK_NULL_HANDLE;
 
-    descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[3].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[3].dstBinding = 3;
-    descriptorWrites[3].dstArrayElement = 0;
-    descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    descriptorWrites[3].descriptorCount = 1;
-    descriptorWrites[3].pImageInfo = &imageInfoNormal;
-
-    VkDescriptorImageInfo imageInfoTangent{};
-    imageInfoTangent.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoTangent.imageView = mGbuffer->tangentView;
-
-    descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[4].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[4].dstBinding = 4;
-    descriptorWrites[4].dstArrayElement = 0;
-    descriptorWrites[4].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    descriptorWrites[4].descriptorCount = 1;
-    descriptorWrites[4].pImageInfo = &imageInfoTangent;
-
-    VkDescriptorImageInfo imageInfoUv{};
-    imageInfoUv.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoUv.imageView = mGbuffer->uvView;
-
-    descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[5].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[5].dstBinding = 5;
-    descriptorWrites[5].dstArrayElement = 0;
-    descriptorWrites[5].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    descriptorWrites[5].descriptorCount = 1;
-    descriptorWrites[5].pImageInfo = &imageInfoUv;
-
-    VkDescriptorImageInfo imageInfoInstId{};
-    imageInfoInstId.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoInstId.imageView = mGbuffer->instIdView;
-
-    descriptorWrites[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[6].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[6].dstBinding = 6;
-    descriptorWrites[6].dstArrayElement = 0;
-    descriptorWrites[6].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    descriptorWrites[6].descriptorCount = 1;
-    descriptorWrites[6].pImageInfo = &imageInfoInstId;
-
-    std::vector<VkDescriptorImageInfo> imageInfoBindless(2048);
-    std::fill(imageInfoBindless.begin(), imageInfoBindless.end(), VkDescriptorImageInfo());
-
-    for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
-        imageInfoBindless[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfoBindless[j].imageView = mTextureImageView[j];
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 2;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        descWrite.descriptorCount = 1;
+        descWrite.pImageInfo = &imageInfoNormal;
+        descriptorWrites.push_back(descWrite);
     }
 
-    descriptorWrites[7].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[7].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[7].dstBinding = 7;
-    descriptorWrites[7].dstArrayElement = 0;
-    descriptorWrites[7].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    descriptorWrites[7].descriptorCount = (uint32_t)2048;
-    descriptorWrites[7].pImageInfo = imageInfoBindless.data();
+    VkDescriptorBufferInfo bvhInfo{};
+    bvhInfo.buffer = mBvhBuffer;
+    bvhInfo.offset = 0;
+    bvhInfo.range = VK_WHOLE_SIZE;
 
-    //std::vector<VkDescriptorImageInfo> samplerInfo;
-    //samplerInfo.resize(mTextureSamplers.size());
-    //for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
-    //{
-    //    samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //    samplerInfo[i].sampler = mTextureSamplers[i];
-    //}
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 3;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descWrite.descriptorCount = 1;
+        descWrite.pBufferInfo = &bvhInfo;
+        descriptorWrites.push_back(descWrite);
+    }
 
-    //descriptorWrites[8].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    //descriptorWrites[8].dstSet = mDescriptorSets[descIndex];
-    //descriptorWrites[8].dstBinding = 8;
-    //descriptorWrites[8].dstArrayElement = 0;
-    //descriptorWrites[8].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    //descriptorWrites[8].descriptorCount = (uint32_t) samplerInfo.size();
-    //descriptorWrites[8].pImageInfo = samplerInfo.data();
+    VkDescriptorBufferInfo lightsInfo{};
+    lightsInfo.buffer = mLightsBuffer;
+    lightsInfo.offset = 0;
+    lightsInfo.range = VK_WHOLE_SIZE;
 
-    VkDescriptorBufferInfo materialInfo{};
-    materialInfo.buffer = mMaterialBuffer;
-    materialInfo.offset = 0;
-    materialInfo.range = VK_WHOLE_SIZE;
-
-    descriptorWrites[8].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[8].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[8].dstBinding = 9;
-    descriptorWrites[8].dstArrayElement = 0;
-    descriptorWrites[8].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    descriptorWrites[8].descriptorCount = 1;
-    descriptorWrites[8].pBufferInfo = &materialInfo;
-
-    VkDescriptorBufferInfo instanceInfo{};
-    instanceInfo.buffer = mInstanceBuffer;
-    instanceInfo.offset = 0;
-    instanceInfo.range = VK_WHOLE_SIZE;
-
-    descriptorWrites[9].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[9].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[9].dstBinding = 10;
-    descriptorWrites[9].dstArrayElement = 0;
-    descriptorWrites[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    descriptorWrites[9].descriptorCount = 1;
-    descriptorWrites[9].pBufferInfo = &instanceInfo;
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 4;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descWrite.descriptorCount = 1;
+        descWrite.pBufferInfo = &lightsInfo;
+        descriptorWrites.push_back(descWrite);
+    }
 
     VkDescriptorImageInfo outputImageInfo{};
     outputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     outputImageInfo.imageView = mOutImageView;
 
-    descriptorWrites[10].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[10].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[10].dstBinding = 11;
-    descriptorWrites[10].dstArrayElement = 0;
-    descriptorWrites[10].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    descriptorWrites[10].descriptorCount = 1;
-    descriptorWrites[10].pImageInfo = &outputImageInfo;
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 5;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        descWrite.descriptorCount = 1;
+        descWrite.pImageInfo = &outputImageInfo;
+        descriptorWrites.push_back(descWrite);
+    }
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 }
@@ -394,16 +331,16 @@ void RtShadowPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void RtShadowPass::setMaterialBuffer(VkBuffer materialBuffer)
+void RtShadowPass::setBvhBuffer(VkBuffer buffer)
 {
-    mMaterialBuffer = materialBuffer;
+    mBvhBuffer = buffer;
     imageViewCounter = 0;
     needDesciptorSetUpdate = true;
 }
 
-void RtShadowPass::setInstanceBuffer(VkBuffer instanceBuffer)
+void RtShadowPass::setLightsBuffer(VkBuffer buffer)
 {
-    mInstanceBuffer = instanceBuffer;
+    mLightsBuffer = buffer;
     imageViewCounter = 0;
     needDesciptorSetUpdate = true;
 }
@@ -418,20 +355,6 @@ void RtShadowPass::setGbuffer(GBuffer* gbuffer)
 void RtShadowPass::setOutputImageView(VkImageView imageView)
 {
     mOutImageView = imageView;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
-}
-
-void RtShadowPass::setTextureSamplers(std::vector<VkSampler>& textureSamplers)
-{
-    mTextureSamplers = textureSamplers;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
-}
-
-void RtShadowPass::setTextureImageViews(const std::vector<VkImageView>& texImages)
-{
-    mTextureImageView = texImages;
     imageViewCounter = 0;
     needDesciptorSetUpdate = true;
 }

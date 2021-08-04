@@ -17,6 +17,7 @@
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
+#include "rtshadowpass.h"
 #include "renderpass.h"
 
 #include <modelloader/modelloader.h>
@@ -125,12 +126,15 @@ private:
     nevk::Image* shadowImage;
     VkImageView shadowImageView;
 
+    nevk::Image* mRtShadowImage;
+    VkImageView mRtShadowImageView;
+
     nevk::ResourceManager* mResManager = nullptr;
     nevk::TextureManager* mTexManager = nullptr;
 
     GBuffer mGbuffer;
     nevk::GbufferPass mGbufferPass;
-
+    nevk::RtShadowPass mRtShadowPass;
     nevk::ModelLoader* modelLoader = nullptr;
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
@@ -144,6 +148,8 @@ private:
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
         nevk::Buffer* mInstanceBuffer = nullptr;
+        nevk::Buffer* mLightsBuffer = nullptr;
+        nevk::Buffer* mBvhBuffer = nullptr;
 
         nevk::ResourceManager* mResManager = nullptr;
         explicit SceneRenderData(nevk::ResourceManager* resManager)
