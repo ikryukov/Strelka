@@ -880,6 +880,40 @@ void Render::createMaterialBuffer(nevk::Scene& scene)
     mResManager->destroyBuffer(stagingBuffer);
 }
 
+void Render::createLightsBuffer(nevk::Scene& scene)
+{
+    std::vector<nevk::Scene::Light>& sceneLights = scene.getLights();
+
+    VkDeviceSize bufferSize = sizeof(nevk::Scene::Light) * sceneLights.size();
+    if (bufferSize == 0)
+    {
+        return;
+    }
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    memcpy(stagingBufferMemory, sceneLights.data(), (size_t)bufferSize);
+    mCurrentSceneRenderData->mLightsBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Lights");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), bufferSize);
+    mResManager->destroyBuffer(stagingBuffer);
+}
+
+void Render::createBvhBuffer(nevk::Scene& scene)
+{
+    std::vector<nevk::Scene::BVHNode>& sceneBvh = scene.getBvh();
+
+    VkDeviceSize bufferSize = sizeof(nevk::Scene::BVHNode) * sceneBvh.size();
+    if (bufferSize == 0)
+    {
+        return;
+    }
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    memcpy(stagingBufferMemory, sceneBvh.data(), (size_t)bufferSize);
+    mCurrentSceneRenderData->mLightsBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhBuffer), bufferSize);
+    mResManager->destroyBuffer(stagingBuffer);
+}
+
 void Render::createIndexBuffer(nevk::Scene& scene)
 {
     std::vector<uint32_t>& sceneIndices = scene.getIndices();
@@ -1127,8 +1161,12 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
+    mScene->createLight(glm::float3(10, 10, 10));
+
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
+    createLightsBuffer(*mScene);
+    createBvhBuffer(*mScene);
 
     mTexManager->createShadowSampler();
 

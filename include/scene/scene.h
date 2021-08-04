@@ -49,6 +49,19 @@ public:
         uint32_t uv;
     };
 
+    struct Light
+    {
+        glm::float3 pos;
+    };
+
+    struct BVHNode
+    {
+        glm::float3 minBounds;
+        int instId;
+        glm::float3 maxBounds;
+        int nodeOffset;
+    };
+
     struct Material
     {
         glm::float4 ambient; // Ka
@@ -111,6 +124,8 @@ public:
     std::vector<Mesh> mMeshes;
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
+    std::vector<Light> mLights;
+    std::vector<BVHNode> mBvh;
 
     std::vector<uint32_t> mTransparentInstances;
     std::vector<uint32_t> mOpaqueInstances;
@@ -132,6 +147,16 @@ public:
     std::vector<Material>& getMaterials()
     {
         return mMaterials;
+    }
+
+    std::vector<Light>& getLights()
+    {
+        return mLights;
+    }
+    
+    std::vector<BVHNode>& getBvh()
+    {
+        return mBvh;
     }
 
     void addCamera(Camera camera)
@@ -207,6 +232,9 @@ public:
                             float d);
 
     uint32_t addMaterial(const Material& material);
+
+    uint32_t createLight(const glm::float3& pos);
+
 
     /// <summary>
     /// Removes instance/mesh/material

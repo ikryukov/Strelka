@@ -271,6 +271,8 @@ private:
 
     void createVertexBuffer(nevk::Scene& scene);
     void createMaterialBuffer(nevk::Scene& scene);
+    void createLightsBuffer(nevk::Scene& scene);
+    void createBvhBuffer(nevk::Scene& scene);
     void createIndexBuffer(nevk::Scene& scene);
     void createInstanceBuffer(nevk::Scene& scene);
 

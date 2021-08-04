@@ -124,6 +124,16 @@ uint32_t Scene::addMaterial(const Material& material)
     return res;
 }
 
+uint32_t Scene::createLight(const glm::float3& pos)
+{
+    Light l;
+    l.pos = pos;
+
+    uint32_t lightId = (uint32_t) mLights.size();
+    mLights.push_back(l);
+    return lightId;
+}
+
 void Scene::removeInstance(const uint32_t instId)
 {
     mDelInstances.push(instId); // marked as removed
