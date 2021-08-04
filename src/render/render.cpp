@@ -1215,8 +1215,12 @@ void Render::createDefaultScene()
 
     mScene->addCamera(camera);
 
+    mScene->createLight(glm::float3(10, 10, 10));
+
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
+    createLightsBuffer(*mScene);
+    createBvhBuffer(*mScene);
 
     setDescriptors();
 
