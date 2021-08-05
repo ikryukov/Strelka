@@ -7,9 +7,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/compatibility.hpp>
 
+#include <algorithm>
 #include <scene.h>
 #include <vector>
-#include <algorithm>
 
 
 namespace nevk
@@ -80,7 +80,7 @@ private:
         // need to pad aabb to prevent from ultra thin box (zero width)
         return AABB(glm::float3(minX, minY, minZ), glm::float3(maxX + eps, maxY + eps, maxZ + eps));
     }
-    
+
     static const uint32_t LeafMask = 0x80000000;
     static const uint32_t InvalidMask = 0xFFFFFFFF;
 
@@ -96,7 +96,7 @@ private:
         uint32_t right = InvalidMask;
         Triangle triangle; // only for leaf
     };
-    
+
     static bool nodeCompare(const BvhNodeInternal& a, const BvhNodeInternal& b, const int axis);
     static bool nodeCompareX(const BvhNodeInternal& a, const BvhNodeInternal& b);
     static bool nodeCompareY(const BvhNodeInternal& a, const BvhNodeInternal& b);

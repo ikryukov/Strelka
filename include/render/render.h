@@ -13,13 +13,13 @@
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
+#include "bvh.h"
 #include "computepass.h"
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
-#include "rtshadowpass.h"
 #include "renderpass.h"
-#include "bvh.h"
+#include "rtshadowpass.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
