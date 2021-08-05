@@ -26,7 +26,6 @@ struct Instance
     glm::float3 massCenter;
 };
 
-
 class Scene
 {
 private:
@@ -52,14 +51,7 @@ public:
     struct Light
     {
         glm::float3 pos;
-    };
-
-    struct BVHNode
-    {
-        glm::float3 minBounds;
-        int instId;
-        glm::float3 maxBounds;
-        int nodeOffset;
+        float pad;
     };
 
     struct Material
@@ -125,7 +117,6 @@ public:
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
     std::vector<Light> mLights;
-    std::vector<BVHNode> mBvh;
 
     std::vector<uint32_t> mTransparentInstances;
     std::vector<uint32_t> mOpaqueInstances;
@@ -152,11 +143,6 @@ public:
     std::vector<Light>& getLights()
     {
         return mLights;
-    }
-    
-    std::vector<BVHNode>& getBvh()
-    {
-        return mBvh;
     }
 
     void addCamera(Camera camera)

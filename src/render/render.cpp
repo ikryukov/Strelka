@@ -899,9 +899,9 @@ void Render::createLightsBuffer(nevk::Scene& scene)
 
 void Render::createBvhBuffer(nevk::Scene& scene)
 {
-    std::vector<nevk::Scene::BVHNode>& sceneBvh = scene.getBvh();
+    std::vector<BVHNode> sceneBvh = mBvhBuilder.build(scene.getVertices(), scene.getIndices());
 
-    VkDeviceSize bufferSize = sizeof(nevk::Scene::BVHNode) * sceneBvh.size();
+    VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.size();
     if (bufferSize == 0)
     {
         return;
@@ -909,7 +909,7 @@ void Render::createBvhBuffer(nevk::Scene& scene)
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneBvh.data(), (size_t)bufferSize);
-    mCurrentSceneRenderData->mLightsBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
+    mCurrentSceneRenderData->mBvhBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
@@ -1161,7 +1161,7 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
-    mScene->createLight(glm::float3(10, 10, 10));
+    mScene->createLight(glm::float3(1, 4, 4));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);

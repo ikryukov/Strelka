@@ -72,6 +72,8 @@ SamplerState gSampler;
 StructuredBuffer<Material> materials;
 StructuredBuffer<InstanceConstants> instanceConstants;
 
+Texture2D<int> shadow;
+
 RWTexture2D<float4> output;
 
 struct PointData

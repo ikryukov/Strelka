@@ -19,6 +19,7 @@
 #include "gbufferpass.h"
 #include "rtshadowpass.h"
 #include "renderpass.h"
+#include "bvh.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -131,6 +132,8 @@ private:
 
     nevk::ResourceManager* mResManager = nullptr;
     nevk::TextureManager* mTexManager = nullptr;
+
+    nevk::BvhBuilder mBvhBuilder;
 
     GBuffer mGbuffer;
     nevk::GbufferPass mGbufferPass;
