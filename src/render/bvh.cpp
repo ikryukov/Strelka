@@ -125,17 +125,16 @@ std::vector<BVHNode> BvhBuilder::build(const std::vector<glm::float3>& positions
     {
         BvhNodeInternal& oldNode = nodes[i];
         BVHNode& newNode = res[oldNode.visitOrder];
+        newNode.nodeOffset = oldNode.next == InvalidMask ? InvalidMask : nodes[oldNode.next].visitOrder;
+        newNode.instId = oldNode.prim;
         if (oldNode.prim != InvalidMask) // leaf
         {
             newNode.minBounds = oldNode.triangle.v1 - oldNode.triangle.v0;
             newNode.maxBounds = oldNode.triangle.v2 - oldNode.triangle.v0;
             newNode.v = oldNode.triangle.v0;
-            newNode.nodeOffset = oldNode.next == InvalidMask ? InvalidMask : nodes[oldNode.next].visitOrder;
         }
         else
         {
-            newNode.instId = oldNode.prim;
-            newNode.nodeOffset = oldNode.next == InvalidMask ? InvalidMask : nodes[oldNode.next].visitOrder;
             newNode.minBounds = oldNode.box.minimum;
             newNode.maxBounds = oldNode.box.maximum;
         }
