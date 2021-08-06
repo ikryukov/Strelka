@@ -11,11 +11,12 @@ BvhBuilder::~BvhBuilder()
 {
 }
 
-BvhBuilder::AABB BvhBuilder::computeBounds(const std::vector<BvhNodeInternal>& nodes)
+BvhBuilder::AABB BvhBuilder::computeBounds(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end)
 {
     AABB result;
-    for (const BvhNodeInternal& n : nodes)
+    for (uint32_t i = start; i < end; ++i)
     {
+        const BvhNodeInternal& n = nodes[i];
         result.expand(n.box);
     }
     return result;
@@ -69,7 +70,7 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
     {
         return begin;
     }
-    AABB bounds = computeBounds(nodes);
+    AABB bounds = computeBounds(nodes, begin, end);
     uint32_t splitAxis = rand() % 3;
     auto comparator = (splitAxis == 0) ? nodeCompareX :
                       (splitAxis == 1) ? nodeCompareY :
@@ -93,26 +94,24 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
     return currentNodeId;
 }
 
-std::vector<BVHNode> BvhBuilder::build(const std::vector<Scene::Vertex>& vertices, const std::vector<uint32_t>& indices)
+//std::vector<BVHNode> BvhBuilder::build(const std::vector<Scene::Vertex>& vertices, const std::vector<uint32_t>& indices)
+std::vector<BVHNode> BvhBuilder::build(const std::vector<glm::float3>& positions)
 {
-    const uint32_t totalTriangles = (uint32_t)indices.size() / 3;
+    const uint32_t totalTriangles = (uint32_t)positions.size() / 3;
     if (totalTriangles == 0)
     {
         return std::vector<BVHNode>();
     }
     std::vector<BvhNodeInternal> nodes(totalTriangles);
+    // need to apply transform
     for (uint32_t i = 0; i < totalTriangles; ++i)
     {
-        uint32_t i0 = indices[i * 3 + 0];
-        uint32_t i1 = indices[i * 3 + 1];
-        uint32_t i2 = indices[i * 3 + 2];
-
         BvhNodeInternal& leaf = nodes[i];
         leaf.prim = i;
         leaf.isLeaf = true;
-        leaf.triangle.v0 = vertices[i0].pos;
-        leaf.triangle.v1 = vertices[i1].pos;
-        leaf.triangle.v2 = vertices[i2].pos;
+        leaf.triangle.v0 = positions[i * 3 + 0];
+        leaf.triangle.v1 = positions[i * 3 + 1];
+        leaf.triangle.v2 = positions[i * 3 + 2];
         leaf.box = boundingBox(leaf.triangle);
     }
 
@@ -131,7 +130,7 @@ std::vector<BVHNode> BvhBuilder::build(const std::vector<Scene::Vertex>& vertice
             newNode.minBounds = oldNode.triangle.v1 - oldNode.triangle.v0;
             newNode.maxBounds = oldNode.triangle.v2 - oldNode.triangle.v0;
             newNode.v = oldNode.triangle.v0;
-            newNode.nodeOffset = InvalidMask;
+            newNode.nodeOffset = oldNode.next == InvalidMask ? InvalidMask : nodes[oldNode.next].visitOrder;
         }
         else
         {

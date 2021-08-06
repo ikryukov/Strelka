@@ -72,7 +72,7 @@ SamplerState gSampler;
 StructuredBuffer<Material> materials;
 StructuredBuffer<InstanceConstants> instanceConstants;
 
-Texture2D<int> shadow;
+Texture2D<float> shadow;
 
 RWTexture2D<float4> output;
 
@@ -133,7 +133,6 @@ float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
         albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler, uv).rgb;
     }
 
-
     float3 result = max(0.0, albedo * diffK * pd.NL / PI + specK);
     return result;
 }
@@ -161,18 +160,9 @@ float4 calc(uint2 pixelIndex)
     pointData.NH = dot(N, H);
     float2 uv = gbUV[pixelIndex].xy;
 
-    float3 result = cookTorrance(material, pointData, uv);
+    float3 result = float3(pointData.NL);
 
-    if (material.texEmissive != INVALID_INDEX)
-    {
-        float3 emissive = textures[NonUniformResourceIndex(material.texEmissive)].Sample(gSampler, uv).rgb;
-        result += emissive;
-    }
-    if (material.texOcclusion != INVALID_INDEX)
-    {
-        float occlusion = textures[NonUniformResourceIndex(material.texOcclusion)].Sample(gSampler, uv).r;
-        result *= occlusion;
-    }
+    result *= shadow[pixelIndex];
 
     return float4(result, 1.0);
 }

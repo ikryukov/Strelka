@@ -106,14 +106,15 @@ bool anyHit(Ray ray)
 float calcShadow(uint2 pixelIndex)
 {
     float3 wpos = gbWPos[pixelIndex].xyz;
-    float3 lightPosition = lights[0].pos.xyz;
+    //float3 lightPosition = lights[0].pos.xyz;
     float3 L = normalize(lightPosition.xyz - wpos);
     float3 N = gbNormal[pixelIndex].xyz;
     
     Ray ray;
 
     ray.d = float4(L, 0.0);
-    ray.o = float4(wpos, 1e9);
+    float3 offset = N * 1e-5;
+    ray.o = float4(wpos + offset, 1e9);
 
     if (anyHit(ray))
     {

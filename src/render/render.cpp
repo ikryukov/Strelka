@@ -899,7 +899,41 @@ void Render::createLightsBuffer(nevk::Scene& scene)
 
 void Render::createBvhBuffer(nevk::Scene& scene)
 {
-    std::vector<BVHNode> sceneBvh = mBvhBuilder.build(scene.getVertices(), scene.getIndices());
+    std::vector<Scene::Vertex>& vertices = scene.getVertices();
+    std::vector<uint32_t>& indices = scene.getIndices();
+    const std::vector<Instance>& instances = scene.getInstances();
+    const std::vector<Mesh>& meshes = scene.getMeshes();
+
+    std::vector<glm::float3> positions;
+    positions.reserve(indices.size());
+
+    for (const Instance& currInstance: instances)
+    {
+        const uint32_t currentMeshId = currInstance.mMeshId;
+        const uint32_t indexOffset = meshes[currentMeshId].mIndex;
+        const uint32_t indexCount = meshes[currentMeshId].mCount;
+
+        glm::float4x4 m = currInstance.transform;
+        for (uint32_t i = 0; i < indexCount;)
+        {
+            uint32_t i0 = indices[indexOffset + i + 0];
+            uint32_t i1 = indices[indexOffset + i + 1];
+            uint32_t i2 = indices[indexOffset + i + 2];
+
+            glm::float3 v0 = m * glm::float4(vertices[i0].pos, 1.0);
+            glm::float3 v1 = m * glm::float4(vertices[i1].pos, 1.0);
+            glm::float3 v2 = m * glm::float4(vertices[i2].pos, 1.0);
+
+            positions.push_back(v0);
+            positions.push_back(v1);
+            positions.push_back(v2);
+
+            i += 3;
+        }
+    }
+
+    //std::vector<BVHNode> sceneBvh = mBvhBuilder.build(scene.getVertices(), scene.getIndices());
+    std::vector<BVHNode> sceneBvh = mBvhBuilder.build(positions);
 
     VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.size();
     if (bufferSize == 0)
@@ -1161,7 +1195,7 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
-    mScene->createLight(glm::float3(1, 4, 4));
+    mScene->createLight(glm::float3(0, 0, 10));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);

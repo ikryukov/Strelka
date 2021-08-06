@@ -32,7 +32,8 @@ public:
     BvhBuilder();
     ~BvhBuilder();
 
-    std::vector<BVHNode> build(const std::vector<Scene::Vertex>& vertices, const std::vector<uint32_t>& indices);
+    //std::vector<BVHNode> build(const std::vector<Scene::Vertex>& vertices, const std::vector<uint32_t>& indices);
+    std::vector<BVHNode> build(const std::vector<glm::float3>& positions);
 
 private:
     struct AABB
@@ -76,7 +77,7 @@ private:
         float maxY = std::max(tri.v0.y, std::max(tri.v1.y, tri.v2.y));
         float maxZ = std::max(tri.v0.z, std::max(tri.v1.z, tri.v2.z));
 
-        const float eps = 1e-7f;
+        const float eps = 1e-6f;
         // need to pad aabb to prevent from ultra thin box (zero width)
         return AABB(glm::float3(minX, minY, minZ), glm::float3(maxX + eps, maxY + eps, maxZ + eps));
     }
@@ -105,7 +106,7 @@ private:
     void setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t nodeId, uint32_t nextId, uint32_t& order);
     void setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t root);
 
-    AABB computeBounds(const std::vector<BvhNodeInternal>& nodes);
+    AABB computeBounds(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end);
     uint32_t recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_t begin, uint32_t end);
 };
 
