@@ -372,8 +372,10 @@ void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& 
 void DepthPass::setInstanceBuffer(VkBuffer instanceBuffer)
 {
     mInstanceBuffer = instanceBuffer;
-    needDesciptorSetUpdate = true;
-    imageviewcounter = 0;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void DepthPass::onDestroy()
@@ -394,15 +396,10 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
 {
     beginLabel(cmd, "Depth Pass", { 0.0f, 0.0f, 1.0f, 1.0f });
 
-    if (needDesciptorSetUpdate && imageviewcounter < 3)
+    if (needDesciptorSetUpdate[imageIndex])
     {
         imageviewcounter++;
         updateDescriptorSets(imageIndex);
-    }
-    else
-    {
-        imageviewcounter = 0;
-        needDesciptorSetUpdate = false;
     }
 
     const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera(cameraIndex).getPosition());

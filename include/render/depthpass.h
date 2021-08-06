@@ -67,7 +67,7 @@ private:
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
     void createGraphicsPipeline(VkShaderModule& shadowShaderModule, uint32_t width, uint32_t height);
 
-    bool needDesciptorSetUpdate = true;
+    bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = {false, false, false};
     int imageviewcounter = 0;
 
 public:
