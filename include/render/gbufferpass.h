@@ -79,8 +79,6 @@ private:
     GBuffer* mGbuffer;
     std::vector<VkFramebuffer> mFrameBuffers;
 
-    uint32_t mWidth, mHeight;
-
     static VkVertexInputBindingDescription getBindingDescription()
     {
         VkVertexInputBindingDescription bindingDescription{};
