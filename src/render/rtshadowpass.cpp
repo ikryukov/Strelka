@@ -295,7 +295,7 @@ void RtShadowPass::createUniformBuffers()
     }
 }
 
-void RtShadowPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height)
+void RtShadowPass::updateUniformBuffer(uint32_t currentImage, uint32_t frameNumber, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height)
 {
     UniformBufferObject ubo{};
     ubo.dimension.x = width;

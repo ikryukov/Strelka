@@ -19,7 +19,7 @@ private:
         glm::float4x4 lightSpaceMatrix;
         glm::float4 lightPosition;
         glm::float3 CameraPos;
-        float pad0;
+        uint32_t frameNumber;
         glm::int2 dimension;
         uint32_t debugView;
         float pad1;
@@ -70,6 +70,6 @@ public:
     void setLightsBuffer(VkBuffer buffer);
     void setGbuffer(GBuffer* gbuffer);
     void setOutputImageView(VkImageView imageView);
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
+    void updateUniformBuffer(uint32_t currentImage, uint32_t frameNumber, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
 };
 } // namespace nevk

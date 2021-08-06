@@ -202,7 +202,7 @@ private:
         return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
     }
 
-    size_t mCurrentFrame = 0;
+    size_t mFrameNumber = 0;
 
     // fps counter
     double msPerFrame = 33.33;
@@ -375,11 +375,11 @@ public:
     }
     size_t getCurrentFrameIndex()
     {
-        return mCurrentFrame % MAX_FRAMES_IN_FLIGHT;
+        return mFrameNumber % MAX_FRAMES_IN_FLIGHT;
     }
     FrameData& getCurrentFrameData()
     {
-        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
+        return mFramesData[mFrameNumber % MAX_FRAMES_IN_FLIGHT];
     }
 
     nevk::ResourceManager* getResManager()

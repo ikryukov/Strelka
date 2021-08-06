@@ -1,3 +1,5 @@
+#include "random.h"
+
 cbuffer ubo
 {
     float4x4 viewToProj;
@@ -5,7 +7,7 @@ cbuffer ubo
     float4x4 lightSpaceMatrix;
     float4 lightPosition;
     float3 CameraPos;
-    float pad0;
+    uint frameNumber;
     int2 dimension;
     uint32_t debugView;
     float pad1;

@@ -1304,7 +1304,7 @@ void Render::drawFrame()
 
     mGbufferPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
 
-    mRtShadowPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
+    mRtShadowPass.updateUniformBuffer(frameIndex, mFrameNumber, lightSpaceMatrix, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mComputePass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
@@ -1406,7 +1406,7 @@ void Render::drawFrame()
         throw std::runtime_error("failed to present swap chain image!");
     }
 
-    mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    ++mFrameNumber;
 }
 
 VkSurfaceFormatKHR Render::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
