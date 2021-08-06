@@ -38,8 +38,7 @@ private:
     VkDescriptorSetLayout mDescriptorSetLayout;
     std::vector<VkDescriptorSet> mDescriptorSets;
 
-    bool needDesciptorSetUpdate;
-    int imageViewCounter = 0;
+    bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = {false, false, false};
     
     std::vector<Buffer*> uniformBuffers;
 

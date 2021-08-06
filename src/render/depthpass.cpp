@@ -321,7 +321,7 @@ void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrites.push_back(descriptorWrite);
     }
 
-    if (mInstanceBuffer != VK_NULL_HANDLE)
+    // if (mInstanceBuffer != VK_NULL_HANDLE)
     {
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -335,6 +335,7 @@ void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
     }
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    needDesciptorSetUpdate[descSetIndex] = false;
 }
 
 void DepthPass::createUniformBuffers()

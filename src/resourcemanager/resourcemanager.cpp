@@ -90,9 +90,9 @@ public:
         vmaAllocInfo.flags = allocFlags;
         if (name)
         {
-            vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-            std::string bufferName = "Buffer: " + std::string(name);
-            vmaAllocInfo.pUserData = (void*)bufferName.c_str();
+            // vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+            // std::string bufferName = "Buffer: " + std::string(name);
+            // vmaAllocInfo.pUserData = (void*)bufferName.c_str();
         }
 
         Buffer* ret = new Buffer();
@@ -147,11 +147,12 @@ public:
         VmaAllocationCreateInfo vmaAllocInfo = {};
         vmaAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
         VmaAllocationInfo allocInfo = {};
+        // std::string imageName;
         if (name)
         {
-            vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-            std::string imageName = "Image: " + std::string(name);
-            vmaAllocInfo.pUserData = (void*)imageName.c_str();
+            // vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+            // imageName = "Image: " + std::string(name);
+            // vmaAllocInfo.pUserData = (void*)imageName.c_str();
         }
 
         Image* ret = new Image();

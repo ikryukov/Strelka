@@ -258,6 +258,7 @@ void RtShadowPass::updateDescriptorSet(uint32_t descIndex)
     }
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    needDesciptorSetUpdate[descIndex] = false;
 }
 
 void RtShadowPass::updateDescriptorSets()
@@ -270,16 +271,11 @@ void RtShadowPass::updateDescriptorSets()
 
 void RtShadowPass::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
-    if (needDesciptorSetUpdate && imageViewCounter < 3)
+    if (needDesciptorSetUpdate[imageIndex])
     {
-        imageViewCounter++;
         updateDescriptorSet(imageIndex);
     }
-    else
-    {
-        imageViewCounter = 0;
-        needDesciptorSetUpdate = false;
-    }
+
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &mDescriptorSets[imageIndex % MAX_FRAMES_IN_FLIGHT], 0, nullptr);
     const uint32_t dispX = (width + 15) / 16;
@@ -334,29 +330,37 @@ void RtShadowPass::onDestroy()
 void RtShadowPass::setBvhBuffer(VkBuffer buffer)
 {
     mBvhBuffer = buffer;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RtShadowPass::setLightsBuffer(VkBuffer buffer)
 {
     mLightsBuffer = buffer;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RtShadowPass::setGbuffer(GBuffer* gbuffer)
 {
     mGbuffer = gbuffer;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RtShadowPass::setOutputImageView(VkImageView imageView)
 {
     mOutImageView = imageView;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RtShadowPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr)

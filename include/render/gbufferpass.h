@@ -132,7 +132,7 @@ public:
     VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
     VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
 
-    bool needDesciptorSetUpdate;
+    bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = {false, false, false};
 
     VkPipelineLayout createGraphicsPipelineLayout();
 
