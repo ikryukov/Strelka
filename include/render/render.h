@@ -178,6 +178,14 @@ private:
             {
                 mResManager->destroyBuffer(mInstanceBuffer);
             }
+            if (mLightsBuffer)
+            {
+                mResManager->destroyBuffer(mLightsBuffer);
+            }
+            if (mBvhBuffer)
+            {
+                mResManager->destroyBuffer(mBvhBuffer);
+            }
         }
     };
 
