@@ -12,7 +12,8 @@ uint jenkinsHash(uint x)
 
 uint initRNG(uint2 pixel, uint2 resolution, uint frame) 
 {
-    uint rngState = dot(pixel, uint2(1, resolution.x)) ^ jenkinsHash(frame);
+    uint t = dot(float2(pixel), float2(1, resolution.x));
+    uint rngState = t ^ jenkinsHash(frame);
     return jenkinsHash(rngState); 
 }
 

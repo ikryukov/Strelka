@@ -8,7 +8,7 @@ cbuffer ubo
     float4 lightPosition;
     float3 CameraPos;
     uint frameNumber;
-    int2 dimension;
+    uint2 dimension;
     uint32_t debugView;
     float pad1;
 }
@@ -25,8 +25,12 @@ struct BVHNode
 
 struct Light
 {
-    float3 pos;
-    float pad;
+    float3 v0;
+    float pad0;
+    float3 v1;
+    float pad1;
+    float3 v2;
+    float pad2;
 };
 
 struct Ray
@@ -105,11 +109,27 @@ bool anyHit(Ray ray)
     return false;
 }
 
+float3 UniformSampleTriangle(float2 u) 
+{
+    float su0 = sqrt(u.x);
+    float b0 = 1.0 - su0;
+    float b1 = u.y * su0;
+    return float3(b0, b1, 1.0 - b0 - b1);
+}
+
 float calcShadow(uint2 pixelIndex)
 {
+    uint rngState = initRNG(pixelIndex, dimension, frameNumber);
+
+    float2 rndUV = float2(rand(rngState), rand(rngState));
+    float3 bary = UniformSampleTriangle(rndUV);
+
+    float3 pointOnLight = (1.0 - bary.x - bary.y) * lights[0].v0 + bary.x * lights[0].v1 
+    + bary.y * lights[0].v2;
+
     float3 wpos = gbWPos[pixelIndex].xyz;
-    //float3 lightPosition = lights[0].pos.xyz;
-    float3 L = normalize(lightPosition.xyz - wpos);
+
+    float3 L = normalize(pointOnLight - wpos);
     float3 N = gbNormal[pixelIndex].xyz;
     
     Ray ray;

@@ -1195,7 +1195,8 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
-    mScene->createLight(glm::float3(0, 0, 10));
+    // mScene->createLight(glm::float3(0, 0, 10), glm::float3(0.5, 0.0, 10), glm::float3(0.0, 0.5, 10));
+    mScene->createLight(glm::float3(0, 0, 5), glm::float3(1.5, 0.0, 5), glm::float3(0.0, 1.5, 5));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
@@ -1249,7 +1250,7 @@ void Render::createDefaultScene()
 
     mScene->addCamera(camera);
 
-    mScene->createLight(glm::float3(10, 10, 10));
+    mScene->createLight(glm::float3(0, 0, 10), glm::float3(1.5, 0.0, 10), glm::float3(0.0, 1.5, 10));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
