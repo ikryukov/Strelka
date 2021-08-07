@@ -24,6 +24,8 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     int targetIndex = spAddCodeGenTarget(slangRequest, SLANG_SPIRV);
     SlangProfileID profileID = spFindProfile(mSlangSession, "sm_6_3");
     spSetTargetProfile(slangRequest, targetIndex, profileID);
+    SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+    spSetOptimizationLevel(slangRequest, optLevel);
     int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
     spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, fileName);
 
