@@ -358,6 +358,9 @@ void Render::cleanup()
     mTexManager->textureDestroy();
     mTexManager->delTexturesFromQueue();
 
+    mResManager->destroyImage(mRtShadowImage);
+    vkDestroyImageView(mDevice, mRtShadowImageView, nullptr);
+    
     vkDestroyImageView(mDevice, textureCompImageView, nullptr);
     mResManager->destroyImage(textureCompImage);
 
@@ -441,6 +444,22 @@ void Render::recreateSwapChain()
         mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
     mComputePass.setOutputImageView(textureCompImageView);
+
+    // RT shadow pass
+    {
+        mResManager->destroyImage(mRtShadowImage);
+        vkDestroyImageView(mDevice, mRtShadowImageView, nullptr);
+    }
+    {
+        mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                  VK_IMAGE_TILING_OPTIMAL,
+                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+        mRtShadowImageView = mTexManager->createImageView(mResManager->getVkImage(mRtShadowImage), VK_FORMAT_R16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    mRtShadowPass.setOutputImageView(mRtShadowImageView);
+    mComputePass.setRtShadowImageView(mRtShadowImageView);
+
     destroyGbuffer(mGbuffer);
     mGbuffer = createGbuffer(width, height);
     mGbufferPass.onResize(&mGbuffer);
