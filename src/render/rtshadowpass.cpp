@@ -304,6 +304,7 @@ void RtShadowPass::updateUniformBuffer(uint32_t currentImage, uint32_t frameNumb
     glm::float4x4 proj = camera.getPerspective();
     glm::float4x4 view = camera.getView();
 
+    ubo.frameNumber = frameNumber;
     ubo.viewToProj = proj;
     ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
