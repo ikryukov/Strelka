@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 #define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.h>
+#include <VmaUsage.h>
 
 namespace nevk
 {
