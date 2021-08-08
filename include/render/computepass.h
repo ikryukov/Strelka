@@ -16,8 +16,6 @@ private:
     {
         glm::float4x4 viewToProj;
         glm::float4x4 worldToView;
-        glm::float4x4 lightSpaceMatrix;
-        glm::float4 lightPosition;
         glm::float3 CameraPos;
         float pad0;
         glm::int2 dimension;
@@ -46,6 +44,7 @@ private:
     std::vector<VkImageView> mTextureImageView;
     VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
     VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
+    VkBuffer mLightBuffer = VK_NULL_HANDLE;
 
     VkImageView mRtShadowImageView = VK_NULL_HANDLE;
 
@@ -72,11 +71,12 @@ public:
 
     void setMaterialBuffer(VkBuffer materialBuffer);
     void setInstanceBuffer(VkBuffer instanceBuffer);
+    void setLightBuffer(VkBuffer lightBuffer);
     void setGbuffer(GBuffer* gbuffer);
     void setRtShadowImageView(VkImageView imageView);
     void setOutputImageView(VkImageView imageView);
     void setTextureSamplers(std::vector<VkSampler>& textureSamplers);
     void setTextureImageViews(const std::vector<VkImageView>& texImages);
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
+    void updateUniformBuffer(uint32_t currentImage, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
 };
 } // namespace nevk

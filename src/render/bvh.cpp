@@ -118,8 +118,6 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
     return currentNodeId;
 }
 
-//std::vector<BVHNode> BvhBuilder::build(const std::vector<Scene::Vertex>& vertices, const std::vector<uint32_t>& indices)
-// std::vector<BVHNode> BvhBuilder::build(const std::vector<glm::float3>& positions)
 BVH BvhBuilder::build(const std::vector<glm::float3>& positions)
 {
     const uint32_t totalTriangles = (uint32_t)positions.size() / 3;

@@ -18,11 +18,8 @@ private:
     {
         alignas(16) glm::mat4 viewToProj;
         alignas(16) glm::mat4 worldToView;
-        alignas(16) glm::mat4 lightSpaceMatrix;
-        alignas(16) glm::float4 lightPosition;
         alignas(16) glm::float3 CameraPos;
         float pad;
-        alignas(16) uint32_t debugView;
     };
 
     struct InstancePushConstants
@@ -170,7 +167,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex);
+    void updateUniformBuffer(uint32_t currentImage, Scene& scene, uint32_t cameraIndex);
 
     GbufferPass(/* args */);
     ~GbufferPass();

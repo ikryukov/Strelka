@@ -4,12 +4,10 @@ cbuffer ubo
 {
     float4x4 viewToProj;
     float4x4 worldToView;
-    float4x4 lightSpaceMatrix;
-    float4 lightPosition;
     float3 CameraPos;
     uint frameNumber;
     uint2 dimension;
-    uint32_t debugView;
+    float pad0;
     float pad1;
 }
 

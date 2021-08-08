@@ -125,8 +125,16 @@ void ComputePass::createDescriptorSetLayout()
     instanceLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     bindings.push_back(instanceLayoutBinding);
 
+    VkDescriptorSetLayoutBinding lightLayoutBinding{};
+    lightLayoutBinding.binding = 11;
+    lightLayoutBinding.descriptorCount = 1;
+    lightLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    lightLayoutBinding.pImmutableSamplers = nullptr;
+    lightLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(lightLayoutBinding);
+
     VkDescriptorSetLayoutBinding texShadowLayoutBinding{};
-    texShadowLayoutBinding.binding = 11;
+    texShadowLayoutBinding.binding = 12;
     texShadowLayoutBinding.descriptorCount = 1;
     texShadowLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texShadowLayoutBinding.pImmutableSamplers = nullptr;
@@ -134,7 +142,7 @@ void ComputePass::createDescriptorSetLayout()
     bindings.push_back(texShadowLayoutBinding);
 
     VkDescriptorSetLayoutBinding outLayoutBinding{};
-    outLayoutBinding.binding = 12;
+    outLayoutBinding.binding = 13;
     outLayoutBinding.descriptorCount = 1;
     outLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     outLayoutBinding.pImmutableSamplers = nullptr;
@@ -170,7 +178,7 @@ void ComputePass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void ComputePass::updateDescriptorSet(uint32_t descIndex)
 {
-    std::array<VkWriteDescriptorSet, 12> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 13> descriptorWrites{};
 
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = mResMngr->getVkBuffer(uniformBuffers[descIndex]);
@@ -315,30 +323,43 @@ void ComputePass::updateDescriptorSet(uint32_t descIndex)
     descriptorWrites[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     descriptorWrites[9].descriptorCount = 1;
     descriptorWrites[9].pBufferInfo = &instanceInfo;
-
-    VkDescriptorImageInfo imageShadowInfo{};
-    imageShadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageShadowInfo.imageView = mRtShadowImageView;
+    
+    VkDescriptorBufferInfo lightInfo{};
+    lightInfo.buffer = mLightBuffer;
+    lightInfo.offset = 0;
+    lightInfo.range = VK_WHOLE_SIZE;
 
     descriptorWrites[10].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[10].dstSet = mDescriptorSets[descIndex];
     descriptorWrites[10].dstBinding = 11;
     descriptorWrites[10].dstArrayElement = 0;
-    descriptorWrites[10].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    descriptorWrites[10].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     descriptorWrites[10].descriptorCount = 1;
-    descriptorWrites[10].pImageInfo = &imageShadowInfo;
+    descriptorWrites[10].pBufferInfo = &lightInfo;
 
-    VkDescriptorImageInfo outputImageInfo{};
-    outputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    outputImageInfo.imageView = mOutImageView;
+    VkDescriptorImageInfo imageShadowInfo{};
+    imageShadowInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageShadowInfo.imageView = mRtShadowImageView;
 
     descriptorWrites[11].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[11].dstSet = mDescriptorSets[descIndex];
     descriptorWrites[11].dstBinding = 12;
     descriptorWrites[11].dstArrayElement = 0;
-    descriptorWrites[11].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    descriptorWrites[11].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     descriptorWrites[11].descriptorCount = 1;
-    descriptorWrites[11].pImageInfo = &outputImageInfo;
+    descriptorWrites[11].pImageInfo = &imageShadowInfo;
+
+    VkDescriptorImageInfo outputImageInfo{};
+    outputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    outputImageInfo.imageView = mOutImageView;
+
+    descriptorWrites[12].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[12].dstSet = mDescriptorSets[descIndex];
+    descriptorWrites[12].dstBinding = 13;
+    descriptorWrites[12].dstArrayElement = 0;
+    descriptorWrites[12].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    descriptorWrites[12].descriptorCount = 1;
+    descriptorWrites[12].pImageInfo = &outputImageInfo;
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     needDesciptorSetUpdate[descIndex] = false;
@@ -378,7 +399,7 @@ void ComputePass::createUniformBuffers()
     }
 }
 
-void ComputePass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height)
+void ComputePass::updateUniformBuffer(uint32_t currentImage, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height)
 {
     UniformBufferObject ubo{};
     ubo.dimension.x = width;
@@ -390,8 +411,6 @@ void ComputePass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4
     ubo.viewToProj = proj;
     ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
-    ubo.lightPosition = scene.mLightPosition;
-    ubo.lightSpaceMatrix = lightSpaceMatrix;
     ubo.debugView = (uint32_t)scene.mDebugViewSettings;
 
     void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
@@ -422,6 +441,15 @@ void ComputePass::setMaterialBuffer(VkBuffer materialBuffer)
 void ComputePass::setInstanceBuffer(VkBuffer instanceBuffer)
 {
     mInstanceBuffer = instanceBuffer;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
+}
+
+void ComputePass::setLightBuffer(VkBuffer lightBuffer)
+{
+    mLightBuffer = lightBuffer;
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         needDesciptorSetUpdate[i] = true;

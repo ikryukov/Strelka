@@ -2,8 +2,6 @@ cbuffer ubo
 {
     float4x4 viewToProj;
     float4x4 worldToView;
-    float4x4 lightSpaceMatrix;
-    float4 lightPosition;
     float3 CameraPos;
     float pad0;
     int2 dimension;
@@ -57,6 +55,15 @@ struct InstanceConstants
     int32_t pad2;
 };
 
+struct Light
+{
+    float3 v0;
+    float pad0;
+    float3 v1;
+    float pad1;
+    float3 v2;
+    float pad2;
+};
 
 Texture2D<float> gbDepth;
 Texture2D<float4> gbWPos;
@@ -71,6 +78,7 @@ SamplerState gSampler;
 
 StructuredBuffer<Material> materials;
 StructuredBuffer<InstanceConstants> instanceConstants;
+StructuredBuffer<Light> lights;
 
 Texture2D<float> shadow;
 
@@ -148,7 +156,7 @@ float4 calc(uint2 pixelIndex)
     Material material = materials[NonUniformResourceIndex(constants.materialId)];
 
     float3 wpos = gbWPos[pixelIndex].xyz;
-    float3 L = normalize(lightPosition.xyz - wpos);
+    float3 L = normalize(lights[0].v0.xyz - wpos);
     float3 N = gbNormal[pixelIndex].xyz;
     
     PointData pointData;

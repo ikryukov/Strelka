@@ -73,11 +73,8 @@ cbuffer ubo
 {
     float4x4 viewToProj;
     float4x4 worldToView;
-    float4x4 lightSpaceMatrix;
-    float4 lightPosition;
     float3 CameraPos;
     float pad;
-    uint32_t debugView;
 }
 
 Texture2D textures[];

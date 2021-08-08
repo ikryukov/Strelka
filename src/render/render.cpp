@@ -370,6 +370,7 @@ void Render::cleanup()
 
     if (mScene != mDefaultScene)
         delete mCurrentSceneRenderData;
+    delete mDefaultScene;
 
     for (FrameData& fd : mFramesData)
     {
@@ -1266,6 +1267,7 @@ void Render::setDescriptors()
         mComputePass.setRtShadowImageView(mRtShadowImageView);
         mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
+        mComputePass.setLightBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
     }
 }
 
@@ -1336,12 +1338,12 @@ void Render::drawFrame()
 
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
-    mGbufferPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
+    mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
 
-    mRtShadowPass.updateUniformBuffer(frameIndex, mFrameNumber, lightSpaceMatrix, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
+    mRtShadowPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
-    mComputePass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
+    mComputePass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     static int releaseAfterFrames = 0;
     static bool needReload = false;
