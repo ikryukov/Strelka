@@ -7,8 +7,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/compatibility.hpp>
 
-#include <algorithm>
-#include <scene.h>
+
 #include <vector>
 
 
@@ -49,8 +48,6 @@ public:
     BvhBuilder();
     ~BvhBuilder();
 
-    //std::vector<BVHNode> build(const std::vector<Scene::Vertex>& vertices, const std::vector<uint32_t>& indices);
-    // std::vector<BVHNode> build(const std::vector<glm::float3>& positions);
     BVH build(const std::vector<glm::float3>& positions);
 
 private:
@@ -165,6 +162,7 @@ private:
     AABB computeBounds(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end);
     AABB computeCentroids(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end);
     uint32_t recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_t begin, uint32_t end);
+    BVH repack(const std::vector<BvhNodeInternal>& nodes, const uint32_t totalTriangles);
 };
 
 } // namespace nevk

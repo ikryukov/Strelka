@@ -1,5 +1,6 @@
 #include "bvh.h"
 
+#include <algorithm>
 
 namespace nevk
 {
@@ -71,8 +72,7 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
         // method from ray tracing in one weekend
         AABB bounds = computeBounds(nodes, begin, end);
         const uint32_t splitAxis = bounds.getMaxinumExtent();
-        std::sort(nodes.begin() + begin, nodes.begin() + end, [splitAxis](const BvhNodeInternal& a, const BvhNodeInternal& b) { 
-            return a.box.minimum[splitAxis] < b.box.minimum[splitAxis]; });
+        std::sort(nodes.begin() + begin, nodes.begin() + end, [splitAxis](const BvhNodeInternal& a, const BvhNodeInternal& b) { return a.box.minimum[splitAxis] < b.box.minimum[splitAxis]; });
         break;
     }
     case SplitMethod::eMiddleCentroids: {
@@ -144,13 +144,18 @@ BVH BvhBuilder::build(const std::vector<glm::float3>& positions)
 
     setDepthFirstVisitOrder(nodes, root);
 
+    return repack(nodes, totalTriangles);
+}
+
+BVH BvhBuilder::repack(const std::vector<BvhNodeInternal>& nodes, const uint32_t totalTriangles)
+{
     BVH res;
     res.nodes.resize(nodes.size());
     res.triangles.resize(totalTriangles);
     uint32_t triangleId = 0;
     for (uint32_t i = 0; i < (uint32_t)nodes.size(); ++i)
     {
-        BvhNodeInternal& oldNode = nodes[i];
+        BvhNodeInternal const& oldNode = nodes[i];
         BVHNode& newNode = res.nodes[oldNode.visitOrder];
         newNode.nodeOffset = oldNode.next == InvalidMask ? InvalidMask : nodes[oldNode.next].visitOrder;
         newNode.instId = oldNode.prim;
@@ -168,7 +173,6 @@ BVH BvhBuilder::build(const std::vector<glm::float3>& positions)
             newNode.maxBounds = oldNode.box.maximum;
         }
     }
-
     return res;
 }
 
