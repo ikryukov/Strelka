@@ -33,26 +33,6 @@ BvhBuilder::AABB BvhBuilder::computeCentroids(const std::vector<BvhNodeInternal>
     return result;
 }
 
-bool BvhBuilder::nodeCompare(const BvhNodeInternal& a, const BvhNodeInternal& b, const int axis)
-{
-    return a.box.minimum[axis] < b.box.minimum[axis];
-}
-
-bool BvhBuilder::nodeCompareX(const BvhNodeInternal& a, const BvhNodeInternal& b)
-{
-    return nodeCompare(a, b, 0);
-}
-
-bool BvhBuilder::nodeCompareY(const BvhNodeInternal& a, const BvhNodeInternal& b)
-{
-    return nodeCompare(a, b, 1);
-}
-
-bool BvhBuilder::nodeCompareZ(const BvhNodeInternal& a, const BvhNodeInternal& b)
-{
-    return nodeCompare(a, b, 2);
-}
-
 void BvhBuilder::setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t nodeId, uint32_t nextId, uint32_t& order)
 {
     BvhNodeInternal& node = nodes[nodeId];
@@ -88,18 +68,11 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
     switch (mSplitMethod)
     {
     case SplitMethod::eMiddleBounds: {
+        // method from ray tracing in one weekend
         AABB bounds = computeBounds(nodes, begin, end);
         const uint32_t splitAxis = bounds.getMaxinumExtent();
-        auto comparator = nodeCompareZ;
-        if (splitAxis == 0)
-        {
-            comparator = nodeCompareX;
-        }
-        else if (splitAxis == 1)
-        {
-            comparator = nodeCompareY;
-        }
-        std::sort(nodes.begin() + begin, nodes.begin() + end, comparator);
+        std::sort(nodes.begin() + begin, nodes.begin() + end, [splitAxis](const BvhNodeInternal& a, const BvhNodeInternal& b) { 
+            return a.box.minimum[splitAxis] < b.box.minimum[splitAxis]; });
         break;
     }
     case SplitMethod::eMiddleCentroids: {
@@ -108,6 +81,7 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
         BvhNodeInternal* midPtr = std::partition(&nodes[begin], &nodes[end - 1] + 1, [axis, pmid](const BvhNodeInternal& ni) {
             return ni.box.getCentroid()[axis] < pmid;
         });
+        // convert from pointers to indices
         mid = midPtr - &nodes[begin] + begin;
         if (mid != begin && mid != end)
             break;

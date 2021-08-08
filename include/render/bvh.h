@@ -159,11 +159,6 @@ private:
         Triangle triangle; // only for leaf
     };
 
-    static bool nodeCompare(const BvhNodeInternal& a, const BvhNodeInternal& b, const int axis);
-    static bool nodeCompareX(const BvhNodeInternal& a, const BvhNodeInternal& b);
-    static bool nodeCompareY(const BvhNodeInternal& a, const BvhNodeInternal& b);
-    static bool nodeCompareZ(const BvhNodeInternal& a, const BvhNodeInternal& b);
-
     void setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t nodeId, uint32_t nextId, uint32_t& order);
     void setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t root);
 
