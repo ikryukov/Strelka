@@ -122,6 +122,12 @@ float3 UniformSampleTriangle(float2 u)
 
 float calcShadow(uint2 pixelIndex)
 {
+    float4 gbWorldPos = gbWPos[pixelIndex];
+    if (gbWorldPos.w == 0.0)
+        return 0;
+    float3 wpos = gbWPos[pixelIndex].xyz;
+
+
     uint rngState = initRNG(pixelIndex, dimension, frameNumber);
 
     float2 rndUV = float2(rand(rngState), rand(rngState));
@@ -129,8 +135,6 @@ float calcShadow(uint2 pixelIndex)
 
     float3 pointOnLight = (1.0 - bary.x - bary.y) * lights[0].v0 + bary.x * lights[0].v1 
     + bary.y * lights[0].v2;
-
-    float3 wpos = gbWPos[pixelIndex].xyz;
 
     float3 L = normalize(pointOnLight - wpos);
     float3 N = gbNormal[pixelIndex].xyz;
@@ -141,7 +145,7 @@ float calcShadow(uint2 pixelIndex)
     float3 offset = N * 1e-5;
     ray.o = float4(wpos + offset, 1e9);
 
-    if (anyHit(ray))
+    if (dot(N, L) > 0.0 && anyHit(ray))
     {
         return 0.1;
     }
