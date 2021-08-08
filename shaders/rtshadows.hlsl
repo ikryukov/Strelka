@@ -19,8 +19,11 @@ struct BVHNode
     int instId;
     float3 maxBounds;
     int nodeOffset;
-    float3 v;
-    int pad;
+};
+
+struct BVHTriangle
+{
+    float4 v0;
 };
 
 struct Light
@@ -42,7 +45,8 @@ struct Ray
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
 
-StructuredBuffer<BVHNode> bvh;
+StructuredBuffer<BVHNode> bvhNodes;
+StructuredBuffer<BVHTriangle> bvhTriangles;
 StructuredBuffer<Light> lights;
 
 RWTexture2D<float> output;
@@ -90,11 +94,12 @@ bool anyHit(Ray ray)
     uint32_t nodeIndex = 0;
     while (nodeIndex != INVALID_INDEX)
     {
-        BVHNode node = bvh[NonUniformResourceIndex(nodeIndex)];
+        BVHNode node = bvhNodes[NonUniformResourceIndex(nodeIndex)];
         uint32_t primitiveIndex = node.instId;
         if (primitiveIndex != INVALID_INDEX) // leaf
         {
-            if (intersectRayTri(ray, node.v, node.minBounds, node.maxBounds))
+            const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
+            if (intersectRayTri(ray, v0, node.minBounds, node.maxBounds))
             {
                 return true;
             }

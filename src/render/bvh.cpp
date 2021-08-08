@@ -22,6 +22,17 @@ BvhBuilder::AABB BvhBuilder::computeBounds(const std::vector<BvhNodeInternal>& n
     return result;
 }
 
+BvhBuilder::AABB BvhBuilder::computeCentroids(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end)
+{
+    AABB result;
+    for (uint32_t i = start; i < end; ++i)
+    {
+        const BvhNodeInternal& n = nodes[i];
+        result.expand(n.box.getCentroid());
+    }
+    return result;
+}
+
 bool BvhBuilder::nodeCompare(const BvhNodeInternal& a, const BvhNodeInternal& b, const int axis)
 {
     return a.box.minimum[axis] < b.box.minimum[axis];
@@ -70,35 +81,63 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
     {
         return begin;
     }
-    AABB bounds = computeBounds(nodes, begin, end);
-    glm::float3 dim = bounds.maximum - bounds.minimum;
-    auto comparator = nodeCompareZ;
-    if (dim.x > dim.y && dim.x > dim.z)
-    {
-        comparator = nodeCompareX;
-    }
-    else if (dim.y > dim.x && dim.y > dim.z)
-    {
-        comparator = nodeCompareY;
-    }
-
-    // uint32_t splitAxis = rand() % 3;
-    // auto comparator = (splitAxis == 0) ? nodeCompareX :
-    //                   (splitAxis == 1) ? nodeCompareY :
-    //                                      nodeCompareZ;
-
-    std::sort(nodes.begin() + begin, nodes.begin() + end, comparator);
 
     uint32_t mid = (begin + end) / 2;
+    AABB centorids = computeCentroids(nodes, begin, end);
+    const uint32_t axis = centorids.getMaxinumExtent();
+    switch (mSplitMethod)
+    {
+    case SplitMethod::eMiddleBounds: {
+        AABB bounds = computeBounds(nodes, begin, end);
+        const uint32_t splitAxis = bounds.getMaxinumExtent();
+        auto comparator = nodeCompareZ;
+        if (splitAxis == 0)
+        {
+            comparator = nodeCompareX;
+        }
+        else if (splitAxis == 1)
+        {
+            comparator = nodeCompareY;
+        }
+        std::sort(nodes.begin() + begin, nodes.begin() + end, comparator);
+        break;
+    }
+    case SplitMethod::eMiddleCentroids: {
+        // The primitives are classified into the two sets, depending on whether their centroids are above or below the midpoint
+        const float pmid = (centorids.minimum[axis] + centorids.maximum[axis]) * 0.5f;
+        BvhNodeInternal* midPtr = std::partition(&nodes[begin], &nodes[end - 1] + 1, [axis, pmid](const BvhNodeInternal& ni) {
+            return ni.box.getCentroid()[axis] < pmid;
+        });
+        mid = midPtr - &nodes[begin] + begin;
+        if (mid != begin && mid != end)
+            break;
+        // in that case, execution falls through to the equals method
+    }
+    case SplitMethod::eEquals: {
+        // partition into equally sized subsets
+        mid = (begin + end) / 2;
+        std::nth_element(&nodes[begin], &nodes[mid],
+                         &nodes[end - 1] + 1,
+                         [axis](const BvhNodeInternal& a, const BvhNodeInternal& b) {
+                             return a.box.getCentroid()[axis] < b.box.getCentroid()[axis];
+                         });
+        break;
+    }
+    default:
+        break;
+    }
+
     uint32_t currentNodeId = (uint32_t)nodes.size();
     nodes.push_back(BvhNodeInternal());
 
     BvhNodeInternal currentNode;
-    currentNode.box = bounds;
+
     currentNode.isLeaf = false;
 
     currentNode.left = recursiveBuild(nodes, begin, mid);
     currentNode.right = recursiveBuild(nodes, mid, end);
+
+    currentNode.box = AABB::Union(nodes[currentNode.left].box, nodes[currentNode.right].box);
 
     nodes[currentNodeId] = currentNode;
 
@@ -106,12 +145,13 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
 }
 
 //std::vector<BVHNode> BvhBuilder::build(const std::vector<Scene::Vertex>& vertices, const std::vector<uint32_t>& indices)
-std::vector<BVHNode> BvhBuilder::build(const std::vector<glm::float3>& positions)
+// std::vector<BVHNode> BvhBuilder::build(const std::vector<glm::float3>& positions)
+BVH BvhBuilder::build(const std::vector<glm::float3>& positions)
 {
     const uint32_t totalTriangles = (uint32_t)positions.size() / 3;
     if (totalTriangles == 0)
     {
-        return std::vector<BVHNode>();
+        return BVH();
     }
     std::vector<BvhNodeInternal> nodes(totalTriangles);
     // need to apply transform
@@ -130,19 +170,23 @@ std::vector<BVHNode> BvhBuilder::build(const std::vector<glm::float3>& positions
 
     setDepthFirstVisitOrder(nodes, root);
 
-    std::vector<BVHNode> res(nodes.size());
-
+    BVH res;
+    res.nodes.resize(nodes.size());
+    res.triangles.resize(totalTriangles);
+    uint32_t triangleId = 0;
     for (uint32_t i = 0; i < (uint32_t)nodes.size(); ++i)
     {
         BvhNodeInternal& oldNode = nodes[i];
-        BVHNode& newNode = res[oldNode.visitOrder];
+        BVHNode& newNode = res.nodes[oldNode.visitOrder];
         newNode.nodeOffset = oldNode.next == InvalidMask ? InvalidMask : nodes[oldNode.next].visitOrder;
         newNode.instId = oldNode.prim;
         if (oldNode.prim != InvalidMask) // leaf
         {
             newNode.minBounds = oldNode.triangle.v1 - oldNode.triangle.v0;
             newNode.maxBounds = oldNode.triangle.v2 - oldNode.triangle.v0;
-            newNode.v = oldNode.triangle.v0;
+            res.triangles[triangleId].v0 = glm::float4(oldNode.triangle.v0, 0.0f);
+            newNode.instId = triangleId;
+            ++triangleId;
         }
         else
         {

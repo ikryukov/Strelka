@@ -118,7 +118,6 @@ void Render::initVulkan()
         mRtShadowPass.init(mDevice, csRtShaderCode, csRtShaderCodeSize, mDescriptorPool, mResManager);
     }
     
-
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
     if (!MODEL_PATH.empty())
@@ -952,19 +951,34 @@ void Render::createBvhBuffer(nevk::Scene& scene)
     }
 
     //std::vector<BVHNode> sceneBvh = mBvhBuilder.build(scene.getVertices(), scene.getIndices());
-    std::vector<BVHNode> sceneBvh = mBvhBuilder.build(positions);
-
-    VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.size();
-    if (bufferSize == 0)
+    // std::vector<BVHNode> sceneBvh = mBvhBuilder.build(positions);
+    BVH sceneBvh = mBvhBuilder.build(positions);
     {
-        return;
+        VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.nodes.size();
+        if (bufferSize == 0)
+        {
+            return;
+        }
+        Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+        memcpy(stagingBufferMemory, sceneBvh.nodes.data(), (size_t)bufferSize);
+        mCurrentSceneRenderData->mBvhNodeBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
+        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), bufferSize);
+        mResManager->destroyBuffer(stagingBuffer);
     }
-    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    memcpy(stagingBufferMemory, sceneBvh.data(), (size_t)bufferSize);
-    mCurrentSceneRenderData->mBvhBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhBuffer), bufferSize);
-    mResManager->destroyBuffer(stagingBuffer);
+    {
+        VkDeviceSize bufferSize = sizeof(BVHTriangle) * sceneBvh.triangles.size();
+        if (bufferSize == 0)
+        {
+            return;
+        }
+        Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+        memcpy(stagingBufferMemory, sceneBvh.triangles.data(), (size_t)bufferSize);
+        mCurrentSceneRenderData->mBvhTriangleBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH triangle");
+        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhTriangleBuffer), bufferSize);
+        mResManager->destroyBuffer(stagingBuffer);
+    }
 }
 
 void Render::createIndexBuffer(nevk::Scene& scene)
@@ -1239,7 +1253,7 @@ void Render::setDescriptors()
         mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
     {
-        mRtShadowPass.setBvhBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhBuffer));
+        mRtShadowPass.setBvhBuffers(mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhTriangleBuffer));
         mRtShadowPass.setLightsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
     }
     {

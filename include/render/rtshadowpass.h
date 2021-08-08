@@ -43,7 +43,8 @@ private:
     std::vector<Buffer*> uniformBuffers;
 
     GBuffer* mGbuffer = nullptr;
-    VkBuffer mBvhBuffer = VK_NULL_HANDLE;
+    VkBuffer mBvhNodeBuffer = VK_NULL_HANDLE;
+    VkBuffer mBvhTriangleBuffer = VK_NULL_HANDLE;
     VkBuffer mLightsBuffer = VK_NULL_HANDLE;
 
     VkImageView mOutImageView = VK_NULL_HANDLE;
@@ -66,7 +67,7 @@ public:
     void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
     void onDestroy();
 
-    void setBvhBuffer(VkBuffer buffer);
+    void setBvhBuffers(VkBuffer nodeBuffer, VkBuffer triangleBuffer);
     void setLightsBuffer(VkBuffer buffer);
     void setGbuffer(GBuffer* gbuffer);
     void setOutputImageView(VkImageView imageView);

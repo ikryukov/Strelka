@@ -22,20 +22,40 @@ struct BVHNode
     int instId;
     glm::float3 maxBounds;
     int nodeOffset;
-    glm::float3 v;
-    int pad;
+};
+
+struct BVHTriangle
+{
+    glm::float4 v0;
+};
+
+struct BVH
+{
+    std::vector<BVHNode> nodes;
+    std::vector<BVHTriangle> triangles;
 };
 
 class BvhBuilder
 {
 public:
+
+    enum class SplitMethod: uint32_t
+    {
+        eMiddleCentroids,
+        eMiddleBounds,
+        eEquals
+    };
+
     BvhBuilder();
     ~BvhBuilder();
 
     //std::vector<BVHNode> build(const std::vector<Scene::Vertex>& vertices, const std::vector<uint32_t>& indices);
-    std::vector<BVHNode> build(const std::vector<glm::float3>& positions);
+    // std::vector<BVHNode> build(const std::vector<glm::float3>& positions);
+    BVH build(const std::vector<glm::float3>& positions);
 
 private:
+    SplitMethod mSplitMethod = SplitMethod::eMiddleCentroids;
+
     struct AABB
     {
         glm::float3 minimum{ 1e10f };
@@ -48,6 +68,47 @@ private:
             minimum = a;
             maximum = b;
         }
+
+        static AABB Union(const AABB& a, const AABB& b)
+        {
+            AABB res;
+            res.expand(a);
+            res.expand(b);
+            return res;
+        }
+
+        glm::float3 getCentroid() const
+        {
+            return (minimum + maximum) * 0.5f;
+        }
+        
+        // returns number of axis
+        uint32_t getMaxinumExtent()
+        {
+            uint32_t res = 2;
+            glm::float3 dim = maximum - minimum;
+            if (dim.x > dim.y && dim.x > dim.z)
+            {
+                res = 0;
+            }
+            else if (dim.y > dim.x && dim.y > dim.z)
+            {
+                res = 1;
+            }
+            return res;
+        }
+
+        void expand(const glm::float3& p)
+        {
+            minimum.x = std::min(minimum.x, p.x);
+            minimum.y = std::min(minimum.y, p.y);
+            minimum.z = std::min(minimum.z, p.z);
+
+            maximum.x = std::max(maximum.x, p.x);
+            maximum.y = std::max(maximum.y, p.y);
+            maximum.z = std::max(maximum.z, p.z);
+        }
+
         void expand(const AABB& o)
         {
             minimum.x = std::min(minimum.x, o.minimum.x);
@@ -107,6 +168,7 @@ private:
     void setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t root);
 
     AABB computeBounds(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end);
+    AABB computeCentroids(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end);
     uint32_t recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_t begin, uint32_t end);
 };
 

@@ -152,7 +152,8 @@ private:
         nevk::Buffer* mIndexBuffer = nullptr;
         nevk::Buffer* mInstanceBuffer = nullptr;
         nevk::Buffer* mLightsBuffer = nullptr;
-        nevk::Buffer* mBvhBuffer = nullptr;
+        nevk::Buffer* mBvhNodeBuffer = nullptr;
+        nevk::Buffer* mBvhTriangleBuffer = nullptr;
 
         nevk::ResourceManager* mResManager = nullptr;
         explicit SceneRenderData(nevk::ResourceManager* resManager)
@@ -182,9 +183,13 @@ private:
             {
                 mResManager->destroyBuffer(mLightsBuffer);
             }
-            if (mBvhBuffer)
+            if (mBvhNodeBuffer)
             {
-                mResManager->destroyBuffer(mBvhBuffer);
+                mResManager->destroyBuffer(mBvhNodeBuffer);
+            }
+            if (mBvhTriangleBuffer)
+            {
+                mResManager->destroyBuffer(mBvhTriangleBuffer);
             }
         }
     };
