@@ -90,7 +90,7 @@ bool anyHit(Ray ray)
     uint32_t nodeIndex = 0;
     while (nodeIndex != INVALID_INDEX)
     {
-        BVHNode node = bvh[nodeIndex];
+        BVHNode node = bvh[NonUniformResourceIndex(nodeIndex)];
         uint32_t primitiveIndex = node.instId;
         if (primitiveIndex != INVALID_INDEX) // leaf
         {
