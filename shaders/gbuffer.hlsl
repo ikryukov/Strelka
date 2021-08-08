@@ -95,7 +95,7 @@ PS_INPUT vertexMain(VertexInput vi)
     out.uv = unpackUV(vi.uv);
     // assume that we don't use non-uniform scales
     // TODO:
-    out.normal = unpackNormal(vi.normal);
+    out.normal = mul((float3x3)constants.normalMatrix, unpackNormal(vi.normal));
     out.tangent = unpackTangent(vi.tangent);
     out.wPos = wpos.xyz / wpos.w; 
     return out;
