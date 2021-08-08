@@ -71,10 +71,21 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
         return begin;
     }
     AABB bounds = computeBounds(nodes, begin, end);
-    uint32_t splitAxis = rand() % 3;
-    auto comparator = (splitAxis == 0) ? nodeCompareX :
-                      (splitAxis == 1) ? nodeCompareY :
-                                         nodeCompareZ;
+    glm::float3 dim = bounds.maximum - bounds.minimum;
+    auto comparator = nodeCompareZ;
+    if (dim.x > dim.y && dim.x > dim.z)
+    {
+        comparator = nodeCompareX;
+    }
+    else if (dim.y > dim.x && dim.y > dim.z)
+    {
+        comparator = nodeCompareY;
+    }
+
+    // uint32_t splitAxis = rand() % 3;
+    // auto comparator = (splitAxis == 0) ? nodeCompareX :
+    //                   (splitAxis == 1) ? nodeCompareY :
+    //                                      nodeCompareZ;
 
     std::sort(nodes.begin() + begin, nodes.begin() + end, comparator);
 
