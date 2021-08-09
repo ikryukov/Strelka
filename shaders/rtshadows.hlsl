@@ -156,5 +156,9 @@ float calcShadow(uint2 pixelIndex)
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 {
+    if (pixelIndex.x >= dimension.x || pixelIndex.y >= dimension.y)
+    {
+        return;
+    }
     output[pixelIndex] = calcShadow(pixelIndex);
 }
