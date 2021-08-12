@@ -1230,7 +1230,7 @@ void Render::loadScene(const std::string& modelPath)
     }
 
     // mScene->createLight(glm::float3(0, 0, 10), glm::float3(0.5, 0.0, 10), glm::float3(0.0, 0.5, 10));
-    mScene->createLight(glm::float3(0, 0, 5), glm::float3(1.5, 0.0, 5), glm::float3(0.0, 1.5, 5));
+    mScene->createLight(glm::float3(0, 50, 0), glm::float3(15, 50, 0.0), glm::float3(0.0, 50, 15));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);

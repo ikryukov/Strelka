@@ -1,5 +1,7 @@
 #include "ShaderManager.h"
 
+#include <cstdio>
+
 namespace nevk
 {
 
@@ -13,7 +15,7 @@ ShaderManager::~ShaderManager()
     if (mSlangSession)
     {
         spDestroySession(mSlangSession);
-    }    
+    }
 }
 
 ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, const char* entryPointName, Stage stage)
@@ -72,6 +74,8 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     desc.type = slangStage;
     desc.slangReflection = (slang::ShaderReflection*)spGetReflection(slangRequest);
     desc.slangRequest = slangRequest;
+
+
     //spDestroyCompileRequest(slangRequest);
     return desc;
 }
@@ -119,4 +123,114 @@ bool ShaderManager::getShaderCode(uint32_t id, const char*& code, uint32_t& size
 
     return true;
 }
+
+void print(slang::VariableLayoutReflection* parameter);
+void print(slang::TypeLayoutReflection* parameter);
+
+void printResource(slang::TypeLayoutReflection* typeLayout)
+{
+    assert(typeLayout->getKind() == slang::TypeReflection::Kind::Resource);
+    // slang::TypeReflection* type = parameter->getType();
+    printf("type: %s\t", typeLayout->getName());
+    printf("\n");
+}
+
+void printStruct(slang::TypeLayoutReflection* typeLayout)
+{
+    assert(typeLayout->getKind() == slang::TypeReflection::Kind::Struct);
+    printf("struct name: %s\n", typeLayout->getName());
+    printf("field count: %d\n", typeLayout->getFieldCount());
+    for (int i = 0; i < typeLayout->getFieldCount(); ++i)
+    {
+        auto field = typeLayout->getFieldByIndex(i);
+        printf("field offset: %d\t", (uint32_t)field->getOffset());
+        print(typeLayout->getFieldByIndex(i));
+    }
+}
+
+void printParameterBlock(slang::TypeLayoutReflection* typeLayout)
+{
+    printf("%s\n", typeLayout->getName());
+    size_t primaryConstantBufferSize = typeLayout->getSize(SLANG_PARAMETER_CATEGORY_UNIFORM);
+    printf("const buffer size: %d\n", (uint32_t)primaryConstantBufferSize);
+    auto elem = typeLayout->getElementTypeLayout();
+    if (elem == nullptr)
+    {
+        return;
+    }
+    print(elem);
+}
+void print(slang::TypeLayoutReflection* typeLayout)
+{
+    switch (typeLayout->getKind())
+    {
+    case slang::TypeReflection::Kind::Struct: {
+        printStruct(typeLayout);
+        break;
+    }
+    case slang::TypeReflection::Kind::Resource: {
+        printResource(typeLayout);
+        break;
+    }
+    case slang::TypeReflection::Kind::ParameterBlock: {
+        printParameterBlock(typeLayout);
+        break;
+    }
+    case slang::TypeReflection::Kind::Array: {
+        printf("array");
+        printf(" %s", typeLayout->getType()->getElementType()->getName());
+        printf("[%d]\n", (uint32_t)typeLayout->getElementCount());
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+void print(slang::VariableLayoutReflection* var)
+{
+    const char* name = var->getName();
+    printf("name: %s\t", name);
+    slang::TypeLayoutReflection* typeLayout = var->getTypeLayout();
+    auto categoryCount = var->getCategoryCount();
+    if (categoryCount)
+    {
+        for (uint32_t cc = 0; cc < categoryCount; ++cc)
+        {
+            auto category = var->getCategoryByIndex(cc);
+            auto index = var->getOffset(category);
+            auto space = var->getBindingSpace(category);
+            auto count = typeLayout->getSize(category);
+            if (category == SLANG_PARAMETER_CATEGORY_UNIFORM)
+            {
+                printf("offset=%d, size=%d\n", (uint32_t)index, (uint32_t)count);
+            }
+            else
+            {
+                printf("binding=%d, set=%d\n", (uint32_t)index, (uint32_t)space);
+            }
+        }
+    }
+    print(typeLayout);
+}
+
+void ShaderManager::printInfo(uint32_t id)
+{
+    if (mShaderDescs.size() <= id)
+    {
+        return;
+    }
+    ShaderDesc& desc = mShaderDescs[id];
+    uint32_t paramCount = desc.slangReflection->getParameterCount();
+    printf("%d \n", paramCount);
+    for (uint32_t i = 0; i < paramCount; ++i)
+    {
+        slang::VariableLayoutReflection* parameter = desc.slangReflection->getParameterByIndex(i);
+        // unsigned index = parameter->getOffset();
+        // unsigned space = parameter->getBindingSpace();
+        // printf("binding=%d, set=%d\n", index, space);
+        print(parameter);
+    }
+}
+
 } // namespace nevk

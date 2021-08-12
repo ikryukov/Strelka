@@ -11,6 +11,7 @@ cbuffer Uniforms
 {
     float4x4 modelViewProjection;
 }
+Texture2D<float> shadow;
 
 // Per-vertex attributes to be assembled from bound vertex buffers.
 struct AssembledVertex
