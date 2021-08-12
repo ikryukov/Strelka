@@ -82,7 +82,7 @@ uint32_t BvhBuilder::recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_
             return ni.box.getCentroid()[axis] < pmid;
         });
         // convert from pointers to indices
-        mid = midPtr - &nodes[begin] + begin;
+        mid = (uint32_t) (midPtr - &nodes[begin]) + begin;
         if (mid != begin && mid != end)
             break;
         // in that case, execution falls through to the equals method

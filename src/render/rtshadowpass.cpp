@@ -320,7 +320,7 @@ void RtShadowPass::createUniformBuffers()
     }
 }
 
-void RtShadowPass::updateUniformBuffer(uint32_t currentImage, uint32_t frameNumber, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height)
+void RtShadowPass::updateUniformBuffer(uint32_t currentImage, uint64_t frameNumber, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height)
 {
     UniformBufferObject ubo{};
     ubo.dimension.x = width;
@@ -329,7 +329,7 @@ void RtShadowPass::updateUniformBuffer(uint32_t currentImage, uint32_t frameNumb
     glm::float4x4 proj = camera.getPerspective();
     glm::float4x4 view = camera.getView();
 
-    ubo.frameNumber = frameNumber;
+    ubo.frameNumber = (uint32_t) frameNumber; // it uses as seed for random number
     ubo.viewToProj = proj;
     ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
