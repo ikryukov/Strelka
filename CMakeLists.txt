@@ -227,6 +227,7 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
         )
 
 # Copy slang dlls to final directory after building
+if (MSVC)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
@@ -248,6 +249,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         "${EMBREE_ROOT_DIR}/bin/embree3.dll"
         "${OUTPUT_DIRECTORY}"
         )
+endif() 
 
 ##########################################
 # External 3rd-party libraries
