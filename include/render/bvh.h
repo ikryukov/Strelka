@@ -7,7 +7,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/compatibility.hpp>
 
-
+#include <embree3/rtcore.h>
+RTC_NAMESPACE_USE
 #include <vector>
 
 
@@ -52,6 +53,8 @@ public:
 
 private:
     SplitMethod mSplitMethod = SplitMethod::eMiddleCentroids;
+
+    RTCDevice mDevice;
 
     struct AABB
     {

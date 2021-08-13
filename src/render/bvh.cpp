@@ -2,10 +2,12 @@
 
 #include <algorithm>
 
+
 namespace nevk
 {
 BvhBuilder::BvhBuilder()
 {
+    mDevice = rtcNewDevice("tri_accel=bvh4.triangle4v");    
 }
 
 BvhBuilder::~BvhBuilder()
