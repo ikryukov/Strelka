@@ -3,11 +3,10 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+#include <embree3/rtcore.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/compatibility.hpp>
-
-#include <embree3/rtcore.h>
 RTC_NAMESPACE_USE
 #include <vector>
 
@@ -19,9 +18,9 @@ namespace nevk
 struct BVHNode
 {
     glm::float3 minBounds;
-    int instId;
+    int instId = (int)0xFFFFFFFF;
     glm::float3 maxBounds;
-    int nodeOffset;
+    int nodeOffset = (int)0xFFFFFFFF;
 };
 
 struct BVHTriangle
@@ -38,13 +37,14 @@ struct BVH
 class BvhBuilder
 {
 public:
-
-    enum class SplitMethod: uint32_t
+    enum class SplitMethod : uint32_t
     {
         eMiddleCentroids,
         eMiddleBounds,
         eEquals
     };
+
+    bool mUseEmbree = true;
 
     BvhBuilder();
     ~BvhBuilder();
@@ -54,7 +54,7 @@ public:
 private:
     SplitMethod mSplitMethod = SplitMethod::eMiddleCentroids;
 
-    RTCDevice mDevice;
+    RTCDevice mDevice = nullptr;
 
     struct AABB
     {
@@ -69,6 +69,16 @@ private:
             maximum = b;
         }
 
+        static float halfArea(const glm::float3& d)
+        {
+            return d.x * (d.y + d.z) + (d.y * d.z);
+        }
+
+        static float area(const AABB& a)
+        {
+            return 2.0f * halfArea(a.getSize());
+        }
+
         static AABB Union(const AABB& a, const AABB& b)
         {
             AABB res;
@@ -81,7 +91,12 @@ private:
         {
             return (minimum + maximum) * 0.5f;
         }
-        
+
+        glm::float3 getSize() const
+        {
+            return maximum - minimum;
+        }
+
         // returns number of axis
         uint32_t getMaxinumExtent()
         {
@@ -146,6 +161,83 @@ private:
     static const uint32_t LeafMask = 0x80000000;
     static const uint32_t InvalidMask = 0xFFFFFFFF;
 
+    struct Node
+    {
+        AABB bounds;
+        Node* children[2] = { nullptr, nullptr };
+        uint32_t visitOrder = InvalidMask;
+        virtual float sah() = 0;
+    };
+
+    struct InnerNode : public Node
+    {
+        InnerNode()
+        {
+            children[0] = children[1] = nullptr;
+        }
+
+        float sah()
+        {
+            const AABB& leftChild = children[0]->bounds;
+            const AABB& rightChild = children[1]->bounds;
+            return 1.0f + (AABB::area(leftChild) * children[0]->sah() + AABB::area(rightChild) * children[1]->sah()) / AABB::area(AABB::Union(leftChild, rightChild));
+        }
+
+        static void* create(RTCThreadLocalAllocator alloc, unsigned int numChildren, void* userPtr)
+        {
+            (void)userPtr;
+            assert(numChildren == 2);
+            void* ptr = rtcThreadLocalAlloc(alloc, sizeof(InnerNode), 16);
+            return (void*)new (ptr) InnerNode;
+        }
+
+        static void setChildren(void* nodePtr, void** childPtr, unsigned int numChildren, void* userPtr)
+        {
+            (void)userPtr;
+            assert(numChildren == 2);
+            for (size_t i = 0; i < 2; i++)
+            {
+                ((InnerNode*)nodePtr)->children[i] = (Node*)childPtr[i];
+            }
+        }
+
+        static void setBounds(void* nodePtr, const RTCBounds** bounds, unsigned int numChildren, void* userPtr)
+        {
+            (void)userPtr;
+            assert(numChildren == 2);
+            const RTCBounds* leftChildBounds = bounds[0];
+            const RTCBounds* rightChildBounds = bounds[1];
+            AABB leftChildAABB(glm::float3(leftChildBounds->lower_x, leftChildBounds->lower_y, leftChildBounds->lower_z), glm::float3(leftChildBounds->upper_x, leftChildBounds->upper_y, leftChildBounds->upper_z));
+            AABB rightChildAABB(glm::float3(rightChildBounds->lower_x, rightChildBounds->lower_y, rightChildBounds->lower_z), glm::float3(rightChildBounds->upper_x, rightChildBounds->upper_y, rightChildBounds->upper_z));
+            ((InnerNode*)nodePtr)->bounds = AABB::Union(leftChildAABB, rightChildAABB);
+        }
+    };
+
+    struct LeafNode : public Node
+    {
+        unsigned id;
+
+        LeafNode(unsigned id, const AABB& bounds)
+            : id(id)
+        {
+            this->bounds = bounds;
+        }
+
+        float sah()
+        {
+            return 1.0f;
+        }
+
+        static void* create(RTCThreadLocalAllocator alloc, const RTCBuildPrimitive* prims, size_t numPrims, void* userPtr)
+        {
+            (void)userPtr;
+            assert(numPrims == 1);
+            void* ptr = rtcThreadLocalAlloc(alloc, sizeof(LeafNode), 16);
+            return (void*)new (ptr) LeafNode(prims->primID, *(AABB*)prims);
+        }
+    };
+
+
     struct BvhNodeInternal
     {
         BvhNodeInternal(){};
@@ -159,6 +251,7 @@ private:
         Triangle triangle; // only for leaf
     };
 
+
     void setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t nodeId, uint32_t nextId, uint32_t& order);
     void setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t root);
 
@@ -166,6 +259,13 @@ private:
     AABB computeCentroids(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end);
     uint32_t recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_t begin, uint32_t end);
     BVH repack(const std::vector<BvhNodeInternal>& nodes, const uint32_t totalTriangles);
+
+    // embree
+    BVH buildEmbree(const std::vector<glm::float3>& positions);
+    BVH repackEmbree(const Node* root, const std::vector<glm::float3>& positions, const uint32_t totalNodes, const uint32_t totalTriangles);
+    void setDepthFirstVisitOrder(Node* current, uint32_t& order);
+    void repackEmbree(const Node* current, const std::vector<glm::float3>& positions, BVH& outBvh, uint32_t& positionInArray, uint32_t& positionInTrianglesArray, const uint32_t nextId);
+    static void splitPrimitive(const RTCBuildPrimitive* prim, unsigned int dim, float pos, RTCBounds* lprim, RTCBounds* rprim, void* userPtr);
 };
 
 } // namespace nevk
