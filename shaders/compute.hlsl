@@ -168,7 +168,7 @@ float4 calc(uint2 pixelIndex)
     pointData.NH = dot(N, H);
     float2 uv = gbUV[pixelIndex].xy;
 
-    float3 result = float3(pointData.NL);
+    float3 result = cookTorrance(material, pointData, uv);
 
     result *= shadow[pixelIndex];
 

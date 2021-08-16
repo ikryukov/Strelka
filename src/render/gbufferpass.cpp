@@ -346,7 +346,7 @@ void GbufferPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t)64; // mTextureImageView.size() // TODO:
+    texLayoutBinding.descriptorCount = (uint32_t) 2048; //mTextureImageView.size(); // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -606,7 +606,7 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
     bufferInfo.range = sizeof(UniformBufferObject);
 
     std::vector<VkDescriptorImageInfo> imageInfo;
-    imageInfo.resize(64);
+    imageInfo.resize(2048);
 
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
@@ -618,7 +618,6 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
     samplerInfo.resize(mTextureSamplers.size());
     for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
     {
-    //    samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
        samplerInfo[i].sampler = mTextureSamplers[i];
     }
 
@@ -651,7 +650,7 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t)64;
+        descriptorWrite.descriptorCount = (uint32_t)2048;
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }

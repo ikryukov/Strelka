@@ -95,7 +95,7 @@ void ComputePass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texBindlessLayoutBinding{};
     texBindlessLayoutBinding.binding = 7;
-    texBindlessLayoutBinding.descriptorCount = (uint32_t)64;
+    texBindlessLayoutBinding.descriptorCount = (uint32_t)128;
     texBindlessLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texBindlessLayoutBinding.pImmutableSamplers = nullptr;
     texBindlessLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -265,7 +265,7 @@ void ComputePass::updateDescriptorSet(uint32_t descIndex)
     descriptorWrites[6].descriptorCount = 1;
     descriptorWrites[6].pImageInfo = &imageInfoInstId;
 
-    std::vector<VkDescriptorImageInfo> imageInfoBindless(64);
+    std::vector<VkDescriptorImageInfo> imageInfoBindless(128);
     std::fill(imageInfoBindless.begin(), imageInfoBindless.end(), VkDescriptorImageInfo());
 
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
@@ -279,7 +279,7 @@ void ComputePass::updateDescriptorSet(uint32_t descIndex)
     descriptorWrites[7].dstBinding = 7;
     descriptorWrites[7].dstArrayElement = 0;
     descriptorWrites[7].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    descriptorWrites[7].descriptorCount = (uint32_t)64;
+    descriptorWrites[7].descriptorCount = (uint32_t)128;
     descriptorWrites[7].pImageInfo = imageInfoBindless.data();
 
     //std::vector<VkDescriptorImageInfo> samplerInfo;
