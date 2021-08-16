@@ -368,8 +368,15 @@ void Render::cleanup()
 
     destroyGbuffer(mGbuffer);
 
-    if (mScene != mDefaultScene)
+    if (mCurrentSceneRenderData)
+    {
         delete mCurrentSceneRenderData;
+    }
+    if (mDefaultSceneRenderData)
+    {
+        delete mDefaultSceneRenderData;
+    }
+
     delete mDefaultScene;
 
     for (FrameData& fd : mFramesData)
@@ -951,8 +958,6 @@ void Render::createBvhBuffer(nevk::Scene& scene)
         }
     }
 
-    //std::vector<BVHNode> sceneBvh = mBvhBuilder.build(scene.getVertices(), scene.getIndices());
-    // std::vector<BVHNode> sceneBvh = mBvhBuilder.build(positions);
     BVH sceneBvh = mBvhBuilder.build(positions);
     {
         VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.nodes.size();
