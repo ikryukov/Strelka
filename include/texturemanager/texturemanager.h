@@ -57,11 +57,9 @@ public:
             size_t operator()(const TextureSamplerDesc& samplerDesc) const
             {
                 return (((((std::hash<VkFilter>()(samplerDesc.magFilter) ^
-                            (std::hash<VkFilter>()(samplerDesc.minFilter) << 1)) >>
-                           1) ^
-                          (std::hash<VkSamplerAddressMode>()(samplerDesc.addressModeU) << 1)) >>
-                         1) ^
-                        (std::hash<VkSamplerAddressMode>()(samplerDesc.addressModeV) << 1));
+                    (std::hash<VkFilter>()(samplerDesc.minFilter) << 1)) >> 1) ^
+                    (std::hash<VkSamplerAddressMode>()(samplerDesc.addressModeU) << 1)) >> 1) ^
+                    (std::hash<VkSamplerAddressMode>()(samplerDesc.addressModeV) << 1));
             }
         };
     };
