@@ -375,15 +375,9 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
 {
     beginLabel(cmd, "Geometry Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
 
-    if (needDesciptorSetUpdate && imageViewCounter < 3)
+    if (needDesciptorSetUpdate[imageIndex])
     {
-        imageViewCounter++;
         updateDescriptorSets(imageIndex);
-    }
-    else
-    {
-        imageViewCounter = 0;
-        needDesciptorSetUpdate = false;
     }
 
     const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera(cameraIndex).getPosition());
@@ -542,43 +536,55 @@ void RenderPass::onResize(std::vector<VkImageView>& imageViews, VkImageView& dep
 void RenderPass::setTextureImageView(const std::vector<VkImageView>& textureImageView)
 {
     mTextureImageView = textureImageView;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RenderPass::setShadowImageView(VkImageView shadowImageView)
 {
     mShadowImageView = shadowImageView;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RenderPass::setTextureSampler(const std::vector<VkSampler>& textureSampler)
 {
     mTextureSampler = textureSampler;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RenderPass::setShadowSampler(VkSampler shadowSampler)
 {
     mShadowSampler = shadowSampler;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RenderPass::setMaterialBuffer(VkBuffer materialBuffer)
 {
     mMaterialBuffer = materialBuffer;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RenderPass::setInstanceBuffer(VkBuffer instanceBuffer)
 {
     mInstanceBuffer = instanceBuffer;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
@@ -690,5 +696,6 @@ void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
     }
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    needDesciptorSetUpdate[descSetIndex] = false;
 }
 } // namespace nevk

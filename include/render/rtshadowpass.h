@@ -9,7 +9,7 @@
 
 namespace nevk
 {
-class ComputePass
+class RtShadowPass
 {
 private:
     struct UniformBufferObject
@@ -17,9 +17,9 @@ private:
         glm::float4x4 viewToProj;
         glm::float4x4 worldToView;
         glm::float3 CameraPos;
-        float pad0;
+        uint32_t frameNumber;
         glm::int2 dimension;
-        uint32_t debugView;
+        float pad0;
         float pad1;
     };
 
@@ -31,7 +31,7 @@ private:
     VkPipelineLayout mPipelineLayout;
     VkShaderModule mCS;
 
-    ResourceManager* mResMngr;
+    ResourceManager* mResMngr = nullptr;
 
     VkDescriptorSetLayout mDescriptorSetLayout;
     std::vector<VkDescriptorSet> mDescriptorSets;
@@ -40,16 +40,12 @@ private:
     
     std::vector<Buffer*> uniformBuffers;
 
-    GBuffer* mGbuffer;
-    std::vector<VkImageView> mTextureImageView;
-    VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
-    VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
-    VkBuffer mLightBuffer = VK_NULL_HANDLE;
+    GBuffer* mGbuffer = nullptr;
+    VkBuffer mBvhNodeBuffer = VK_NULL_HANDLE;
+    VkBuffer mBvhTriangleBuffer = VK_NULL_HANDLE;
+    VkBuffer mLightsBuffer = VK_NULL_HANDLE;
 
-    VkImageView mRtShadowImageView = VK_NULL_HANDLE;
-
-    VkImageView mOutImageView;
-    std::vector<VkSampler> mTextureSamplers;
+    VkImageView mOutImageView = VK_NULL_HANDLE;
 
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
@@ -62,21 +58,17 @@ private:
     void createComputePipeline(VkShaderModule& shaderModule);
 
 public:
-    ComputePass(/* args */);
-    ~ComputePass();
+    RtShadowPass(/* args */);
+    ~RtShadowPass();
 
     void init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr);
     void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
     void onDestroy();
 
-    void setMaterialBuffer(VkBuffer materialBuffer);
-    void setInstanceBuffer(VkBuffer instanceBuffer);
-    void setLightBuffer(VkBuffer lightBuffer);
+    void setBvhBuffers(VkBuffer nodeBuffer, VkBuffer triangleBuffer);
+    void setLightsBuffer(VkBuffer buffer);
     void setGbuffer(GBuffer* gbuffer);
-    void setRtShadowImageView(VkImageView imageView);
     void setOutputImageView(VkImageView imageView);
-    void setTextureSamplers(std::vector<VkSampler>& textureSamplers);
-    void setTextureImageViews(const std::vector<VkImageView>& texImages);
-    void updateUniformBuffer(uint32_t currentImage, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
+    void updateUniformBuffer(uint32_t currentImage, uint64_t frameNumber, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
 };
 } // namespace nevk

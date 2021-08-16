@@ -101,6 +101,23 @@ void Render::initVulkan()
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
 
+    {
+        const char* csRtShaderCode = nullptr;
+        uint32_t csRtShaderCodeSize = 0;
+        uint32_t csRtId = mShaderManager.loadShader("shaders/rtshadows.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
+        mShaderManager.getShaderCode(csRtId, csRtShaderCode, csRtShaderCodeSize);
+        mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                  VK_IMAGE_TILING_OPTIMAL,
+                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+        mRtShadowImageView = mTexManager->createImageView(mResManager->getVkImage(mRtShadowImage), VK_FORMAT_R16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+
+        mRtShadowPass.setGbuffer(&mGbuffer);
+        mRtShadowPass.setOutputImageView(mRtShadowImageView);
+
+        mRtShadowPass.init(mDevice, csRtShaderCode, csRtShaderCodeSize, mDescriptorPool, mResManager);
+    }
+
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
     if (!MODEL_PATH.empty())
@@ -330,6 +347,7 @@ void Render::cleanup()
 
     mDepthPass.onDestroy();
     mGbufferPass.onDestroy();
+    mRtShadowPass.onDestroy();
     mComputePass.onDestroy();
 
     mUi.onDestroy();
@@ -339,6 +357,9 @@ void Render::cleanup()
     mTexManager->textureDestroy();
     mTexManager->delTexturesFromQueue();
 
+    mResManager->destroyImage(mRtShadowImage);
+    vkDestroyImageView(mDevice, mRtShadowImageView, nullptr);
+
     vkDestroyImageView(mDevice, textureCompImageView, nullptr);
     mResManager->destroyImage(textureCompImage);
 
@@ -347,8 +368,16 @@ void Render::cleanup()
 
     destroyGbuffer(mGbuffer);
 
-    if (mScene != mDefaultScene)
+    if (mCurrentSceneRenderData)
+    {
         delete mCurrentSceneRenderData;
+    }
+    if (mDefaultSceneRenderData)
+    {
+        delete mDefaultSceneRenderData;
+    }
+
+    delete mDefaultScene;
 
     for (FrameData& fd : mFramesData)
     {
@@ -422,6 +451,22 @@ void Render::recreateSwapChain()
         mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
     mComputePass.setOutputImageView(textureCompImageView);
+
+    // RT shadow pass
+    {
+        mResManager->destroyImage(mRtShadowImage);
+        vkDestroyImageView(mDevice, mRtShadowImageView, nullptr);
+    }
+    {
+        mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                  VK_IMAGE_TILING_OPTIMAL,
+                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+        mRtShadowImageView = mTexManager->createImageView(mResManager->getVkImage(mRtShadowImage), VK_FORMAT_R16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    mRtShadowPass.setOutputImageView(mRtShadowImageView);
+    mComputePass.setRtShadowImageView(mRtShadowImageView);
+
     destroyGbuffer(mGbuffer);
     mGbuffer = createGbuffer(width, height);
     mGbufferPass.onResize(&mGbuffer);
@@ -861,6 +906,87 @@ void Render::createMaterialBuffer(nevk::Scene& scene)
     mResManager->destroyBuffer(stagingBuffer);
 }
 
+void Render::createLightsBuffer(nevk::Scene& scene)
+{
+    std::vector<nevk::Scene::Light>& sceneLights = scene.getLights();
+
+    VkDeviceSize bufferSize = sizeof(nevk::Scene::Light) * sceneLights.size();
+    if (bufferSize == 0)
+    {
+        return;
+    }
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    memcpy(stagingBufferMemory, sceneLights.data(), (size_t)bufferSize);
+    mCurrentSceneRenderData->mLightsBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Lights");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), bufferSize);
+    mResManager->destroyBuffer(stagingBuffer);
+}
+
+void Render::createBvhBuffer(nevk::Scene& scene)
+{
+    std::vector<Scene::Vertex>& vertices = scene.getVertices();
+    std::vector<uint32_t>& indices = scene.getIndices();
+    const std::vector<Instance>& instances = scene.getInstances();
+    const std::vector<Mesh>& meshes = scene.getMeshes();
+
+    std::vector<glm::float3> positions;
+    positions.reserve(indices.size());
+
+    for (const Instance& currInstance : instances)
+    {
+        const uint32_t currentMeshId = currInstance.mMeshId;
+        const uint32_t indexOffset = meshes[currentMeshId].mIndex;
+        const uint32_t indexCount = meshes[currentMeshId].mCount;
+
+        glm::float4x4 m = currInstance.transform;
+        for (uint32_t i = 0; i < indexCount;)
+        {
+            uint32_t i0 = indices[indexOffset + i + 0];
+            uint32_t i1 = indices[indexOffset + i + 1];
+            uint32_t i2 = indices[indexOffset + i + 2];
+
+            glm::float3 v0 = m * glm::float4(vertices[i0].pos, 1.0);
+            glm::float3 v1 = m * glm::float4(vertices[i1].pos, 1.0);
+            glm::float3 v2 = m * glm::float4(vertices[i2].pos, 1.0);
+
+            positions.push_back(v0);
+            positions.push_back(v1);
+            positions.push_back(v2);
+
+            i += 3;
+        }
+    }
+
+    BVH sceneBvh = mBvhBuilder.build(positions);
+    {
+        VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.nodes.size();
+        if (bufferSize == 0)
+        {
+            return;
+        }
+        Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+        memcpy(stagingBufferMemory, sceneBvh.nodes.data(), (size_t)bufferSize);
+        mCurrentSceneRenderData->mBvhNodeBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
+        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), bufferSize);
+        mResManager->destroyBuffer(stagingBuffer);
+    }
+    {
+        VkDeviceSize bufferSize = sizeof(BVHTriangle) * sceneBvh.triangles.size();
+        if (bufferSize == 0)
+        {
+            return;
+        }
+        Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+        memcpy(stagingBufferMemory, sceneBvh.triangles.data(), (size_t)bufferSize);
+        mCurrentSceneRenderData->mBvhTriangleBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH triangle");
+        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhTriangleBuffer), bufferSize);
+        mResManager->destroyBuffer(stagingBuffer);
+    }
+}
+
 void Render::createIndexBuffer(nevk::Scene& scene)
 {
     std::vector<uint32_t>& sceneIndices = scene.getIndices();
@@ -921,7 +1047,7 @@ void Render::createDescriptorPool()
     VkDescriptorPoolSize pool_sizes[] = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
         { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
         { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
@@ -1009,6 +1135,16 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         recordBarrier(cmd, mResManager->getVkImage(mGbuffer.depth), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
+    // Raytracing
+    // barrier
+    recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mRtShadowPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+
+    // barrier
+    recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
     mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
 
     // Copy to swapchain image
@@ -1098,8 +1234,13 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
+    //mScene->createLight(glm::float3(0, 0, 10), glm::float3(0.5, 0.0, 10), glm::float3(0.0, 0.5, 10));
+    mScene->createLight(glm::float3(0, 50, 0), glm::float3(15, 50, 0.0), glm::float3(0.0, 50, 15));
+
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
+    createLightsBuffer(*mScene);
+    createBvhBuffer(*mScene);
 
     mTexManager->createShadowSampler();
 
@@ -1118,14 +1259,20 @@ void Render::setDescriptors()
         mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
     {
+        mRtShadowPass.setBvhBuffers(mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhTriangleBuffer));
+        mRtShadowPass.setLightsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
+    }
+    {
         mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
     {
         mComputePass.setGbuffer(&mGbuffer);
         mComputePass.setTextureImageViews(mTexManager->textureImageView);
         mComputePass.setTextureSamplers(mTexManager->texSamplers);
+        mComputePass.setRtShadowImageView(mRtShadowImageView);
         mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
+        mComputePass.setLightBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
     }
 }
 
@@ -1143,8 +1290,12 @@ void Render::createDefaultScene()
 
     mScene->addCamera(camera);
 
+    mScene->createLight(glm::float3(0, 0, 10), glm::float3(1.5, 0.0, 10), glm::float3(0.0, 1.5, 10));
+
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
+    createLightsBuffer(*mScene);
+    createBvhBuffer(*mScene);
 
     setDescriptors();
 
@@ -1192,10 +1343,12 @@ void Render::drawFrame()
 
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
-    mGbufferPass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex());
+    mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
+
+    mRtShadowPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
-    mComputePass.updateUniformBuffer(frameIndex, lightSpaceMatrix, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
+    mComputePass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     static int releaseAfterFrames = 0;
     static bool needReload = false;
@@ -1294,7 +1447,7 @@ void Render::drawFrame()
         throw std::runtime_error("failed to present swap chain image!");
     }
 
-    mCurrentFrame = (mCurrentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+    ++mFrameNumber;
 }
 
 VkSurfaceFormatKHR Render::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)

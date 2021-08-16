@@ -73,11 +73,8 @@ cbuffer ubo
 {
     float4x4 viewToProj;
     float4x4 worldToView;
-    float4x4 lightSpaceMatrix;
-    float4 lightPosition;
     float3 CameraPos;
     float pad;
-    uint32_t debugView;
 }
 
 Texture2D textures[];
@@ -95,7 +92,7 @@ PS_INPUT vertexMain(VertexInput vi)
     out.uv = unpackUV(vi.uv);
     // assume that we don't use non-uniform scales
     // TODO:
-    out.normal = unpackNormal(vi.normal);
+    out.normal = mul((float3x3)constants.normalMatrix, unpackNormal(vi.normal));
     out.tangent = unpackTangent(vi.tangent);
     out.wPos = wpos.xyz / wpos.w; 
     return out;

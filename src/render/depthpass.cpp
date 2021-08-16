@@ -321,7 +321,7 @@ void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrites.push_back(descriptorWrite);
     }
 
-    if (mInstanceBuffer != VK_NULL_HANDLE)
+    // if (mInstanceBuffer != VK_NULL_HANDLE)
     {
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -335,6 +335,7 @@ void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
     }
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    needDesciptorSetUpdate[descSetIndex] = false;
 }
 
 void DepthPass::createUniformBuffers()
@@ -371,8 +372,10 @@ void DepthPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& 
 void DepthPass::setInstanceBuffer(VkBuffer instanceBuffer)
 {
     mInstanceBuffer = instanceBuffer;
-    needDesciptorSetUpdate = true;
-    imageviewcounter = 0;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void DepthPass::onDestroy()
@@ -393,15 +396,10 @@ void DepthPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer ind
 {
     beginLabel(cmd, "Depth Pass", { 0.0f, 0.0f, 1.0f, 1.0f });
 
-    if (needDesciptorSetUpdate && imageviewcounter < 3)
+    if (needDesciptorSetUpdate[imageIndex])
     {
         imageviewcounter++;
         updateDescriptorSets(imageIndex);
-    }
-    else
-    {
-        imageviewcounter = 0;
-        needDesciptorSetUpdate = false;
     }
 
     const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera(cameraIndex).getPosition());

@@ -1,4 +1,4 @@
-cbuffer ubo
+struct Ubo
 {
     float4x4 viewToProj;
     float4x4 worldToView;
@@ -65,16 +65,33 @@ struct Light
     float pad2;
 };
 
-Texture2D<float> gbDepth;
-Texture2D<float4> gbWPos;
-Texture2D<float4> gbNormal;
-Texture2D<float4> gbTangent;
-Texture2D<float2> gbUV;
-Texture2D<int> gbInstId;
+struct Gbuffer {
+    Texture2D<float> depth;
+    Texture2D<float4> wPos;
+    Texture2D<float4> normal;
+    Texture2D<float4> tangent;
+    Texture2D<float2> uv;
+    Texture2D<int> instId;
+    StructuredBuffer<Material> materials;
+};
+ParameterBlock<Gbuffer> gGbuffer;
 
-Texture2D textures[]; // bindless
+struct MyStruct
+{
+    float4x4 mat;
+    int2 dim;
+    uint32_t a;
+    StructuredBuffer<Material> materials;
+    Texture2D<float4> wPos;
+    SamplerState mySampler;
+    RWTexture2D<float4> myOutput;
+};
+ParameterBlock<Ubo> gUbo;
 
 SamplerState gSampler;
+
+Texture2D textures[64]; // bindless
+
 
 StructuredBuffer<Material> materials;
 StructuredBuffer<InstanceConstants> instanceConstants;
@@ -95,59 +112,9 @@ struct PointData
 #define INVALID_INDEX -1
 #define PI 3.1415926535897
 
-float GGX_PartialGeometry(float cosThetaN, float alpha) 
-{
-    float cosTheta_sqr = saturate(cosThetaN*cosThetaN);
-    float tan2 = (1.0 - cosTheta_sqr) / cosTheta_sqr;
-    float GP = 2.0 / (1.0 + sqrt(1.0 + alpha * alpha * tan2));
-    return GP;
-}
-
-float GGX_Distribution(float cosThetaNH, float alpha) 
-{
-    float alpha2 = alpha * alpha;
-    float NH_sqr = saturate(cosThetaNH * cosThetaNH);
-    float den = NH_sqr * alpha2 + (1.0 - NH_sqr);
-    return alpha2 / (PI * den * den);
-}
-
-float3 FresnelSchlick(float3 F0, float cosTheta) 
-{
-    return F0 + (1.0 - F0) * pow(1.0 - saturate(cosTheta), 5.0);
-}
-
-float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
-{
-    if (pd.NL <= 0.0 || pd.NV <= 0.0)
-    {
-        return float3(0.0, 0.0, 0.0);
-    }
-
-    float roughness = material.roughnessFactor;
-    float roughness2 = roughness * roughness;
-
-    float G = GGX_PartialGeometry(pd.NV, roughness2) * GGX_PartialGeometry(pd.NL, roughness2);
-    float D = GGX_Distribution(pd.NH, roughness2);
-
-    float3 f0 = float3(0.24, 0.24, 0.24);
-    float3 F = FresnelSchlick(f0, pd.HV);
-    //mix
-    float3 specK = G * D * F * 0.25 / pd.NV;
-    float3 diffK = saturate(1.0 - F);
-
-    float3 albedo = material.baseColorFactor.rgb;
-    if (material.texBaseColor != INVALID_INDEX)
-    {
-        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler, uv).rgb;
-    }
-
-    float3 result = max(0.0, albedo * diffK * pd.NL / PI + specK);
-    return result;
-}
-
 float4 calc(uint2 pixelIndex)
 {
-    int instId = gbInstId[pixelIndex];
+    int instId = gGbuffer.instId[pixelIndex];
     if (instId < 0)
     {
         return float4(1.0);
@@ -155,20 +122,20 @@ float4 calc(uint2 pixelIndex)
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(instId)];
     Material material = materials[NonUniformResourceIndex(constants.materialId)];
 
-    float3 wpos = gbWPos[pixelIndex].xyz;
+    float3 wpos = gGbuffer.wPos[pixelIndex].xyz;
     float3 L = normalize(lights[0].v0.xyz - wpos);
-    float3 N = gbNormal[pixelIndex].xyz;
+    float3 N = gGbuffer.normal[pixelIndex].xyz;
     
     PointData pointData;
     pointData.NL = dot(N, L);
-    float3 V = normalize(CameraPos - wpos);
+    float3 V = normalize(gUbo.CameraPos - wpos);
     pointData.NV = dot(N, V);
     float3 H = normalize(V + L);
     pointData.HV = dot(H, V);
     pointData.NH = dot(N, H);
-    float2 uv = gbUV[pixelIndex].xy;
+    float2 uv = gGbuffer.uv[pixelIndex].xy;
 
-    float3 result = cookTorrance(material, pointData, uv);
+    float3 result = float3(pointData.NL);
 
     result *= shadow[pixelIndex];
 
@@ -179,7 +146,7 @@ float4 calc(uint2 pixelIndex)
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 {
-    if (pixelIndex.x >= dimension.x || pixelIndex.y >= dimension.y)
+    if (pixelIndex.x >= gUbo.dimension.x || pixelIndex.y >= gUbo.dimension.y)
     {
         return;
     }

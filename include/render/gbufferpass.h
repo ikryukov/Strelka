@@ -18,11 +18,8 @@ private:
     {
         alignas(16) glm::mat4 viewToProj;
         alignas(16) glm::mat4 worldToView;
-        alignas(16) glm::mat4 lightSpaceMatrix;
-        alignas(16) glm::float4 lightPosition;
         alignas(16) glm::float3 CameraPos;
         float pad;
-        alignas(16) uint32_t debugView;
     };
 
     struct InstancePushConstants
@@ -79,8 +76,6 @@ private:
     GBuffer* mGbuffer;
     std::vector<VkFramebuffer> mFrameBuffers;
 
-    uint32_t mWidth, mHeight;
-
     static VkVertexInputBindingDescription getBindingDescription()
     {
         VkVertexInputBindingDescription bindingDescription{};
@@ -134,7 +129,7 @@ public:
     VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
     VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
 
-    bool needDesciptorSetUpdate;
+    bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = {false, false, false};
 
     VkPipelineLayout createGraphicsPipelineLayout();
 
@@ -172,7 +167,7 @@ public:
 
     void onDestroy();
 
-    void updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex);
+    void updateUniformBuffer(uint32_t currentImage, Scene& scene, uint32_t cameraIndex);
 
     GbufferPass(/* args */);
     ~GbufferPass();

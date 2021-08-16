@@ -33,6 +33,9 @@ endif ()
 # Vulkan
 find_package(Vulkan REQUIRED)
 
+# Embree
+find_package(embree 3.13 REQUIRED)
+
 # Shader Manager
 set(SHADERMANAGER_SOURCES
         include/shadermanager/shadermanager.h
@@ -111,16 +114,20 @@ target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 # Render lib
 set(RENDER_SOURCES
         include/render/gbuffer.h
+        include/render/bvh.h
         include/render/render.h
         include/render/renderpass.h
         include/render/gbufferpass.h
         include/render/computepass.h
+        include/render/rtshadowpass.h
         include/render/depthpass.h
         include/render/debugUtils.h
         src/render/render.cpp
         src/render/renderpass.cpp
         src/render/gbufferpass.cpp
+        src/render/bvh.cpp
         src/render/computepass.cpp
+        src/render/rtshadowpass.cpp
         src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )
@@ -128,6 +135,7 @@ set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/render)
+target_include_directories(${RENDERLIB_NAME} PUBLIC ${EMBREE_INCLUDE_PATH})
 
 # Model loader lib
 set(MODELLIB_SOURCES
@@ -190,6 +198,7 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${UILIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${TEXTURELIB_NAME})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC embree)
 target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
@@ -218,6 +227,7 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
         )
 
 # Copy slang dlls to final directory after building
+if (MSVC)
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
         "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
@@ -228,6 +238,18 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
         "${OUTPUT_DIRECTORY}"
         )
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        "${EMBREE_ROOT_DIR}/bin/tbb12.dll"
+        "${OUTPUT_DIRECTORY}"
+        )
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        "${EMBREE_ROOT_DIR}/bin/embree3.dll"
+        "${OUTPUT_DIRECTORY}"
+        )
+endif() 
 
 ##########################################
 # External 3rd-party libraries

@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 #define VMA_IMPLEMENTATION
-#include <vk_mem_alloc.h>
+#include <VmaUsage.h>
 
 namespace nevk
 {
@@ -88,11 +88,12 @@ public:
         VmaAllocationCreateInfo vmaAllocInfo = {};
         vmaAllocInfo.usage = memUsage;
         vmaAllocInfo.flags = allocFlags;
+        std::string bufferName;
         if (name)
         {
-            vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-            std::string bufferName = "Buffer: " + std::string(name);
-            vmaAllocInfo.pUserData = (void*)bufferName.c_str();
+             vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+             bufferName = "Buffer: " + std::string(name);
+             vmaAllocInfo.pUserData = (void*)bufferName.c_str();
         }
 
         Buffer* ret = new Buffer();
@@ -147,11 +148,12 @@ public:
         VmaAllocationCreateInfo vmaAllocInfo = {};
         vmaAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
         VmaAllocationInfo allocInfo = {};
+        std::string imageName;
         if (name)
         {
-            vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-            std::string imageName = "Image: " + std::string(name);
-            vmaAllocInfo.pUserData = (void*)imageName.c_str();
+             vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+             imageName = "Image: " + std::string(name);
+             vmaAllocInfo.pUserData = (void*)imageName.c_str();
         }
 
         Image* ret = new Image();
@@ -174,6 +176,14 @@ public:
     {
         return image->handle;
     }
+
+    void getStats()
+    {
+        char* stats = nullptr;
+        vmaBuildStatsString(mAllocator, &stats, true);
+        printf("Alloc stats: %s\n", stats);
+        vmaFreeStatsString(mAllocator, stats);
+    }
 };
 
 ResourceManager::ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkInstance instance, VkCommandPool commandPool, VkQueue graphicsQueue)
@@ -187,6 +197,8 @@ ResourceManager::ResourceManager(VkDevice device, VkPhysicalDevice physicalDevic
 
 ResourceManager::~ResourceManager()
 {
+    // Uncomment this line to debug memory leak
+    //mContext->getStats();
     mContext.reset(nullptr);
 }
 

@@ -346,7 +346,7 @@ void GbufferPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t)2048; // mTextureImageView.size() // TODO:
+    texLayoutBinding.descriptorCount = (uint32_t) 2048; //mTextureImageView.size(); // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -410,15 +410,9 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
 {
     beginLabel(cmd, "GbufferPass Pass", { 1.0f, 0.0f, 0.0f, 1.0f });
 
-    if (needDesciptorSetUpdate && imageViewCounter < 3)
+    if (needDesciptorSetUpdate[imageIndex])
     {
-        imageViewCounter++;
         updateDescriptorSets(imageIndex);
-    }
-    else
-    {
-        imageViewCounter = 0;
-        needDesciptorSetUpdate = false;
     }
 
     const std::vector<uint32_t>& opaqueIds = scene.getOpaqueInstancesToRender(scene.getCamera(cameraIndex).getPosition());
@@ -431,10 +425,10 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
     renderPassInfo.renderArea.extent = { width, height };
 
     std::array<VkClearValue, 6> clearValues{};
-    clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-    clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-    clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
-    clearValues[3].color = { { 0.0f, 0.0f, 0.0f, 1.0f } };
+    clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+    clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+    clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+    clearValues[3].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
     clearValues[4].color = { { -1, 0, 0, 0 } }; // inst IDs
     clearValues[5].depthStencil = { 1.0f, 0 };
 
@@ -500,19 +494,16 @@ void GbufferPass::createUniformBuffers()
     }
 }
 
-void GbufferPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4& lightSpaceMatrix, Scene& scene, uint32_t cameraIndex)
+void GbufferPass::updateUniformBuffer(uint32_t currentImage, Scene& scene, uint32_t cameraIndex)
 {
     UniformBufferObject ubo{};
     Camera& camera = scene.getCamera(cameraIndex);
-    glm::float4x4 proj = camera.getPerspective();
-    glm::float4x4 view = camera.getView();
+    const glm::float4x4 proj = camera.getPerspective();
+    const glm::float4x4 view = camera.getView();
 
     ubo.viewToProj = proj;
-    ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
-    ubo.lightPosition = scene.mLightPosition;
-    ubo.lightSpaceMatrix = lightSpaceMatrix;
-    ubo.debugView = (uint32_t)scene.mDebugViewSettings;
+    ubo.CameraPos = camera.getPosition();
 
     void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));
@@ -556,43 +547,55 @@ void GbufferPass::onResize(GBuffer* gbuffer)
 void GbufferPass::setTextureImageView(const std::vector<VkImageView>& textureImageView)
 {
     mTextureImageView = textureImageView;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void GbufferPass::setShadowImageView(VkImageView shadowImageView)
 {
     mShadowImageView = shadowImageView;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void GbufferPass::setTextureSamplers(std::vector<VkSampler>& textureSamplers)
 {
     mTextureSamplers = textureSamplers;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void GbufferPass::setShadowSampler(VkSampler shadowSampler)
 {
     mShadowSampler = shadowSampler;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void GbufferPass::setMaterialBuffer(VkBuffer materialBuffer)
 {
     mMaterialBuffer = materialBuffer;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void GbufferPass::setInstanceBuffer(VkBuffer instanceBuffer)
 {
     mInstanceBuffer = instanceBuffer;
-    imageViewCounter = 0;
-    needDesciptorSetUpdate = true;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
 }
 
 void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
@@ -611,13 +614,12 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
         imageInfo[j].imageView = mTextureImageView[j];
     }
 
-    //std::vector<VkDescriptorImageInfo> samplerInfo;
-    //samplerInfo.resize(mTextureSamplers.size());
-    //for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
-    //{
-    //    samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    //    samplerInfo[i].sampler = mTextureSamplers[i];
-    //}
+    std::vector<VkDescriptorImageInfo> samplerInfo;
+    samplerInfo.resize(mTextureSamplers.size());
+    for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
+    {
+       samplerInfo[i].sampler = mTextureSamplers[i];
+    }
 
     VkDescriptorBufferInfo materialInfo{};
     materialInfo.buffer = mMaterialBuffer;
@@ -652,7 +654,7 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
-    //{
+    // {
     //    VkWriteDescriptorSet descriptorWrite{};
     //    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     //    descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
@@ -662,7 +664,7 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
     //    descriptorWrite.descriptorCount = (uint32_t) samplerInfo.size();
     //    descriptorWrite.pImageInfo = samplerInfo.data();
     //    descriptorWrites.push_back(descriptorWrite);
-    //}
+    // }
     if (mMaterialBuffer != VK_NULL_HANDLE)
     {
         VkWriteDescriptorSet descriptorWrite{};
@@ -689,5 +691,6 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
     }
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    needDesciptorSetUpdate[descSetIndex] = false;
 }
 } // namespace nevk

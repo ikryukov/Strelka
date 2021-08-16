@@ -27,6 +27,9 @@ public:
     void reloadAllShaders();
     bool getShaderCode(uint32_t id, const char*& code, uint32_t& size);
 
+    void printInfo(uint32_t id);
+    // void printParameterBlock(slang::ShaderReflection* reflection, slang::VariableLayoutReflection* parameter);
+
 private:
     struct ShaderDesc
     {

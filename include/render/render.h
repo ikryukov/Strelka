@@ -13,11 +13,13 @@
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
+#include "bvh.h"
 #include "computepass.h"
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
 #include "renderpass.h"
+#include "rtshadowpass.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -125,12 +127,17 @@ private:
     nevk::Image* shadowImage;
     VkImageView shadowImageView;
 
+    nevk::Image* mRtShadowImage;
+    VkImageView mRtShadowImageView;
+
     nevk::ResourceManager* mResManager = nullptr;
     nevk::TextureManager* mTexManager = nullptr;
 
+    nevk::BvhBuilder mBvhBuilder;
+
     GBuffer mGbuffer;
     nevk::GbufferPass mGbufferPass;
-
+    nevk::RtShadowPass mRtShadowPass;
     nevk::ModelLoader* modelLoader = nullptr;
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;
@@ -144,6 +151,9 @@ private:
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
         nevk::Buffer* mInstanceBuffer = nullptr;
+        nevk::Buffer* mLightsBuffer = nullptr;
+        nevk::Buffer* mBvhNodeBuffer = nullptr;
+        nevk::Buffer* mBvhTriangleBuffer = nullptr;
 
         nevk::ResourceManager* mResManager = nullptr;
         explicit SceneRenderData(nevk::ResourceManager* resManager)
@@ -169,6 +179,18 @@ private:
             {
                 mResManager->destroyBuffer(mInstanceBuffer);
             }
+            if (mLightsBuffer)
+            {
+                mResManager->destroyBuffer(mLightsBuffer);
+            }
+            if (mBvhNodeBuffer)
+            {
+                mResManager->destroyBuffer(mBvhNodeBuffer);
+            }
+            if (mBvhTriangleBuffer)
+            {
+                mResManager->destroyBuffer(mBvhTriangleBuffer);
+            }
         }
     };
 
@@ -193,7 +215,7 @@ private:
         return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
     }
 
-    size_t mCurrentFrame = 0;
+    size_t mFrameNumber = 0;
 
     // fps counter
     double msPerFrame = 33.33;
@@ -265,6 +287,8 @@ private:
 
     void createVertexBuffer(nevk::Scene& scene);
     void createMaterialBuffer(nevk::Scene& scene);
+    void createLightsBuffer(nevk::Scene& scene);
+    void createBvhBuffer(nevk::Scene& scene);
     void createIndexBuffer(nevk::Scene& scene);
     void createInstanceBuffer(nevk::Scene& scene);
 
@@ -364,11 +388,11 @@ public:
     }
     size_t getCurrentFrameIndex()
     {
-        return mCurrentFrame % MAX_FRAMES_IN_FLIGHT;
+        return mFrameNumber % MAX_FRAMES_IN_FLIGHT;
     }
     FrameData& getCurrentFrameData()
     {
-        return mFramesData[mCurrentFrame % MAX_FRAMES_IN_FLIGHT];
+        return mFramesData[mFrameNumber % MAX_FRAMES_IN_FLIGHT];
     }
 
     nevk::ResourceManager* getResManager()
