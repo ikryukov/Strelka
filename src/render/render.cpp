@@ -107,9 +107,9 @@ void Render::initVulkan()
         uint32_t csRtId = mShaderManager.loadShader("shaders/rtshadows.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
         mShaderManager.getShaderCode(csRtId, csRtShaderCode, csRtShaderCodeSize);
         mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                 VK_IMAGE_TILING_OPTIMAL,
-                                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+                                                  VK_IMAGE_TILING_OPTIMAL,
+                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
         mRtShadowImageView = mTexManager->createImageView(mResManager->getVkImage(mRtShadowImage), VK_FORMAT_R16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
         mRtShadowPass.setGbuffer(&mGbuffer);
@@ -117,7 +117,7 @@ void Render::initVulkan()
 
         mRtShadowPass.init(mDevice, csRtShaderCode, csRtShaderCodeSize, mDescriptorPool, mResManager);
     }
-    
+
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
     if (!MODEL_PATH.empty())
@@ -359,7 +359,7 @@ void Render::cleanup()
 
     mResManager->destroyImage(mRtShadowImage);
     vkDestroyImageView(mDevice, mRtShadowImageView, nullptr);
-    
+
     vkDestroyImageView(mDevice, textureCompImageView, nullptr);
     mResManager->destroyImage(textureCompImage);
 
@@ -926,7 +926,7 @@ void Render::createBvhBuffer(nevk::Scene& scene)
     std::vector<glm::float3> positions;
     positions.reserve(indices.size());
 
-    for (const Instance& currInstance: instances)
+    for (const Instance& currInstance : instances)
     {
         const uint32_t currentMeshId = currInstance.mMeshId;
         const uint32_t indexOffset = meshes[currentMeshId].mIndex;
@@ -1229,7 +1229,7 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
-    // mScene->createLight(glm::float3(0, 0, 10), glm::float3(0.5, 0.0, 10), glm::float3(0.0, 0.5, 10));
+    //mScene->createLight(glm::float3(0, 0, 10), glm::float3(0.5, 0.0, 10), glm::float3(0.0, 0.5, 10));
     mScene->createLight(glm::float3(0, 50, 0), glm::float3(15, 50, 0.0), glm::float3(0.0, 50, 15));
 
     createMaterialBuffer(*mScene);

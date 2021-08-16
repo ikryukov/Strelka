@@ -142,9 +142,7 @@ void BvhBuilder::splitPrimitive(const RTCBuildPrimitive* prim, unsigned int dim,
     (void)userPtr;
     assert(dim < 3);
     assert(prim->geomID == 0);
-    //*(RTCBounds*)lprim = *(RTCBounds*)prim;
-    //*(RTCBounds*)rprim = *(RTCBounds*)prim;
-    //
+
     lprim->lower_x = prim->lower_x;
     lprim->lower_y = prim->lower_y;
     lprim->lower_z = prim->lower_z;
@@ -161,10 +159,6 @@ void BvhBuilder::splitPrimitive(const RTCBuildPrimitive* prim, unsigned int dim,
     rprim->upper_y = prim->upper_y;
     rprim->upper_z = prim->upper_z;
 
-    //
-    //AABB leftChildAABB(glm::float3(lprim->lower_x, lprim->lower_y, lprim->lower_z), glm::float3(lprim->upper_x, lprim->upper_y, lprim->upper_z));
-    //AABB rightChildAABB(glm::float3(rprim->lower_x, rprim->lower_y, rprim->lower_z), glm::float3(rprim->upper_x, rprim->upper_y, rprim->upper_z));
-
     (&lprim->upper_x)[dim] = pos;
     (&rprim->lower_x)[dim] = pos;
 }
@@ -173,9 +167,9 @@ BVH BvhBuilder::buildEmbree(const std::vector<glm::float3>& positions)
 {
     const uint32_t totalTriangles = (uint32_t)positions.size() / 3;
     std::vector<RTCBuildPrimitive> prims;
-    const size_t extraSpace = 1000000;
-    prims.resize(totalTriangles + extraSpace);
-    //prims.resize(totalTriangles);
+    const size_t extraSpace = totalTriangles / 2; // TODO: check this parameter
+    prims.reserve(totalTriangles + extraSpace);
+    prims.resize(totalTriangles);
     for (uint32_t i = 0; i < totalTriangles; ++i)
     {
         RTCBuildPrimitive& prim = prims[i];
