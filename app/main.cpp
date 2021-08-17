@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 int main(int argc, char** argv)
 {
     // config. options
-    cxxopts::Options options("nevk [MODEL PATH] [MTL PATH]", "commands");
+    cxxopts::Options options("nevk [MODEL PATH]", "commands");
 
     options.add_options()
         ("m, mesh", "mesh path", cxxopts::value<std::string>()->default_value("")) //misc/Cube/Cube.gltf
