@@ -318,6 +318,20 @@ void Render::mainLoop()
 
         double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
         msPerFrame = fpsCounter(frameTime);
+
+        if (perfTestMode)
+        {
+            if (mFrameNumber < framesDelay)
+                continue;
+            else if (mFrameNumber < framesDelay + framesReport)
+            {
+                std::cout << msPerFrame << " ";
+            }
+            else
+            {
+                return;
+            }
+        }
     }
 
     vkDeviceWaitIdle(mDevice);

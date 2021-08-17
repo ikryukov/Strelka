@@ -94,6 +94,10 @@ public:
     uint32_t WIDTH;
     uint32_t HEIGHT;
 
+    bool perfTestMode;
+    uint32_t framesDelay;
+    uint32_t framesReport;
+
     void initWindow();
     void initVulkan();
     void cleanup();

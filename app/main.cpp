@@ -1,8 +1,9 @@
 #include <render/render.h>
 
 #include <cxxopts.hpp>
-#include <iostream>
 #include <filesystem>
+#include <iostream>
+
 namespace fs = std::filesystem;
 
 int main(int argc, char** argv)
@@ -10,12 +11,14 @@ int main(int argc, char** argv)
     // config. options
     cxxopts::Options options("nevk [MODEL PATH] [MTL PATH]", "commands");
 
-    options.add_options()
-        ("m, mesh", "mesh path", cxxopts::value<std::string>()->default_value("")) //misc/Cube/Cube.gltf
+    options.add_options()("m, mesh", "mesh path", cxxopts::value<std::string>()->default_value("")) //misc/Cube/Cube.gltf
         ("t, texture", "texture path", cxxopts::value<std::string>()->default_value("misc/"))
-                ("width", "window width", cxxopts::value<uint32_t>()->default_value("800"))
+            ("width", "window width", cxxopts::value<uint32_t>()->default_value("800"))
                 ("height", "window height", cxxopts::value<uint32_t>()->default_value("600"))
-                    ("h, help", "Print usage");
+                    ("perfTest", "perf test mode", cxxopts::value<bool>()->default_value("false"))
+                        ("framesDelay", "frames delay", cxxopts::value<uint32_t>()->default_value("0"))
+                            ("framesReport", "frames report", cxxopts::value<uint32_t>()->default_value("0"))
+                                ("h, help", "Print usage");
 
     options.parse_positional({ "m", "t" });
     auto result = options.parse(argc, argv);
@@ -47,6 +50,9 @@ int main(int argc, char** argv)
     r.MTL_PATH = texture;
     r.WIDTH = result["width"].as<uint32_t>();
     r.HEIGHT = result["height"].as<uint32_t>();
+    r.perfTestMode = result["perfTest"].as<bool>();
+    r.framesDelay = result["framesDelay"].as<uint32_t>();
+    r.framesReport = result["framesReport"].as<uint32_t>();
 
     r.run();
 

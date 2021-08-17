@@ -364,8 +364,6 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
 void processMesh(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Mesh& mesh, const glm::float4x4& transform, const float globalScale)
 {
     using namespace std;
-    cout << "Mesh name: " << mesh.name << endl;
-    cout << "Primitive count: " << mesh.primitives.size() << endl;
     for (size_t i = 0; i < mesh.primitives.size(); ++i)
     {
         processPrimitive(model, scene, mesh.primitives[i], transform, globalScale);
@@ -421,7 +419,6 @@ glm::float4x4 getTransform(const tinygltf::Node& node, const float globalScale)
 void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Node& node, const glm::float4x4& baseTransform, const float globalScale)
 {
     using namespace std;
-    cout << "Node name: " << node.name << endl;
 
     const glm::float4x4 localTransform = getTransform(node, globalScale);
     const glm::float4x4 globalTransform = baseTransform * localTransform;
@@ -621,10 +618,6 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene
     {
         cerr << "Unable to load file: " << modelPath << endl;
         return res;
-    }
-    for (int i = 0; i < model.scenes.size(); ++i)
-    {
-        cout << "Scene: " << model.scenes[i].name << endl;
     }
 
     int sceneId = model.defaultScene;
