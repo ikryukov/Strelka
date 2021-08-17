@@ -75,8 +75,6 @@ public:
     std::vector<VkImageView> delTextureImageView;
     std::vector<VkSampler> delShadowSampler;
 
-    int loadTexture(const std::string& texture_path, const std::string& MTL_PATH);
-
     int loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name);
     int findTexture(const std::string& name);
 

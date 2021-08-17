@@ -18,8 +18,6 @@ public:
     explicit ModelLoader(nevk::TextureManager* texManager)
         : mTexManager(texManager){};
 
-    bool loadModel(const std::string& MODEL_PATH, const std::string& MTL_PATH, nevk::Scene& mScene);
-
     bool loadModelGltf(const std::string& modelPath, nevk::Scene& mScene);
 
     // TODO: could be static

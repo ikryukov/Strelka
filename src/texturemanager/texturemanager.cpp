@@ -4,33 +4,6 @@
 #include <stb_image.h>
 #include <texturemanager.h>
 
-std::string backslash = "\\";
-std::string fslash = "/";
-
-int nevk::TextureManager::loadTexture(const std::string& texture_path, const std::string& MTL_PATH)
-{
-    if (texture_path == "")
-    {
-        // Nothing to load
-        return -1;
-    }
-    std::string path = MTL_PATH + fslash + texture_path;
-
-    if (path.find(backslash) < path.size())
-        path.replace(path.find(backslash), backslash.length(), fslash);
-
-    if (mNameToID.count(path) == 0)
-    {
-        mNameToID[path] = textures.size();
-        Texture tex = createTextureImage(path);
-        textures.push_back(tex);
-
-        createTextureImageView(tex);
-    }
-
-    return mNameToID.find(path)->second;
-}
-
 int nevk::TextureManager::loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name)
 {
     if (mNameToID.count(name) == 0)

@@ -1225,10 +1225,7 @@ void Render::loadScene(const std::string& modelPath)
 
     mCurrentSceneRenderData = new SceneRenderData(mResManager);
     MODEL_PATH = modelPath;
-
-    isPBR = true;
     bool res = modelLoader->loadModelGltf(MODEL_PATH, *mScene);
-    // bool res = testmodel.loadModel(MODEL_PATH, MTL_PATH, *mScene);
     if (!res)
     {
         return;
