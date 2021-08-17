@@ -368,13 +368,9 @@ void Render::cleanup()
 
     destroyGbuffer(mGbuffer);
 
-    if (mScene == mDefaultScene)
+    delete mDefaultSceneRenderData;
+    if (mCurrentSceneRenderData != mDefaultSceneRenderData)
     {
-        delete mDefaultSceneRenderData;
-    }
-    else
-    {
-        delete mDefaultSceneRenderData;
         delete mCurrentSceneRenderData;
     }
 
