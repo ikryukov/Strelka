@@ -18,7 +18,7 @@ int main(int argc, char** argv)
                     ("perfTest", "perf test mode", cxxopts::value<bool>()->default_value("false"))
                         ("framesDelay", "frames delay", cxxopts::value<uint32_t>()->default_value("0"))
                             ("framesReport", "frames report", cxxopts::value<uint32_t>()->default_value("0"))
-                                ("h, help", "Print usage");
+                                ("h, help", "print usage");
 
     options.parse_positional({ "m", "t" });
     auto result = options.parse(argc, argv);

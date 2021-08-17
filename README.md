@@ -29,13 +29,17 @@ Use vscode with preset env variable
     
 ## Synopsis 
 
-      nevk [MODEL PATH] [MTL PATH] [OPTION...] positional parameters
-      
-        -m, --mesh arg     mesh path (default: misc/Cube/Cube.gltf)
-        -t, --texture arg  texture path (default: misc/)
-            --width arg    window width (default: 800)
-            --height arg   window height (default: 600)
-        -h, --help         Print usage
+     nevk [MODEL PATH] [MTL PATH] [OPTION...] positional parameters
+     
+       -m, --mesh arg          mesh path (default: "")
+       -t, --texture arg       texture path (default: misc/)
+           --width arg         window width (default: 800)
+           --height arg        window height (default: 600)
+           --perfTest          perf test mode
+           --framesDelay arg   frames delay (default: 0)
+           --framesReport arg  frames report (default: 0)
+       -h, --help              print usage
+
 
 ## Example
 
