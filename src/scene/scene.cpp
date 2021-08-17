@@ -70,52 +70,6 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     return instId;
 }
 
-
-uint32_t Scene::createMaterial(const glm::float4& ambient,
-                               const glm::float4& diffuse,
-                               const glm::float4& specular,
-                               const glm::float4& emissive,
-                               const glm::float4& transparency,
-                               float opticalDensity,
-                               float shininess,
-                               uint32_t illum,
-                               uint32_t texAmbientId,
-                               uint32_t texDiffuseId,
-                               uint32_t texSpecularId,
-                               uint32_t texNormalId,
-                               float d)
-{
-    Material* material = nullptr;
-    uint32_t materialId = -1;
-    if (mDelMaterial.empty())
-    {
-        materialId = mMaterials.size(); // add material to storage
-        mMaterials.push_back({});
-        material = &mMaterials.back();
-    }
-    else
-    {
-        materialId = mDelMaterial.top(); // get index from stack
-        mDelMaterial.pop(); // del taken index from stack
-        material = &mMaterials[materialId];
-    }
-    material->ambient = ambient;
-    material->diffuse = diffuse;
-    material->specular = specular;
-    material->emissive = emissive;
-    material->transparency = transparency;
-    material->opticalDensity = opticalDensity;
-    material->shininess = shininess;
-    material->illum = illum;
-    material->texAmbientId = texAmbientId;
-    material->texDiffuseId = texDiffuseId;
-    material->texSpecularId = texSpecularId;
-    material->texNormalId = texNormalId;
-    material->d = d;
-
-    return materialId;
-}
-
 uint32_t Scene::addMaterial(const Material& material)
 {
     // TODO: fix here
@@ -131,7 +85,7 @@ uint32_t Scene::createLight(const glm::float3& v0, const glm::float3& v1, const 
     l.v1 = v1;
     l.v2 = v2;
 
-    uint32_t lightId = (uint32_t) mLights.size();
+    uint32_t lightId = (uint32_t)mLights.size();
     mLights.push_back(l);
     return lightId;
 }

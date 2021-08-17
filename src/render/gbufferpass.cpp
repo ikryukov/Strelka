@@ -13,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
+const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
 
 namespace nevk
 {
@@ -346,7 +347,7 @@ void GbufferPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t) 2048; //mTextureImageView.size(); // TODO:
+    texLayoutBinding.descriptorCount = (uint32_t) BINDLESS_TEXTURE_COUNT; //mTextureImageView.size(); // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -606,7 +607,7 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
     bufferInfo.range = sizeof(UniformBufferObject);
 
     std::vector<VkDescriptorImageInfo> imageInfo;
-    imageInfo.resize(2048);
+    imageInfo.resize(BINDLESS_TEXTURE_COUNT);
 
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
@@ -650,7 +651,7 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.dstBinding = 1;
         descriptorWrite.dstArrayElement = 0;
         descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        descriptorWrite.descriptorCount = (uint32_t)2048;
+        descriptorWrite.descriptorCount = (uint32_t)BINDLESS_TEXTURE_COUNT;
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }

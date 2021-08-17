@@ -11,38 +11,25 @@ struct VertexInput
 
 struct Material
 {
-    float4 ambient; // Ka
     float4 diffuse; // Kd
-    float4 specular; // Ks
-    float4 emissive; // Ke
-    float4 transparency; //  d 1 -- прозрачность/непрозрачность
-    float opticalDensity; // Ni
-    float shininess; // Ns 16 --  блеск материала
-    uint32_t illum; // illum 2 -- модель освещения
-    int32_t texDiffuseId; // map_diffuse
-    int32_t texAmbientId; // map_ambient
-    int32_t texSpecularId; // map_specular
-    int32_t texNormalId; // map_normal - map_Bump
-    float d; // alpha value
-    //====PBR====
     float4 baseColorFactor;
+    uint32_t illum; // illum 2 -- модель освещения //4 bytes
+    int32_t texNormalId = -1; // map_normal - map_Bump
+    float d;
     float metallicFactor;
+
     float roughnessFactor;
-    int32_t metallicRoughnessTexture;
-    int32_t texBaseColor;
+    int32_t texBaseColor = -1;
+    int32_t texEmissive = -1;
+    int32_t sampEmissiveId = -1;
+
+    int32_t texOcclusion = -1;
+    int32_t sampOcclusionId = -1;
+    int32_t sampBaseId = -1;
+    int32_t sampNormalId = -1;
 
     float3 emissiveFactor;
-    int32_t texEmissive;
-
-    int32_t sampEmissiveId;
-    int32_t texOcclusion;
-    int32_t sampOcclusionId;
-    int32_t sampBaseId;
-
-    int32_t sampNormalId;
     int32_t pad0;
-    int32_t pad1;
-    int32_t pad2;
 };
 
 struct InstanceConstants

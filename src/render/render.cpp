@@ -53,10 +53,6 @@ void Render::initVulkan()
     uint32_t pbrVertShaderCodeSize = 0;
     const char* pbrFragShaderCode = nullptr;
     uint32_t pbrFragShaderCodeSize = 0;
-    const char* simpleVertShaderCode = nullptr;
-    uint32_t simpleVertShaderCodeSize = 0;
-    const char* simpleFragShaderCode = nullptr;
-    uint32_t simpleFragShaderCodeSize = 0;
 
     uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
     mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
@@ -69,12 +65,6 @@ void Render::initVulkan()
 
     mShaderManager.getShaderCode(pbrVertId, pbrVertShaderCode, pbrVertShaderCodeSize);
     mShaderManager.getShaderCode(pbrFragId, pbrFragShaderCode, pbrFragShaderCodeSize);
-
-    uint32_t simpleVertId = mShaderManager.loadShader("shaders/simple.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
-    uint32_t simpleFragId = mShaderManager.loadShader("shaders/simple.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
-
-    mShaderManager.getShaderCode(simpleVertId, simpleVertShaderCode, simpleVertShaderCodeSize);
-    mShaderManager.getShaderCode(simpleFragId, simpleFragShaderCode, simpleFragShaderCodeSize);
 
     createDescriptorPool();
     createCommandPool();
