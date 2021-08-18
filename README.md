@@ -36,8 +36,8 @@ Use vscode with preset env variable
            --width arg         window width (default: 800)
            --height arg        window height (default: 600)
            --perfTest          perf test mode
-           --framesDelay arg   frames delay (default: 0)
-           --framesReport arg  frames report (default: 0)
+           --framesDelay arg   frames delay (default: 100)
+           --framesReport arg  frames report (default: 10)
        -h, --help              print usage
 
 

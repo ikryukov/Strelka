@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 pathApp = r'cmake-build-debug/bin/nevk'
 pathMesh = r'misc/bathroom/LAZIENKA.gltf'
 
-framesDelay = 90
+framesDelay = 100
 framesReport = 10
 
 x = []  # resoulution
@@ -38,8 +38,8 @@ def collectData(width, height):
     y.append(avMs)
 
 # store data
-width = [640, 800, 960, 1440]
-height = [480, 600, 720, 1080]
+width = [640, 800, 960, 1440, 1920]
+height = [480, 600, 720, 1080, 1080]
 
 for i in range(len(width)):
     collectData(width[i], height[i])

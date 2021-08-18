@@ -16,8 +16,8 @@ int main(int argc, char** argv)
             ("width", "window width", cxxopts::value<uint32_t>()->default_value("800"))
                 ("height", "window height", cxxopts::value<uint32_t>()->default_value("600"))
                     ("perfTest", "perf test mode", cxxopts::value<bool>()->default_value("false"))
-                        ("framesDelay", "frames delay", cxxopts::value<uint32_t>()->default_value("0"))
-                            ("framesReport", "frames report", cxxopts::value<uint32_t>()->default_value("0"))
+                        ("framesDelay", "frames delay", cxxopts::value<uint32_t>()->default_value("100"))
+                            ("framesReport", "frames report", cxxopts::value<uint32_t>()->default_value("10"))
                                 ("h, help", "print usage");
 
     options.parse_positional({ "m", "t" });
