@@ -83,9 +83,6 @@
             "doubleSided" : true,
             "name" : "Material.006",
             "pbrMetallicRoughness" : {
-                "baseColorTexture" : {
-                    "index" : 0
-                },
                 "metallicFactor" : 0,
                 "roughnessFactor" : 0.5
             }
@@ -117,8 +114,7 @@
                 {
                     "attributes" : {
                         "POSITION" : 0,
-                        "NORMAL" : 1,
-                        "TEXCOORD_0" : 2
+                        "NORMAL" : 1
                     },
                     "indices" : 3
                 }
@@ -130,8 +126,7 @@
                 {
                     "attributes" : {
                         "POSITION" : 4,
-                        "NORMAL" : 5,
-                        "TEXCOORD_0" : 6
+                        "NORMAL" : 5
                     },
                     "indices" : 3,
                     "material" : 0
@@ -144,27 +139,12 @@
                 {
                     "attributes" : {
                         "POSITION" : 7,
-                        "NORMAL" : 8,
-                        "TEXCOORD_0" : 9,
-                        "TEXCOORD_1" : 10
+                        "NORMAL" : 8
                     },
                     "indices" : 3,
                     "material" : 1
                 }
             ]
-        }
-    ],
-    "textures" : [
-        {
-            "sampler" : 0,
-            "source" : 0
-        }
-    ],
-    "images" : [
-        {
-            "mimeType" : "image/png",
-            "name" : "brickwall",
-            "uri" : "brickwall.png"
         }
     ],
     "accessors" : [
@@ -320,12 +300,6 @@
             "buffer" : 0,
             "byteLength" : 24,
             "byteOffset" : 296
-        }
-    ],
-    "samplers" : [
-        {
-            "magFilter" : 9729,
-            "minFilter" : 9987
         }
     ],
     "buffers" : [
