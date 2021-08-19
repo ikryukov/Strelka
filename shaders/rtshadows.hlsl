@@ -36,7 +36,7 @@ struct Light
 
 struct Ray
 {
-    float4 o;
+    float4 o; // xyz - origin, w - max trace distance
     float4 d;
 };
 
@@ -66,7 +66,7 @@ bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax)
     return t1 >= t0;
 }
 
-bool intersectRayTri(Ray r, float3 v0, float3 e0, float3 e1)
+bool intersectRayTri(Ray r, float3 v0, float3 e0, float3 e1, out float t, out float u, out float v)
 {
     const float3 s1 = cross(r.d.xyz, e1);
     const float  invd = 1.0 / (dot(s1, e0));
@@ -82,6 +82,9 @@ bool intersectRayTri(Ray r, float3 v0, float3 e0, float3 e1)
     }
     else
     {
+        t = temp;
+        u = b1;
+        v = b2;
         return true;
     }
 }
@@ -97,7 +100,10 @@ bool anyHit(Ray ray)
         if (primitiveIndex != INVALID_INDEX) // leaf
         {
             const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
-            if (intersectRayTri(ray, v0, node.minBounds, node.maxBounds))
+            float2 bary;
+            float intersectionT = 1e10f;
+            bool isIntersected = intersectRayTri(ray, v0, node.minBounds, node.maxBounds, intersectionT, bary.x, bary.y);
+            if (isIntersected && intersectionT < ray.o.w)
             {
                 return true;
             }
