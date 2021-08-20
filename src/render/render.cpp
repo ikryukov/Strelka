@@ -925,8 +925,8 @@ void Render::createLightsBuffer(nevk::Scene& scene)
 
 void Render::createBvhBuffer(nevk::Scene& scene)
 {
-    std::vector<Scene::Vertex>& vertices = scene.getVertices();
-    std::vector<uint32_t>& indices = scene.getIndices();
+    const std::vector<Scene::Vertex>& vertices = scene.getVertices();
+    const std::vector<uint32_t>& indices = scene.getIndices();
     const std::vector<Instance>& instances = scene.getInstances();
     const std::vector<Mesh>& meshes = scene.getMeshes();
 
@@ -936,15 +936,18 @@ void Render::createBvhBuffer(nevk::Scene& scene)
     for (const Instance& currInstance : instances)
     {
         const uint32_t currentMeshId = currInstance.mMeshId;
-        const uint32_t indexOffset = meshes[currentMeshId].mIndex;
-        const uint32_t indexCount = meshes[currentMeshId].mCount;
+        const Mesh& mesh = meshes[currentMeshId];
+        const uint32_t indexOffset = mesh.mIndex;
+        const uint32_t indexCount = mesh.mCount;
+        assert(indexCount % 3 == 0);
+        const uint32_t triangleCount = indexCount / 3;
+        const glm::float4x4 m = currInstance.transform;
 
-        glm::float4x4 m = currInstance.transform;
-        for (uint32_t i = 0; i < indexCount;)
+        for (uint32_t i = 0; i < triangleCount; ++i)
         {
-            uint32_t i0 = indices[indexOffset + i + 0];
-            uint32_t i1 = indices[indexOffset + i + 1];
-            uint32_t i2 = indices[indexOffset + i + 2];
+            uint32_t i0 = indices[indexOffset + i * 3 + 0];
+            uint32_t i1 = indices[indexOffset + i * 3 + 1];
+            uint32_t i2 = indices[indexOffset + i * 3 + 2];
 
             glm::float3 v0 = m * glm::float4(vertices[i0].pos, 1.0);
             glm::float3 v1 = m * glm::float4(vertices[i1].pos, 1.0);
@@ -953,8 +956,6 @@ void Render::createBvhBuffer(nevk::Scene& scene)
             positions.push_back(v0);
             positions.push_back(v1);
             positions.push_back(v2);
-
-            i += 3;
         }
     }
 
@@ -1234,8 +1235,10 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
-    //mScene->createLight(glm::float3(0, 0, 10), glm::float3(0.5, 0.0, 10), glm::float3(0.0, 0.5, 10));
-    mScene->createLight(glm::float3(0, 50, 0), glm::float3(15, 50, 0.0), glm::float3(0.0, 50, 15));
+    //mScene->createLight(glm::float3(1.5, 0, 1.1), glm::float3(0.0, 0.0, 1.1), glm::float3(1.5, 1.5, 1.1));
+    mScene->createLight(glm::float3(0, 0, 0.5), glm::float3(0.5, 0.0, 0.5), glm::float3(0.0, 0.5, 0.5));
+    //mScene->createLight(glm::float3(-1.5, 1.2, 0), glm::float3(-1.5, 1.2, 0.2), glm::float3(-1.5, 1.8, 0.2));
+    //mScene->createLight(glm::float3(0, 50, 0), glm::float3(15, 50, 0.0), glm::float3(0.0, 50, 15));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);

@@ -66,30 +66,66 @@ bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax)
     return t1 >= t0;
 }
 
-bool intersectRayTri(Ray r, float3 v0, float3 e0, float3 e1, out float t, out float u, out float v)
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection
+bool RayTriangleIntersect(
+    const float3 orig,
+    const float3 dir,
+    const float3 v0,
+    const float3 e0,
+    const float3 e1,
+    inout float t,
+    inout float2 bCoord)
 {
-    const float3 s1 = cross(r.d.xyz, e1);
-    const float  invd = 1.0 / (dot(s1, e0));
-    const float3 d = r.o.xyz - v0;
-    const float  b1 = dot(d, s1) * invd;
-    const float3 s2 = cross(d, e0);
-    const float  b2 = dot(r.d.xyz, s2) * invd;
-    const float temp = dot(e1, s2) * invd;
+    const float3 pvec = cross(dir.xyz, e1);
 
-    if (b1 < 0.0 || b1 > 1.0 || b2 < 0.0 || b1 + b2 > 1.0 || temp < 0.0 || temp > r.o.w)
+    float det = dot(e0, pvec);
+
+    // Backface culling
+    if (det < 1e-6)
     {
         return false;
     }
-    else
+
+    // if (abs(det) < 1e-6)
+    // {
+    //     return false;
+    // }
+
+    float invDet = 1.0 / det;
+
+    float3 tvec = orig - v0;
+    float u = dot(tvec, pvec) * invDet;
+    if (u < 0.0 || u > 1.0)
     {
-        t = temp;
-        u = b1;
-        v = b2;
-        return true;
+        return false;
     }
+
+    float3 qvec = cross(tvec, e0);
+    float v = dot(dir, qvec) * invDet;
+    if (v < 0.0 || u + v > 1.0)
+    {
+        return false;
+    }
+
+    t = dot(e1, qvec) * invDet;
+
+    if (t < 0.0)
+    {
+        return false;
+    }
+
+    bCoord.x = u;
+    bCoord.y = v;
+
+    return true;
 }
 
-bool anyHit(Ray ray)
+struct Hit
+{
+    float t;    
+};
+
+bool anyHit(Ray ray, inout Hit hit)
 {
     const float3 invdir = 1.0 / ray.d.xyz;
     uint32_t nodeIndex = 0;
@@ -101,9 +137,9 @@ bool anyHit(Ray ray)
         {
             const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
             float2 bary;
-            float intersectionT = 1e10f;
-            bool isIntersected = intersectRayTri(ray, v0, node.minBounds, node.maxBounds, intersectionT, bary.x, bary.y);
-            if (isIntersected && intersectionT < ray.o.w)
+            //float intersectionT = 1e10f;
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
+            if (isIntersected && (hit.t < ray.o.w))
             {
                 return true;
             }
@@ -133,26 +169,29 @@ float calcShadow(uint2 pixelIndex)
         return 0;
     float3 wpos = gbWPos[pixelIndex].xyz;
 
-
     uint rngState = initRNG(pixelIndex, dimension, frameNumber);
 
     float2 rndUV = float2(rand(rngState), rand(rngState));
     float3 bary = UniformSampleTriangle(rndUV);
+    //float3 bary = float3(rndUV.x, rndUV.y, 1.0 - rndUV.x - rndUV.y);
 
-    float3 pointOnLight = (1.0 - bary.x - bary.y) * lights[0].v0 + bary.x * lights[0].v1 
-    + bary.y * lights[0].v2;
+    float3 pointOnLight = bary.z * lights[0].v0 + bary.x * lights[0].v1 + bary.y * lights[0].v2;
+    //float3 pointOnLight = float3(0.85, 0.65, 1.01);
+    //float3 pointOnLight = float3(6.0, 20.0, 6.0);
 
     float3 L = normalize(pointOnLight - wpos);
-    float3 N = gbNormal[pixelIndex].xyz;
+    float3 N = normalize(gbNormal[pixelIndex].xyz);
+    //float3 N = float3(0.0, 0.0, 1.0);
     
     Ray ray;
-
     ray.d = float4(L, 0.0);
+    //ray.d = float4(N, 0.0);
     float3 offset = N * 1e-5;
-    float distToLight = distance(L, wpos + offset);
+    float distToLight = distance(pointOnLight, wpos + offset);
     ray.o = float4(wpos + offset, distToLight);
-
-    if (dot(N, L) > 0.0 && anyHit(ray))
+    Hit hit;
+    hit.t = 0.0;
+    if ((dot(N, L) > 0.0) && anyHit(ray, hit))
     {
         return 0.1;
     }
