@@ -46,52 +46,38 @@
         },
         {
             "mesh" : 0,
-            "name" : "Plane",
+            "name" : "Mesh_0.001",
             "rotation" : [
                 0,
+                1,
                 0,
-                -0.7071068286895752,
-                0.7071068286895752
+                0
+            ],
+            "scale" : [
+                1.5,
+                1.5,
+                1.5
             ],
             "translation" : [
-                -1,
-                1.2884881496429443,
-                0
+                1.5,
+                0,
+                1
             ]
         },
         {
             "mesh" : 1,
-            "name" : "Plane.001",
-            "rotation" : [
-                0,
-                0,
-                -0.7071068286895752,
-                0.7071068286895752
-            ],
+            "name" : "Mesh_0",
             "scale" : [
-                2,
-                2,
-                2
-            ],
-            "translation" : [
-                -1.9686000347137451,
-                1.2884881496429443,
-                0
+                3,
+                3,
+                3
             ]
         }
     ],
     "materials" : [
         {
             "doubleSided" : true,
-            "name" : "Material.004",
-            "pbrMetallicRoughness" : {
-                "metallicFactor" : 0,
-                "roughnessFactor" : 0.5
-            }
-        },
-        {
-            "doubleSided" : true,
-            "name" : "Material.008",
+            "name" : "Material.006",
             "pbrMetallicRoughness" : {
                 "metallicFactor" : 0,
                 "roughnessFactor" : 0.5
@@ -100,20 +86,19 @@
     ],
     "meshes" : [
         {
-            "name" : "Plane",
+            "name" : "Mesh_0.003",
             "primitives" : [
                 {
                     "attributes" : {
                         "POSITION" : 0,
                         "NORMAL" : 1
                     },
-                    "indices" : 3,
-                    "material" : 0
+                    "indices" : 3
                 }
             ]
         },
         {
-            "name" : "Plane.001",
+            "name" : "Mesh_0.005",
             "primitives" : [
                 {
                     "attributes" : {
@@ -121,7 +106,7 @@
                         "NORMAL" : 5
                     },
                     "indices" : 3,
-                    "material" : 1
+                    "material" : 0
                 }
             ]
         }
@@ -130,107 +115,107 @@
         {
             "bufferView" : 0,
             "componentType" : 5126,
-            "count" : 4,
+            "count" : 3,
             "max" : [
                 1,
-                0,
-                1
+                1,
+                0
             ],
             "min" : [
-                -1,
                 0,
-                -1
+                0,
+                0
             ],
             "type" : "VEC3"
         },
         {
             "bufferView" : 1,
             "componentType" : 5126,
-            "count" : 4,
+            "count" : 3,
             "type" : "VEC3"
         },
         {
             "bufferView" : 2,
             "componentType" : 5126,
-            "count" : 4,
+            "count" : 3,
             "type" : "VEC2"
         },
         {
             "bufferView" : 3,
             "componentType" : 5123,
-            "count" : 6,
+            "count" : 3,
             "type" : "SCALAR"
         },
         {
             "bufferView" : 4,
             "componentType" : 5126,
-            "count" : 4,
+            "count" : 3,
             "max" : [
                 1,
-                0,
-                1
+                1,
+                0
             ],
             "min" : [
-                -1,
                 0,
-                -1
+                0,
+                0
             ],
             "type" : "VEC3"
         },
         {
             "bufferView" : 5,
             "componentType" : 5126,
-            "count" : 4,
+            "count" : 3,
             "type" : "VEC3"
         },
         {
             "bufferView" : 6,
             "componentType" : 5126,
-            "count" : 4,
+            "count" : 3,
             "type" : "VEC2"
         }
     ],
     "bufferViews" : [
         {
             "buffer" : 0,
-            "byteLength" : 48,
+            "byteLength" : 36,
             "byteOffset" : 0
         },
         {
             "buffer" : 0,
-            "byteLength" : 48,
-            "byteOffset" : 48
+            "byteLength" : 36,
+            "byteOffset" : 36
         },
         {
             "buffer" : 0,
-            "byteLength" : 32,
+            "byteLength" : 24,
+            "byteOffset" : 72
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 6,
             "byteOffset" : 96
         },
         {
             "buffer" : 0,
-            "byteLength" : 12,
-            "byteOffset" : 128
+            "byteLength" : 36,
+            "byteOffset" : 104
         },
         {
             "buffer" : 0,
-            "byteLength" : 48,
+            "byteLength" : 36,
             "byteOffset" : 140
         },
         {
             "buffer" : 0,
-            "byteLength" : 48,
-            "byteOffset" : 188
-        },
-        {
-            "buffer" : 0,
-            "byteLength" : 32,
-            "byteOffset" : 236
+            "byteLength" : 24,
+            "byteOffset" : 176
         }
     ],
     "buffers" : [
         {
-            "byteLength" : 268,
-            "uri" : "planesDef.bin"
+            "byteLength" : 200,
+            "uri" : "parallelTriangles.bin"
         }
     ]
 }
