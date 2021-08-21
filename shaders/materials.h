@@ -1,5 +1,10 @@
 #pragma once
 
+#ifdef __cplusplus
+#define float4 glm::float4
+#define float3 glm::float3
+#endif
+
 struct Material
 {
     float4 diffuse; // Kd
@@ -21,4 +26,10 @@ struct Material
 
     float3 emissiveFactor;
     int32_t pad0;
+
+    bool isTransparent()
+    {
+        // TODO:
+        return illum != 2;
+    }
 };

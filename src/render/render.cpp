@@ -881,9 +881,9 @@ void Render::createVertexBuffer(nevk::Scene& scene)
 
 void Render::createMaterialBuffer(nevk::Scene& scene)
 {
-    std::vector<nevk::Scene::Material>& sceneMaterials = scene.getMaterials();
+    std::vector<Material>& sceneMaterials = scene.getMaterials();
 
-    VkDeviceSize bufferSize = sizeof(nevk::Scene::Material) * sceneMaterials.size();
+    VkDeviceSize bufferSize = sizeof(Material) * sceneMaterials.size();
     if (bufferSize == 0)
     {
         return;

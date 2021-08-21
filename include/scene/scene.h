@@ -3,6 +3,10 @@
 #include "camera.h"
 #include "glm-wrapper.hpp"
 
+#include "materials.h"
+#undef float4
+#undef float3
+
 #include <cstdint>
 #include <set>
 #include <stack>
@@ -56,35 +60,6 @@ public:
         float pad1;
         glm::float3 v2;
         float pad2;
-    };
-
-    struct Material
-    {
-        glm::float4 diffuse; // Kd
-        glm::float4 baseColorFactor;
-        uint32_t illum; // illum 2 -- модель освещения //4 bytes
-        int32_t texNormalId = -1; // map_normal - map_Bump
-        float d;
-        float metallicFactor;
-
-        float roughnessFactor;
-        int32_t texBaseColor = -1;
-        int32_t texEmissive = -1;
-        int32_t sampEmissiveId = -1;
-
-        int32_t texOcclusion = -1;
-        int32_t sampOcclusionId = -1;
-        int32_t sampBaseId = -1;
-        int32_t sampNormalId = -1;
-
-        glm::float3 emissiveFactor;
-        int32_t pad0;
-
-        bool isTransparent()
-        {
-            // TODO:
-            return illum != 2;
-        }
     };
 
     enum class DebugView

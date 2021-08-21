@@ -1,6 +1,6 @@
+#include "materials.h"
 #include "pack.h"
 #include "shadow.h"
-#include "materials.h"
 
 struct VertexInput
 {
