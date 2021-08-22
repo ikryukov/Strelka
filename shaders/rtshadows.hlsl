@@ -52,7 +52,7 @@ RWTexture2D<float> output;
 #define INVALID_INDEX 0xFFFFFFFF
 #define PI 3.1415926535897
 
-bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax)
+bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax, inout float t)
 {
     const float3 f = (pmax.xyz - r.o.xyz) * invdir;
     const float3 n = (pmin.xyz - r.o.xyz) * invdir;
@@ -63,6 +63,7 @@ bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax)
     const float t1 = min(tmax.x, min(tmax.y, tmax.z));
     const float t0 = max(max(tmin.x, max(tmin.y, tmin.z)), 0.0f);
 
+    t = t0;
     return t1 >= t0;
 }
 
@@ -133,19 +134,24 @@ bool anyHit(Ray ray, inout Hit hit)
     {
         BVHNode node = bvhNodes[NonUniformResourceIndex(nodeIndex)];
         uint32_t primitiveIndex = node.instId;
+        float boxT = 1e9f;
         if (primitiveIndex != INVALID_INDEX) // leaf
         {
             const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
             float2 bary;
-            //float intersectionT = 1e10f;
             bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
             if (isIntersected && (hit.t < ray.o.w))
             {
                 return true;
             }
         }
-        else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds))
+        else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
         {
+            if (boxT > ray.o.w)
+            {
+                nodeIndex = node.nodeOffset;
+                continue;
+            }
             ++nodeIndex;
             continue;
         }
