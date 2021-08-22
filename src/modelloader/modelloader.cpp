@@ -388,10 +388,10 @@ glm::float4x4 getTransform(const tinygltf::Node& node, const float globalScale)
         if (!node.rotation.empty())
         {
             const float floatRotation[4] = {
+                (float)node.rotation[3],
                 (float)node.rotation[0],
                 (float)node.rotation[1],
-                (float)node.rotation[2],
-                (float)node.rotation[3]
+                (float)node.rotation[2]
             };
             rotation = glm::make_quat(floatRotation);
         }
