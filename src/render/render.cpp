@@ -1232,10 +1232,8 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
-    //mScene->createLight(glm::float3(1.5, 0, 1.1), glm::float3(0.0, 0.0, 1.1), glm::float3(1.5, 1.5, 1.1));
-    mScene->createLight(glm::float3(0, 0, 0.5), glm::float3(0.5, 0.0, 0.5), glm::float3(0.0, 0.5, 0.5));
-    //mScene->createLight(glm::float3(-1.5, 1.2, 0), glm::float3(-1.5, 1.2, 0.2), glm::float3(-1.5, 1.8, 0.2));
-    //mScene->createLight(glm::float3(0, 50, 0), glm::float3(15, 50, 0.0), glm::float3(0.0, 50, 15));
+    // for pica pica
+    mScene->createLight(glm::float3(0, 50, 0), glm::float3(15, 50, 0.0), glm::float3(0.0, 50, 15));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);

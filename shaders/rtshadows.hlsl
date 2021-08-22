@@ -140,14 +140,14 @@ bool anyHit(Ray ray, inout Hit hit)
             const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
             float2 bary;
             bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
-            if (isIntersected && (hit.t < ray.o.w))
+            if (isIntersected && (hit.t < ray.o.w)) // check max ray trace distance
             {
                 return true;
             }
         }
         else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
         {
-            if (boxT > ray.o.w)
+            if (boxT > ray.o.w) // check max ray trace distance: skip this node if collision far away
             {
                 nodeIndex = node.nodeOffset;
                 continue;
@@ -179,20 +179,15 @@ float calcShadow(uint2 pixelIndex)
 
     float2 rndUV = float2(rand(rngState), rand(rngState));
     float3 bary = UniformSampleTriangle(rndUV);
-    //float3 bary = float3(rndUV.x, rndUV.y, 1.0 - rndUV.x - rndUV.y);
 
     float3 pointOnLight = bary.z * lights[0].v0 + bary.x * lights[0].v1 + bary.y * lights[0].v2;
-    //float3 pointOnLight = float3(0.85, 0.65, 1.01);
-    //float3 pointOnLight = float3(6.0, 20.0, 6.0);
 
     float3 L = normalize(pointOnLight - wpos);
     float3 N = normalize(gbNormal[pixelIndex].xyz);
-    //float3 N = float3(0.0, 0.0, 1.0);
     
     Ray ray;
     ray.d = float4(L, 0.0);
-    //ray.d = float4(N, 0.0);
-    float3 offset = N * 1e-5;
+    const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
     float distToLight = distance(pointOnLight, wpos + offset);
     ray.o = float4(wpos + offset, distToLight);
     Hit hit;
