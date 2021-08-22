@@ -3,6 +3,10 @@
 #include "camera.h"
 #include "glm-wrapper.hpp"
 
+#include "materials.h"
+#undef float4
+#undef float3
+
 #include <cstdint>
 #include <set>
 #include <stack>
@@ -56,49 +60,6 @@ public:
         float pad1;
         glm::float3 v2;
         float pad2;
-    };
-
-    struct Material
-    {
-        glm::float4 ambient; // Ka
-        glm::float4 diffuse; // Kd
-        glm::float4 specular; // Ks
-        glm::float4 emissive; // Ke
-        glm::float4 transparency; //  d 1 -- прозрачность/непрозрачность
-        float opticalDensity; // Ni
-        float shininess; // Ns 16 --  блеск материала
-        uint32_t illum; // illum 2 -- модель освещения
-        int32_t texDiffuseId = -1; // map_diffuse
-        int32_t texAmbientId = -1; // map_ambient
-        int32_t texSpecularId = -1; // map_specular
-        int32_t texNormalId = -1; // map_normal - map_Bump
-        float d;
-        //====PBR====
-        glm::float4 baseColorFactor;
-
-        float metallicFactor;
-        float roughnessFactor;
-        int32_t metallicRoughnessTexture = -1; // ? need sampler ?
-        int32_t texBaseColor = -1;
-
-        glm::float3 emissiveFactor;
-        int32_t texEmissive = -1;
-
-        int32_t sampEmissiveId = -1;
-        int32_t texOcclusion = -1;
-        int32_t sampOcclusionId = -1;
-        int32_t sampBaseId = -1;
-
-        int32_t sampNormalId = -1;
-        int32_t pad0;
-        int32_t pad1;
-        int32_t pad2;
-
-        bool isTransparent()
-        {
-            // TODO:
-            return illum != 2;
-        }
     };
 
     enum class DebugView
@@ -202,24 +163,6 @@ public:
     /// <param name="transform">transform</param>
     /// <returns>Instance id in scene</returns>
     uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter);
-    /// <summary>
-    /// Creates Material
-    /// </summary>
-    /// <param name="color">Color</param>
-    /// <returns>Nothing</returns>
-    uint32_t createMaterial(const glm::float4& ambient,
-                            const glm::float4& diffuse,
-                            const glm::float4& specular,
-                            const glm::float4& emissive,
-                            const glm::float4& transparency,
-                            float opticalDensity,
-                            float shininess,
-                            uint32_t illum,
-                            uint32_t texAmbientId,
-                            uint32_t texDiffuseId,
-                            uint32_t texSpeculaId,
-                            uint32_t texNormalId,
-                            float d);
 
     uint32_t addMaterial(const Material& material);
 

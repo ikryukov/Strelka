@@ -8,16 +8,15 @@ namespace fs = std::filesystem;
 int main(int argc, char** argv)
 {
     // config. options
-    cxxopts::Options options("nevk [MODEL PATH] [MTL PATH]", "commands");
+    cxxopts::Options options("nevk [MODEL PATH]", "commands");
 
     options.add_options()
         ("m, mesh", "mesh path", cxxopts::value<std::string>()->default_value("")) //misc/Cube/Cube.gltf
-        ("t, texture", "texture path", cxxopts::value<std::string>()->default_value("misc/"))
                 ("width", "window width", cxxopts::value<uint32_t>()->default_value("800"))
                 ("height", "window height", cxxopts::value<uint32_t>()->default_value("600"))
                     ("h, help", "Print usage");
 
-    options.parse_positional({ "m", "t" });
+    options.parse_positional({"m"});
     auto result = options.parse(argc, argv);
 
     if (result.count("help"))
@@ -28,15 +27,9 @@ int main(int argc, char** argv)
 
     // check params
     std::string mesh(result["m"].as<std::string>());
-    std::string texture(result["t"].as<std::string>());
     if (!fs::exists(mesh) && !mesh.empty())
     {
         std::cerr << "mesh file doesn't exist";
-        exit(0);
-    }
-    if (!fs::exists(texture))
-    {
-        std::cerr << "texture file doesn't exist";
         exit(0);
     }
 
@@ -44,7 +37,6 @@ int main(int argc, char** argv)
     Render r;
 
     r.MODEL_PATH = mesh;
-    r.MTL_PATH = texture;
     r.WIDTH = result["width"].as<uint32_t>();
     r.HEIGHT = result["height"].as<uint32_t>();
 

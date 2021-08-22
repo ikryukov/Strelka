@@ -90,7 +90,6 @@ public:
     }
 
     std::string MODEL_PATH;
-    std::string MTL_PATH;
     uint32_t WIDTH;
     uint32_t HEIGHT;
 
@@ -226,8 +225,6 @@ private:
     nevk::ShaderManager mShaderManager;
     nevk::Scene* mScene = nullptr;
     nevk::Scene* mDefaultScene = nullptr;
-
-    bool isPBR = true;
 
     void loadScene(const std::string& modelPath);
 

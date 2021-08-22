@@ -1,3 +1,5 @@
+#include "materials.h"
+
 cbuffer ubo
 {
     float4x4 viewToProj;
@@ -8,42 +10,6 @@ cbuffer ubo
     uint32_t debugView;
     float pad1;
 }
-
-struct Material
-{
-    float4 ambient; // Ka
-    float4 diffuse; // Kd
-    float4 specular; // Ks
-    float4 emissive; // Ke
-    float4 transparency; //  d 1 -- прозрачность/непрозрачность
-    float opticalDensity; // Ni
-    float shininess; // Ns 16 --  блеск материала
-    uint32_t illum; // illum 2 -- модель освещения
-    int32_t texDiffuseId; // map_diffuse
-    int32_t texAmbientId; // map_ambient
-    int32_t texSpecularId; // map_specular
-    int32_t texNormalId; // map_normal - map_Bump
-    float d; // alpha value
-    //====PBR====
-    float4 baseColorFactor;
-    float metallicFactor;
-    float roughnessFactor;
-    int32_t metallicRoughnessTexture;
-    int32_t texBaseColor;
-
-    float3 emissiveFactor;
-    int32_t texEmissive;
-
-    int32_t sampEmissiveId;
-    int32_t texOcclusion;
-    int32_t sampOcclusionId;
-    int32_t sampBaseId;
-
-    int32_t sampNormalId;
-    int32_t pad0;
-    int32_t pad1;
-    int32_t pad2;
-};
 
 struct InstanceConstants
 {

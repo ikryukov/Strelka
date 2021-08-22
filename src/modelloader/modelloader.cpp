@@ -88,166 +88,6 @@ void ModelLoader::computeTangent(std::vector<Scene::Vertex>& vertices,
     v2.tangent = packedTangent;
 }
 
-bool ModelLoader::loadModel(const std::string& modelFile, const std::string& mtlPath, nevk::Scene& scene)
-{
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
-
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, modelFile.c_str(), mtlPath.c_str(), true);
-    if (!ret)
-    {
-        throw std::runtime_error(warn + err);
-    }
-
-    const bool hasMaterial = !mtlPath.empty() && !materials.empty();
-
-    std::unordered_map<std::string, uint32_t> uniqueMaterial{};
-    for (tinyobj::shape_t& shape : shapes)
-    {
-        uint32_t shapeMaterialId = 0; // TODO: make default material
-        if (hasMaterial)
-        {
-            Scene::Material material{};
-            const int materialIdx = shape.mesh.material_ids[0]; // assume that material per-shape
-            const tinyobj::material_t& currMaterial = materials[materialIdx];
-            const std::string& matName = currMaterial.name;
-
-            if (uniqueMaterial.count(matName) == 0)
-            {
-                // need to create material
-                material.ambient = { currMaterial.ambient[0],
-                                     currMaterial.ambient[1],
-                                     currMaterial.ambient[2], 1.0f };
-
-                material.diffuse = { currMaterial.diffuse[0],
-                                     currMaterial.diffuse[1],
-                                     currMaterial.diffuse[2], 1.0f };
-
-                material.specular = { currMaterial.specular[0],
-                                      currMaterial.specular[1],
-                                      currMaterial.specular[2], 1.0f };
-
-                material.emissive = { currMaterial.emission[0],
-                                      currMaterial.emission[1],
-                                      currMaterial.emission[2], 1.0f };
-
-                material.opticalDensity = currMaterial.ior;
-
-                material.shininess = currMaterial.shininess;
-
-                material.transparency = { currMaterial.transmittance[0],
-                                          currMaterial.transmittance[1],
-                                          currMaterial.transmittance[2], 1.0f };
-
-                material.illum = currMaterial.illum;
-
-                material.texAmbientId = mTexManager->loadTexture(currMaterial.ambient_texname, mtlPath);
-                material.texDiffuseId = mTexManager->loadTexture(currMaterial.diffuse_texname, mtlPath);
-                material.texSpecularId = mTexManager->loadTexture(currMaterial.specular_texname, mtlPath);
-                material.texNormalId = mTexManager->loadTexture(currMaterial.bump_texname, mtlPath);
-                material.d = currMaterial.dissolve;
-
-                uint32_t matId = scene.createMaterial(material.ambient, material.diffuse,
-                                                      material.specular, material.emissive,
-                                                      material.transparency, material.opticalDensity,
-                                                      material.shininess, material.illum,
-                                                      material.texAmbientId, material.texDiffuseId,
-                                                      material.texSpecularId, material.texNormalId,
-                                                      material.d);
-
-                uniqueMaterial[matName] = matId;
-                shapeMaterialId = matId;
-            }
-            else
-            {
-                // reuse existing material
-                shapeMaterialId = uniqueMaterial[matName];
-            }
-        }
-
-        std::vector<Scene::Vertex> _vertices;
-        std::vector<uint32_t> _indices;
-        size_t index_offset = 0;
-        for (size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++)
-        {
-            tinyobj::index_t& idx0 = shape.mesh.indices[f + 0];
-            tinyobj::index_t& idx1 = shape.mesh.indices[f + 1];
-            tinyobj::index_t& idx2 = shape.mesh.indices[f + 2];
-
-            const int verticesPerFace = shape.mesh.num_face_vertices[f];
-            assert(verticesPerFace == 3); // ensure that we load triangulated faces
-            for (int v = 0; v < verticesPerFace; ++v)
-            {
-                Scene::Vertex vertex{};
-                const auto& idx = shape.mesh.indices[index_offset + v];
-                vertex.pos = {
-                    attrib.vertices[3 * idx.vertex_index + 0],
-                    attrib.vertices[3 * idx.vertex_index + 1],
-                    attrib.vertices[3 * idx.vertex_index + 2]
-                };
-
-                if (attrib.texcoords.empty())
-                {
-                    vertex.uv = packUV(glm::float2(0.0f, 0.0f));
-                }
-                else
-                {
-                    if ((idx0.texcoord_index < 0) || (idx1.texcoord_index < 0) ||
-                        (idx2.texcoord_index < 0))
-                    {
-                        vertex.uv = packUV(glm::float2(0.0f, 0.0f));
-                    }
-                    else
-                    {
-                        vertex.uv = packUV(glm::float2(attrib.texcoords[2 * idx.texcoord_index + 0],
-                                                       1.0f - attrib.texcoords[2 * idx.texcoord_index + 1]));
-                    }
-                }
-
-                if (attrib.normals.empty())
-                {
-                    vertex.normal = packNormal(glm::float3(0.0f, 0.0f, 0.0f));
-                }
-                else
-                {
-                    vertex.normal = packNormal(glm::float3(attrib.normals[3 * idx.normal_index + 0],
-                                                           attrib.normals[3 * idx.normal_index + 1],
-                                                           attrib.normals[3 * idx.normal_index + 2]));
-                }
-
-                _indices.push_back(static_cast<uint32_t>(_vertices.size()));
-                _vertices.push_back(vertex);
-            }
-            index_offset += verticesPerFace;
-
-            computeTangent(_vertices, _indices);
-        }
-
-        glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
-        for (const Scene::Vertex& vertPos : _vertices)
-        {
-            sum += vertPos.pos;
-        }
-        glm::float3 massCenter = glm::float3(sum.x / _vertices.size(),
-                                             sum.y / _vertices.size(),
-                                             sum.z / _vertices.size());
-
-
-        uint32_t meshId = scene.createMesh(_vertices, _indices);
-        assert(meshId != -1);
-        glm::float4x4 transform{ 1.0f };
-        glm::translate(transform, glm::float3(0.0f, 0.0f, 0.0f));
-        uint32_t instId = scene.createInstance(meshId, shapeMaterialId, transform, massCenter);
-        assert(instId != -1);
-    }
-
-    //mTexManager->createTextureSampler();
-
-    return ret;
-}
-
 void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Primitive& primitive, const glm::float4x4& transform, const float globalScale)
 {
     using namespace std;
@@ -540,7 +380,7 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
 {
     for (const tinygltf::Material& material : model.materials)
     {
-        Scene::Material currMaterial{};
+        Material currMaterial{};
 
         currMaterial.diffuse = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
                                            material.pbrMetallicRoughness.baseColorFactor[1],
@@ -564,7 +404,7 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                                   material.emissiveFactor[1],
                                                   material.emissiveFactor[2]);
         currMaterial.texEmissive = material.emissiveTexture.index;
-       currMaterial.sampEmissiveId = texIdToModelSamp.find(currMaterial.texEmissive)->second;
+        currMaterial.sampEmissiveId = texIdToModelSamp.find(currMaterial.texEmissive)->second;
 
         currMaterial.texOcclusion = material.occlusionTexture.index;
         currMaterial.sampOcclusionId = texIdToModelSamp.find(currMaterial.texOcclusion)->second;

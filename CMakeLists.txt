@@ -64,6 +64,7 @@ set(SCENELIB_NAME scene)
 add_library(${SCENELIB_NAME} OBJECT ${SCENE_SOURCES})
 target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/scene)
+target_include_directories(${SCENELIB_NAME} PUBLIC shaders/)
 target_include_directories(${SCENELIB_NAME} PUBLIC external/glm)
 
 # UI
@@ -86,6 +87,7 @@ set(UILIB_NAME ui)
 add_library(${UILIB_NAME} OBJECT ${UI_SOURCES})
 target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ui)
+target_include_directories(${UILIB_NAME} PUBLIC shaders/)
 target_include_directories(${UILIB_NAME} PUBLIC external/imgui/include)
 target_include_directories(${UILIB_NAME} PRIVATE external/glfw/include)
 target_include_directories(${UILIB_NAME} PUBLIC external/glm)
@@ -135,6 +137,7 @@ set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/render)
+target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/shaders/)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${EMBREE_INCLUDE_PATH})
 
 # Model loader lib
