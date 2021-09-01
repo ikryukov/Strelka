@@ -14,6 +14,7 @@ struct Ray
     float4 d;
 };
 
+// https://interplayoflight.wordpress.com/2018/07/04/hybrid-raytraced-shadows-and-reflections/
 bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax, inout float t)
 {
     const float3 f = float3(pmax.x - r.o.x, pmax.y - r.o.y, pmax.z - r.o.z) * invdir;
