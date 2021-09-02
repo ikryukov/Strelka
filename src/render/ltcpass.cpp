@@ -1,4 +1,4 @@
-#include "rtshadowpass.h"
+#include "ltcpass.h"
 
 #include <array>
 #include <stdexcept>
@@ -15,15 +15,15 @@
 
 namespace nevk
 {
-RtShadowPass::RtShadowPass(/* args */)
+LtcPass::LtcPass(/* args */)
 {
 }
 
-RtShadowPass::~RtShadowPass()
+LtcPass::~LtcPass()
 {
 }
 
-void RtShadowPass::createComputePipeline(VkShaderModule& shaderModule)
+void LtcPass::createComputePipeline(VkShaderModule& shaderModule)
 {
     VkPipelineShaderStageCreateInfo shaderStageInfo{};
     shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -53,7 +53,7 @@ void RtShadowPass::createComputePipeline(VkShaderModule& shaderModule)
     }
 }
 
-VkShaderModule RtShadowPass::createShaderModule(const char* code, const uint32_t codeSize)
+VkShaderModule LtcPass::createShaderModule(const char* code, const uint32_t codeSize)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -69,7 +69,7 @@ VkShaderModule RtShadowPass::createShaderModule(const char* code, const uint32_t
     return shaderModule;
 }
 
-void RtShadowPass::createDescriptorSetLayout()
+void LtcPass::createDescriptorSetLayout()
 {
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
@@ -100,33 +100,49 @@ void RtShadowPass::createDescriptorSetLayout()
     texNormalLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     texNormalLayoutBinding.binding = 2;
     bindings.push_back(texNormalLayoutBinding);
-
-    VkDescriptorSetLayoutBinding bvhNodeLayoutBinding{};
-    bvhNodeLayoutBinding.binding = 3;
-    bvhNodeLayoutBinding.descriptorCount = 1;
-    bvhNodeLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    bvhNodeLayoutBinding.pImmutableSamplers = nullptr;
-    bvhNodeLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    bindings.push_back(bvhNodeLayoutBinding);
-    
-    VkDescriptorSetLayoutBinding bvhTriangleLayoutBinding{};
-    bvhTriangleLayoutBinding.binding = 4;
-    bvhTriangleLayoutBinding.descriptorCount = 1;
-    bvhTriangleLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    bvhTriangleLayoutBinding.pImmutableSamplers = nullptr;
-    bvhTriangleLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    bindings.push_back(bvhTriangleLayoutBinding);
     
     VkDescriptorSetLayoutBinding lightsLayoutBinding{};
-    lightsLayoutBinding.binding = 5;
+    lightsLayoutBinding.binding = 3;
     lightsLayoutBinding.descriptorCount = 1;
     lightsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     lightsLayoutBinding.pImmutableSamplers = nullptr;
     lightsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     bindings.push_back(lightsLayoutBinding);
 
+    VkDescriptorSetLayoutBinding materialsLayoutBinding{};
+    materialsLayoutBinding.binding = 4;
+    materialsLayoutBinding.descriptorCount = 1;
+    materialsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    materialsLayoutBinding.pImmutableSamplers = nullptr;
+    materialsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(materialsLayoutBinding);
+
+    VkDescriptorSetLayoutBinding ltc1LayoutBinding{};
+    ltc1LayoutBinding.binding = 5;
+    ltc1LayoutBinding.descriptorCount = 1;
+    ltc1LayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    ltc1LayoutBinding.pImmutableSamplers = nullptr;
+    ltc1LayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(ltc1LayoutBinding);
+
+    VkDescriptorSetLayoutBinding ltc2LayoutBinding{};
+    ltc2LayoutBinding.binding = 6;
+    ltc2LayoutBinding.descriptorCount = 1;
+    ltc2LayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    ltc2LayoutBinding.pImmutableSamplers = nullptr;
+    ltc2LayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(ltc2LayoutBinding);
+
+    VkDescriptorSetLayoutBinding ltc2SamplerLayoutBinding{};
+    ltc2SamplerLayoutBinding.binding = 7;
+    ltc2SamplerLayoutBinding.descriptorCount = 1;
+    ltc2SamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    ltc2SamplerLayoutBinding.pImmutableSamplers = nullptr;
+    ltc2SamplerLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(ltc2SamplerLayoutBinding);
+
     VkDescriptorSetLayoutBinding outLayoutBinding{};
-    outLayoutBinding.binding = 6;
+    outLayoutBinding.binding = 8;
     outLayoutBinding.descriptorCount = 1;
     outLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     outLayoutBinding.pImmutableSamplers = nullptr;
@@ -144,7 +160,7 @@ void RtShadowPass::createDescriptorSetLayout()
     }
 }
 
-void RtShadowPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
+void LtcPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, mDescriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -160,7 +176,7 @@ void RtShadowPass::createDescriptorSets(VkDescriptorPool& descriptorPool)
     }
 }
 
-void RtShadowPass::updateDescriptorSet(uint32_t descIndex)
+void LtcPass::updateDescriptorSet(uint32_t descIndex)
 {
     VkDescriptorSet& dstDescSet = mDescriptorSets[descIndex];
 
@@ -215,40 +231,6 @@ void RtShadowPass::updateDescriptorSet(uint32_t descIndex)
         descriptorWrites.push_back(descWrite);
     }
 
-    VkDescriptorBufferInfo bvhNodeInfo{};
-    bvhNodeInfo.buffer = mBvhNodeBuffer;
-    bvhNodeInfo.offset = 0;
-    bvhNodeInfo.range = VK_WHOLE_SIZE;
-
-    {
-        VkWriteDescriptorSet descWrite{};
-        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 3;
-        descWrite.dstArrayElement = 0;
-        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        descWrite.descriptorCount = 1;
-        descWrite.pBufferInfo = &bvhNodeInfo;
-        descriptorWrites.push_back(descWrite);
-    }
-    
-    VkDescriptorBufferInfo bvhTriangleInfo{};
-    bvhTriangleInfo.buffer = mBvhTriangleBuffer;
-    bvhTriangleInfo.offset = 0;
-    bvhTriangleInfo.range = VK_WHOLE_SIZE;
-
-    {
-        VkWriteDescriptorSet descWrite{};
-        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 4;
-        descWrite.dstArrayElement = 0;
-        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        descWrite.descriptorCount = 1;
-        descWrite.pBufferInfo = &bvhTriangleInfo;
-        descriptorWrites.push_back(descWrite);
-    }
-
     VkDescriptorBufferInfo lightsInfo{};
     lightsInfo.buffer = mLightsBuffer;
     lightsInfo.offset = 0;
@@ -258,7 +240,7 @@ void RtShadowPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 5;
+        descWrite.dstBinding = 3;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descWrite.descriptorCount = 1;
@@ -266,15 +248,76 @@ void RtShadowPass::updateDescriptorSet(uint32_t descIndex)
         descriptorWrites.push_back(descWrite);
     }
 
-    VkDescriptorImageInfo outputImageInfo{};
-    outputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    outputImageInfo.imageView = mOutImageView;
+    VkDescriptorBufferInfo materialsInfo{};
+    materialsInfo.buffer = mMaterialBuffer;
+    materialsInfo.offset = 0;
+    materialsInfo.range = VK_WHOLE_SIZE;
 
     {
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 4;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descWrite.descriptorCount = 1;
+        descWrite.pBufferInfo = &materialsInfo;
+        descriptorWrites.push_back(descWrite);
+    }
+
+    VkDescriptorImageInfo imageInfoLtc1{};
+    imageInfoLtc1.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfoLtc1.imageView = mLtc1ImageView;
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 5;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        descWrite.descriptorCount = 1;
+        descWrite.pImageInfo = &imageInfoLtc1;
+        descriptorWrites.push_back(descWrite);
+    }
+
+    VkDescriptorImageInfo imageInfoLtc2{};
+    imageInfoLtc2.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfoLtc2.imageView = mLtc2ImageView;
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
         descWrite.dstBinding = 6;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        descWrite.descriptorCount = 1;
+        descWrite.pImageInfo = &imageInfoLtc2;
+        descriptorWrites.push_back(descWrite);
+    }
+
+    VkDescriptorImageInfo imageInfoLtcSampler{};
+    imageInfoLtcSampler.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfoLtcSampler.sampler = mLTCSampler;
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 7;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descWrite.descriptorCount = 1;
+        descWrite.pImageInfo = &imageInfoLtcSampler;
+        descriptorWrites.push_back(descWrite);
+    }
+
+    VkDescriptorImageInfo outputImageInfo{};
+    outputImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    outputImageInfo.imageView = mOutImageView;
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 8;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         descWrite.descriptorCount = 1;
@@ -286,7 +329,7 @@ void RtShadowPass::updateDescriptorSet(uint32_t descIndex)
     needDesciptorSetUpdate[descIndex] = false;
 }
 
-void RtShadowPass::updateDescriptorSets()
+void LtcPass::updateDescriptorSets()
 {
     for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
@@ -294,7 +337,7 @@ void RtShadowPass::updateDescriptorSets()
     }
 }
 
-void RtShadowPass::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
+void LtcPass::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
 {
     if (needDesciptorSetUpdate[imageIndex])
     {
@@ -308,7 +351,7 @@ void RtShadowPass::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height,
     vkCmdDispatch(cmd, dispX, dispY, 1);
 }
 
-void RtShadowPass::createUniformBuffers()
+void LtcPass::createUniformBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -320,7 +363,7 @@ void RtShadowPass::createUniformBuffers()
     }
 }
 
-void RtShadowPass::updateUniformBuffer(uint32_t currentImage, uint64_t frameNumber, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height)
+void LtcPass::updateUniformBuffer(uint32_t currentImage, uint64_t frameNumber, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height)
 {
     UniformBufferObject ubo{};
     ubo.dimension.x = width;
@@ -338,7 +381,7 @@ void RtShadowPass::updateUniformBuffer(uint32_t currentImage, uint64_t frameNumb
     memcpy(data, &ubo, sizeof(ubo));
 }
 
-void RtShadowPass::onDestroy()
+void LtcPass::onDestroy()
 {
     for (size_t i = 0; i < uniformBuffers.size(); ++i)
     {
@@ -350,17 +393,7 @@ void RtShadowPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void RtShadowPass::setBvhBuffers(VkBuffer nodeBuffer, VkBuffer triangleBuffer)
-{
-    mBvhNodeBuffer = nodeBuffer;
-    mBvhTriangleBuffer = triangleBuffer;
-    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        needDesciptorSetUpdate[i] = true;
-    }
-}
-
-void RtShadowPass::setLightsBuffer(VkBuffer buffer)
+void LtcPass::setLightsBuffer(VkBuffer buffer)
 {
     mLightsBuffer = buffer;
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
@@ -369,7 +402,27 @@ void RtShadowPass::setLightsBuffer(VkBuffer buffer)
     }
 }
 
-void RtShadowPass::setGbuffer(GBuffer* gbuffer)
+void LtcPass::setMaterialsBuffer(VkBuffer buffer)
+{
+    mMaterialBuffer = buffer;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
+}
+
+void LtcPass::setLtcResources(VkImageView ltc1, VkImageView ltc2, VkSampler ltcSampler)
+{
+    mLtc1ImageView = ltc1;
+    mLtc2ImageView = ltc2;
+    mLTCSampler = ltcSampler;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
+}
+
+void LtcPass::setGbuffer(GBuffer* gbuffer)
 {
     mGbuffer = gbuffer;
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
@@ -378,7 +431,7 @@ void RtShadowPass::setGbuffer(GBuffer* gbuffer)
     }
 }
 
-void RtShadowPass::setOutputImageView(VkImageView imageView)
+void LtcPass::setOutputImageView(VkImageView imageView)
 {
     mOutImageView = imageView;
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
@@ -387,7 +440,7 @@ void RtShadowPass::setOutputImageView(VkImageView imageView)
     }
 }
 
-void RtShadowPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr)
+void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr)
 {
     mDevice = device;
     mResMngr = resMngr;
