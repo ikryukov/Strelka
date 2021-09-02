@@ -31,7 +31,7 @@ private:
     VkPipelineLayout mPipelineLayout;
     VkShaderModule mCS;
 
-    ResourceManager* mResMngr = nullptr;
+    ResourceManager* mResManager = nullptr;
 
     VkDescriptorSetLayout mDescriptorSetLayout;
     std::vector<VkDescriptorSet> mDescriptorSets;
@@ -43,10 +43,13 @@ private:
     GBuffer* mGbuffer = nullptr;
     VkBuffer mLightsBuffer = VK_NULL_HANDLE;
     VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
-
+    VkBuffer mInstanceConstantsBuffer = VK_NULL_HANDLE;
+    
     VkImageView mLtc1ImageView = VK_NULL_HANDLE;
+    nevk::Image* mLtc1Image = nullptr;
     VkImageView mLtc2ImageView = VK_NULL_HANDLE;
-    VkSampler mLTCSampler;
+    nevk::Image* mLtc2Image = nullptr;
+    VkSampler mLTCSampler = VK_NULL_HANDLE;
 
     VkImageView mOutImageView = VK_NULL_HANDLE;
 
@@ -70,6 +73,7 @@ public:
 
     void setLightsBuffer(VkBuffer buffer);
     void setMaterialsBuffer(VkBuffer buffer);
+    void setInstanceBuffer(VkBuffer buffer);
     void setLtcResources(VkImageView ltc1, VkImageView ltc2, VkSampler ltcSampler);
     void setGbuffer(GBuffer* gbuffer);
     void setOutputImageView(VkImageView imageView);

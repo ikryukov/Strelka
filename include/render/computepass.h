@@ -31,7 +31,7 @@ private:
     VkPipelineLayout mPipelineLayout;
     VkShaderModule mCS;
 
-    ResourceManager* mResMngr;
+    ResourceManager* mResManager;
 
     VkDescriptorSetLayout mDescriptorSetLayout;
     std::vector<VkDescriptorSet> mDescriptorSets;

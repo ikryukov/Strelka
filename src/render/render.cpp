@@ -108,6 +108,27 @@ void Render::initVulkan()
         mRtShadowPass.init(mDevice, csRtShaderCode, csRtShaderCodeSize, mDescriptorPool, mResManager);
     }
 
+    // LTC
+    {
+        const char* csLtcShaderCode = nullptr;
+        uint32_t csLtcShaderCodeSize = 0;
+        uint32_t csLtcId = mShaderManager.loadShader("shaders/ltc.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
+        mShaderManager.getShaderCode(csLtcId, csLtcShaderCode, csLtcShaderCodeSize);
+        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                  VK_IMAGE_TILING_OPTIMAL,
+                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+        mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
+
+
+
+        mLtcPass.setGbuffer(&mGbuffer);
+        mLtcPass.setOutputImageView(mLtcOutputImageView);
+
+        mLtcPass.init(mDevice, csLtcShaderCode, csLtcShaderCodeSize, mDescriptorPool, mResManager);
+    
+    }
+
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
     if (!MODEL_PATH.empty())
@@ -339,6 +360,7 @@ void Render::cleanup()
     mGbufferPass.onDestroy();
     mRtShadowPass.onDestroy();
     mComputePass.onDestroy();
+    mLtcPass.onDestroy();
 
     mUi.onDestroy();
 
@@ -1258,6 +1280,12 @@ void Render::setDescriptors()
         mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
         mComputePass.setLightBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
+    }
+    {
+        mLtcPass.setGbuffer(&mGbuffer);
+        mLtcPass.setMaterialsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+        mLtcPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
+        mLtcPass.setLightsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
     }
 }
 

@@ -88,7 +88,6 @@ void LtcPass::createDescriptorSetLayout()
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    texLayoutBinding.binding = 1;
     bindings.push_back(texLayoutBinding);
 
     // gbuffer normal
@@ -98,11 +97,27 @@ void LtcPass::createDescriptorSetLayout()
     texNormalLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texNormalLayoutBinding.pImmutableSamplers = nullptr;
     texNormalLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    texNormalLayoutBinding.binding = 2;
     bindings.push_back(texNormalLayoutBinding);
-    
+
+    // gbuffer inst id
+    VkDescriptorSetLayoutBinding texInstIdLayoutBinding{};
+    texInstIdLayoutBinding.binding = 3;
+    texInstIdLayoutBinding.descriptorCount = 1;
+    texInstIdLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    texInstIdLayoutBinding.pImmutableSamplers = nullptr;
+    texInstIdLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(texInstIdLayoutBinding);
+
+    VkDescriptorSetLayoutBinding instConstLayoutBinding{};
+    instConstLayoutBinding.binding = 4;
+    instConstLayoutBinding.descriptorCount = 1;
+    instConstLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    instConstLayoutBinding.pImmutableSamplers = nullptr;
+    instConstLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(instConstLayoutBinding);
+
     VkDescriptorSetLayoutBinding lightsLayoutBinding{};
-    lightsLayoutBinding.binding = 3;
+    lightsLayoutBinding.binding = 5;
     lightsLayoutBinding.descriptorCount = 1;
     lightsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     lightsLayoutBinding.pImmutableSamplers = nullptr;
@@ -110,7 +125,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(lightsLayoutBinding);
 
     VkDescriptorSetLayoutBinding materialsLayoutBinding{};
-    materialsLayoutBinding.binding = 4;
+    materialsLayoutBinding.binding = 6;
     materialsLayoutBinding.descriptorCount = 1;
     materialsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     materialsLayoutBinding.pImmutableSamplers = nullptr;
@@ -118,7 +133,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(materialsLayoutBinding);
 
     VkDescriptorSetLayoutBinding ltc1LayoutBinding{};
-    ltc1LayoutBinding.binding = 5;
+    ltc1LayoutBinding.binding = 7;
     ltc1LayoutBinding.descriptorCount = 1;
     ltc1LayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     ltc1LayoutBinding.pImmutableSamplers = nullptr;
@@ -126,7 +141,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(ltc1LayoutBinding);
 
     VkDescriptorSetLayoutBinding ltc2LayoutBinding{};
-    ltc2LayoutBinding.binding = 6;
+    ltc2LayoutBinding.binding = 8;
     ltc2LayoutBinding.descriptorCount = 1;
     ltc2LayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     ltc2LayoutBinding.pImmutableSamplers = nullptr;
@@ -134,7 +149,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(ltc2LayoutBinding);
 
     VkDescriptorSetLayoutBinding ltc2SamplerLayoutBinding{};
-    ltc2SamplerLayoutBinding.binding = 7;
+    ltc2SamplerLayoutBinding.binding = 9;
     ltc2SamplerLayoutBinding.descriptorCount = 1;
     ltc2SamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     ltc2SamplerLayoutBinding.pImmutableSamplers = nullptr;
@@ -142,7 +157,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(ltc2SamplerLayoutBinding);
 
     VkDescriptorSetLayoutBinding outLayoutBinding{};
-    outLayoutBinding.binding = 8;
+    outLayoutBinding.binding = 10;
     outLayoutBinding.descriptorCount = 1;
     outLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     outLayoutBinding.pImmutableSamplers = nullptr;
@@ -181,9 +196,9 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
     VkDescriptorSet& dstDescSet = mDescriptorSets[descIndex];
 
     std::vector<VkWriteDescriptorSet> descriptorWrites;
-    
+
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = mResMngr->getVkBuffer(uniformBuffers[descIndex]);
+    bufferInfo.buffer = mResManager->getVkBuffer(uniformBuffers[descIndex]);
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -231,6 +246,39 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         descriptorWrites.push_back(descWrite);
     }
 
+    VkDescriptorImageInfo imageInfoInstId{};
+    imageInfoInstId.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfoInstId.imageView = mGbuffer ? mGbuffer->instIdView : VK_NULL_HANDLE;
+
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 3;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        descWrite.descriptorCount = 1;
+        descWrite.pImageInfo = &imageInfoInstId;
+        descriptorWrites.push_back(descWrite);
+    }
+
+    VkDescriptorBufferInfo instConstInfo{};
+    instConstInfo.buffer = mInstanceConstantsBuffer;
+    instConstInfo.offset = 0;
+    instConstInfo.range = VK_WHOLE_SIZE;
+
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 4;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descWrite.descriptorCount = 1;
+        descWrite.pBufferInfo = &instConstInfo;
+        descriptorWrites.push_back(descWrite);
+    }
+
     VkDescriptorBufferInfo lightsInfo{};
     lightsInfo.buffer = mLightsBuffer;
     lightsInfo.offset = 0;
@@ -240,7 +288,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 3;
+        descWrite.dstBinding = 5;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descWrite.descriptorCount = 1;
@@ -257,7 +305,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 4;
+        descWrite.dstBinding = 6;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descWrite.descriptorCount = 1;
@@ -272,7 +320,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 5;
+        descWrite.dstBinding = 7;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descWrite.descriptorCount = 1;
@@ -287,7 +335,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 6;
+        descWrite.dstBinding = 8;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descWrite.descriptorCount = 1;
@@ -302,7 +350,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 7;
+        descWrite.dstBinding = 9;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
         descWrite.descriptorCount = 1;
@@ -317,7 +365,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 8;
+        descWrite.dstBinding = 10;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         descWrite.descriptorCount = 1;
@@ -359,7 +407,7 @@ void LtcPass::createUniformBuffers()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        uniformBuffers[i] = mResMngr->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        uniformBuffers[i] = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
@@ -372,12 +420,12 @@ void LtcPass::updateUniformBuffer(uint32_t currentImage, uint64_t frameNumber, S
     glm::float4x4 proj = camera.getPerspective();
     glm::float4x4 view = camera.getView();
 
-    ubo.frameNumber = (uint32_t) frameNumber; // it uses as seed for random number
+    ubo.frameNumber = (uint32_t)frameNumber; // it uses as seed for random number
     ubo.viewToProj = proj;
     ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
 
-    void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
+    void* data = mResManager->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));
 }
 
@@ -385,7 +433,7 @@ void LtcPass::onDestroy()
 {
     for (size_t i = 0; i < uniformBuffers.size(); ++i)
     {
-        mResMngr->destroyBuffer(uniformBuffers[i]);
+        mResManager->destroyBuffer(uniformBuffers[i]);
     }
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
@@ -405,6 +453,15 @@ void LtcPass::setLightsBuffer(VkBuffer buffer)
 void LtcPass::setMaterialsBuffer(VkBuffer buffer)
 {
     mMaterialBuffer = buffer;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
+}
+
+void LtcPass::setInstanceBuffer(VkBuffer buffer)
+{
+    mInstanceConstantsBuffer = buffer;
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         needDesciptorSetUpdate[i] = true;
@@ -443,10 +500,46 @@ void LtcPass::setOutputImageView(VkImageView imageView)
 void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr)
 {
     mDevice = device;
-    mResMngr = resMngr;
+    mResManager = resMngr;
     mDescriptorPool = descpool;
     mCS = createShaderModule(csCode, csCodeSize);
     createUniformBuffers();
+
+
+    // sampler
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = 1.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+    VkResult res = vkCreateSampler(mDevice, &samplerInfo, nullptr, &mLTCSampler);
+    if (res != VK_SUCCESS)
+    {
+        // error
+        assert(0);
+    }
+
+    mLtc1Image = mResManager->createImage(64, 64, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                          VK_IMAGE_TILING_OPTIMAL,
+                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc1");
+    mLtc1ImageView = mResManager->createImageView(mLtc1Image, VK_IMAGE_ASPECT_COLOR_BIT);
+    mLtc2Image = mResManager->createImage(64, 64, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                          VK_IMAGE_TILING_OPTIMAL,
+                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc2");
+    mLtc2ImageView = mResManager->createImageView(mLtc2Image, VK_IMAGE_ASPECT_COLOR_BIT);
+
     createDescriptorSetLayout();
     createDescriptorSets(mDescriptorPool);
     updateDescriptorSets();

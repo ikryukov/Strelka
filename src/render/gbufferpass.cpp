@@ -491,7 +491,7 @@ void GbufferPass::createUniformBuffers()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        uniformBuffers[i] = mResMngr->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        uniformBuffers[i] = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
@@ -506,7 +506,7 @@ void GbufferPass::updateUniformBuffer(uint32_t currentImage, Scene& scene, uint3
     ubo.worldToView = view;
     ubo.CameraPos = camera.getPosition();
 
-    void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
+    void* data = mResManager->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));
 }
 
@@ -514,7 +514,7 @@ void GbufferPass::onDestroy()
 {
     for (size_t i = 0; i < uniformBuffers.size(); ++i)
     {
-        mResMngr->destroyBuffer(uniformBuffers[i]);
+        mResManager->destroyBuffer(uniformBuffers[i]);
     }
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
@@ -602,7 +602,7 @@ void GbufferPass::setInstanceBuffer(VkBuffer instanceBuffer)
 void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
 {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = mResMngr->getVkBuffer(uniformBuffers[descSetIndex]);
+    bufferInfo.buffer = mResManager->getVkBuffer(uniformBuffers[descSetIndex]);
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 

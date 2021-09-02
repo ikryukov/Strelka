@@ -2,6 +2,16 @@
 #include "materials.h"
 #include "lights.h"
 
+struct InstanceConstants
+{
+    float4x4 model;
+    float4x4 normalMatrix;
+    int32_t materialId;
+    int32_t pad0;
+    int32_t pad1;
+    int32_t pad2;
+};
+
 cbuffer ubo
 {
     float4x4 viewToProj;
@@ -15,7 +25,9 @@ cbuffer ubo
 
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
+Texture2D<int> gbInstId;
 
+StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<RectLight> lights;
 StructuredBuffer<Material> materials;
 
@@ -23,12 +35,17 @@ Texture2D<float4> ltc1;
 Texture2D<float4> ltc2;
 SamplerState ltcSampler;
 
-RWTexture2D<float> output;
+RWTexture2D<float4> output;
 
 // source: https://blog.selfshadow.com/ltc/webgl/ltc_quad.html
+static const float LUT_SIZE  = 64.0;
+static const float LUT_SCALE = (LUT_SIZE - 1.0)/LUT_SIZE;
+static const float LUT_BIAS  = 0.5/LUT_SIZE;
+
+static const float pi = 3.14159265;
 // Linearly Transformed Cosines
 ///////////////////////////////
-vec3 IntegrateEdgeVec(vec3 v1, vec3 v2)
+float3 IntegrateEdgeVec(float3 v1, float3 v2)
 {
     float x = dot(v1, v2);
     float y = abs(x);
@@ -47,7 +64,7 @@ float3 LTC_Evaluate(RectLight light, float3 N, float3 V, float3 P, float3x3 Minv
     // construct orthonormal basis around N
     float3 T1, T2;
     T1 = normalize(V - N * dot(V, N));
-    T2 = normalize(N, T1);
+    T2 = cross(N, T1);
 
     // rotate area light in (T1, T2, N) basis
     Minv = mul(transpose(float3x3(T1, T2, N)), Minv);
@@ -62,7 +79,7 @@ float3 LTC_Evaluate(RectLight light, float3 N, float3 V, float3 P, float3x3 Minv
     float sum = 0.0;
 
     float3 dir = normalize(light.points[0].xyz - P);
-    float3 lightNormal = cross(light.points[1] - light.points[0], light.points[3] - light.points[0]);
+    float3 lightNormal = cross(light.points[1].xyz - light.points[0].xyz, light.points[3].xyz - light.points[0].xyz);
     bool behind = (dot(dir, lightNormal) > 0.0);
 
     L[0] = normalize(L[0]);
@@ -96,7 +113,7 @@ float3 LTC_Evaluate(RectLight light, float3 N, float3 V, float3 P, float3x3 Minv
         sum = 0.0;
     }
 
-    float3 Lo_i = vec3(sum, sum, sum);
+    float3 Lo_i = float3(sum, sum, sum);
     return Lo_i;
 }
 
@@ -119,7 +136,7 @@ float3 calc(uint2 pixelIndex)
     uv = uv * LUT_SCALE + LUT_BIAS;
 
     float4 t1 = ltc1.SampleLevel(ltcSampler, uv, 0);
-    float4 t1 = ltc2.SampleLevel(ltcSampler, uv, 0);
+    float4 t2 = ltc2.SampleLevel(ltcSampler, uv, 0);
 
     float3x3 Minv = float3x3(
         float3(t1.x, 0, t1.y), 
@@ -127,6 +144,7 @@ float3 calc(uint2 pixelIndex)
         float3(t1.z, 0, t1.w)
     );
 
+    bool twoSided = false;
     float3 res = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
     return res;
 }

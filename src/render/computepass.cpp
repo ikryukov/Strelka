@@ -183,7 +183,7 @@ void ComputePass::updateDescriptorSet(uint32_t descIndex)
     std::array<VkWriteDescriptorSet, 13> descriptorWrites{};
 
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = mResMngr->getVkBuffer(uniformBuffers[descIndex]);
+    bufferInfo.buffer = mResManager->getVkBuffer(uniformBuffers[descIndex]);
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -397,7 +397,7 @@ void ComputePass::createUniformBuffers()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        uniformBuffers[i] = mResMngr->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        uniformBuffers[i] = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
@@ -415,7 +415,7 @@ void ComputePass::updateUniformBuffer(uint32_t currentImage, Scene& scene, uint3
     ubo.worldToView = view;
     ubo.debugView = (uint32_t)scene.mDebugViewSettings;
 
-    void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
+    void* data = mResManager->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));
 }
 
@@ -423,7 +423,7 @@ void ComputePass::onDestroy()
 {
     for (size_t i = 0; i < uniformBuffers.size(); ++i)
     {
-        mResMngr->destroyBuffer(uniformBuffers[i]);
+        mResManager->destroyBuffer(uniformBuffers[i]);
     }
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
@@ -506,7 +506,7 @@ void ComputePass::setTextureImageViews(const std::vector<VkImageView>& texImages
 void ComputePass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr)
 {
     mDevice = device;
-    mResMngr = resMngr;
+    mResManager = resMngr;
     mDescriptorPool = descpool;
     mCS = createShaderModule(csCode, csCodeSize);
     createUniformBuffers();

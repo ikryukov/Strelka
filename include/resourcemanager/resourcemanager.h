@@ -33,6 +33,8 @@ public:
     void destroyImage(Image* image);
     VkImage getVkImage(const Image* image);
 
+    VkImageView createImageView(const Image* image, VkImageAspectFlags aspectFlags);
+
     VkCommandBuffer beginSingleTimeCommands();
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
