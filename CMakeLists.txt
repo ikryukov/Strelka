@@ -132,6 +132,7 @@ set(RENDER_SOURCES
         src/render/computepass.cpp
         src/render/rtshadowpass.cpp
         src/render/ltcpass.cpp
+        src/render/ltc_data.h
         src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )

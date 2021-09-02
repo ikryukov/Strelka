@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 
 #include <resourcemanager.h>
+#include <texturemanager.h>
 #include <vector>
 
 #include "gbuffer.h"
@@ -67,7 +68,7 @@ public:
     LtcPass(/* args */);
     ~LtcPass();
 
-    void init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr);
+    void init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, TextureManager& texMngr);
     void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
     void onDestroy();
 

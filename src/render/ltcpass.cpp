@@ -13,6 +13,9 @@
 
 #include <utility>
 
+// matrices
+#include "ltc_data.h"
+
 namespace nevk
 {
 LtcPass::LtcPass(/* args */)
@@ -497,7 +500,7 @@ void LtcPass::setOutputImageView(VkImageView imageView)
     }
 }
 
-void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr)
+void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr, TextureManager& texMngr)
 {
     mDevice = device;
     mResManager = resMngr;
@@ -529,15 +532,20 @@ void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, Vk
         assert(0);
     }
 
-    mLtc1Image = mResManager->createImage(64, 64, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                          VK_IMAGE_TILING_OPTIMAL,
-                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc1");
+    nevk::TextureManager::Texture ltc1 = texMngr.createTextureImage(g_ltc_1, 4 * sizeof(float), VK_FORMAT_R16G16B16A16_SFLOAT, 64, 64);
+    nevk::TextureManager::Texture ltc2 = texMngr.createTextureImage(g_ltc_2, 4 * sizeof(float), VK_FORMAT_R16G16B16A16_SFLOAT, 64, 64);
+
+    mLtc1Image = ltc1.textureImage;
+    mLtc2Image = ltc2.textureImage;
+    //mLtc1Image = mResManager->createImage(64, 64, VK_FORMAT_R16G16B16A16_SFLOAT,
+    //                                      VK_IMAGE_TILING_OPTIMAL,
+    //                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    //                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc1");
     mLtc1ImageView = mResManager->createImageView(mLtc1Image, VK_IMAGE_ASPECT_COLOR_BIT);
-    mLtc2Image = mResManager->createImage(64, 64, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                          VK_IMAGE_TILING_OPTIMAL,
-                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc2");
+    //mLtc2Image = mResManager->createImage(64, 64, VK_FORMAT_R16G16B16A16_SFLOAT,
+    //                                      VK_IMAGE_TILING_OPTIMAL,
+    //                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    //                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc2");
     mLtc2ImageView = mResManager->createImageView(mLtc2Image, VK_IMAGE_ASPECT_COLOR_BIT);
 
     createDescriptorSetLayout();

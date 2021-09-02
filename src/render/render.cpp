@@ -120,12 +120,10 @@ void Render::initVulkan()
                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
         mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
 
-
-
         mLtcPass.setGbuffer(&mGbuffer);
         mLtcPass.setOutputImageView(mLtcOutputImageView);
 
-        mLtcPass.init(mDevice, csLtcShaderCode, csLtcShaderCodeSize, mDescriptorPool, mResManager);
+        mLtcPass.init(mDevice, csLtcShaderCode, csLtcShaderCodeSize, mDescriptorPool, mResManager, *mTexManager);
     
     }
 
@@ -1145,6 +1143,13 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         recordBarrier(cmd, mResManager->getVkImage(mGbuffer.depth), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
+    // LTC
+    recordBarrier(cmd, mResManager->getVkImage(mLtcOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mLtcPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    recordBarrier(cmd, mResManager->getVkImage(mLtcOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
     // Raytracing
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
