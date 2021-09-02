@@ -86,7 +86,6 @@ void Render::initVulkan()
         shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
     }
     mTexManager->createShadowSampler();
-    mTexManager->initSamplers();
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
