@@ -1247,7 +1247,7 @@ void Render::loadScene(const std::string& modelPath)
     }
 
     // for pica pica
-    mScene->createLight(glm::float3(0, 50, 0), glm::float3(15, 50, 0.0), glm::float3(0.0, 50, 15));
+    mScene->createLight(glm::float3(0, 50, 0), glm::float3(10, 50, 0.0), glm::float3(10.0, 50, 10), glm::float3(0.0, 50, 10));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
@@ -1308,7 +1308,7 @@ void Render::createDefaultScene()
 
     mScene->addCamera(camera);
 
-    mScene->createLight(glm::float3(0, 0, 10), glm::float3(1.5, 0.0, 10), glm::float3(0.0, 1.5, 10));
+    mScene->createLight(glm::float3(0, 0, 10), glm::float3(1.5, 0.0, 10), glm::float3(0.0, 1.5, 10), glm::float3(0.0, 1.5, 10));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
@@ -1362,7 +1362,7 @@ void Render::drawFrame()
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
     mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
-
+    mLtcPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
     mRtShadowPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
