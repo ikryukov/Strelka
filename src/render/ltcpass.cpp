@@ -532,8 +532,8 @@ void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, Vk
         assert(0);
     }
 
-    nevk::TextureManager::Texture ltc1 = texMngr.createTextureImage(g_ltc_1, 4 * sizeof(float), VK_FORMAT_R16G16B16A16_SFLOAT, 64, 64);
-    nevk::TextureManager::Texture ltc2 = texMngr.createTextureImage(g_ltc_2, 4 * sizeof(float), VK_FORMAT_R16G16B16A16_SFLOAT, 64, 64);
+    nevk::TextureManager::Texture ltc1 = texMngr.createTextureImage(g_ltc_1, 4 * sizeof(float), VK_FORMAT_R32G32B32A32_SFLOAT, 64, 64);
+    nevk::TextureManager::Texture ltc2 = texMngr.createTextureImage(g_ltc_2, 4 * sizeof(float), VK_FORMAT_R32G32B32A32_SFLOAT, 64, 64);
 
     mLtc1Image = ltc1.textureImage;
     mLtc2Image = ltc2.textureImage;

@@ -144,9 +144,23 @@ float3 calc(uint2 pixelIndex)
         float3(t1.z, 0, t1.w)
     );
 
-    bool twoSided = false;
-    float3 res = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
-    return res;
+    bool twoSided = true;
+    float3 spec = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
+
+    float3 scol = float3(0.23, 0.23, 0.23);
+    spec *= scol * t2.x + (1.0 - scol) * t2.y;
+
+    Minv = float3x3(
+        float3(1, 0, 0), 
+        float3(0, 1, 0), 
+        float3(0, 0, 1)
+    );
+    float3 diff = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
+    float3 dcol = float3(1.0, 1.0, 1.0);
+    float3 lcol = float3(4.0);
+    float3 col = lcol * (spec + dcol * diff);
+
+    return col;
 }
 
 [numthreads(16, 16, 1)]
