@@ -1,4 +1,5 @@
 #include "random.h"
+#include "ray.h"
 
 cbuffer ubo
 {
@@ -34,12 +35,6 @@ struct Light
     float pad2;
 };
 
-struct Ray
-{
-    float4 o; // xyz - origin, w - max trace distance
-    float4 d;
-};
-
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
 
@@ -51,21 +46,6 @@ RWTexture2D<float> output;
 
 #define INVALID_INDEX 0xFFFFFFFF
 #define PI 3.1415926535897
-
-bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax, inout float t)
-{
-    const float3 f = (pmax.xyz - r.o.xyz) * invdir;
-    const float3 n = (pmin.xyz - r.o.xyz) * invdir;
-
-    const float3 tmax = max(f, n);
-    const float3 tmin = min(f, n);
-
-    const float t1 = min(tmax.x, min(tmax.y, tmax.z));
-    const float t0 = max(max(tmin.x, max(tmin.y, tmin.z)), 0.0f);
-
-    t = t0;
-    return t1 >= t0;
-}
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection
 bool RayTriangleIntersect(
