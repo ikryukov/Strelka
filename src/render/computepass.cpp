@@ -291,13 +291,13 @@ void ComputePass::updateDescriptorSet(uint32_t descIndex)
     descriptorWrites[7].pImageInfo = imageInfoBindless.data();
 
     std::vector<VkDescriptorImageInfo> samplerInfo(BINDLESS_SAMPLER_COUNT);
-    
+
     for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
     {
         samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         samplerInfo[i].sampler = mTextureSamplers[i];
     }
-    for (uint32_t i = mTextureSamplers.size(); i < BINDLESS_SAMPLER_COUNT; ++i)
+    for (uint32_t i = (uint32_t)mTextureSamplers.size(); i < BINDLESS_SAMPLER_COUNT; ++i)
     {
         samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         samplerInfo[i].sampler = mTextureSamplers[0];
@@ -308,7 +308,7 @@ void ComputePass::updateDescriptorSet(uint32_t descIndex)
     descriptorWrites[8].dstBinding = 8;
     descriptorWrites[8].dstArrayElement = 0;
     descriptorWrites[8].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    descriptorWrites[8].descriptorCount = (uint32_t) BINDLESS_SAMPLER_COUNT;
+    descriptorWrites[8].descriptorCount = (uint32_t)BINDLESS_SAMPLER_COUNT;
     descriptorWrites[8].pImageInfo = samplerInfo.data();
 
     VkDescriptorBufferInfo materialInfo{};
