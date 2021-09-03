@@ -50,6 +50,8 @@ Texture2D<float> shadow;
 
 RWTexture2D<float4> output;
 
+Texture2D<float4> Ltc;
+
 struct PointData
 {
     float NL;
@@ -149,5 +151,6 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-    output[pixelIndex] = calc(pixelIndex);
+    //output[pixelIndex] = calc(pixelIndex);
+    output[pixelIndex] = Ltc[pixelIndex];
 }

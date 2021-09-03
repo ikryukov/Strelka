@@ -25,11 +25,15 @@ cbuffer ubo
 
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
+Texture2D<float2> gbUV;
 Texture2D<int> gbInstId;
 
 StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<RectLight> lights;
 StructuredBuffer<Material> materials;
+
+Texture2D textures[]; // bindless
+SamplerState samplers[];
 
 Texture2D<float4> ltc1;
 Texture2D<float4> ltc2;
@@ -132,6 +136,18 @@ float3 calc(uint2 pixelIndex)
     float3 V = normalize(CameraPos - wpos);
     float ndotv = saturate(dot(N, V));
     float roughness = material.roughnessFactor;
+    float2 matUV = gbUV[pixelIndex].xy;
+    if (material.texMetallicRoughness != -1)
+    {
+        roughness *= textures[NonUniformResourceIndex(material.texMetallicRoughness)].SampleLevel(samplers[NonUniformResourceIndex(material.sampMetallicRoughness)], matUV, 0).g;
+    }
+
+    float3 dcol = material.baseColorFactor.rgb;
+    if (material.texBaseColor != -1)
+    {
+        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV).rgb;
+    }
+
     float2 uv = float2(roughness, sqrt(1.0 - ndotv));
     uv = uv * LUT_SCALE + LUT_BIAS;
 
@@ -156,8 +172,8 @@ float3 calc(uint2 pixelIndex)
         float3(0, 0, 1)
     );
     float3 diff = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
-    float3 dcol = float3(1.0, 1.0, 1.0);
-    float3 lcol = float3(4.0);
+    //float3 dcol = float3(1.0, 1.0, 1.0);
+    float3 lcol = float3(40.0);
     float3 col = lcol * (spec + dcol * diff);
 
     return col;

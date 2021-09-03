@@ -47,6 +47,7 @@ private:
     VkBuffer mLightBuffer = VK_NULL_HANDLE;
 
     VkImageView mRtShadowImageView = VK_NULL_HANDLE;
+    VkImageView mLtcImageView = VK_NULL_HANDLE;
 
     VkImageView mOutImageView;
     std::vector<VkSampler> mTextureSamplers;
@@ -74,6 +75,7 @@ public:
     void setLightBuffer(VkBuffer lightBuffer);
     void setGbuffer(GBuffer* gbuffer);
     void setRtShadowImageView(VkImageView imageView);
+    void setLtcImageView(VkImageView imageView);
     void setOutputImageView(VkImageView imageView);
     void setTextureSamplers(std::vector<VkSampler>& textureSamplers);
     void setTextureImageViews(const std::vector<VkImageView>& texImages);

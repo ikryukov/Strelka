@@ -16,6 +16,9 @@
 // matrices
 #include "ltc_data.h"
 
+const uint32_t BINDLESS_TEXTURE_COUNT = 128;
+const uint32_t BINDLESS_SAMPLER_COUNT = 36;
+
 namespace nevk
 {
 LtcPass::LtcPass(/* args */)
@@ -102,9 +105,18 @@ void LtcPass::createDescriptorSetLayout()
     texNormalLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     bindings.push_back(texNormalLayoutBinding);
 
+    // UVs
+    VkDescriptorSetLayoutBinding texUVLayoutBinding{};
+    texUVLayoutBinding.binding = 3;
+    texUVLayoutBinding.descriptorCount = 1;
+    texUVLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    texUVLayoutBinding.pImmutableSamplers = nullptr;
+    texUVLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(texUVLayoutBinding);
+
     // gbuffer inst id
     VkDescriptorSetLayoutBinding texInstIdLayoutBinding{};
-    texInstIdLayoutBinding.binding = 3;
+    texInstIdLayoutBinding.binding = 4;
     texInstIdLayoutBinding.descriptorCount = 1;
     texInstIdLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texInstIdLayoutBinding.pImmutableSamplers = nullptr;
@@ -112,7 +124,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(texInstIdLayoutBinding);
 
     VkDescriptorSetLayoutBinding instConstLayoutBinding{};
-    instConstLayoutBinding.binding = 4;
+    instConstLayoutBinding.binding = 5;
     instConstLayoutBinding.descriptorCount = 1;
     instConstLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     instConstLayoutBinding.pImmutableSamplers = nullptr;
@@ -120,7 +132,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(instConstLayoutBinding);
 
     VkDescriptorSetLayoutBinding lightsLayoutBinding{};
-    lightsLayoutBinding.binding = 5;
+    lightsLayoutBinding.binding = 6;
     lightsLayoutBinding.descriptorCount = 1;
     lightsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     lightsLayoutBinding.pImmutableSamplers = nullptr;
@@ -128,15 +140,31 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(lightsLayoutBinding);
 
     VkDescriptorSetLayoutBinding materialsLayoutBinding{};
-    materialsLayoutBinding.binding = 6;
+    materialsLayoutBinding.binding = 7;
     materialsLayoutBinding.descriptorCount = 1;
     materialsLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     materialsLayoutBinding.pImmutableSamplers = nullptr;
     materialsLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     bindings.push_back(materialsLayoutBinding);
 
+    VkDescriptorSetLayoutBinding texBindlessLayoutBinding{};
+    texBindlessLayoutBinding.binding = 8;
+    texBindlessLayoutBinding.descriptorCount = BINDLESS_TEXTURE_COUNT;
+    texBindlessLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    texBindlessLayoutBinding.pImmutableSamplers = nullptr;
+    texBindlessLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(texBindlessLayoutBinding);
+
+    VkDescriptorSetLayoutBinding samplerLayoutBinding{};
+    samplerLayoutBinding.binding = 9;
+    samplerLayoutBinding.descriptorCount = BINDLESS_SAMPLER_COUNT;
+    samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
+    samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(samplerLayoutBinding);
+
     VkDescriptorSetLayoutBinding ltc1LayoutBinding{};
-    ltc1LayoutBinding.binding = 7;
+    ltc1LayoutBinding.binding = 10;
     ltc1LayoutBinding.descriptorCount = 1;
     ltc1LayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     ltc1LayoutBinding.pImmutableSamplers = nullptr;
@@ -144,7 +172,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(ltc1LayoutBinding);
 
     VkDescriptorSetLayoutBinding ltc2LayoutBinding{};
-    ltc2LayoutBinding.binding = 8;
+    ltc2LayoutBinding.binding = 11;
     ltc2LayoutBinding.descriptorCount = 1;
     ltc2LayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     ltc2LayoutBinding.pImmutableSamplers = nullptr;
@@ -152,7 +180,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(ltc2LayoutBinding);
 
     VkDescriptorSetLayoutBinding ltc2SamplerLayoutBinding{};
-    ltc2SamplerLayoutBinding.binding = 9;
+    ltc2SamplerLayoutBinding.binding = 12;
     ltc2SamplerLayoutBinding.descriptorCount = 1;
     ltc2SamplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
     ltc2SamplerLayoutBinding.pImmutableSamplers = nullptr;
@@ -160,7 +188,7 @@ void LtcPass::createDescriptorSetLayout()
     bindings.push_back(ltc2SamplerLayoutBinding);
 
     VkDescriptorSetLayoutBinding outLayoutBinding{};
-    outLayoutBinding.binding = 10;
+    outLayoutBinding.binding = 13;
     outLayoutBinding.descriptorCount = 1;
     outLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     outLayoutBinding.pImmutableSamplers = nullptr;
@@ -249,6 +277,22 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         descriptorWrites.push_back(descWrite);
     }
 
+    VkDescriptorImageInfo imageInfoUV{};
+    imageInfoUV.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfoUV.imageView = mGbuffer ? mGbuffer->uvView : VK_NULL_HANDLE;
+
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = dstDescSet;
+        descWrite.dstBinding = 3;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        descWrite.descriptorCount = 1;
+        descWrite.pImageInfo = &imageInfoUV;
+        descriptorWrites.push_back(descWrite);
+    }
+
     VkDescriptorImageInfo imageInfoInstId{};
     imageInfoInstId.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageInfoInstId.imageView = mGbuffer ? mGbuffer->instIdView : VK_NULL_HANDLE;
@@ -257,7 +301,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 3;
+        descWrite.dstBinding = 4;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descWrite.descriptorCount = 1;
@@ -274,7 +318,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 4;
+        descWrite.dstBinding = 5;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descWrite.descriptorCount = 1;
@@ -291,7 +335,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 5;
+        descWrite.dstBinding = 6;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descWrite.descriptorCount = 1;
@@ -308,12 +352,54 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 6;
+        descWrite.dstBinding = 7;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         descWrite.descriptorCount = 1;
         descWrite.pBufferInfo = &materialsInfo;
         descriptorWrites.push_back(descWrite);
+    }
+
+    std::vector<VkDescriptorImageInfo> imageInfoBindless(BINDLESS_TEXTURE_COUNT);
+    std::fill(imageInfoBindless.begin(), imageInfoBindless.end(), VkDescriptorImageInfo());
+
+    for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
+    {
+        imageInfoBindless[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfoBindless[j].imageView = mTextureImageView[j];
+    }
+    {
+        VkWriteDescriptorSet descWrite{};
+        descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descWrite.dstSet = mDescriptorSets[descIndex];
+        descWrite.dstBinding = 8;
+        descWrite.dstArrayElement = 0;
+        descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        descWrite.descriptorCount = (uint32_t)BINDLESS_TEXTURE_COUNT;
+        descWrite.pImageInfo = imageInfoBindless.data();
+        descriptorWrites.push_back(descWrite);
+    }
+
+    std::vector<VkDescriptorImageInfo> samplerInfo;
+    samplerInfo.resize(BINDLESS_SAMPLER_COUNT);
+    for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
+    {
+        samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        samplerInfo[i].sampler = mTextureSamplers[i];
+    }
+    if (!mTextureSamplers.empty())
+    {
+        {
+            VkWriteDescriptorSet descWrite{};
+            descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descWrite.dstSet = mDescriptorSets[descIndex];
+            descWrite.dstBinding = 9;
+            descWrite.dstArrayElement = 0;
+            descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+            descWrite.descriptorCount = BINDLESS_SAMPLER_COUNT;
+            descWrite.pImageInfo = samplerInfo.data();
+            descriptorWrites.push_back(descWrite);
+        }
     }
 
     VkDescriptorImageInfo imageInfoLtc1{};
@@ -323,7 +409,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 7;
+        descWrite.dstBinding = 10;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descWrite.descriptorCount = 1;
@@ -338,7 +424,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 8;
+        descWrite.dstBinding = 11;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         descWrite.descriptorCount = 1;
@@ -353,7 +439,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 9;
+        descWrite.dstBinding = 12;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
         descWrite.descriptorCount = 1;
@@ -368,7 +454,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descWrite.dstSet = dstDescSet;
-        descWrite.dstBinding = 10;
+        descWrite.dstBinding = 13;
         descWrite.dstArrayElement = 0;
         descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         descWrite.descriptorCount = 1;
@@ -465,6 +551,24 @@ void LtcPass::setMaterialsBuffer(VkBuffer buffer)
 void LtcPass::setInstanceBuffer(VkBuffer buffer)
 {
     mInstanceConstantsBuffer = buffer;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
+}
+
+void LtcPass::setTextureSamplers(std::vector<VkSampler>& textureSamplers)
+{
+    mTextureSamplers = textureSamplers;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
+}
+
+void LtcPass::setTextureImageViews(const std::vector<VkImageView>& texImages)
+{
+    mTextureImageView = texImages;
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         needDesciptorSetUpdate[i] = true;
