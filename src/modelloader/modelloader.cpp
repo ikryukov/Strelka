@@ -336,6 +336,17 @@ void findTextureSamplers(const tinygltf::Model& model, nevk::Scene& scene, nevk:
     for (const tinygltf::Sampler& sampler : model.samplers)
     {
         currentSamplerDesc = { getVkFilterMode(sampler.minFilter), getVkFilterMode(sampler.magFilter), getVkWrapMode(sampler.wrapS), getVkWrapMode(sampler.wrapT) };
+        if (textureManager.sampDescToId.count(currentSamplerDesc) == 0)
+        {
+            if (textureManager.sampDescToId.size() <= 15)
+            {
+                textureManager.createTextureSampler(currentSamplerDesc);
+            }
+            else
+            {
+                std::cerr << "Samplers size limit exceeded" << std::endl;
+            }
+        }
         modelSampIdToLoadedSampId[samplerNumber] = textureManager.sampDescToId.find(currentSamplerDesc)->second;
         ++samplerNumber;
     }

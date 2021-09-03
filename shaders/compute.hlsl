@@ -40,7 +40,7 @@ Texture2D<int> gbInstId;
 
 Texture2D textures[]; // bindless
 
-SamplerState gSampler;
+SamplerState samplers[];
 
 StructuredBuffer<Material> materials;
 StructuredBuffer<InstanceConstants> instanceConstants;
@@ -106,7 +106,7 @@ float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
     float3 albedo = material.baseColorFactor.rgb;
     if (material.texBaseColor != INVALID_INDEX)
     {
-        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(gSampler, uv).rgb;
+        albedo *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(samplers[material.sampBaseId], uv).rgb;
     }
 
     float3 result = max(0.0, albedo * diffK * pd.NL / PI + specK);

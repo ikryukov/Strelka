@@ -7,6 +7,7 @@ set(TESTFILES
         shadermanager/tests_shadermanager.cpp
         modelloader/test_model.cpp
         ui/tests_ui.cpp
+        intersection/aabb.cpp
         )
 
 set(TEST_MAIN unit_tests)

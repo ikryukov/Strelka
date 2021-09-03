@@ -13,7 +13,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
+#ifdef __APPLE__
+const uint32_t BINDLESS_TEXTURE_COUNT = 128;
+const uint32_t BINDLESS_SAMPLER_COUNT = 16;
+#else
 const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
+const uint32_t BINDLESS_SAMPLER_COUNT = 36;
+#endif
 
 namespace nevk
 {
@@ -347,16 +353,16 @@ void GbufferPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texLayoutBinding{};
     texLayoutBinding.binding = 1;
-    texLayoutBinding.descriptorCount = (uint32_t) BINDLESS_TEXTURE_COUNT; //mTextureImageView.size(); // TODO:
+    texLayoutBinding.descriptorCount = (uint32_t)BINDLESS_TEXTURE_COUNT; //mTextureImageView.size(); // TODO:
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 2;
-    samplerLayoutBinding.descriptorCount = (uint32_t) mTextureSamplers.size();
+    samplerLayoutBinding.descriptorCount = (uint32_t)BINDLESS_SAMPLER_COUNT;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = mTextureSamplers.data();
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
     VkDescriptorSetLayoutBinding materialLayoutBinding{};
@@ -608,7 +614,6 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
 
     std::vector<VkDescriptorImageInfo> imageInfo;
     imageInfo.resize(BINDLESS_TEXTURE_COUNT);
-
     for (uint32_t j = 0; j < mTextureImageView.size(); ++j)
     {
         imageInfo[j].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -616,10 +621,14 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
     }
 
     std::vector<VkDescriptorImageInfo> samplerInfo;
-    samplerInfo.resize(mTextureSamplers.size());
+    samplerInfo.resize(BINDLESS_SAMPLER_COUNT);
     for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
     {
-       samplerInfo[i].sampler = mTextureSamplers[i];
+        samplerInfo[i].sampler = mTextureSamplers[i];
+    }
+    for (uint32_t i = (uint32_t)mTextureSamplers.size(); i < BINDLESS_SAMPLER_COUNT; ++i)
+    {
+        samplerInfo[i].sampler = mTextureSamplers[0];
     }
 
     VkDescriptorBufferInfo materialInfo{};
@@ -655,17 +664,17 @@ void GbufferPass::updateDescriptorSets(uint32_t descSetIndex)
         descriptorWrite.pImageInfo = imageInfo.data();
         descriptorWrites.push_back(descriptorWrite);
     }
-    // {
-    //    VkWriteDescriptorSet descriptorWrite{};
-    //    descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    //    descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
-    //    descriptorWrite.dstBinding = 2;
-    //    descriptorWrite.dstArrayElement = 0;
-    //    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    //    descriptorWrite.descriptorCount = (uint32_t) samplerInfo.size();
-    //    descriptorWrite.pImageInfo = samplerInfo.data();
-    //    descriptorWrites.push_back(descriptorWrite);
-    // }
+    {
+        VkWriteDescriptorSet descriptorWrite{};
+        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrite.dstSet = mDescriptorSets[descSetIndex];
+        descriptorWrite.dstBinding = 2;
+        descriptorWrite.dstArrayElement = 0;
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+        descriptorWrite.descriptorCount = (uint32_t)BINDLESS_SAMPLER_COUNT;
+        descriptorWrite.pImageInfo = samplerInfo.data();
+        descriptorWrites.push_back(descriptorWrite);
+    }
     if (mMaterialBuffer != VK_NULL_HANDLE)
     {
         VkWriteDescriptorSet descriptorWrite{};

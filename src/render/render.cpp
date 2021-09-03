@@ -85,8 +85,10 @@ void Render::initVulkan()
                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "ShadowMap");
         shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
     }
+
     mTexManager->createShadowSampler();
-    mTexManager->initSamplers();
+    nevk::TextureManager::TextureSamplerDesc defSamplerDesc{VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+    mTexManager->createTextureSampler(defSamplerDesc);
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
