@@ -43,7 +43,7 @@ cbuffer ubo
 }
 
 Texture2D textures[];
-SamplerState gSampler;
+SamplerState gSampler[];
 StructuredBuffer<Material> materials;
 StructuredBuffer<InstanceConstants> instanceConstants;
 
@@ -63,14 +63,14 @@ PS_INPUT vertexMain(VertexInput vi)
     return out;
 }
 
-float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId)
+float3 CalcBumpedNormal(PS_INPUT inp, uint32_t texId, uint32_t sampId)
 {
     float3 Normal = normalize(inp.normal);
     float3 Tangent = -normalize(inp.tangent);
     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
     float3 Bitangent = cross(Normal, Tangent);
 
-    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(gSampler, inp.uv).xyz;
+    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(gSampler[sampId], inp.uv).xyz;
     BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
 
     float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
@@ -99,11 +99,12 @@ FSOutput fragmentMain(PS_INPUT inp) : SV_TARGET
     Material material = materials[NonUniformResourceIndex(constants.materialId)];
 
     int32_t texNormalId = material.texNormalId;
+    int32_t sampNormalId = material.sampNormalId;
 
     float3 N = normalize(inp.normal);
     if (texNormalId != INVALID_INDEX)
     {
-        N = CalcBumpedNormal(inp, texNormalId);
+        N = CalcBumpedNormal(inp, texNormalId, sampNormalId);
     }
 
     FSOutput ret;
