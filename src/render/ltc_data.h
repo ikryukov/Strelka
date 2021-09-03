@@ -1,8 +1,9 @@
 // 64x64x4 values. These can be stored as floats in a 64x64 RGBA32F
 // See g_ltc_2, which has the same size.
-
-#pragma warning (disable: 4838)
-#pragma warning (disable: 4305)
+#ifndef __APPLE__
+    #pragma warning (disable: 4838)
+    #pragma warning (disable: 4305)
+#endif
 
 float g_ltc_1[] = {
 1, 0, 0, 2e-05, 
