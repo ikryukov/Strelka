@@ -114,7 +114,7 @@ void Render::initVulkan()
         uint32_t csLtcShaderCodeSize = 0;
         uint32_t csLtcId = mShaderManager.loadShader("shaders/ltc.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
         mShaderManager.getShaderCode(csLtcId, csLtcShaderCode, csLtcShaderCodeSize);
-        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                   VK_IMAGE_TILING_OPTIMAL,
                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
@@ -1247,9 +1247,9 @@ void Render::loadScene(const std::string& modelPath)
     }
 
     // for pica pica
-    //mScene->createLight(glm::float3(0, 50, 0), glm::float3(10, 50, 0.0), glm::float3(10.0, 50, 10), glm::float3(0.0, 50, 10));
+    mScene->createLight(glm::float3(0, 50, 0), glm::float3(10, 50, 0.0), glm::float3(10.0, 50, 10), glm::float3(0.0, 50, 10));
     
-    mScene->createLight(glm::float3(0, 1, 0), glm::float3(1, 1, 0.0), glm::float3(1.0, 2, 0), glm::float3(0.0, 2, 0.0));
+    //mScene->createLight(glm::float3(0, 0.5, 0), glm::float3(1, 0.5, 0.0), glm::float3(1.0, 2, 0), glm::float3(0.0, 2, 0.0));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
@@ -1284,6 +1284,7 @@ void Render::setDescriptors()
         mComputePass.setTextureImageViews(mTexManager->textureImageView);
         mComputePass.setTextureSamplers(mTexManager->texSamplers);
         mComputePass.setRtShadowImageView(mRtShadowImageView);
+        mComputePass.setLtcImageView(mLtcOutputImageView);
         mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
         mComputePass.setLightBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
@@ -1293,6 +1294,8 @@ void Render::setDescriptors()
         mLtcPass.setMaterialsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mLtcPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
         mLtcPass.setLightsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
+        mLtcPass.setTextureImageViews(mTexManager->textureImageView);
+        mLtcPass.setTextureSamplers(mTexManager->texSamplers);
     }
 }
 

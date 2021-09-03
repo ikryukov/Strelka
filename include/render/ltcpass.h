@@ -1,12 +1,12 @@
 #pragma once
+#include "gbuffer.h"
+
 #include <scene/scene.h>
 #include <vulkan/vulkan.h>
 
 #include <resourcemanager.h>
 #include <texturemanager.h>
 #include <vector>
-
-#include "gbuffer.h"
 
 namespace nevk
 {
@@ -37,20 +37,23 @@ private:
     VkDescriptorSetLayout mDescriptorSetLayout;
     std::vector<VkDescriptorSet> mDescriptorSets;
 
-    bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = {false, false, false};
-    
+    bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = { false, false, false };
+
     std::vector<Buffer*> uniformBuffers;
 
     GBuffer* mGbuffer = nullptr;
     VkBuffer mLightsBuffer = VK_NULL_HANDLE;
     VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
     VkBuffer mInstanceConstantsBuffer = VK_NULL_HANDLE;
-    
+
     VkImageView mLtc1ImageView = VK_NULL_HANDLE;
     nevk::Image* mLtc1Image = nullptr;
     VkImageView mLtc2ImageView = VK_NULL_HANDLE;
     nevk::Image* mLtc2Image = nullptr;
     VkSampler mLTCSampler = VK_NULL_HANDLE;
+
+    std::vector<VkImageView> mTextureImageView;
+    std::vector<VkSampler> mTextureSamplers;
 
     VkImageView mOutImageView = VK_NULL_HANDLE;
 
@@ -75,6 +78,8 @@ public:
     void setLightsBuffer(VkBuffer buffer);
     void setMaterialsBuffer(VkBuffer buffer);
     void setInstanceBuffer(VkBuffer buffer);
+    void setTextureSamplers(std::vector<VkSampler>& textureSamplers);
+    void setTextureImageViews(const std::vector<VkImageView>& texImages);
     void setLtcResources(VkImageView ltc1, VkImageView ltc2, VkSampler ltcSampler);
     void setGbuffer(GBuffer* gbuffer);
     void setOutputImageView(VkImageView imageView);

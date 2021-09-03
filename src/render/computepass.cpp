@@ -151,6 +151,14 @@ void ComputePass::createDescriptorSetLayout()
     outLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     bindings.push_back(outLayoutBinding);
 
+    VkDescriptorSetLayoutBinding texLtcLayoutBinding{};
+    texLtcLayoutBinding.binding = 14;
+    texLtcLayoutBinding.descriptorCount = 1;
+    texLtcLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    texLtcLayoutBinding.pImmutableSamplers = nullptr;
+    texLtcLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings.push_back(texLtcLayoutBinding);
+
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
@@ -180,7 +188,7 @@ void ComputePass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void ComputePass::updateDescriptorSet(uint32_t descIndex)
 {
-    std::array<VkWriteDescriptorSet, 13> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 14> descriptorWrites{};
 
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = mResManager->getVkBuffer(uniformBuffers[descIndex]);
@@ -363,6 +371,18 @@ void ComputePass::updateDescriptorSet(uint32_t descIndex)
     descriptorWrites[12].descriptorCount = 1;
     descriptorWrites[12].pImageInfo = &outputImageInfo;
 
+    VkDescriptorImageInfo imageLtcInfo{};
+    imageLtcInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageLtcInfo.imageView = mLtcImageView;
+
+    descriptorWrites[13].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[13].dstSet = mDescriptorSets[descIndex];
+    descriptorWrites[13].dstBinding = 14;
+    descriptorWrites[13].dstArrayElement = 0;
+    descriptorWrites[13].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    descriptorWrites[13].descriptorCount = 1;
+    descriptorWrites[13].pImageInfo = &imageLtcInfo;
+
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     needDesciptorSetUpdate[descIndex] = false;
 }
@@ -470,6 +490,15 @@ void ComputePass::setGbuffer(GBuffer* gbuffer)
 void ComputePass::setRtShadowImageView(VkImageView imageView)
 {
     mRtShadowImageView = imageView;
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        needDesciptorSetUpdate[i] = true;
+    }
+}
+
+void ComputePass::setLtcImageView(VkImageView imageView)
+{
+    mLtcImageView = imageView;
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         needDesciptorSetUpdate[i] = true;
