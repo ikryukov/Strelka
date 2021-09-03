@@ -17,6 +17,7 @@
 #include "ltc_data.h"
 
 const uint32_t BINDLESS_TEXTURE_COUNT = 128;
+const uint32_t BINDLESS_SAMPLER_COUNT = 36;
 
 namespace nevk
 {
@@ -148,7 +149,7 @@ void LtcPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding texBindlessLayoutBinding{};
     texBindlessLayoutBinding.binding = 8;
-    texBindlessLayoutBinding.descriptorCount = (uint32_t)BINDLESS_TEXTURE_COUNT;
+    texBindlessLayoutBinding.descriptorCount = BINDLESS_TEXTURE_COUNT;
     texBindlessLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texBindlessLayoutBinding.pImmutableSamplers = nullptr;
     texBindlessLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -156,9 +157,9 @@ void LtcPass::createDescriptorSetLayout()
 
     VkDescriptorSetLayoutBinding samplerLayoutBinding{};
     samplerLayoutBinding.binding = 9;
-    samplerLayoutBinding.descriptorCount = (uint32_t)36;
+    samplerLayoutBinding.descriptorCount = BINDLESS_SAMPLER_COUNT;
     samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-    samplerLayoutBinding.pImmutableSamplers = mTextureSamplers.data();
+    samplerLayoutBinding.pImmutableSamplers = nullptr;
     samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     bindings.push_back(samplerLayoutBinding);
 
@@ -380,7 +381,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
     }
 
     std::vector<VkDescriptorImageInfo> samplerInfo;
-    samplerInfo.resize(mTextureSamplers.size());
+    samplerInfo.resize(BINDLESS_SAMPLER_COUNT);
     for (uint32_t i = 0; i < mTextureSamplers.size(); ++i)
     {
         samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -395,7 +396,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
             descWrite.dstBinding = 9;
             descWrite.dstArrayElement = 0;
             descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-            descWrite.descriptorCount = (uint32_t)samplerInfo.size();
+            descWrite.descriptorCount = BINDLESS_SAMPLER_COUNT;
             descWrite.pImageInfo = samplerInfo.data();
             descriptorWrites.push_back(descWrite);
         }
