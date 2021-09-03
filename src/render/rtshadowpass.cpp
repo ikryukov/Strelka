@@ -88,17 +88,15 @@ void RtShadowPass::createDescriptorSetLayout()
     texLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texLayoutBinding.pImmutableSamplers = nullptr;
     texLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    texLayoutBinding.binding = 1;
     bindings.push_back(texLayoutBinding);
 
     // gbuffer normal
     VkDescriptorSetLayoutBinding texNormalLayoutBinding{};
-    texNormalLayoutBinding.binding = 1;
+    texNormalLayoutBinding.binding = 2;
     texNormalLayoutBinding.descriptorCount = 1;
     texNormalLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     texNormalLayoutBinding.pImmutableSamplers = nullptr;
     texNormalLayoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-    texNormalLayoutBinding.binding = 2;
     bindings.push_back(texNormalLayoutBinding);
 
     VkDescriptorSetLayoutBinding bvhNodeLayoutBinding{};
