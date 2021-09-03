@@ -13,7 +13,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
+#ifdef __APPLE__
+const uint32_t BINDLESS_TEXTURE_COUNT = 128;
+#else
 const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
+#endif
 
 namespace nevk
 {
