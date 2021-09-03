@@ -133,12 +133,6 @@ private:
     nevk::Image* mLtcOutputImage;
     VkImageView mLtcOutputImageView;
 
-    nevk::Image* mLtc1Image;
-    VkImageView mLtc1ImageView;
-
-    nevk::Image* mLtc2Image;
-    VkImageView mLtc2ImageView;
-
     nevk::ResourceManager* mResManager = nullptr;
     nevk::TextureManager* mTexManager = nullptr;
 
