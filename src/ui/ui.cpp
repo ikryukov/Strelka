@@ -201,6 +201,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     ImGuiIO& io = ImGui::GetIO();
     bool activateMenuBar = false;
     bool openFD = false;
+    static bool openSceneTree = false;
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -211,9 +212,13 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     {
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Open..", "Ctrl+O"))
+            if (ImGui::MenuItem("Open File", "Ctrl+O"))
             {
                 openFD = true;
+            }
+            if (ImGui::MenuItem("Scene Tree", "Ctrl+W"))
+            {
+                openSceneTree = true;
             }
             if (ImGui::MenuItem("Close", "Ctrl+W"))
             {
@@ -224,7 +229,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         ImGui::EndMenuBar();
     }
 
-    // open Dialog
+    // open file dialog
     if (openFD)
         ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gltf,.obj", ".");
     // display
@@ -233,10 +238,26 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         if (ImGuiFileDialog::Instance()->IsOk())
         {
             newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
+            openSceneTree = true;
         }
         ImGuiFileDialog::Instance()->Close();
     }
 
+    // open new window w/ scene tree
+    std::vector<nevk::Instance> currInstance = scene.getInstances();
+    if (openSceneTree && !currInstance.empty())
+    {
+        ImGui::Begin("Scene Tree", &openSceneTree); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        // Display contents in a scrolling region
+        ImGui::TextColored(ImVec4(1, 1, 0, 1), "Scene Tree");
+        ImGui::BeginChild("Scrolling");
+        for (uint32_t i = 0; i < currInstance.size(); i++)
+            ImGui::Text("Instance: %d, Material ID: %d, Mass Center: %f %f %f", currInstance[i].mMeshId, scene.getInstances()[i].mMaterialId, /*currInstance[i].transform,*/ currInstance[i].massCenter.x, currInstance[i].massCenter.y, currInstance[i].massCenter.z);
+        ImGui::EndChild();
+        ImGui::End();
+    }
+
+    // simple settings
     ImGui::Text("MsPF = %f", msPerFrame);
     ImGui::Text("FPS = %f", 1000.0 / msPerFrame);
 
@@ -316,7 +337,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     //     transparency settings
     ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
     ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
-
 
     ImGui::End(); // end window
 }
