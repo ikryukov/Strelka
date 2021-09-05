@@ -61,10 +61,11 @@ public:
     // CPU side structure
     struct RectLight
     {
-        glm::float3 position;
-        glm::float3 normal; // orientation
-        float width;
-        float height;
+        glm::float3 position; // world position
+        glm::float3 orientation; // euler angles in degrees
+        // OX - axis of light or normal
+        float width; // OY
+        float height; // OZ
         glm::float3 color;
     };
 
