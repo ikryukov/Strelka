@@ -1030,6 +1030,10 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
     mCurrentSceneRenderData->mInstanceBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        mCurrentSceneRenderData->mUploadInstanceBuffer[i] = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    }
 }
 
 void Render::createDescriptorPool()
@@ -1380,6 +1384,57 @@ void Render::drawFrame()
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
     vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
+
+    // upload data
+    {
+        // This struct should match shader's version
+        struct InstanceConstants
+        {
+            glm::float4x4 model;
+            glm::float4x4 normalMatrix;
+            int32_t materialId;
+            int32_t pad0;
+            int32_t pad1;
+            int32_t pad2;
+        };
+
+        const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
+        mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
+        VkDeviceSize bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
+        if (bufferSize == 0)
+        {
+            return;
+        }
+        std::vector<InstanceConstants> instanceConsts;
+        instanceConsts.resize(sceneInstances.size());
+        for (int i = 0; i < sceneInstances.size(); ++i)
+        {
+            instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
+            instanceConsts[i].model = sceneInstances[i].transform;
+            instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
+        }
+
+        Buffer* stagingBuffer = mCurrentSceneRenderData->mUploadInstanceBuffer[frameIndex];
+        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+        memcpy(stagingBufferMemory, instanceConsts.data(), (size_t)bufferSize);
+
+        VkBufferCopy copyRegion{};
+        copyRegion.size = bufferSize;
+        vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
+
+        VkMemoryBarrier memoryBarrier = {};
+        memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+        memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+
+        vkCmdPipelineBarrier(cmdBuff,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+                             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, // dstStageMask
+                             0,
+                             1, // memoryBarrierCount
+                             &memoryBarrier, // pMemoryBarriers
+                             0, nullptr, 0, nullptr);
+    }
 
     recordCommandBuffer(cmdBuff, frameIndex);
 

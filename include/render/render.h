@@ -150,6 +150,7 @@ private:
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
         nevk::Buffer* mInstanceBuffer = nullptr;
+        nevk::Buffer* mUploadInstanceBuffer[3] = { nullptr, nullptr, nullptr };
         nevk::Buffer* mLightsBuffer = nullptr;
         nevk::Buffer* mBvhNodeBuffer = nullptr;
         nevk::Buffer* mBvhTriangleBuffer = nullptr;
