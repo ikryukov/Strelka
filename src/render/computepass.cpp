@@ -194,7 +194,7 @@ void ComputePass::createDescriptorSets(VkDescriptorPool& descriptorPool)
 
 void ComputePass::updateDescriptorSet(uint32_t descIndex)
 {
-    std::array<VkWriteDescriptorSet, 14> descriptorWrites{};
+    std::array<VkWriteDescriptorSet, 15> descriptorWrites{};
 
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = mResManager->getVkBuffer(uniformBuffers[descIndex]);
@@ -386,13 +386,13 @@ void ComputePass::updateDescriptorSet(uint32_t descIndex)
     imageLtcInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     imageLtcInfo.imageView = mLtcImageView;
 
-    descriptorWrites[13].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descriptorWrites[13].dstSet = mDescriptorSets[descIndex];
-    descriptorWrites[13].dstBinding = 14;
-    descriptorWrites[13].dstArrayElement = 0;
-    descriptorWrites[13].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    descriptorWrites[13].descriptorCount = 1;
-    descriptorWrites[13].pImageInfo = &imageLtcInfo;
+    descriptorWrites[14].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[14].dstSet = mDescriptorSets[descIndex];
+    descriptorWrites[14].dstBinding = 14;
+    descriptorWrites[14].dstArrayElement = 0;
+    descriptorWrites[14].descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    descriptorWrites[14].descriptorCount = 1;
+    descriptorWrites[14].pImageInfo = &imageLtcInfo;
 
     vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     needDesciptorSetUpdate[descIndex] = false;

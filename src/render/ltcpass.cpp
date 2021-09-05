@@ -387,6 +387,12 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
         samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         samplerInfo[i].sampler = mTextureSamplers[i];
     }
+    for (uint32_t i = (uint32_t)mTextureSamplers.size(); i < BINDLESS_SAMPLER_COUNT; ++i)
+    {
+        samplerInfo[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        samplerInfo[i].sampler = mTextureSamplers[0];
+    }
+
     if (!mTextureSamplers.empty())
     {
         {
@@ -434,7 +440,7 @@ void LtcPass::updateDescriptorSet(uint32_t descIndex)
 
     VkDescriptorImageInfo imageInfoLtcSampler{};
     imageInfoLtcSampler.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoLtcSampler.sampler = mLTCSampler;
+    imageInfoLtcSampler.sampler = mLtcSampler;
     {
         VkWriteDescriptorSet descWrite{};
         descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -524,6 +530,15 @@ void LtcPass::onDestroy()
     {
         mResManager->destroyBuffer(uniformBuffers[i]);
     }
+
+    vkDestroyImageView(mDevice, mLtc1ImageView, nullptr);
+    vkDestroyImageView(mDevice, mLtc2ImageView, nullptr);
+
+    mResManager->destroyImage(mLtc1Image);
+    mResManager->destroyImage(mLtc2Image);
+
+    vkDestroySampler(mDevice, mLtcSampler, nullptr);
+
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
     vkDestroyShaderModule(mDevice, mCS, nullptr);
@@ -579,7 +594,7 @@ void LtcPass::setLtcResources(VkImageView ltc1, VkImageView ltc2, VkSampler ltcS
 {
     mLtc1ImageView = ltc1;
     mLtc2ImageView = ltc2;
-    mLTCSampler = ltcSampler;
+    mLtcSampler = ltcSampler;
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         needDesciptorSetUpdate[i] = true;
@@ -612,7 +627,6 @@ void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, Vk
     mCS = createShaderModule(csCode, csCodeSize);
     createUniformBuffers();
 
-
     // sampler
     VkSamplerCreateInfo samplerInfo{};
     samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -629,7 +643,7 @@ void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, Vk
     samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
     samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-    VkResult res = vkCreateSampler(mDevice, &samplerInfo, nullptr, &mLTCSampler);
+    VkResult res = vkCreateSampler(mDevice, &samplerInfo, nullptr, &mLtcSampler);
     if (res != VK_SUCCESS)
     {
         // error
@@ -641,15 +655,7 @@ void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, Vk
 
     mLtc1Image = ltc1.textureImage;
     mLtc2Image = ltc2.textureImage;
-    //mLtc1Image = mResManager->createImage(64, 64, VK_FORMAT_R16G16B16A16_SFLOAT,
-    //                                      VK_IMAGE_TILING_OPTIMAL,
-    //                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-    //                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc1");
     mLtc1ImageView = mResManager->createImageView(mLtc1Image, VK_IMAGE_ASPECT_COLOR_BIT);
-    //mLtc2Image = mResManager->createImage(64, 64, VK_FORMAT_R16G16B16A16_SFLOAT,
-    //                                      VK_IMAGE_TILING_OPTIMAL,
-    //                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-    //                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc2");
     mLtc2ImageView = mResManager->createImageView(mLtc2Image, VK_IMAGE_ASPECT_COLOR_BIT);
 
     createDescriptorSetLayout();

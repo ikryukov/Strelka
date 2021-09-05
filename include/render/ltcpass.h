@@ -50,7 +50,7 @@ private:
     nevk::Image* mLtc1Image = nullptr;
     VkImageView mLtc2ImageView = VK_NULL_HANDLE;
     nevk::Image* mLtc2Image = nullptr;
-    VkSampler mLTCSampler = VK_NULL_HANDLE;
+    VkSampler mLtcSampler = VK_NULL_HANDLE;
 
     std::vector<VkImageView> mTextureImageView;
     std::vector<VkSampler> mTextureSamplers;

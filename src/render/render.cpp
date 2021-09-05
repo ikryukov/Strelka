@@ -78,6 +78,16 @@ void Render::initVulkan()
 
     createDepthResources();
 
+    nevk::TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
+    mTexManager->createTextureSampler(defSamplerDesc);
+    modelLoader = new nevk::ModelLoader(mTexManager);
+    createDefaultScene();
+    if (!MODEL_PATH.empty())
+    {
+        mTexManager->saveTexturesInDelQueue();
+        loadScene(MODEL_PATH);
+    }
+
     {
         shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
                                                VK_IMAGE_TILING_OPTIMAL,
@@ -87,8 +97,6 @@ void Render::initVulkan()
     }
 
     mTexManager->createShadowSampler();
-    nevk::TextureManager::TextureSamplerDesc defSamplerDesc{VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
-    mTexManager->createTextureSampler(defSamplerDesc);
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
@@ -117,24 +125,15 @@ void Render::initVulkan()
         uint32_t csLtcId = mShaderManager.loadShader("shaders/ltc.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
         mShaderManager.getShaderCode(csLtcId, csLtcShaderCode, csLtcShaderCodeSize);
         mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
         mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
 
         mLtcPass.setGbuffer(&mGbuffer);
         mLtcPass.setOutputImageView(mLtcOutputImageView);
 
         mLtcPass.init(mDevice, csLtcShaderCode, csLtcShaderCodeSize, mDescriptorPool, mResManager, *mTexManager);
-    
-    }
-
-    modelLoader = new nevk::ModelLoader(mTexManager);
-    createDefaultScene();
-    if (!MODEL_PATH.empty())
-    {
-        mTexManager->saveTexturesInDelQueue();
-        loadScene(MODEL_PATH);
     }
 
     //init passes
@@ -147,6 +146,8 @@ void Render::initVulkan()
         mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
     mComputePass.setGbuffer(&mGbuffer);
+    mComputePass.setLtcImageView(mLtcOutputImageView);
+    mComputePass.setRtShadowImageView(mRtShadowImageView);
     mComputePass.setOutputImageView(textureCompImageView);
     mComputePass.setTextureSamplers(mTexManager->texSamplers);
     mComputePass.init(mDevice, csShaderCode, csShaderCodeSize, mDescriptorPool, mResManager);
@@ -378,6 +379,9 @@ void Render::cleanup()
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
     mResManager->destroyImage(shadowImage);
 
+    vkDestroyImageView(mDevice, mLtcOutputImageView, nullptr);
+    mResManager->destroyImage(mLtcOutputImage);
+
     destroyGbuffer(mGbuffer);
 
     delete mDefaultSceneRenderData;
@@ -475,6 +479,23 @@ void Render::recreateSwapChain()
     }
     mRtShadowPass.setOutputImageView(mRtShadowImageView);
     mComputePass.setRtShadowImageView(mRtShadowImageView);
+
+    // LTC pass
+    {
+        mResManager->destroyImage(mLtcOutputImage);
+        vkDestroyImageView(mDevice, mLtcOutputImageView, nullptr);
+    }
+    {
+        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+        mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
+
+        mLtcPass.setOutputImageView(mLtcOutputImageView);
+    }
+
+    mComputePass.setLtcImageView(mLtcOutputImageView);
 
     destroyGbuffer(mGbuffer);
     mGbuffer = createGbuffer(width, height);
@@ -1250,7 +1271,7 @@ void Render::loadScene(const std::string& modelPath)
 
     // for pica pica
     mScene->createLight(glm::float3(0, 50, 0), glm::float3(10, 50, 0.0), glm::float3(10.0, 50, 10), glm::float3(0.0, 50, 10));
-    
+
     //mScene->createLight(glm::float3(0, 0.5, 0), glm::float3(1, 0.5, 0.0), glm::float3(1.0, 2, 0), glm::float3(0.0, 2, 0.0));
 
     createMaterialBuffer(*mScene);
