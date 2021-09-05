@@ -273,18 +273,40 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             }
             ImGui::TreePop();
         }
+        if (ImGui::TreeNode("Light"))
+        {
+            ImGui::Text("Rectangle light");
+            uint32_t currLight = 0; // get from tree
+            ImGui::Spacing();
+            ImGui::SliderFloat("up coordinate X1", &scene.mLights[currLight].points[0].x, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Y1", &scene.mLights[currLight].points[0].y, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Z1", &scene.mLights[currLight].points[0].z, -100.0f, 100.0f);
+            ImGui::Spacing();
+            ImGui::SliderFloat("up coordinate X2", &scene.mLights[currLight].points[1].x, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Y2", &scene.mLights[currLight].points[1].y, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Z2", &scene.mLights[currLight].points[1].z, -100.0f, 100.0f);
+            ImGui::Spacing();
+            ImGui::SliderFloat("up coordinate X3", &scene.mLights[currLight].points[2].x, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Y3", &scene.mLights[currLight].points[2].y, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Z3", &scene.mLights[currLight].points[2].z, -100.0f, 100.0f);
+            ImGui::Spacing();
+            ImGui::SliderFloat("up coordinate X4", &scene.mLights[currLight].points[3].x, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Y4", &scene.mLights[currLight].points[3].y, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Z4", &scene.mLights[currLight].points[3].z, -100.0f, 100.0f);
+            ImGui::TreePop();
+        }
 
         ImGui::Spacing();
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Tree");
         for (uint32_t i = 0; i < currInstance.size(); i++)
         {
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf; 
+            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
             if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", currInstance[i].mMeshId))
             {
                 if (ImGui::IsItemClicked())
                 {
                     showPropertiesId = i;
-                }                
+                }
                 ImGui::TreePop();
             }
         }

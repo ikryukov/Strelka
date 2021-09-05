@@ -14,7 +14,7 @@
 #include <glm/gtx/hash.hpp>
 
 #ifdef __APPLE__
-const uint32_t BINDLESS_TEXTURE_COUNT = 128;
+const uint32_t BINDLESS_TEXTURE_COUNT = 120;
 #else
 const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
 #endif
