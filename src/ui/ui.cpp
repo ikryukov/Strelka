@@ -201,7 +201,8 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     ImGuiIO& io = ImGui::GetIO();
     bool activateMenuBar = false;
     bool openFD = false;
-    static bool openSceneTree = false;
+    static uint32_t showPropertiesId = -1;
+    static bool openInspector = false;
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -216,11 +217,11 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             {
                 openFD = true;
             }
-            if (ImGui::MenuItem("Scene Tree", "Ctrl+W"))
+            if (ImGui::MenuItem("Inspector", "Ctrl+I"))
             {
-                openSceneTree = true;
+                openInspector = true;
             }
-            if (ImGui::MenuItem("Close", "Ctrl+W"))
+            if (ImGui::MenuItem("Close", "Ctrl+C"))
             {
                 activateMenuBar = false;
             }
@@ -238,22 +239,86 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         if (ImGuiFileDialog::Instance()->IsOk())
         {
             newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
-            openSceneTree = true;
+            showPropertiesId = -1; // new scene, updated properties
+            openInspector = true;
         }
         ImGuiFileDialog::Instance()->Close();
     }
 
+    //ImGui::ShowDemoWindow();
     // open new window w/ scene tree
     std::vector<nevk::Instance> currInstance = scene.getInstances();
-    if (openSceneTree && !currInstance.empty())
+    if (openInspector)
     {
-        ImGui::Begin("Scene Tree", &openSceneTree); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        ImGui::Begin("Inspector", &openInspector); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
         // Display contents in a scrolling region
-        ImGui::TextColored(ImVec4(1, 1, 0, 1), "Scene Tree");
+        ImGui::TextColored(ImVec4(1, 1, 0, 1), "Properties");
         ImGui::BeginChild("Scrolling");
+        if (ImGui::TreeNode("Transform"))
+        {
+            if (showPropertiesId != -1)
+            {
+                float pos[3] = { currInstance[showPropertiesId].transform[0].x, currInstance[showPropertiesId].transform[0].y, currInstance[showPropertiesId].transform[0].z };
+                float rotation[3] = { currInstance[showPropertiesId].transform[1].x, currInstance[showPropertiesId].transform[1].y, currInstance[showPropertiesId].transform[1].z };
+                float scale[3] = { currInstance[showPropertiesId].transform[2].x, currInstance[showPropertiesId].transform[2].y, currInstance[showPropertiesId].transform[2].z };
+
+                ImGui::InputFloat3("Position", pos);
+                ImGui::InputFloat3("Rotation", rotation);
+                ImGui::InputFloat3("Scale", scale);
+            }
+            if (showPropertiesId != -1)
+            {
+                ImGui::Text("Material ID: %d", currInstance[showPropertiesId].mMaterialId);
+                ImGui::Text("Mass Center: %f %f %f", currInstance[showPropertiesId].massCenter.x, currInstance[showPropertiesId].massCenter.y, currInstance[showPropertiesId].massCenter.z);
+            }
+            ImGui::TreePop();
+        }
+        if (ImGui::TreeNode("Light Settings"))
+        {
+            ImGui::Text("Light Position");
+            ImGui::SliderFloat("pos coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);
+            ImGui::SliderFloat("pos coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
+            ImGui::SliderFloat("pos coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
+            if (ImGui::Button("Copy from current camera to light position"))
+            {
+                (glm::float3&)scene.mLightPosition = scene.getCamera(selectedCamera).getPosition();
+            }
+
+            ImGui::Text("Light At");
+            ImGui::SliderFloat("coordinate X", &depthPass.lightAt.x, -100.0f, 100.0f);
+            ImGui::SliderFloat("coordinate Y", &depthPass.lightAt.y, -100.0f, 100.0f);
+            ImGui::SliderFloat("coordinate Z", &depthPass.lightAt.z, -100.0f, 100.0f);
+            if (ImGui::Button("Copy from current camera to light at"))
+            {
+                depthPass.lightAt = scene.getCamera(selectedCamera).getPosition();
+            }
+
+            ImGui::Text("Light Direction Upwards");
+            ImGui::SliderFloat("up coordinate X", &depthPass.lightUpwards.x, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Y", &depthPass.lightUpwards.y, -100.0f, 100.0f);
+            ImGui::SliderFloat("up coordinate Z", &depthPass.lightUpwards.z, -100.0f, 100.0f);
+
+            ImGui::Text("Other light settings");
+            ImGui::SliderFloat("fov angle", &depthPass.fovAngle, -100.0f, 100.0f);
+            ImGui::SliderFloat("zNear", &depthPass.zNear, -100.0f, 100.0f);
+            ImGui::SliderFloat("zFar", &depthPass.zFar, -100.0f, 100.0f);
+            ImGui::SliderFloat("depth bias factor", &depthPass.depthBiasConstant, -100.0f, 100.0f);
+            ImGui::SliderFloat("slope depth bias factor", &depthPass.depthBiasSlope, -100.0f, 100.0f);
+            ImGui::TreePop();
+        }
+
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(1, 1, 0, 1), "Tree");
         for (uint32_t i = 0; i < currInstance.size(); i++)
-            ImGui::Text("Instance: %d, Material ID: %d, Mass Center: %f %f %f", currInstance[i].mMeshId, scene.getInstances()[i].mMaterialId, /*currInstance[i].transform,*/ currInstance[i].massCenter.x, currInstance[i].massCenter.y, currInstance[i].massCenter.z);
+        {
+            if (ImGui::TreeNode((void*)(intptr_t)i, "Mesh ID: %d", currInstance[i].mMeshId))
+            {
+                showPropertiesId = i;
+                ImGui::TreePop();
+            }
+        }
         ImGui::EndChild();
+
         ImGui::End();
     }
 
@@ -282,36 +347,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         }
         ImGui::EndCombo();
     }
-
-    ImGui::Text("Light Position");
-    ImGui::SliderFloat("pos coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);
-    ImGui::SliderFloat("pos coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
-    ImGui::SliderFloat("pos coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
-    if (ImGui::Button("Copy from current camera to light position"))
-    {
-        (glm::float3&)scene.mLightPosition = scene.getCamera(selectedCamera).getPosition();
-    }
-
-    ImGui::Text("Light At");
-    ImGui::SliderFloat("coordinate X", &depthPass.lightAt.x, -100.0f, 100.0f);
-    ImGui::SliderFloat("coordinate Y", &depthPass.lightAt.y, -100.0f, 100.0f);
-    ImGui::SliderFloat("coordinate Z", &depthPass.lightAt.z, -100.0f, 100.0f);
-    if (ImGui::Button("Copy from current camera to light at"))
-    {
-        depthPass.lightAt = scene.getCamera(selectedCamera).getPosition();
-    }
-
-    ImGui::Text("Light Direction Upwards");
-    ImGui::SliderFloat("up coordinate X", &depthPass.lightUpwards.x, -100.0f, 100.0f);
-    ImGui::SliderFloat("up coordinate Y", &depthPass.lightUpwards.y, -100.0f, 100.0f);
-    ImGui::SliderFloat("up coordinate Z", &depthPass.lightUpwards.z, -100.0f, 100.0f);
-
-    ImGui::Text("Other light settings");
-    ImGui::SliderFloat("fov angle", &depthPass.fovAngle, -100.0f, 100.0f);
-    ImGui::SliderFloat("zNear", &depthPass.zNear, -100.0f, 100.0f);
-    ImGui::SliderFloat("zFar", &depthPass.zFar, -100.0f, 100.0f);
-    ImGui::SliderFloat("depth bias factor", &depthPass.depthBiasConstant, -100.0f, 100.0f);
-    ImGui::SliderFloat("slope depth bias factor", &depthPass.depthBiasSlope, -100.0f, 100.0f);
 
     const char* items[] = { "None", "Normals", "Shadow b&w", "Shadow PCF", "Shadow Poisson", "Shadow Poisson+PCF" };
     static const char* current_item = items[0];
