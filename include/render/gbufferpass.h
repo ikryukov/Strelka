@@ -57,7 +57,7 @@ private:
 
     VkShaderModule mVS, mPS;
 
-    ResourceManager* mResMngr;
+    ResourceManager* mResManager;
     VkDescriptorPool mDescriptorPool;
     std::vector<Buffer*> uniformBuffers;
 
@@ -149,7 +149,7 @@ public:
     {
         mEnableValidation = enableValidation;
         mDevice = device;
-        mResMngr = resMngr;
+        mResManager = resMngr;
         mDescriptorPool = descpool;
         mGbuffer = gbuffer;
         mVS = createShaderModule(vsCode, vsCodeSize);

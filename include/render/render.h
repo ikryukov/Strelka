@@ -20,6 +20,7 @@
 #include "gbufferpass.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
+#include "ltcpass.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -129,6 +130,9 @@ private:
     nevk::Image* mRtShadowImage;
     VkImageView mRtShadowImageView;
 
+    nevk::Image* mLtcOutputImage;
+    VkImageView mLtcOutputImageView;
+
     nevk::ResourceManager* mResManager = nullptr;
     nevk::TextureManager* mTexManager = nullptr;
 
@@ -137,6 +141,7 @@ private:
     GBuffer mGbuffer;
     nevk::GbufferPass mGbufferPass;
     nevk::RtShadowPass mRtShadowPass;
+    nevk::LtcPass mLtcPass;
     nevk::ModelLoader* modelLoader = nullptr;
     nevk::ComputePass mComputePass;
     nevk::DepthPass mDepthPass;

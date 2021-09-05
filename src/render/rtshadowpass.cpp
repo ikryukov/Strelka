@@ -165,7 +165,7 @@ void RtShadowPass::updateDescriptorSet(uint32_t descIndex)
     std::vector<VkWriteDescriptorSet> descriptorWrites;
     
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = mResMngr->getVkBuffer(uniformBuffers[descIndex]);
+    bufferInfo.buffer = mResManager->getVkBuffer(uniformBuffers[descIndex]);
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -314,7 +314,7 @@ void RtShadowPass::createUniformBuffers()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        uniformBuffers[i] = mResMngr->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        uniformBuffers[i] = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
@@ -332,7 +332,7 @@ void RtShadowPass::updateUniformBuffer(uint32_t currentImage, uint64_t frameNumb
     ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
 
-    void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
+    void* data = mResManager->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));
 }
 
@@ -340,7 +340,7 @@ void RtShadowPass::onDestroy()
 {
     for (size_t i = 0; i < uniformBuffers.size(); ++i)
     {
-        mResMngr->destroyBuffer(uniformBuffers[i]);
+        mResManager->destroyBuffer(uniformBuffers[i]);
     }
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyPipelineLayout(mDevice, mPipelineLayout, nullptr);
@@ -388,7 +388,7 @@ void RtShadowPass::setOutputImageView(VkImageView imageView)
 void RtShadowPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr)
 {
     mDevice = device;
-    mResMngr = resMngr;
+    mResManager = resMngr;
     mDescriptorPool = descpool;
     mCS = createShaderModule(csCode, csCodeSize);
     createUniformBuffers();

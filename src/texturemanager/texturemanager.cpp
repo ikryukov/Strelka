@@ -37,17 +37,27 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std
 
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, uint32_t width, uint32_t height)
 {
-    VkDeviceSize imageSize = width * height * 4;
+    return createTextureImage(pixels, VK_FORMAT_R8G8B8A8_UNORM, width, height);
+}
+
+nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, VkFormat format, uint32_t width, uint32_t height)
+{
+    return createTextureImage(pixels, 4, format, width, height);
+}
+
+nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height)
+{
+    VkDeviceSize imageSize = width * height * bytesPerPixel;
     Buffer* stagingBuffer = mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, pixels, static_cast<size_t>(imageSize));
 
-    Image* textureImage = mResManager->createImage(width, height, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    Image* textureImage = mResManager->createImage(width, height, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    transitionImageLayout(mResManager->getVkImage(textureImage), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    transitionImageLayout(mResManager->getVkImage(textureImage), format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     copyBufferToImage(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkImage(textureImage), static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-    transitionImageLayout(mResManager->getVkImage(textureImage), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    transitionImageLayout(mResManager->getVkImage(textureImage), format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     mResManager->destroyBuffer(stagingBuffer);
 

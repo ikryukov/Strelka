@@ -33,7 +33,7 @@ private:
     VkShaderModule mSS;
     VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
 
-    ResourceManager* mResMngr;
+    ResourceManager* mResManager;
 
     VkDescriptorSetLayout mDescriptorSetLayout;
     std::vector<VkDescriptorSet> mDescriptorSets;

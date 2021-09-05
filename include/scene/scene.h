@@ -54,12 +54,7 @@ public:
 
     struct Light
     {
-        glm::float3 v0;
-        float pad0;
-        glm::float3 v1;
-        float pad1;
-        glm::float3 v2;
-        float pad2;
+        glm::float4 points[4];
     };
 
     enum class DebugView
@@ -166,7 +161,7 @@ public:
 
     uint32_t addMaterial(const Material& material);
 
-    uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2);
+    uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
 
     /// <summary>
     /// Removes instance/mesh/material
