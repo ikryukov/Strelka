@@ -273,39 +273,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             }
             ImGui::TreePop();
         }
-        if (ImGui::TreeNode("Light Settings"))
-        {
-            ImGui::Text("Light Position");
-            ImGui::SliderFloat("pos coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);
-            ImGui::SliderFloat("pos coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
-            ImGui::SliderFloat("pos coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
-            if (ImGui::Button("Copy from current camera to light position"))
-            {
-                (glm::float3&)scene.mLightPosition = scene.getCamera(selectedCamera).getPosition();
-            }
-
-            ImGui::Text("Light At");
-            ImGui::SliderFloat("coordinate X", &depthPass.lightAt.x, -100.0f, 100.0f);
-            ImGui::SliderFloat("coordinate Y", &depthPass.lightAt.y, -100.0f, 100.0f);
-            ImGui::SliderFloat("coordinate Z", &depthPass.lightAt.z, -100.0f, 100.0f);
-            if (ImGui::Button("Copy from current camera to light at"))
-            {
-                depthPass.lightAt = scene.getCamera(selectedCamera).getPosition();
-            }
-
-            ImGui::Text("Light Direction Upwards");
-            ImGui::SliderFloat("up coordinate X", &depthPass.lightUpwards.x, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Y", &depthPass.lightUpwards.y, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Z", &depthPass.lightUpwards.z, -100.0f, 100.0f);
-
-            ImGui::Text("Other light settings");
-            ImGui::SliderFloat("fov angle", &depthPass.fovAngle, -100.0f, 100.0f);
-            ImGui::SliderFloat("zNear", &depthPass.zNear, -100.0f, 100.0f);
-            ImGui::SliderFloat("zFar", &depthPass.zFar, -100.0f, 100.0f);
-            ImGui::SliderFloat("depth bias factor", &depthPass.depthBiasConstant, -100.0f, 100.0f);
-            ImGui::SliderFloat("slope depth bias factor", &depthPass.depthBiasSlope, -100.0f, 100.0f);
-            ImGui::TreePop();
-        }
 
         ImGui::Spacing();
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Tree");
