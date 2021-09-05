@@ -247,7 +247,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
 
     //ImGui::ShowDemoWindow();
     // open new window w/ scene tree
-    std::vector<nevk::Instance> currInstance = scene.getInstances();
+    const std::vector<nevk::Instance>& currInstance = scene.getInstances();
     if (openInspector)
     {
         ImGui::Begin("Inspector", &openInspector); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
@@ -311,9 +311,13 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Tree");
         for (uint32_t i = 0; i < currInstance.size(); i++)
         {
-            if (ImGui::TreeNode((void*)(intptr_t)i, "Mesh ID: %d", currInstance[i].mMeshId))
+            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf; 
+            if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", currInstance[i].mMeshId))
             {
-                showPropertiesId = i;
+                if (ImGui::IsItemClicked())
+                {
+                    showPropertiesId = i;
+                }                
                 ImGui::TreePop();
             }
         }
