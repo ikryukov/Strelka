@@ -338,7 +338,7 @@ void findTextureSamplers(const tinygltf::Model& model, nevk::Scene& scene, nevk:
         currentSamplerDesc = { getVkFilterMode(sampler.minFilter), getVkFilterMode(sampler.magFilter), getVkWrapMode(sampler.wrapS), getVkWrapMode(sampler.wrapT) };
         if (textureManager.sampDescToId.count(currentSamplerDesc) == 0)
         {
-            if (textureManager.sampDescToId.size() <= 15)
+            if (textureManager.sampDescToId.size() < 15)
             {
                 textureManager.createTextureSampler(currentSamplerDesc);
             }

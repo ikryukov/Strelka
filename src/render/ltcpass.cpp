@@ -18,7 +18,7 @@
 
 #ifdef __APPLE__
 const uint32_t BINDLESS_TEXTURE_COUNT = 120;
-const uint32_t BINDLESS_SAMPLER_COUNT = 10;
+const uint32_t BINDLESS_SAMPLER_COUNT = 15;
 #else
 const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
 const uint32_t BINDLESS_SAMPLER_COUNT = 36;

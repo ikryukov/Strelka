@@ -52,9 +52,21 @@ public:
         uint32_t uv;
     };
 
+    // GPU side structure
     struct Light
     {
         glm::float4 points[4];
+    };
+
+    // CPU side structure
+    struct RectLight
+    {
+        glm::float3 position; // world position
+        glm::float3 orientation; // euler angles in degrees
+        // OX - axis of light or normal
+        float width; // OY
+        float height; // OZ
+        glm::float3 color;
     };
 
     enum class DebugView
