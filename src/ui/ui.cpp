@@ -324,7 +324,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::BeginFrame();
 
-    const std::vector<Instance> instances = scene.getInstances();
+    const std::vector<Instance>& instances = scene.getInstances();
 
     Camera cam = scene.getCamera(selectedCamera);
     glm::float4x4 cameraView = cam.getView();
@@ -341,7 +341,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
 
         scene.updateInstanceTransform(i, xform);
     }
-
 
     ImGui::Begin("Settings:"); // begin window
 

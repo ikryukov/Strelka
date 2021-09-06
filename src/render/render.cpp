@@ -87,7 +87,7 @@ void Render::initVulkan()
     }
 
     mTexManager->createShadowSampler();
-    nevk::TextureManager::TextureSamplerDesc defSamplerDesc{VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT};
+    nevk::TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
@@ -1401,39 +1401,38 @@ void Render::drawFrame()
         const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
         mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
         VkDeviceSize bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
-        if (bufferSize == 0)
+        if (bufferSize != 0)
         {
-            return;
+            std::vector<InstanceConstants> instanceConsts;
+            instanceConsts.resize(sceneInstances.size());
+            for (int i = 0; i < sceneInstances.size(); ++i)
+            {
+                instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
+                instanceConsts[i].model = sceneInstances[i].transform;
+                instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
+            }
+
+            Buffer* stagingBuffer = mCurrentSceneRenderData->mUploadInstanceBuffer[frameIndex];
+            void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+            memcpy(stagingBufferMemory, instanceConsts.data(), (size_t)bufferSize);
+
+            VkBufferCopy copyRegion{};
+            copyRegion.size = bufferSize;
+            vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
+
+            VkMemoryBarrier memoryBarrier = {};
+            memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+            memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+
+            vkCmdPipelineBarrier(cmdBuff,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+                                 VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, // dstStageMask
+                                 0,
+                                 1, // memoryBarrierCount
+                                 &memoryBarrier, // pMemoryBarriers
+                                 0, nullptr, 0, nullptr);
         }
-        std::vector<InstanceConstants> instanceConsts;
-        instanceConsts.resize(sceneInstances.size());
-        for (int i = 0; i < sceneInstances.size(); ++i)
-        {
-            instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
-            instanceConsts[i].model = sceneInstances[i].transform;
-            instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
-        }
-
-        Buffer* stagingBuffer = mCurrentSceneRenderData->mUploadInstanceBuffer[frameIndex];
-        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-        memcpy(stagingBufferMemory, instanceConsts.data(), (size_t)bufferSize);
-
-        VkBufferCopy copyRegion{};
-        copyRegion.size = bufferSize;
-        vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
-
-        VkMemoryBarrier memoryBarrier = {};
-        memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-        memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-
-        vkCmdPipelineBarrier(cmdBuff,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
-                             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, // dstStageMask
-                             0,
-                             1, // memoryBarrierCount
-                             &memoryBarrier, // pMemoryBarriers
-                             0, nullptr, 0, nullptr);
     }
 
     recordCommandBuffer(cmdBuff, frameIndex);
