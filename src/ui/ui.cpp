@@ -207,7 +207,7 @@ static const float identityMatrix[16] = { 1.f, 0.f, 0.f, 0.f,
 static bool useWindow = false;
 static int gizmoCount = 1;
 
-void EditTransform(float* cameraView, float* cameraProjection, float camDistance, float* matrix, bool editTransformDecomposition)
+void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTransformDecomposition)
 {
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
     static bool useSnap = false;
@@ -299,11 +299,17 @@ void EditTransform(float* cameraView, float* cameraProjection, float camDistance
         ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
     }
 
-    ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix, 100.f);
+    // ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix, 100.f);
     // ImGuizmo::DrawCubes(cameraView, cameraProjection, matrix, gizmoCount);
-    ImGuizmo::Manipulate(cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
 
-    ImGuizmo::ViewManipulate(cameraView, camDistance, ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
+    glm::float4x4 cameraView = cam.getView();
+    glm::float4x4 cameraProjection = cam.getPerspective();
+
+    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
+
+    ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), camDistance, ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
+
+    cam.matrices.view = cameraView;
 
     if (useWindow)
     {
@@ -323,12 +329,10 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
 
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::BeginFrame();
-
+    
     const std::vector<Instance>& instances = scene.getInstances();
 
-    Camera cam = scene.getCamera(selectedCamera);
-    glm::float4x4 cameraView = cam.getView();
-    glm::float4x4 cameraProjection = cam.getPerspective();
+    Camera& cam = scene.getCamera(selectedCamera);
     glm::float3 camPos = cam.getPosition();
 
     for (uint32_t i = 0; i < instances.size(); ++i)
@@ -336,8 +340,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         ImGuizmo::SetID(i);
         float camDist = glm::distance(camPos, instances[i].massCenter);
         glm::float4x4 xform = instances[i].transform;
-        EditTransform(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), camDist,
-                      glm::value_ptr(xform), true);
+        EditTransform(cam, camDist, glm::value_ptr(xform), true);
 
         scene.updateInstanceTransform(i, xform);
     }
