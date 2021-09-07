@@ -97,6 +97,8 @@ endif()
 ## Vulkan
 target_include_directories(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
+# JSON
+target_include_directories(${UILIB_NAME} PUBLIC external/json)
 
 # Resource Manager lib
 set(RESMNGR_SOURCES
