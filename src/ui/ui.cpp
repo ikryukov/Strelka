@@ -312,6 +312,10 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                     scene.createRectLight(glm::float3(light["position"][0], light["position"][1], light["position"][2]), glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]), light["width"], light["height"], glm::float3(light["color"][0], light["color"][1], light["color"][2]));
                 }
             }
+            if (ImGui::Button("Add Light"))
+            {
+                scene.createRectLight(currLight[currLightId].position, currLight[currLightId].orientation, currLight[currLightId].width, currLight[currLightId].height, currLight[currLightId].color * glm::float3{255.0, 255.0, 255.0});
+            }
             ImGui::TreePop();
         }
 
