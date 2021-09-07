@@ -98,7 +98,7 @@ uint32_t Scene::createRectLight(const glm::float3& position, const glm::float3& 
     l.orientation = orientation;
     l.width = width;
     l.height = height;
-    l.color = color;
+    l.color = color / glm::float3{ 255.0, 255.0, 255.0 };
 
     uint32_t lightId = (uint32_t)mRectLights.size();
     mRectLights.push_back(l);

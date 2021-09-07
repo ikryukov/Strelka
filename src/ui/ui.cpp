@@ -287,24 +287,18 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         if (ImGui::TreeNode("Light"))
         {
             std::vector<Scene::RectLight>& currLight = scene.getRectLights();
-            ImGui::Text("Rectangle light");
             uint32_t currLightId = currLight.size() - 1; // todo: get from tree
+            ImGui::Text("Rectangle light");
             ImGui::Spacing();
-            ImGui::SliderFloat("position X", &currLight[currLightId].position.x, -100.0f, 100.0f);
-            ImGui::SliderFloat("position Y", &currLight[currLightId].position.y, -100.0f, 100.0f);
-            ImGui::SliderFloat("position Z", &currLight[currLightId].position.z, -100.0f, 100.0f);
+            ImGui::DragFloat3("Position", &currLight[currLightId].position.x);
             ImGui::Spacing();
-            ImGui::SliderFloat("orientation X", &currLight[currLightId].orientation.x, -100.0f, 100.0f);
-            ImGui::SliderFloat("orientation Y", &currLight[currLightId].orientation.y, -100.0f, 100.0f);
-            ImGui::SliderFloat("orientation Z", &currLight[currLightId].orientation.z, -100.0f, 100.0f);
+            ImGui::DragFloat3("Orientation", &currLight[currLightId].orientation.x);
             ImGui::Spacing();
-            ImGui::SliderFloat("width", &currLight[currLightId].width, -100.0f, 100.0f);
+            ImGui::DragFloat("Width", &currLight[currLightId].width);
             ImGui::Spacing();
-            ImGui::SliderFloat("height", &currLight[currLightId].height, -100.0f, 100.0f);
+            ImGui::DragFloat("Height", &currLight[currLightId].height);
             ImGui::Spacing();
-            ImGui::SliderFloat("color R", &currLight[currLightId].color.x, -100.0f, 100.0f);
-            ImGui::SliderFloat("color G", &currLight[currLightId].color.y, -100.0f, 100.0f);
-            ImGui::SliderFloat("color B", &currLight[currLightId].color.z, -100.0f, 100.0f);
+            ImGui::ColorEdit3("Color", &currLight[currLightId].color.x);
 
             if (ImGui::Button("Download light"))
             {
