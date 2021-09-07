@@ -286,25 +286,25 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         }
         if (ImGui::TreeNode("Light"))
         {
-            std::vector<Scene::Light>& currLight = scene.getLights();
+            std::vector<Scene::RectLight>& currLight = scene.getRectLights();
             ImGui::Text("Rectangle light");
             uint32_t currLightId = currLight.size() - 1; // todo: get from tree
             ImGui::Spacing();
-            ImGui::SliderFloat("up coordinate X1", &currLight[currLightId].points[0].x, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Y1", &currLight[currLightId].points[0].y, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Z1", &currLight[currLightId].points[0].z, -100.0f, 100.0f);
+            ImGui::SliderFloat("position X", &currLight[currLightId].position.x, -100.0f, 100.0f);
+            ImGui::SliderFloat("position Y", &currLight[currLightId].position.y, -100.0f, 100.0f);
+            ImGui::SliderFloat("position Z", &currLight[currLightId].position.z, -100.0f, 100.0f);
             ImGui::Spacing();
-            ImGui::SliderFloat("up coordinate X2", &currLight[currLightId].points[1].x, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Y2", &currLight[currLightId].points[1].y, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Z2", &currLight[currLightId].points[1].z, -100.0f, 100.0f);
+            ImGui::SliderFloat("orientation X", &currLight[currLightId].orientation.x, -100.0f, 100.0f);
+            ImGui::SliderFloat("orientation Y", &currLight[currLightId].orientation.y, -100.0f, 100.0f);
+            ImGui::SliderFloat("orientation Z", &currLight[currLightId].orientation.z, -100.0f, 100.0f);
             ImGui::Spacing();
-            ImGui::SliderFloat("up coordinate X3", &currLight[currLightId].points[2].x, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Y3", &currLight[currLightId].points[2].y, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Z3", &currLight[currLightId].points[2].z, -100.0f, 100.0f);
+            ImGui::SliderFloat("width", &currLight[currLightId].width, -100.0f, 100.0f);
             ImGui::Spacing();
-            ImGui::SliderFloat("up coordinate X4", &currLight[currLightId].points[3].x, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Y4", &currLight[currLightId].points[3].y, -100.0f, 100.0f);
-            ImGui::SliderFloat("up coordinate Z4", &currLight[currLightId].points[3].z, -100.0f, 100.0f);
+            ImGui::SliderFloat("height", &currLight[currLightId].height, -100.0f, 100.0f);
+            ImGui::Spacing();
+            ImGui::SliderFloat("color R", &currLight[currLightId].color.x, -100.0f, 100.0f);
+            ImGui::SliderFloat("color G", &currLight[currLightId].color.y, -100.0f, 100.0f);
+            ImGui::SliderFloat("color B", &currLight[currLightId].color.z, -100.0f, 100.0f);
 
             if (ImGui::Button("Download light"))
             {
@@ -315,7 +315,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                     json light;
                     i >> light;
 
-                    scene.createLight(glm::float3({ light["point"][0][0], light["point"][0][1], light["point"][0][2] }), glm::float3({ light["point"][1][0], light["point"][1][1], light["point"][1][2] }), glm::float3({ light["point"][2][0], light["point"][2][1], light["point"][2][2] }), glm::float3({ light["point"][3][0], light["point"][3][1], light["point"][3][2] }));
+                    scene.createRectLight(glm::float3(light["position"][0], light["position"][1], light["position"][2]), glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]), light["width"], light["height"], glm::float3(light["color"][0], light["color"][1], light["color"][2]));
                 }
             }
             ImGui::TreePop();

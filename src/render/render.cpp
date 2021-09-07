@@ -1271,7 +1271,7 @@ void Render::loadScene(const std::string& modelPath)
 
     // for pica pica
     mScene->createLight(glm::float3(0, 50, 0), glm::float3(10, 50, 0.0), glm::float3(10.0, 50, 10), glm::float3(0.0, 50, 10));
-
+    mScene->createRectLight(glm::float3(0.0, 0.0, 0.0), glm::float3(0.0, 0.0, 0.0), 0, 0, glm::float3(0.0, 0.0, 0.0));
     //mScene->createLight(glm::float3(0, 0.5, 0), glm::float3(1, 0.5, 0.0), glm::float3(1.0, 2, 0), glm::float3(0.0, 2, 0.0));
 
     createMaterialBuffer(*mScene);
@@ -1337,6 +1337,7 @@ void Render::createDefaultScene()
     mScene->addCamera(camera);
 
     mScene->createLight(glm::float3(0, 0, 10), glm::float3(1.5, 0.0, 10), glm::float3(0.0, 1.5, 10), glm::float3(0.0, 1.5, 10));
+    mScene->createRectLight(glm::float3(0.0, 0.0, 0.0), glm::float3(0.0, 0.0, 0.0), 0, 0, glm::float3(0.0, 0.0, 0.0));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);

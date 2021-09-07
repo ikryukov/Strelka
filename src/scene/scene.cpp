@@ -91,6 +91,20 @@ uint32_t Scene::createLight(const glm::float3& v0, const glm::float3& v1, const 
     return lightId;
 }
 
+uint32_t Scene::createRectLight(const glm::float3& position, const glm::float3& orientation, float width, float height, const glm::float3& color)
+{
+    RectLight l;
+    l.position = position;
+    l.orientation = orientation;
+    l.width = width;
+    l.height = height;
+    l.color = color;
+
+    uint32_t lightId = (uint32_t)mRectLights.size();
+    mRectLights.push_back(l);
+    return lightId;
+}
+
 void Scene::removeInstance(const uint32_t instId)
 {
     mDelInstances.push(instId); // marked as removed

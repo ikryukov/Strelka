@@ -89,6 +89,7 @@ public:
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
     std::vector<Light> mLights;
+    std::vector<RectLight> mRectLights;
 
     std::vector<uint32_t> mTransparentInstances;
     std::vector<uint32_t> mOpaqueInstances;
@@ -115,6 +116,11 @@ public:
     std::vector<Light>& getLights()
     {
         return mLights;
+    }
+
+    std::vector<RectLight>& getRectLights()
+    {
+        return mRectLights;
     }
 
     void addCamera(Camera camera)
@@ -174,6 +180,7 @@ public:
     uint32_t addMaterial(const Material& material);
 
     uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
+    uint32_t createRectLight(const glm::float3& position, const glm::float3& orientation, float width, float height, const glm::float3& color);
 
     /// <summary>
     /// Removes instance/mesh/material
