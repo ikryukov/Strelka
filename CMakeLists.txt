@@ -82,7 +82,10 @@ set(UI_SOURCES
         external/imgui/src/imgui_impl_vulkan.cpp
         external/imgui/src/imgui_impl_glfw.cpp
 
-        external/imguiFD/ImGuiFileDialog.cpp)
+        external/imguiFD/ImGuiFileDialog.cpp
+        # ImGuizmo
+        external/ImGuizmo/ImGuizmo.cpp
+        )
 set(UILIB_NAME ui)
 add_library(${UILIB_NAME} OBJECT ${UI_SOURCES})
 target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
@@ -90,6 +93,7 @@ target_include_directories(${UILIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ui
 target_include_directories(${UILIB_NAME} PUBLIC shaders/)
 target_include_directories(${UILIB_NAME} PUBLIC external/imgui/include)
 target_include_directories(${UILIB_NAME} PRIVATE external/glfw/include)
+target_include_directories(${UILIB_NAME} PUBLIC external/ImGuizmo)
 target_include_directories(${UILIB_NAME} PUBLIC external/glm)
 if (MSVC)
     target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")

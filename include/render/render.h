@@ -155,6 +155,7 @@ private:
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
         nevk::Buffer* mInstanceBuffer = nullptr;
+        nevk::Buffer* mUploadInstanceBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
         nevk::Buffer* mLightsBuffer = nullptr;
         nevk::Buffer* mBvhNodeBuffer = nullptr;
         nevk::Buffer* mBvhTriangleBuffer = nullptr;
@@ -194,6 +195,13 @@ private:
             if (mBvhTriangleBuffer)
             {
                 mResManager->destroyBuffer(mBvhTriangleBuffer);
+            }
+            for (nevk::Buffer* buff : mUploadInstanceBuffer)
+            {
+                if (buff)
+                {
+                    mResManager->destroyBuffer(buff);
+                }
             }
         }
     };
