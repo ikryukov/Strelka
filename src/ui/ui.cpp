@@ -1,10 +1,10 @@
 #include "ui.h"
 
-#include <filesystem>
-#include <iostream>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <ImGuizmo.h>
+#include <filesystem>
+#include <iostream>
 #include <stdexcept>
 #include <utility>
 namespace fs = std::filesystem;
@@ -437,30 +437,29 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             }
             if (ImGui::Button("Add Light"))
             {
-                scene.createRectLight(currLight[currLightId].position, currLight[currLightId].orientation, currLight[currLightId].width, currLight[currLightId].height, currLight[currLightId].color * glm::float3{255.0, 255.0, 255.0});
+                scene.createRectLight(currLight[currLightId].position, currLight[currLightId].orientation, currLight[currLightId].width, currLight[currLightId].height, currLight[currLightId].color * glm::float3{ 255.0, 255.0, 255.0 });
             }
             ImGui::TreePop();
         }
 
-    ImGuizmo::SetOrthographic(false);
-    ImGuizmo::BeginFrame();
+        ImGuizmo::SetOrthographic(false);
+        ImGuizmo::BeginFrame();
 
-    const std::vector<Instance>& instances = scene.getInstances();
+        const std::vector<Instance>& instances = scene.getInstances();
 
-    Camera& cam = scene.getCamera(selectedCamera);
-    glm::float3 camPos = cam.getPosition();
+        Camera& cam = scene.getCamera(selectedCamera);
+        glm::float3 camPos = cam.getPosition();
 
-    for (uint32_t i = 0; i < instances.size(); ++i)
-    {
-        ImGuizmo::SetID(i);
-        float camDist = glm::distance(camPos, instances[i].massCenter);
-        glm::float4x4 xform = instances[i].transform;
-        EditTransform(cam, camDist, glm::value_ptr(xform), true);
+        for (uint32_t i = 0; i < instances.size(); ++i)
+        {
+            ImGuizmo::SetID(i);
+            float camDist = glm::distance(camPos, instances[i].massCenter);
+            glm::float4x4 xform = instances[i].transform;
+            EditTransform(cam, camDist, glm::value_ptr(xform), true);
 
-        scene.updateInstanceTransform(i, xform);
-    }
+            scene.updateInstanceTransform(i, xform);
+        }
 
-    ImGui::Begin("Settings:"); // begin window
         ImGui::Spacing();
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Tree");
         for (uint32_t i = 0; i < currInstance.size(); i++)
