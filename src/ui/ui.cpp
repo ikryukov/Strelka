@@ -409,19 +409,49 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         }
         if (ImGui::TreeNode("Light"))
         {
-            std::vector<Scene::RectLight>& currLight = scene.getRectLights();
-            uint32_t currLightId = currLight.size() - 1; // todo: get from tree
+            // get CPU light
+            static glm::float3 position = glm::float3{ 0.0, 0.0, 0.0 };
+            static glm::float3 orientation = glm::float3{ 0.0, 0.0, 0.0 };
+            static glm::float3 scale = glm::float3{ 1.0, 1.0, 1.0 };
+            static glm::float3 color = glm::float3{ 0.0, 0.0, 0.0 };
+
             ImGui::Text("Rectangle light");
             ImGui::Spacing();
-            ImGui::DragFloat3("Position", &currLight[currLightId].position.x);
+            ImGui::DragFloat3("Position", &position.x);
             ImGui::Spacing();
-            ImGui::DragFloat3("Orientation", &currLight[currLightId].orientation.x);
+            ImGui::DragFloat3("Orientation", &orientation.x);
             ImGui::Spacing();
-            ImGui::DragFloat("Width", &currLight[currLightId].width);
+            ImGui::DragFloat("Width", &scale.y);
             ImGui::Spacing();
-            ImGui::DragFloat("Height", &currLight[currLightId].height);
+            ImGui::DragFloat("Height", &scale.z);
             ImGui::Spacing();
-            ImGui::ColorEdit3("Color", &currLight[currLightId].color.x);
+            ImGui::ColorEdit3("Color", &color.x);
+
+            if (ImGui::Button("Update light"))
+            {
+                const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), position);
+
+                glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+                const float floatRotation[4] = {
+                    1.0f,
+                    orientation.z,
+                    orientation.x,
+                    orientation.y
+                };
+                rotation = glm::make_quat(floatRotation);
+
+                const glm::float4x4 rotationMatrix{ rotation };
+                const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
+
+                const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;
+
+                // transform to GPU light
+                std::vector<Scene::Light>& currLight = scene.getLights();
+                currLight[0].points[0] = currLight[0].points[0] * localTransform;
+                currLight[0].points[1] = currLight[0].points[1] * localTransform;
+                currLight[0].points[2] = currLight[0].points[2] * localTransform;
+                currLight[0].points[3] = currLight[0].points[3] * localTransform;
+            }
 
             if (ImGui::Button("Download light"))
             {
@@ -437,7 +467,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             }
             if (ImGui::Button("Add Light"))
             {
-                scene.createRectLight(currLight[currLightId].position, currLight[currLightId].orientation, currLight[currLightId].width, currLight[currLightId].height, currLight[currLightId].color * glm::float3{ 255.0, 255.0, 255.0 });
+                //scene.createRectLight(currLight[currLightId].position, currLight[currLightId].orientation, currLight[currLightId].width, currLight[currLightId].height, currLight[currLightId].color * glm::float3{ 255.0, 255.0, 255.0 });
             }
             ImGui::TreePop();
         }
