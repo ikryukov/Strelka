@@ -18,9 +18,9 @@
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
+#include "ltcpass.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
-#include "ltcpass.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -156,7 +156,6 @@ private:
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
         nevk::Buffer* mInstanceBuffer = nullptr;
-        nevk::Buffer* mUploadBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
         nevk::Buffer* mLightsBuffer = nullptr;
         nevk::Buffer* mBvhNodeBuffer = nullptr;
         nevk::Buffer* mBvhTriangleBuffer = nullptr;
@@ -197,19 +196,13 @@ private:
             {
                 mResManager->destroyBuffer(mBvhTriangleBuffer);
             }
-            for (nevk::Buffer* buff : mUploadBuffer)
-            {
-                if (buff)
-                {
-                    mResManager->destroyBuffer(buff);
-                }
-            }
         }
     };
 
     SceneRenderData* mCurrentSceneRenderData = nullptr;
     SceneRenderData* mDefaultSceneRenderData = nullptr;
 
+    nevk::Buffer* mUploadBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
     VkDescriptorPool mDescriptorPool;
 
     struct FrameData

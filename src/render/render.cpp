@@ -90,7 +90,7 @@ void Render::initVulkan()
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        mCurrentSceneRenderData->mUploadBuffer[i] = mResManager->createBuffer(SceneRenderData::MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        mUploadBuffer[i] = mResManager->createBuffer(SceneRenderData::MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 
     {
@@ -407,6 +407,13 @@ void Render::cleanup()
     }
 
     delete mResManager;
+    for (nevk::Buffer* buff : mUploadBuffer)
+    {
+        if (buff)
+        {
+            mResManager->destroyBuffer(buff);
+        }
+    }
 
     vkDestroyDevice(mDevice, nullptr);
 
@@ -1076,7 +1083,6 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
     mCurrentSceneRenderData->mInstanceBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
-
 }
 
 void Render::createDescriptorPool()
@@ -1450,7 +1456,7 @@ void Render::drawFrame()
     {
         const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
         mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
-        Buffer* stagingBuffer = mCurrentSceneRenderData->mUploadBuffer[frameIndex];
+        Buffer* stagingBuffer = mUploadBuffer[frameIndex];
         void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
         size_t stagingBufferOffset = 0;
         bool needBarrier = false;
@@ -1490,8 +1496,8 @@ void Render::drawFrame()
         if (!lights.empty())
         {
             size_t bufferSize = sizeof(nevk::Scene::Light) * lights.size();
-            memcpy((void*)((char*) stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
-            
+            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
+
             VkBufferCopy copyRegion{};
             copyRegion.size = bufferSize;
             copyRegion.dstOffset = 0;
