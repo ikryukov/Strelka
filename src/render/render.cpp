@@ -88,6 +88,11 @@ void Render::initVulkan()
         loadScene(MODEL_PATH);
     }
 
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        mCurrentSceneRenderData->mUploadBuffer[i] = mResManager->createBuffer(SceneRenderData::MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    }
+
     {
         shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
                                                VK_IMAGE_TILING_OPTIMAL,
@@ -1071,10 +1076,7 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
     mCurrentSceneRenderData->mInstanceBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
-    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        mCurrentSceneRenderData->mUploadInstanceBuffer[i] = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    }
+
 }
 
 void Render::createDescriptorPool()
@@ -1446,39 +1448,62 @@ void Render::drawFrame()
 
     // upload data
     {
-        // This struct should match shader's version
-        struct InstanceConstants
-        {
-            glm::float4x4 model;
-            glm::float4x4 normalMatrix;
-            int32_t materialId;
-            int32_t pad0;
-            int32_t pad1;
-            int32_t pad2;
-        };
-
         const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
         mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
-        VkDeviceSize bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
-        if (bufferSize != 0)
+        Buffer* stagingBuffer = mCurrentSceneRenderData->mUploadBuffer[frameIndex];
+        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+        size_t stagingBufferOffset = 0;
+        bool needBarrier = false;
+        if (!sceneInstances.empty())
         {
+            // This struct must match shader's version
+            struct InstanceConstants
+            {
+                glm::float4x4 model;
+                glm::float4x4 normalMatrix;
+                int32_t materialId;
+                int32_t pad0;
+                int32_t pad1;
+                int32_t pad2;
+            };
             std::vector<InstanceConstants> instanceConsts;
             instanceConsts.resize(sceneInstances.size());
-            for (int i = 0; i < sceneInstances.size(); ++i)
+            for (uint32_t i = 0; i < sceneInstances.size(); ++i)
             {
                 instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
                 instanceConsts[i].model = sceneInstances[i].transform;
                 instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
             }
-
-            Buffer* stagingBuffer = mCurrentSceneRenderData->mUploadInstanceBuffer[frameIndex];
-            void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-            memcpy(stagingBufferMemory, instanceConsts.data(), (size_t)bufferSize);
+            size_t bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
+            memcpy(stagingBufferMemory, instanceConsts.data(), bufferSize);
 
             VkBufferCopy copyRegion{};
             copyRegion.size = bufferSize;
+            copyRegion.dstOffset = 0;
+            copyRegion.srcOffset = stagingBufferOffset;
             vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
 
+            stagingBufferOffset += bufferSize;
+            needBarrier = true;
+        }
+        const std::vector<nevk::Scene::Light>& lights = scene->getLights();
+        if (!lights.empty())
+        {
+            size_t bufferSize = sizeof(nevk::Scene::Light) * lights.size();
+            memcpy((void*)((char*) stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
+            
+            VkBufferCopy copyRegion{};
+            copyRegion.size = bufferSize;
+            copyRegion.dstOffset = 0;
+            copyRegion.srcOffset = stagingBufferOffset;
+            vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), 1, &copyRegion);
+
+            stagingBufferOffset += bufferSize;
+            needBarrier = true;
+        }
+
+        if (needBarrier)
+        {
             VkMemoryBarrier memoryBarrier = {};
             memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;

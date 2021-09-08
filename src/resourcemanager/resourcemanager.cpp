@@ -225,6 +225,11 @@ VkBuffer ResourceManager::getVkBuffer(const Buffer* buffer)
     return mContext->getVkBuffer(buffer);
 }
 
+size_t ResourceManager::getSize(const Buffer* buffer)
+{
+    return buffer->allocation->GetSize();
+}
+
 Image* ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name)
 {
     return mContext->createImage(width, height, format, tiling, usage, properties, name);

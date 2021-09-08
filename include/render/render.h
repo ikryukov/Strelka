@@ -148,6 +148,7 @@ private:
 
     struct SceneRenderData
     {
+        static constexpr size_t MAX_UPLOAD_SIZE = 1 << 24; // 16mb
         uint32_t cameraIndex = 0;
         uint32_t mIndicesCount = 0;
         uint32_t mInstanceCount = 0;
@@ -155,7 +156,7 @@ private:
         nevk::Buffer* mMaterialBuffer = nullptr;
         nevk::Buffer* mIndexBuffer = nullptr;
         nevk::Buffer* mInstanceBuffer = nullptr;
-        nevk::Buffer* mUploadInstanceBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
+        nevk::Buffer* mUploadBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
         nevk::Buffer* mLightsBuffer = nullptr;
         nevk::Buffer* mBvhNodeBuffer = nullptr;
         nevk::Buffer* mBvhTriangleBuffer = nullptr;
@@ -196,7 +197,7 @@ private:
             {
                 mResManager->destroyBuffer(mBvhTriangleBuffer);
             }
-            for (nevk::Buffer* buff : mUploadInstanceBuffer)
+            for (nevk::Buffer* buff : mUploadBuffer)
             {
                 if (buff)
                 {
