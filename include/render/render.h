@@ -18,6 +18,7 @@
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
+#include "ltcpass.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
 #include "ltcpass.h"
@@ -148,6 +149,7 @@ private:
 
     struct SceneRenderData
     {
+        static constexpr size_t MAX_UPLOAD_SIZE = 1 << 24; // 16mb
         uint32_t cameraIndex = 0;
         uint32_t mIndicesCount = 0;
         uint32_t mInstanceCount = 0;
@@ -201,6 +203,7 @@ private:
     SceneRenderData* mCurrentSceneRenderData = nullptr;
     SceneRenderData* mDefaultSceneRenderData = nullptr;
 
+    nevk::Buffer* mUploadBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
     VkDescriptorPool mDescriptorPool;
 
     struct FrameData

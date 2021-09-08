@@ -88,6 +88,11 @@ void Render::initVulkan()
         loadScene(MODEL_PATH);
     }
 
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        mUploadBuffer[i] = mResManager->createBuffer(SceneRenderData::MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    }
+
     {
         shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
                                                VK_IMAGE_TILING_OPTIMAL,
@@ -402,6 +407,13 @@ void Render::cleanup()
     }
 
     delete mResManager;
+    for (nevk::Buffer* buff : mUploadBuffer)
+    {
+        if (buff)
+        {
+            mResManager->destroyBuffer(buff);
+        }
+    }
 
     vkDestroyDevice(mDevice, nullptr);
 
@@ -1271,6 +1283,9 @@ void Render::loadScene(const std::string& modelPath)
 
     // for pica pica
     mScene->createLight(glm::float3(0, 50, 0), glm::float3(10, 50, 0.0), glm::float3(10.0, 50, 10), glm::float3(0.0, 50, 10));
+
+    //mScene->createLight(glm::float3(0, 0.5, 0), glm::float3(1, 0.5, 0.0), glm::float3(1.0, 2, 0), glm::float3(0.0, 2, 0.0));
+    mScene->createLight(glm::float3(0, 50, 0), glm::float3(10, 50, 0.0), glm::float3(10.0, 50, 10), glm::float3(0.0, 50, 10));
     mScene->createRectLight(glm::float3(0.0, 0.0, 0.0), glm::float3(0.0, 0.0, 0.0), 0, 0, glm::float3(0.0, 0.0, 0.0));
     //mScene->createLight(glm::float3(0, 0.5, 0), glm::float3(1, 0.5, 0.0), glm::float3(1.0, 2, 0), glm::float3(0.0, 2, 0.0));
 
@@ -1337,7 +1352,6 @@ void Render::createDefaultScene()
     mScene->addCamera(camera);
 
     mScene->createLight(glm::float3(0, 0, 10), glm::float3(1.5, 0.0, 10), glm::float3(0.0, 1.5, 10), glm::float3(0.0, 1.5, 10));
-    mScene->createRectLight(glm::float3(0.0, 0.0, 0.0), glm::float3(0.0, 0.0, 0.0), 0, 0, glm::float3(0.0, 0.0, 0.0));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
@@ -1440,6 +1454,79 @@ void Render::drawFrame()
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
     vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
+
+    // upload data
+    {
+        const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
+        mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
+        Buffer* stagingBuffer = mUploadBuffer[frameIndex];
+        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+        size_t stagingBufferOffset = 0;
+        bool needBarrier = false;
+        if (!sceneInstances.empty())
+        {
+            // This struct must match shader's version
+            struct InstanceConstants
+            {
+                glm::float4x4 model;
+                glm::float4x4 normalMatrix;
+                int32_t materialId;
+                int32_t pad0;
+                int32_t pad1;
+                int32_t pad2;
+            };
+            std::vector<InstanceConstants> instanceConsts;
+            instanceConsts.resize(sceneInstances.size());
+            for (uint32_t i = 0; i < sceneInstances.size(); ++i)
+            {
+                instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
+                instanceConsts[i].model = sceneInstances[i].transform;
+                instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
+            }
+            size_t bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
+            memcpy(stagingBufferMemory, instanceConsts.data(), bufferSize);
+
+            VkBufferCopy copyRegion{};
+            copyRegion.size = bufferSize;
+            copyRegion.dstOffset = 0;
+            copyRegion.srcOffset = stagingBufferOffset;
+            vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
+
+            stagingBufferOffset += bufferSize;
+            needBarrier = true;
+        }
+        const std::vector<nevk::Scene::Light>& lights = scene->getLights();
+        if (!lights.empty())
+        {
+            size_t bufferSize = sizeof(nevk::Scene::Light) * lights.size();
+            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
+
+            VkBufferCopy copyRegion{};
+            copyRegion.size = bufferSize;
+            copyRegion.dstOffset = 0;
+            copyRegion.srcOffset = stagingBufferOffset;
+            vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), 1, &copyRegion);
+
+            stagingBufferOffset += bufferSize;
+            needBarrier = true;
+        }
+
+        if (needBarrier)
+        {
+            VkMemoryBarrier memoryBarrier = {};
+            memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+            memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+
+            vkCmdPipelineBarrier(cmdBuff,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+                                 VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, // dstStageMask
+                                 0,
+                                 1, // memoryBarrierCount
+                                 &memoryBarrier, // pMemoryBarriers
+                                 0, nullptr, 0, nullptr);
+        }
+    }
 
     recordCommandBuffer(cmdBuff, frameIndex);
 
