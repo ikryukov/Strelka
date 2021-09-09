@@ -78,7 +78,7 @@ uint32_t Scene::addMaterial(const Material& material)
     return res;
 }
 
-glm::float4x4 getTransform(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, const glm::float3& color)
+glm::float4x4 getTransform(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale)
 {
     const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), position);
     glm::quat rotation = glm::quat(glm::radians(orientation)); // to quaternion
@@ -105,7 +105,7 @@ uint32_t Scene::createLight(const glm::float3& v0, const glm::float3& v1, const 
 
 uint32_t Scene::createLight(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, const glm::float3& color)
 {
-    const glm::float4x4 localTransform = getTransform(position, orientation, scale, color);
+    const glm::float4x4 localTransform = getTransform(position, orientation, scale);
 
     Light l;
     l.points[0] = localTransform * glm::float4(0.0f, 0.5f, 0.5f, 1.0f);
@@ -131,7 +131,7 @@ uint32_t Scene::createLight(const glm::float3& position, const glm::float3& orie
 
 void Scene::updateLight(uint32_t lightId, const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, glm::float3& color)
 {
-    const glm::float4x4 localTransform = getTransform(position, orientation, scale, color);
+    const glm::float4x4 localTransform = getTransform(position, orientation, scale);
 
     // transform to GPU light
     mLights[lightId].points[0] = localTransform * glm::float4(0.0f, 0.5f, 0.5f, 1.0f);
