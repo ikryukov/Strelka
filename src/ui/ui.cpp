@@ -334,6 +334,8 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     bool activateMenuBar = false;
     bool openFD = false;
     static uint32_t showPropertiesId = -1;
+    static uint32_t showLightId = 0; // default
+    static bool isLight = false; // todo: enum w/ mode (light, instance, etc)
     static bool openInspector = false;
     static std::string currentPath;
     static std::string currentFileName;
@@ -408,84 +410,89 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         // Display contents in a scrolling region
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Properties");
         ImGui::BeginChild("Scrolling");
-        if (ImGui::TreeNode("Transform"))
+        if (!isLight)
         {
-            if (showPropertiesId != -1)
+            if (ImGui::TreeNode("Transform"))
             {
-                float pos[3] = { currInstance[showPropertiesId].transform[0].x, currInstance[showPropertiesId].transform[0].y, currInstance[showPropertiesId].transform[0].z };
-                float rotation[3] = { currInstance[showPropertiesId].transform[1].x, currInstance[showPropertiesId].transform[1].y, currInstance[showPropertiesId].transform[1].z };
-                float scale[3] = { currInstance[showPropertiesId].transform[2].x, currInstance[showPropertiesId].transform[2].y, currInstance[showPropertiesId].transform[2].z };
-
-                ImGui::InputFloat3("Position", pos);
-                ImGui::InputFloat3("Rotation", rotation);
-                ImGui::InputFloat3("Scale", scale);
-            }
-            if (showPropertiesId != -1)
-            {
-                ImGui::Text("Material ID: %d", currInstance[showPropertiesId].mMaterialId);
-                ImGui::Text("Mass Center: %f %f %f", currInstance[showPropertiesId].massCenter.x, currInstance[showPropertiesId].massCenter.y, currInstance[showPropertiesId].massCenter.z);
-            }
-            ImGui::TreePop();
-        }
-        if (ImGui::TreeNode("Light"))
-        {
-            // get CPU light
-            static glm::float3 position = glm::float3{ 0.0, 0.0, 0.0 };
-            static glm::float3 orientation = glm::float3{ 0.0, 0.0, 0.0 };
-            static glm::float3 scale = glm::float3{ 1.0, 1.0, 1.0 };
-            static glm::float3 color = glm::float3{ 0.0, 0.0, 0.0 };
-
-            ImGui::Text("Rectangle light");
-            ImGui::Spacing();
-            ImGui::DragFloat3("Position", &position.x);
-            ImGui::Spacing();
-            ImGui::DragFloat3("Orientation", &orientation.x);
-            ImGui::Spacing();
-            ImGui::DragFloat("Width", &scale.y);
-            scale.x = scale.y;
-            ImGui::Spacing();
-            ImGui::DragFloat("Height", &scale.z);
-            ImGui::Spacing();
-            ImGui::ColorEdit3("Color", &color.x);
-
-            if (ImGui::Button("Update light"))
-            {
-                const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), position);
-                glm::quat rotation = glm::quat(glm::radians(orientation)); // to quaternion
-                const glm::float4x4 rotationMatrix{ rotation };
-                const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
-
-                const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;
-
-                // transform to GPU light
-                std::vector<Scene::Light>& currLight = scene.getLights();
-                currLight[0].points[0] = localTransform * glm::float4(0.0f, 0.5f, 0.5f, 1.0f);
-                currLight[0].points[1] = localTransform * glm::float4(0.0f, -0.5f, 0.5f, 1.0f);
-                currLight[0].points[2] = localTransform * glm::float4(0.0f, -0.5f, -0.5f, 1.0f);
-                currLight[0].points[3] = localTransform * glm::float4(0.0f, 0.5f, -0.5f, 1.0f);
-            }
-
-            if (ImGui::Button("Download light"))
-            {
-                std::string jsonPath = currentPath + "/" + currentFileName + "_light" + ".json";
-                if (fs::exists(jsonPath))
+                if (showPropertiesId != -1)
                 {
-                    std::ifstream i(jsonPath);
-                    json light;
-                    i >> light;
+                    float pos[3] = { currInstance[showPropertiesId].transform[0].x, currInstance[showPropertiesId].transform[0].y, currInstance[showPropertiesId].transform[0].z };
+                    float rotation[3] = { currInstance[showPropertiesId].transform[1].x, currInstance[showPropertiesId].transform[1].y, currInstance[showPropertiesId].transform[1].z };
+                    float scale[3] = { currInstance[showPropertiesId].transform[2].x, currInstance[showPropertiesId].transform[2].y, currInstance[showPropertiesId].transform[2].z };
 
-                    // scene.createLight(glm::float3(light["position"][0], light["position"][1], light["position"][2]), glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]), light["width"], light["height"], glm::float3(light["color"][0], light["color"][1], light["color"][2]));
+                    ImGui::InputFloat3("Position", pos);
+                    ImGui::InputFloat3("Rotation", rotation);
+                    ImGui::InputFloat3("Scale", scale);
                 }
+                if (showPropertiesId != -1)
+                {
+                    ImGui::Text("Material ID: %d", currInstance[showPropertiesId].mMaterialId);
+                    ImGui::Text("Mass Center: %f %f %f", currInstance[showPropertiesId].massCenter.x, currInstance[showPropertiesId].massCenter.y, currInstance[showPropertiesId].massCenter.z);
+                }
+                ImGui::TreePop();
             }
-            if (ImGui::Button("Add Light"))
+        }
+        if (isLight)
+        {
+            if (ImGui::TreeNode("Light"))
             {
-                //scene.createRectLight(currLight[currLightId].position, currLight[currLightId].orientation, currLight[currLightId].width, currLight[currLightId].height, currLight[currLightId].color * glm::float3{ 255.0, 255.0, 255.0 });
+                // get CPU light
+                // todo: set params from curr light
+                static glm::float3 position = glm::float3{ 0.0, 0.0, 0.0 };
+                static glm::float3 orientation = glm::float3{ 0.0, 0.0, 0.0 };
+                static glm::float3 scale = glm::float3{ 1.0, 1.0, 1.0 };
+                static glm::float3 color = glm::float3{ 0.0, 0.0, 0.0 };
+
+                ImGui::Text("Rectangle light");
+                ImGui::Spacing();
+                ImGui::DragFloat3("Position", &position.x);
+                ImGui::Spacing();
+                ImGui::DragFloat3("Orientation", &orientation.x);
+                ImGui::Spacing();
+                ImGui::DragFloat("Width", &scale.y);
+                scale.x = scale.y;
+                ImGui::Spacing();
+                ImGui::DragFloat("Height", &scale.z);
+                ImGui::Spacing();
+                ImGui::ColorEdit3("Color", &color.x);
+
+                scene.updateLight(showLightId, position, orientation, scale, color);
+
+                if (ImGui::Button("Download light"))
+                {
+                    std::string jsonPath = currentPath + "/" + currentFileName + "_light" + ".json";
+                    if (fs::exists(jsonPath))
+                    {
+                        std::ifstream i(jsonPath);
+                        json light;
+                        i >> light;
+
+                        scene.createLight(glm::float3(light["position"][0], light["position"][1], light["position"][2]), glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]), glm::float3{ float(light["width"]) / 2, float(light["width"]) / 2, light["height"] }, glm::float3(light["color"][0], light["color"][1], light["color"][2]));
+                    }
+                }
+                if (ImGui::Button("Add Light"))
+                {
+                    scene.createLight(position, orientation, scale, color);
+                }
+                ImGui::TreePop();
             }
-            ImGui::TreePop();
         }
 
         ImGui::Spacing();
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Tree");
+        for (uint32_t i = 0; i < scene.mLights.size(); i++)
+        {
+            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
+            if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Light ID: %d", i))
+            {
+                if (ImGui::IsItemClicked())
+                {
+                    showLightId = i;
+                    isLight = true;
+                }
+                ImGui::TreePop();
+            }
+        }
         for (uint32_t i = 0; i < currInstance.size(); i++)
         {
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
@@ -494,6 +501,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 if (ImGui::IsItemClicked())
                 {
                     showPropertiesId = i;
+                    isLight = false;
                 }
                 ImGui::TreePop();
             }
