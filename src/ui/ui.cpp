@@ -451,14 +451,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             if (ImGui::Button("Update light"))
             {
                 const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), position);
-
-                glm::float3 eulersAngles = {
-                    orientation.x * PI / 180,
-                    orientation.y * PI / 180,
-                    orientation.z * PI / 180,
-                };
-                glm::quat rotation = glm::quat(eulersAngles); // to quaternion
-
+                glm::quat rotation = glm::quat(glm::radians(orientation)); // to quaternion
                 const glm::float4x4 rotationMatrix{ rotation };
                 const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
 
@@ -466,10 +459,10 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
 
                 // transform to GPU light
                 std::vector<Scene::Light>& currLight = scene.getLights();
-                currLight[0].points[0] = localTransform * currLight[0].points[0];
-                currLight[0].points[1] = localTransform * currLight[0].points[1];
-                currLight[0].points[2] = localTransform * currLight[0].points[2];
-                currLight[0].points[3] = localTransform * currLight[0].points[3];
+                currLight[0].points[0] = localTransform * glm::float4(0.0f, 0.5f, 0.5f, 1.0f);
+                currLight[0].points[1] = localTransform * glm::float4(0.0f, -0.5f, 0.5f, 1.0f);
+                currLight[0].points[2] = localTransform * glm::float4(0.0f, -0.5f, -0.5f, 1.0f);
+                currLight[0].points[3] = localTransform * glm::float4(0.0f, 0.5f, -0.5f, 1.0f);
             }
 
             if (ImGui::Button("Download light"))
