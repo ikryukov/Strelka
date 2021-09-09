@@ -56,6 +56,7 @@ public:
     struct Light
     {
         glm::float4 points[4];
+        glm::float4 color;
     };
 
     // CPU side structure

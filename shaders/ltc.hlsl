@@ -19,7 +19,7 @@ cbuffer ubo
     float3 CameraPos;
     uint frameNumber;
     uint2 dimension;
-    float pad0;
+    uint lightsCount;
     float pad1;
 }
 
@@ -130,7 +130,7 @@ float3 calc(uint2 pixelIndex)
     int instId = gbInstId[pixelIndex];
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(instId)];
     Material material = materials[NonUniformResourceIndex(constants.materialId)];
-    RectLight light = lights[0];
+    
 
     float3 N = normalize(gbNormal[pixelIndex].xyz);
     float3 V = normalize(CameraPos - wpos);
@@ -159,24 +159,26 @@ float3 calc(uint2 pixelIndex)
         float3(   0, 1,    0), 
         float3(t1.z, 0, t1.w)
     );
+    float3 res = float3(0.0f);
+    for (int i = 0; i < lightsCount; ++i)
+    {    
+        const RectLight light = lights[i];
+        bool twoSided = false;
+        float3 spec = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
 
-    bool twoSided = true;
-    float3 spec = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
+        float3 scol = float3(0.23, 0.23, 0.23);
+        spec *= scol * t2.x + (1.0 - scol) * t2.y;
 
-    float3 scol = float3(0.23, 0.23, 0.23);
-    spec *= scol * t2.x + (1.0 - scol) * t2.y;
-
-    Minv = float3x3(
-        float3(1, 0, 0), 
-        float3(0, 1, 0), 
-        float3(0, 0, 1)
-    );
-    float3 diff = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
-    //float3 dcol = float3(1.0, 1.0, 1.0);
-    float3 lcol = float3(40.0);
-    float3 col = lcol * (spec + dcol * diff);
-
-    return col;
+        Minv = float3x3(
+            float3(1, 0, 0), 
+            float3(0, 1, 0), 
+            float3(0, 0, 1)
+        );
+        float3 diff = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
+        float3 lcol = light.color.rgb;
+        res += lcol * (spec + dcol * diff);
+    }
+    return res;
 }
 
 [numthreads(16, 16, 1)]
