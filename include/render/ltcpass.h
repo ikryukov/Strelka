@@ -20,7 +20,7 @@ private:
         glm::float3 CameraPos;
         uint32_t frameNumber;
         glm::int2 dimension;
-        float pad0;
+        uint lightsCount;
         float pad1;
     };
 

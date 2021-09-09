@@ -18,5 +18,6 @@ struct Light
 struct RectLight
 {
     float4 points[4];
+    float4 color;
 };
 

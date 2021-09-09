@@ -524,6 +524,7 @@ void LtcPass::updateUniformBuffer(uint32_t currentImage, uint64_t frameNumber, S
     ubo.viewToProj = proj;
     ubo.CameraPos = camera.getPosition();
     ubo.worldToView = view;
+    ubo.lightsCount = (uint) scene.getLights().size();
 
     void* data = mResManager->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));
