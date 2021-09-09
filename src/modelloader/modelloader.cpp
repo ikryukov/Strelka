@@ -338,7 +338,7 @@ void findTextureSamplers(const tinygltf::Model& model, nevk::Scene& scene, nevk:
         currentSamplerDesc = { getVkFilterMode(sampler.minFilter), getVkFilterMode(sampler.magFilter), getVkWrapMode(sampler.wrapS), getVkWrapMode(sampler.wrapT) };
         if (textureManager.sampDescToId.count(currentSamplerDesc) == 0)
         {
-            if (textureManager.sampDescToId.size() <= 15)
+            if (textureManager.sampDescToId.size() < 15)
             {
                 textureManager.createTextureSampler(currentSamplerDesc);
             }
@@ -410,6 +410,9 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
 
         currMaterial.roughnessFactor = (float)material.pbrMetallicRoughness.roughnessFactor;
         currMaterial.metallicFactor = (float)material.pbrMetallicRoughness.metallicFactor;
+
+        currMaterial.texMetallicRoughness = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
+        currMaterial.sampMetallicRoughness = texIdToModelSamp.find(currMaterial.texMetallicRoughness)->second;
 
         currMaterial.emissiveFactor = glm::float3(material.emissiveFactor[0],
                                                   material.emissiveFactor[1],

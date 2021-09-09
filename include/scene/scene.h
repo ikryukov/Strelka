@@ -52,14 +52,22 @@ public:
         uint32_t uv;
     };
 
+    // GPU side structure
     struct Light
     {
-        glm::float3 v0;
-        float pad0;
-        glm::float3 v1;
-        float pad1;
-        glm::float3 v2;
-        float pad2;
+        glm::float4 points[4];
+        glm::float4 color;
+    };
+
+    // CPU side structure
+    struct RectLight
+    {
+        glm::float3 position; // world position
+        glm::float3 orientation; // euler angles in degrees
+        // OX - axis of light or normal
+        float width; // OY
+        float height; // OZ
+        glm::float3 color;
     };
 
     enum class DebugView
@@ -166,7 +174,7 @@ public:
 
     uint32_t addMaterial(const Material& material);
 
-    uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2);
+    uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
 
     /// <summary>
     /// Removes instance/mesh/material

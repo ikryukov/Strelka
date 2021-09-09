@@ -28,10 +28,13 @@ public:
     void destroyBuffer(Buffer* buffer);
     void* getMappedMemory(const Buffer* buffer);
     VkBuffer getVkBuffer(const Buffer* buffer);
+    size_t getSize(const Buffer* buffer);
     // Image
     Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr);
     void destroyImage(Image* image);
     VkImage getVkImage(const Image* image);
+
+    VkImageView createImageView(const Image* image, VkImageAspectFlags aspectFlags);
 
     VkCommandBuffer beginSingleTimeCommands();
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);

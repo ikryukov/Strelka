@@ -78,12 +78,13 @@ uint32_t Scene::addMaterial(const Material& material)
     return res;
 }
 
-uint32_t Scene::createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2)
+uint32_t Scene::createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3)
 {
     Light l;
-    l.v0 = v0;
-    l.v1 = v1;
-    l.v2 = v2;
+    l.points[0] = glm::float4(v0, 0.0);
+    l.points[1] = glm::float4(v1, 0.0);
+    l.points[2] = glm::float4(v2, 0.0);
+    l.points[3] = glm::float4(v3, 0.0);
 
     uint32_t lightId = (uint32_t)mLights.size();
     mLights.push_back(l);

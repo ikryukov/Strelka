@@ -126,6 +126,7 @@ set(RENDER_SOURCES
         include/render/gbufferpass.h
         include/render/computepass.h
         include/render/rtshadowpass.h
+        include/render/ltcpass.h
         include/render/depthpass.h
         include/render/debugUtils.h
         src/render/render.cpp
@@ -134,6 +135,8 @@ set(RENDER_SOURCES
         src/render/bvh.cpp
         src/render/computepass.cpp
         src/render/rtshadowpass.cpp
+        src/render/ltcpass.cpp
+        src/render/ltc_data.h
         src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )

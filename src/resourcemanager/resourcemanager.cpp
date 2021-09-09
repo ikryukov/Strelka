@@ -16,6 +16,7 @@ struct Buffer
 struct Image
 {
     VkImage handle = VK_NULL_HANDLE;
+    VkFormat format;
     VmaAllocation allocation = VK_NULL_HANDLE;
 };
 
@@ -161,6 +162,8 @@ public:
         {
             throw std::runtime_error("failed to create image!");
         }
+
+        ret->format = format;
         return ret;
     }
 
@@ -222,6 +225,11 @@ VkBuffer ResourceManager::getVkBuffer(const Buffer* buffer)
     return mContext->getVkBuffer(buffer);
 }
 
+size_t ResourceManager::getSize(const Buffer* buffer)
+{
+    return buffer->allocation->GetSize();
+}
+
 Image* ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name)
 {
     return mContext->createImage(width, height, format, tiling, usage, properties, name);
@@ -235,6 +243,27 @@ void ResourceManager::destroyImage(Image* image)
 VkImage ResourceManager::getVkImage(const Image* image)
 {
     return mContext->getVkImage(image);
+}
+
+VkImageView ResourceManager::createImageView(const Image* image, VkImageAspectFlags aspectFlags)
+{
+    VkImageViewCreateInfo viewInfo{};
+    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    viewInfo.image = image->handle;
+    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    viewInfo.format = image->format;
+    viewInfo.subresourceRange.aspectMask = aspectFlags;
+    viewInfo.subresourceRange.baseMipLevel = 0;
+    viewInfo.subresourceRange.levelCount = 1;
+    viewInfo.subresourceRange.baseArrayLayer = 0;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    VkImageView imageView;
+    if (vkCreateImageView(mDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create texture image view!");
+    }
+    return imageView;
 }
 
 VkCommandBuffer ResourceManager::beginSingleTimeCommands()

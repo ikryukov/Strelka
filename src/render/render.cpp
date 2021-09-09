@@ -78,6 +78,21 @@ void Render::initVulkan()
 
     createDepthResources();
 
+    nevk::TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
+    mTexManager->createTextureSampler(defSamplerDesc);
+    modelLoader = new nevk::ModelLoader(mTexManager);
+    createDefaultScene();
+    if (!MODEL_PATH.empty())
+    {
+        mTexManager->saveTexturesInDelQueue();
+        loadScene(MODEL_PATH);
+    }
+
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        mUploadBuffer[i] = mResManager->createBuffer(SceneRenderData::MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    }
+
     {
         shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
                                                VK_IMAGE_TILING_OPTIMAL,
@@ -87,8 +102,6 @@ void Render::initVulkan()
     }
 
     mTexManager->createShadowSampler();
-    nevk::TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
-    mTexManager->createTextureSampler(defSamplerDesc);
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
@@ -110,12 +123,22 @@ void Render::initVulkan()
         mRtShadowPass.init(mDevice, csRtShaderCode, csRtShaderCodeSize, mDescriptorPool, mResManager);
     }
 
-    modelLoader = new nevk::ModelLoader(mTexManager);
-    createDefaultScene();
-    if (!MODEL_PATH.empty())
+    // LTC
     {
-        mTexManager->saveTexturesInDelQueue();
-        loadScene(MODEL_PATH);
+        const char* csLtcShaderCode = nullptr;
+        uint32_t csLtcShaderCodeSize = 0;
+        uint32_t csLtcId = mShaderManager.loadShader("shaders/ltc.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
+        mShaderManager.getShaderCode(csLtcId, csLtcShaderCode, csLtcShaderCodeSize);
+        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+        mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
+
+        mLtcPass.setGbuffer(&mGbuffer);
+        mLtcPass.setOutputImageView(mLtcOutputImageView);
+
+        mLtcPass.init(mDevice, csLtcShaderCode, csLtcShaderCodeSize, mDescriptorPool, mResManager, *mTexManager);
     }
 
     //init passes
@@ -128,6 +151,8 @@ void Render::initVulkan()
         mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
     mComputePass.setGbuffer(&mGbuffer);
+    mComputePass.setLtcImageView(mLtcOutputImageView);
+    mComputePass.setRtShadowImageView(mRtShadowImageView);
     mComputePass.setOutputImageView(textureCompImageView);
     mComputePass.setTextureSamplers(mTexManager->texSamplers);
     mComputePass.init(mDevice, csShaderCode, csShaderCodeSize, mDescriptorPool, mResManager);
@@ -341,6 +366,7 @@ void Render::cleanup()
     mGbufferPass.onDestroy();
     mRtShadowPass.onDestroy();
     mComputePass.onDestroy();
+    mLtcPass.onDestroy();
 
     mUi.onDestroy();
 
@@ -357,6 +383,9 @@ void Render::cleanup()
 
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
     mResManager->destroyImage(shadowImage);
+
+    vkDestroyImageView(mDevice, mLtcOutputImageView, nullptr);
+    mResManager->destroyImage(mLtcOutputImage);
 
     destroyGbuffer(mGbuffer);
 
@@ -375,6 +404,14 @@ void Render::cleanup()
         vkDestroyFence(mDevice, fd.inFlightFence, nullptr);
 
         vkDestroyCommandPool(mDevice, fd.cmdPool, nullptr);
+    }
+
+    for (nevk::Buffer* buff : mUploadBuffer)
+    {
+        if (buff)
+        {
+            mResManager->destroyBuffer(buff);
+        }
     }
 
     delete mResManager;
@@ -455,6 +492,23 @@ void Render::recreateSwapChain()
     }
     mRtShadowPass.setOutputImageView(mRtShadowImageView);
     mComputePass.setRtShadowImageView(mRtShadowImageView);
+
+    // LTC pass
+    {
+        mResManager->destroyImage(mLtcOutputImage);
+        vkDestroyImageView(mDevice, mLtcOutputImageView, nullptr);
+    }
+    {
+        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+        mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
+
+        mLtcPass.setOutputImageView(mLtcOutputImageView);
+    }
+
+    mComputePass.setLtcImageView(mLtcOutputImageView);
 
     destroyGbuffer(mGbuffer);
     mGbuffer = createGbuffer(width, height);
@@ -1030,10 +1084,6 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
     mCurrentSceneRenderData->mInstanceBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
-    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        mCurrentSceneRenderData->mUploadInstanceBuffer[i] = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    }
 }
 
 void Render::createDescriptorPool()
@@ -1129,6 +1179,13 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         recordBarrier(cmd, mResManager->getVkImage(mGbuffer.depth), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
+    // LTC
+    recordBarrier(cmd, mResManager->getVkImage(mLtcOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mLtcPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    recordBarrier(cmd, mResManager->getVkImage(mLtcOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
     // Raytracing
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
@@ -1226,7 +1283,9 @@ void Render::loadScene(const std::string& modelPath)
     }
 
     // for pica pica
-    mScene->createLight(glm::float3(0, 50, 0), glm::float3(15, 50, 0.0), glm::float3(0.0, 50, 15));
+    mScene->createLight(glm::float3(0, 50, 0), glm::float3(10, 50, 0.0), glm::float3(10.0, 50, 10), glm::float3(0.0, 50, 10));
+
+    //mScene->createLight(glm::float3(0, 0.5, 0), glm::float3(1, 0.5, 0.0), glm::float3(1.0, 2, 0), glm::float3(0.0, 2, 0.0));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
@@ -1261,9 +1320,18 @@ void Render::setDescriptors()
         mComputePass.setTextureImageViews(mTexManager->textureImageView);
         mComputePass.setTextureSamplers(mTexManager->texSamplers);
         mComputePass.setRtShadowImageView(mRtShadowImageView);
+        mComputePass.setLtcImageView(mLtcOutputImageView);
         mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
         mComputePass.setLightBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
+    }
+    {
+        mLtcPass.setGbuffer(&mGbuffer);
+        mLtcPass.setMaterialsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+        mLtcPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
+        mLtcPass.setLightsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
+        mLtcPass.setTextureImageViews(mTexManager->textureImageView);
+        mLtcPass.setTextureSamplers(mTexManager->texSamplers);
     }
 }
 
@@ -1281,7 +1349,7 @@ void Render::createDefaultScene()
 
     mScene->addCamera(camera);
 
-    mScene->createLight(glm::float3(0, 0, 10), glm::float3(1.5, 0.0, 10), glm::float3(0.0, 1.5, 10));
+    mScene->createLight(glm::float3(0, 0, 10), glm::float3(1.5, 0.0, 10), glm::float3(0.0, 1.5, 10), glm::float3(0.0, 1.5, 10));
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
@@ -1335,7 +1403,7 @@ void Render::drawFrame()
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
     mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
-
+    mLtcPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
     mRtShadowPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
@@ -1387,39 +1455,62 @@ void Render::drawFrame()
 
     // upload data
     {
-        // This struct should match shader's version
-        struct InstanceConstants
-        {
-            glm::float4x4 model;
-            glm::float4x4 normalMatrix;
-            int32_t materialId;
-            int32_t pad0;
-            int32_t pad1;
-            int32_t pad2;
-        };
-
         const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
         mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
-        VkDeviceSize bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
-        if (bufferSize != 0)
+        Buffer* stagingBuffer = mUploadBuffer[frameIndex];
+        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+        size_t stagingBufferOffset = 0;
+        bool needBarrier = false;
+        if (!sceneInstances.empty())
         {
+            // This struct must match shader's version
+            struct InstanceConstants
+            {
+                glm::float4x4 model;
+                glm::float4x4 normalMatrix;
+                int32_t materialId;
+                int32_t pad0;
+                int32_t pad1;
+                int32_t pad2;
+            };
             std::vector<InstanceConstants> instanceConsts;
             instanceConsts.resize(sceneInstances.size());
-            for (int i = 0; i < sceneInstances.size(); ++i)
+            for (uint32_t i = 0; i < sceneInstances.size(); ++i)
             {
                 instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
                 instanceConsts[i].model = sceneInstances[i].transform;
                 instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
             }
-
-            Buffer* stagingBuffer = mCurrentSceneRenderData->mUploadInstanceBuffer[frameIndex];
-            void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-            memcpy(stagingBufferMemory, instanceConsts.data(), (size_t)bufferSize);
+            size_t bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
+            memcpy(stagingBufferMemory, instanceConsts.data(), bufferSize);
 
             VkBufferCopy copyRegion{};
             copyRegion.size = bufferSize;
+            copyRegion.dstOffset = 0;
+            copyRegion.srcOffset = stagingBufferOffset;
             vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
 
+            stagingBufferOffset += bufferSize;
+            needBarrier = true;
+        }
+        const std::vector<nevk::Scene::Light>& lights = scene->getLights();
+        if (!lights.empty())
+        {
+            size_t bufferSize = sizeof(nevk::Scene::Light) * lights.size();
+            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
+
+            VkBufferCopy copyRegion{};
+            copyRegion.size = bufferSize;
+            copyRegion.dstOffset = 0;
+            copyRegion.srcOffset = stagingBufferOffset;
+            vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), 1, &copyRegion);
+
+            stagingBufferOffset += bufferSize;
+            needBarrier = true;
+        }
+
+        if (needBarrier)
+        {
             VkMemoryBarrier memoryBarrier = {};
             memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
             memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;

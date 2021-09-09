@@ -475,7 +475,7 @@ void RenderPass::createUniformBuffers()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        uniformBuffers[i] = mResMngr->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        uniformBuffers[i] = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
@@ -493,7 +493,7 @@ void RenderPass::updateUniformBuffer(uint32_t currentImage, const glm::float4x4&
     ubo.lightSpaceMatrix = lightSpaceMatrix;
     ubo.debugView = (uint32_t)scene.mDebugViewSettings;
 
-    void* data = mResMngr->getMappedMemory(uniformBuffers[currentImage]);
+    void* data = mResManager->getMappedMemory(uniformBuffers[currentImage]);
     memcpy(data, &ubo, sizeof(ubo));
 }
 
@@ -501,7 +501,7 @@ void RenderPass::onDestroy()
 {
     for (size_t i = 0; i < uniformBuffers.size(); ++i)
     {
-        mResMngr->destroyBuffer(uniformBuffers[i]);
+        mResManager->destroyBuffer(uniformBuffers[i]);
     }
     vkDestroyPipeline(mDevice, mPipelineTransparent, nullptr);
     vkDestroyPipeline(mDevice, mPipelineOpaque, nullptr);
@@ -594,7 +594,7 @@ void RenderPass::setInstanceBuffer(VkBuffer instanceBuffer)
 void RenderPass::updateDescriptorSets(uint32_t descSetIndex)
 {
     VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = mResMngr->getVkBuffer(uniformBuffers[descSetIndex]);
+    bufferInfo.buffer = mResManager->getVkBuffer(uniformBuffers[descSetIndex]);
     bufferInfo.offset = 0;
     bufferInfo.range = sizeof(UniformBufferObject);
 
