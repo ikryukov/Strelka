@@ -163,6 +163,7 @@ public:
         }
     }
 
+    void removeLight(uint32_t lightId);
     void updateLight(uint32_t lightId, const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, glm::float3& color);
     /// <summary>
     /// Create Mesh geometry

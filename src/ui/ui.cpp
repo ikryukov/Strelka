@@ -465,6 +465,14 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 {
                     showLightId = scene.createLight(currDesc[showLightId].position, currDesc[showLightId].orientation, glm::float3(currDesc[showLightId].width, currDesc[showLightId].width, currDesc[showLightId].height), currDesc[showLightId].color);
                 }
+                if (ImGui::Button("Remove Current Light"))
+                {
+                    if (scene.mLights.size() > 1)
+                    {
+                        scene.removeLight(showLightId);
+                        showLightId = 0;
+                    }
+                }
                 ImGui::TreePop();
             }
         }
