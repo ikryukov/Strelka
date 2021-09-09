@@ -112,6 +112,7 @@ uint32_t Scene::createLight(const glm::float3& position, const glm::float3& orie
     l.points[1] = localTransform * glm::float4(0.0f, -0.5f, 0.5f, 1.0f);
     l.points[2] = localTransform * glm::float4(0.0f, -0.5f, -0.5f, 1.0f);
     l.points[3] = localTransform * glm::float4(0.0f, 0.5f, -0.5f, 1.0f);
+    l.color = glm::float4(color, 1.0f);
 
     RectLight desc;
     desc.position = position;
@@ -137,6 +138,7 @@ void Scene::updateLight(uint32_t lightId, const glm::float3& position, const glm
     mLights[lightId].points[1] = localTransform * glm::float4(0.0f, -0.5f, 0.5f, 1.0f);
     mLights[lightId].points[2] = localTransform * glm::float4(0.0f, -0.5f, -0.5f, 1.0f);
     mLights[lightId].points[3] = localTransform * glm::float4(0.0f, 0.5f, -0.5f, 1.0f);
+    mLights[lightId].color = glm::float4(color, 1.0f);
 }
 
 void Scene::removeInstance(const uint32_t instId)
