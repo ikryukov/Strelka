@@ -262,7 +262,7 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
             ImGui::InputFloat("Width", &width);
             ImGui::Spacing();
             ImGui::InputFloat("Height", &height);
-            float matrixTranslation[3] = {translation.x, translation.y, translation.z}, matrixRotation[3] = {rotation.x, rotation.y, rotation.z}, matrixScale[3] = {width, width, height};
+            float matrixTranslation[3] = { translation.x, translation.y, translation.z }, matrixRotation[3] = { rotation.x, rotation.y, rotation.z }, matrixScale[3] = { width, width, height };
             ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix);
         }
 
@@ -341,6 +341,15 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
     }
 }
 
+void showGizmo(Camera& cam, float camDistance, float* matrix, ImGuizmo::OPERATION operation)
+{
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+    glm::float4x4 cameraView = cam.getView();
+    glm::float4x4 cameraProjection = cam.getPerspective();
+    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, mCurrentGizmoMode, matrix, NULL, nullptr, nullptr, nullptr);
+}
 
 void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
 {
@@ -365,17 +374,17 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     Camera& cam = scene.getCamera(selectedCamera);
     glm::float3 camPos = cam.getPosition();
 
-    for (uint32_t i = 0; i < instances.size(); ++i)
-    {
-        ImGuizmo::SetID(i);
-        float camDist = glm::distance(camPos, instances[i].massCenter);
-        glm::float4x4 xform = instances[i].transform;
-        glm::float3 tmp1 = glm::float3(1.0f);
-        float tmp2 = 0;
-        EditTransform(cam, camDist, glm::value_ptr( xform), true, false, tmp1, tmp1, tmp2, tmp2);
+    // for (uint32_t i = 0; i < instances.size(); ++i)
+    // {
+    //     ImGuizmo::SetID(i);
+    //     float camDist = glm::distance(camPos, instances[i].massCenter);
+    //     glm::float4x4 xform = instances[i].transform;
+    //     glm::float3 tmp1 = glm::float3(1.0f);
+    //     float tmp2 = 0;
+    //     EditTransform(cam, camDist, glm::value_ptr( xform), true, false, tmp1, tmp1, tmp2, tmp2);
 
-        scene.updateInstanceTransform(i, xform);
-    }
+    //     scene.updateInstanceTransform(i, xform);
+    // }
 
     ImGui::Begin("Menu:", &activateMenuBar, ImGuiWindowFlags_MenuBar); // begin window
     if (ImGui::BeginMenuBar())
@@ -449,27 +458,54 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             if (ImGui::TreeNode("Light"))
             {
                 // get CPU light
-                std::vector<Scene::RectLight>& currDesc = scene.getLightsDesc();
+                std::vector<Scene::RectLight>& lightDescs = scene.getLightsDesc();
+                Scene::RectLight& currLightDesc = lightDescs[showLightId];
+
+                if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
+                    mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+                ImGui::SameLine();
+                if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
+                    mCurrentGizmoOperation = ImGuizmo::ROTATE;
 
                 ImGui::Text("Rectangle light");
                 ImGui::Spacing();
-                /*ImGui::DragFloat3("Position", &currDesc[showLightId].position.x);
+
+                ImGui::DragFloat3("Position", &currLightDesc.position.x);
                 ImGui::Spacing();
-                ImGui::DragFloat3("Orientation", &currDesc[showLightId].orientation.x);
+                ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
                 ImGui::Spacing();
-                ImGui::DragFloat("Width", &currDesc[showLightId].width);
+                ImGui::DragFloat("Width", &currLightDesc.width);
                 ImGui::Spacing();
-                ImGui::DragFloat("Height", &currDesc[showLightId].height);
+                ImGui::DragFloat("Height", &currLightDesc.height);
                 ImGui::Spacing();
-                ImGui::ColorEdit3("Color", &currDesc[showLightId].color.x);*/
+                ImGui::ColorEdit3("Color", &currLightDesc.color.x);
 
                 ImGuizmo::SetID(showLightId);
-                glm::float3 rectCenter = { currDesc[showLightId].position.x + currDesc[showLightId].width / 2, currDesc[showLightId].position.y + currDesc[showLightId].width / 2, currDesc[showLightId].position.z + currDesc[showLightId].height / 2 };
-                float camDist = glm::distance(camPos, rectCenter); // ?
-                glm::float4x4 tmp = glm::float4x4(0.0f);
-                EditTransform(cam, camDist, glm::value_ptr(tmp), true, true, currDesc[showLightId].position, currDesc[showLightId].orientation, currDesc[showLightId].width, currDesc[showLightId].height);
 
-                scene.updateLight(showLightId, currDesc[showLightId].position, currDesc[showLightId].orientation, glm::float3(currDesc[showLightId].width, currDesc[showLightId].width, currDesc[showLightId].height), currDesc[showLightId].color);
+                // construct final xform for imguizmo
+                const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), currLightDesc.position);
+                glm::quat rotation = glm::quat(glm::radians(currLightDesc.orientation)); // to quaternion
+                const glm::float4x4 rotationMatrix{ rotation };
+                // light have o-y o-z scaling 
+                const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, currLightDesc.width, currLightDesc.height));
+
+                float camDist = glm::distance(camPos, currLightDesc.position);
+                glm::float4x4 lightXform = translationMatrix * rotationMatrix * scaleMatrix;
+                
+                // show controls
+                showGizmo(cam, camDist, &lightXform[0][0], mCurrentGizmoOperation);
+                
+                // need to deconstruct final xform to components
+                float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+                ImGuizmo::DecomposeMatrixToComponents(&lightXform[0][0], matrixTranslation, matrixRotation, matrixScale);
+
+                // write result to description
+                currLightDesc.position = glm::float3(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
+                currLightDesc.orientation = glm::float3(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
+                currLightDesc.width = matrixScale[1];
+                currLightDesc.height = matrixScale[2];
+                // update in scene
+                scene.updateLight(showLightId, currLightDesc.position, currLightDesc.orientation, glm::float3(1.0, currLightDesc.width, currLightDesc.height), currLightDesc.color);
 
                 if (ImGui::Button("Download light"))
                 {
@@ -485,7 +521,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 }
                 if (ImGui::Button("Add Light"))
                 {
-                    showLightId = scene.createLight(currDesc[showLightId].position, currDesc[showLightId].orientation, glm::float3(currDesc[showLightId].width, currDesc[showLightId].width, currDesc[showLightId].height), currDesc[showLightId].color);
+                    showLightId = scene.createLight(currLightDesc.position, currLightDesc.orientation, glm::float3(1.0f, currLightDesc.width, currLightDesc.height), currLightDesc.color);
                 }
                 if (ImGui::Button("Remove Current Light"))
                 {
