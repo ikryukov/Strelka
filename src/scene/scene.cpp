@@ -78,7 +78,7 @@ uint32_t Scene::addMaterial(const Material& material)
     return res;
 }
 
-glm::float4x4 getTransform(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, glm::float3& color)
+glm::float4x4 getTransform(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, const glm::float3& color)
 {
     const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), position);
     glm::quat rotation = glm::quat(glm::radians(orientation)); // to quaternion
@@ -89,7 +89,7 @@ glm::float4x4 getTransform(const glm::float3& position, const glm::float3& orien
 
     return localTransform;
 }
-
+/*
 uint32_t Scene::createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3)
 {
     Light l;
@@ -101,9 +101,9 @@ uint32_t Scene::createLight(const glm::float3& v0, const glm::float3& v1, const 
     uint32_t lightId = (uint32_t)mLights.size();
     mLights.push_back(l);
     return lightId;
-}
+}*/
 
-uint32_t Scene::createLight(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, glm::float3& color)
+uint32_t Scene::createLight(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, const glm::float3& color)
 {
     const glm::float4x4 localTransform = getTransform(position, orientation, scale, color);
 
@@ -113,8 +113,16 @@ uint32_t Scene::createLight(const glm::float3& position, const glm::float3& orie
     l.points[2] = localTransform * glm::float4(0.0f, -0.5f, -0.5f, 1.0f);
     l.points[3] = localTransform * glm::float4(0.0f, 0.5f, -0.5f, 1.0f);
 
+    RectLight desc;
+    desc.position = position;
+    desc.orientation = orientation;
+    desc.width = scale.x;
+    desc.height = scale.z;
+    desc.color = color;
+
     uint32_t lightId = (uint32_t)mLights.size();
     mLights.push_back(l);
+    mLightDesc.push_back(desc);
 
     return lightId;
 }

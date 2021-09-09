@@ -68,6 +68,9 @@ public:
         float height; // OZ
         glm::float3 color;
     };
+
+    std::vector<RectLight> mLightDesc;
+
     enum class DebugView
     {
         eNone = 0,
@@ -114,6 +117,11 @@ public:
     std::vector<Light>& getLights()
     {
         return mLights;
+    }
+
+    std::vector<RectLight>& getLightsDesc()
+    {
+        return mLightDesc;
     }
 
     void addCamera(Camera camera)
@@ -174,8 +182,8 @@ public:
 
     uint32_t addMaterial(const Material& material);
 
-    uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
-    uint32_t createLight(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, glm::float3& color);
+   // uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
+    uint32_t createLight(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, const glm::float3& color);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>

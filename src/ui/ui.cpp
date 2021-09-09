@@ -407,9 +407,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     if (openInspector)
     {
         ImGui::Begin("Inspector", &openInspector); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        // Display contents in a scrolling region
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Properties");
-        ImGui::BeginChild("Scrolling");
         if (!isLight)
         {
             if (ImGui::TreeNode("Transform"))
@@ -437,11 +435,12 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             if (ImGui::TreeNode("Light"))
             {
                 // get CPU light
-                // todo: set params from curr light
-                static glm::float3 position = glm::float3{ 0.0, 0.0, 0.0 };
-                static glm::float3 orientation = glm::float3{ 0.0, 0.0, 0.0 };
-                static glm::float3 scale = glm::float3{ 1.0, 1.0, 1.0 };
-                static glm::float3 color = glm::float3{ 0.0, 0.0, 0.0 };
+                const std::vector<Scene::RectLight>& currDesc = scene.getLightsDesc();
+
+                static glm::float3 position = currDesc[showLightId].position;
+                static glm::float3 orientation = currDesc[showLightId].orientation;
+                static glm::float3 scale = { currDesc[showLightId].width, currDesc[showLightId].width, currDesc[showLightId].height };
+                static glm::float3 color = currDesc[showLightId].color;
 
                 ImGui::Text("Rectangle light");
                 ImGui::Spacing();
@@ -467,20 +466,20 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                         json light;
                         i >> light;
 
-                        scene.createLight(glm::float3(light["position"][0], light["position"][1], light["position"][2]), glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]), glm::float3{ float(light["width"]) / 2, float(light["width"]) / 2, light["height"] }, glm::float3(light["color"][0], light["color"][1], light["color"][2]));
+                        showLightId = scene.createLight(glm::float3(light["position"][0], light["position"][1], light["position"][2]), glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]), glm::float3{ float(light["width"]) / 2, float(light["width"]) / 2, light["height"] }, glm::float3(light["color"][0], light["color"][1], light["color"][2]));
                     }
                 }
                 if (ImGui::Button("Add Light"))
                 {
-                    scene.createLight(position, orientation, scale, color);
+                    showLightId = scene.createLight(position, orientation, scale, color);
                 }
                 ImGui::TreePop();
             }
         }
-
         ImGui::Spacing();
+        ImGui::BeginChild("Scrolling");
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Tree");
-        for (uint32_t i = 0; i < scene.mLights.size(); i++)
+        for (uint32_t i = 0; i < scene.mLightDesc.size(); i++)
         {
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
             if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Light ID: %d", i))
@@ -507,7 +506,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             }
         }
         ImGui::EndChild();
-
         ImGui::End();
     }
     // simple settings
