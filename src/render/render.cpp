@@ -406,7 +406,6 @@ void Render::cleanup()
         vkDestroyCommandPool(mDevice, fd.cmdPool, nullptr);
     }
 
-    delete mResManager;
     for (nevk::Buffer* buff : mUploadBuffer)
     {
         if (buff)
@@ -414,6 +413,8 @@ void Render::cleanup()
             mResManager->destroyBuffer(buff);
         }
     }
+
+    delete mResManager;
 
     vkDestroyDevice(mDevice, nullptr);
 
