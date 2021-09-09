@@ -421,9 +421,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                     ImGui::InputFloat3("Position", pos);
                     ImGui::InputFloat3("Rotation", rotation);
                     ImGui::InputFloat3("Scale", scale);
-                }
-                if (showPropertiesId != -1)
-                {
+
                     ImGui::Text("Material ID: %d", currInstance[showPropertiesId].mMaterialId);
                     ImGui::Text("Mass Center: %f %f %f", currInstance[showPropertiesId].massCenter.x, currInstance[showPropertiesId].massCenter.y, currInstance[showPropertiesId].massCenter.z);
                 }
@@ -435,27 +433,21 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             if (ImGui::TreeNode("Light"))
             {
                 // get CPU light
-                const std::vector<Scene::RectLight>& currDesc = scene.getLightsDesc();
-
-                static glm::float3 position = currDesc[showLightId].position;
-                static glm::float3 orientation = currDesc[showLightId].orientation;
-                static glm::float3 scale = { currDesc[showLightId].width, currDesc[showLightId].width, currDesc[showLightId].height };
-                static glm::float3 color = currDesc[showLightId].color;
+                std::vector<Scene::RectLight>& currDesc = scene.getLightsDesc();
 
                 ImGui::Text("Rectangle light");
                 ImGui::Spacing();
-                ImGui::DragFloat3("Position", &position.x);
+                ImGui::DragFloat3("Position", &currDesc[showLightId].position.x);
                 ImGui::Spacing();
-                ImGui::DragFloat3("Orientation", &orientation.x);
+                ImGui::DragFloat3("Orientation", &currDesc[showLightId].orientation.x);
                 ImGui::Spacing();
-                ImGui::DragFloat("Width", &scale.y);
-                scale.x = scale.y;
+                ImGui::DragFloat("Width", &currDesc[showLightId].width);
                 ImGui::Spacing();
-                ImGui::DragFloat("Height", &scale.z);
+                ImGui::DragFloat("Height", &currDesc[showLightId].height);
                 ImGui::Spacing();
-                ImGui::ColorEdit3("Color", &color.x);
+                ImGui::ColorEdit3("Color", &currDesc[showLightId].color.x);
 
-                scene.updateLight(showLightId, position, orientation, scale, color);
+                scene.updateLight(showLightId, currDesc[showLightId].position, currDesc[showLightId].orientation, glm::float3(currDesc[showLightId].width, currDesc[showLightId].width, currDesc[showLightId].height), currDesc[showLightId].color);
 
                 if (ImGui::Button("Download light"))
                 {
@@ -471,7 +463,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 }
                 if (ImGui::Button("Add Light"))
                 {
-                    showLightId = scene.createLight(position, orientation, scale, color);
+                    showLightId = scene.createLight(currDesc[showLightId].position, currDesc[showLightId].orientation, glm::float3(currDesc[showLightId].width, currDesc[showLightId].width, currDesc[showLightId].height), currDesc[showLightId].color);
                 }
                 ImGui::TreePop();
             }
@@ -479,7 +471,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         ImGui::Spacing();
         ImGui::BeginChild("Scrolling");
         ImGui::TextColored(ImVec4(1, 1, 0, 1), "Tree");
-        for (uint32_t i = 0; i < scene.mLightDesc.size(); i++)
+        for (uint32_t i = 0; i < scene.mLights.size(); i++)
         {
             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
             if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Light ID: %d", i))
