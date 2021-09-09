@@ -470,32 +470,43 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         }
         ImGui::Spacing();
         ImGui::BeginChild("Scrolling");
-        ImGui::TextColored(ImVec4(1, 1, 0, 1), "Tree");
-        for (uint32_t i = 0; i < scene.mLights.size(); i++)
+        if (ImGui::TreeNode("Scene"))
         {
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
-            if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Light ID: %d", i))
+            if (ImGui::TreeNode("Lights"))
             {
-                if (ImGui::IsItemClicked())
+                for (uint32_t i = 0; i < scene.mLights.size(); i++)
                 {
-                    showLightId = i;
-                    isLight = true;
+                    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
+                    if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Light ID: %d", i))
+                    {
+                        if (ImGui::IsItemClicked())
+                        {
+                            showLightId = i;
+                            isLight = true;
+                        }
+                        ImGui::TreePop();
+                    }
                 }
                 ImGui::TreePop();
             }
-        }
-        for (uint32_t i = 0; i < currInstance.size(); i++)
-        {
-            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
-            if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", currInstance[i].mMeshId))
+            if (ImGui::TreeNode("Instances"))
             {
-                if (ImGui::IsItemClicked())
+                for (uint32_t i = 0; i < currInstance.size(); i++)
                 {
-                    showPropertiesId = i;
-                    isLight = false;
+                    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
+                    if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", currInstance[i].mMeshId))
+                    {
+                        if (ImGui::IsItemClicked())
+                        {
+                            showPropertiesId = i;
+                            isLight = false;
+                        }
+                        ImGui::TreePop();
+                    }
                 }
                 ImGui::TreePop();
             }
+            ImGui::TreePop();
         }
         ImGui::EndChild();
         ImGui::End();
