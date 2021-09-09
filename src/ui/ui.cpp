@@ -441,7 +441,8 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             ImGui::Spacing();
             ImGui::DragFloat3("Orientation", &orientation.x);
             ImGui::Spacing();
-            ImGui::DragFloat("Width", &scale.y); scale.x = scale.y;
+            ImGui::DragFloat("Width", &scale.y);
+            scale.x = scale.y;
             ImGui::Spacing();
             ImGui::DragFloat("Height", &scale.z);
             ImGui::Spacing();
@@ -465,10 +466,10 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
 
                 // transform to GPU light
                 std::vector<Scene::Light>& currLight = scene.getLights();
-                currLight[0].points[0] = currLight[0].points[0] * localTransform;
-                currLight[0].points[1] = currLight[0].points[1] * localTransform;
-                currLight[0].points[2] = currLight[0].points[2] * localTransform;
-                currLight[0].points[3] = currLight[0].points[3] * localTransform;
+                currLight[0].points[0] = localTransform * currLight[0].points[0];
+                currLight[0].points[1] = localTransform * currLight[0].points[1];
+                currLight[0].points[2] = localTransform * currLight[0].points[2];
+                currLight[0].points[3] = localTransform * currLight[0].points[3];
             }
 
             if (ImGui::Button("Download light"))
