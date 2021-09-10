@@ -354,7 +354,6 @@ void showGizmo(Camera& cam, float camDistance, float* matrix, ImGuizmo::OPERATIO
 void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
 {
     ImGuiIO& io = ImGui::GetIO();
-    bool activateMenuBar = false;
     bool openFD = false;
     static uint32_t showPropertiesId = -1;
     static uint32_t showLightId = 0; // default
@@ -386,8 +385,8 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     //     scene.updateInstanceTransform(i, xform);
     // }
 
-    ImGui::Begin("Menu:", &activateMenuBar, ImGuiWindowFlags_MenuBar); // begin window
-    if (ImGui::BeginMenuBar())
+    ImGui::Begin("Menu:"); // begin window
+    if (ImGui::BeginMainMenuBar())
     {
         if (ImGui::BeginMenu("File"))
         {
@@ -399,15 +398,11 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             {
                 openInspector = true;
             }
-            if (ImGui::MenuItem("Close", "Ctrl+C"))
-            {
-                activateMenuBar = false;
-            }
             ImGui::EndMenu();
         }
-        ImGui::EndMenuBar();
+        ImGui::EndMainMenuBar();
     }
-
+    // ImGui::ShowDemoWindow();
     // open file dialog
     if (openFD)
         ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gltf,.obj", ".");
@@ -432,10 +427,15 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     if (openInspector)
     {
         ImGui::Begin("Inspector", &openInspector); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::TextColored(ImVec4(1, 1, 0, 1), "Properties");
-        if (!isLight)
         {
-            if (ImGui::TreeNode("Transform"))
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+            ImGui::BeginChild("Properties", ImVec2(0, 200), true, ImGuiWindowFlags_MenuBar);
+            if (ImGui::BeginMenuBar())
+            {
+                ImGui::TextUnformatted("Properties");
+                ImGui::EndMenuBar();
+            }
+            if (!isLight)
             {
                 if (showPropertiesId != -1)
                 {
@@ -450,16 +450,12 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                     ImGui::Text("Material ID: %d", currInstance[showPropertiesId].mMaterialId);
                     ImGui::Text("Mass Center: %f %f %f", currInstance[showPropertiesId].massCenter.x, currInstance[showPropertiesId].massCenter.y, currInstance[showPropertiesId].massCenter.z);
                 }
-                ImGui::TreePop();
             }
-        }
-        if (isLight)
-        {
-            if (ImGui::TreeNode("Light"))
+            if (isLight)
             {
                 // get CPU light
-                std::vector<Scene::RectLight>& lightDescs = scene.getLightsDesc();
-                Scene::RectLight& currLightDesc = lightDescs[showLightId];
+                std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
+                Scene::RectLightDesc& currLightDesc = lightDescs[showLightId];
 
                 if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
                     mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
@@ -469,14 +465,16 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
 
                 ImGui::Text("Rectangle light");
                 ImGui::Spacing();
-
+                ImGui::AlignTextToFramePadding();
                 ImGui::DragFloat3("Position", &currLightDesc.position.x);
                 ImGui::Spacing();
                 ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
                 ImGui::Spacing();
-                ImGui::DragFloat("Width", &currLightDesc.width);
-                ImGui::Spacing();
-                ImGui::DragFloat("Height", &currLightDesc.height);
+                ImGui::PushItemWidth(67);
+                ImGui::DragFloat("Width", &currLightDesc.width, 0.005f, 1.0f);
+                ImGui::SameLine();
+                ImGui::DragFloat("Height", &currLightDesc.height, 0.005f, 1.0f);
+                ImGui::PopItemWidth();
                 ImGui::Spacing();
                 ImGui::ColorEdit3("Color", &currLightDesc.color.x);
 
@@ -486,15 +484,15 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), currLightDesc.position);
                 glm::quat rotation = glm::quat(glm::radians(currLightDesc.orientation)); // to quaternion
                 const glm::float4x4 rotationMatrix{ rotation };
-                // light have o-y o-z scaling 
+                // light have o-y o-z scaling
                 const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, currLightDesc.width, currLightDesc.height));
 
                 float camDist = glm::distance(camPos, currLightDesc.position);
                 glm::float4x4 lightXform = translationMatrix * rotationMatrix * scaleMatrix;
-                
+
                 // show controls
                 showGizmo(cam, camDist, &lightXform[0][0], mCurrentGizmoOperation);
-                
+
                 // need to deconstruct final xform to components
                 float matrixTranslation[3], matrixRotation[3], matrixScale[3];
                 ImGuizmo::DecomposeMatrixToComponents(&lightXform[0][0], matrixTranslation, matrixRotation, matrixScale);
@@ -504,10 +502,12 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 currLightDesc.orientation = glm::float3(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
                 currLightDesc.width = matrixScale[1];
                 currLightDesc.height = matrixScale[2];
-                // update in scene
-                scene.updateLight(showLightId, currLightDesc.position, currLightDesc.orientation, glm::float3(1.0, currLightDesc.width, currLightDesc.height), currLightDesc.color);
 
-                if (ImGui::Button("Download light"))
+                // update in scene
+                Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
+                scene.updateLight(showLightId, desc);
+                ImGui::PushItemWidth(70);
+                if (ImGui::Button("Download"))
                 {
                     std::string jsonPath = currentPath + "/" + currentFileName + "_light" + ".json";
                     if (fs::exists(jsonPath))
@@ -516,14 +516,22 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                         json light;
                         i >> light;
 
-                        showLightId = scene.createLight(glm::float3(light["position"][0], light["position"][1], light["position"][2]), glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]), glm::float3{ float(light["width"]) / 2, float(light["width"]) / 2, light["height"] }, glm::float3(light["color"][0], light["color"][1], light["color"][2]));
+                        Scene::RectLightDesc desc = { glm::float3(light["position"][0], light["position"][1], light["position"][2]),
+                                                      glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]),
+                                                      float(light["width"]), light["height"],
+                                                      glm::float3(light["color"][0], light["color"][1], light["color"][2]) };
+
+                        showLightId = scene.createLight(desc);
                     }
                 }
-                if (ImGui::Button("Add Light"))
+                ImGui::SameLine();
+                if (ImGui::Button("Add"))
                 {
-                    showLightId = scene.createLight(currLightDesc.position, currLightDesc.orientation, glm::float3(1.0f, currLightDesc.width, currLightDesc.height), currLightDesc.color);
+                    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
+                    showLightId = scene.createLight(desc);
                 }
-                if (ImGui::Button("Remove Current Light"))
+                ImGui::SameLine();
+                if (ImGui::Button("Remove"))
                 {
                     if (scene.mLights.size() > 1)
                     {
@@ -531,52 +539,62 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                         showLightId = 0;
                     }
                 }
-                ImGui::TreePop();
             }
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
         }
-        ImGui::Spacing();
-        ImGui::BeginChild("Scrolling");
-        if (ImGui::TreeNode("Scene"))
         {
-            if (ImGui::TreeNode("Lights"))
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+            ImGui::BeginChild("SceneView", ImVec2(0, 260), true, ImGuiWindowFlags_MenuBar);
+            if (ImGui::BeginMenuBar())
             {
-                for (uint32_t i = 0; i < scene.mLights.size(); i++)
+                ImGui::TextUnformatted("Scene View");
+                ImGui::EndMenuBar();
+            }
+            if (ImGui::TreeNode("Scene"))
+            {
+                if (ImGui::TreeNode("Lights"))
                 {
-                    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
-                    if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Light ID: %d", i))
+                    for (uint32_t i = 0; i < scene.mLights.size(); i++)
                     {
-                        if (ImGui::IsItemClicked())
+                        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
+                        if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Light ID: %d", i))
                         {
-                            showLightId = i;
-                            isLight = true;
+                            if (ImGui::IsItemClicked())
+                            {
+                                showLightId = i;
+                                isLight = true;
+                            }
+                            ImGui::TreePop();
                         }
-                        ImGui::TreePop();
                     }
+                    ImGui::TreePop();
+                }
+                if (ImGui::TreeNode("Instances"))
+                {
+                    for (uint32_t i = 0; i < currInstance.size(); i++)
+                    {
+                        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
+                        if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", currInstance[i].mMeshId))
+                        {
+                            if (ImGui::IsItemClicked())
+                            {
+                                showPropertiesId = i;
+                                isLight = false;
+                            }
+                            ImGui::TreePop();
+                        }
+                    }
+                    ImGui::TreePop();
                 }
                 ImGui::TreePop();
             }
-            if (ImGui::TreeNode("Instances"))
-            {
-                for (uint32_t i = 0; i < currInstance.size(); i++)
-                {
-                    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
-                    if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", currInstance[i].mMeshId))
-                    {
-                        if (ImGui::IsItemClicked())
-                        {
-                            showPropertiesId = i;
-                            isLight = false;
-                        }
-                        ImGui::TreePop();
-                    }
-                }
-                ImGui::TreePop();
-            }
-            ImGui::TreePop();
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
         }
-        ImGui::EndChild();
         ImGui::End();
     }
+
     // simple settings
     ImGui::Text("MsPF = %f", msPerFrame);
     ImGui::Text("FPS = %f", 1000.0 / msPerFrame);
@@ -603,7 +621,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         ImGui::EndCombo();
     }
 
-    const char* items[] = { "None", "Normals", "Shadow b&w", "Shadow PCF", "Shadow Poisson", "Shadow Poisson+PCF" };
+    const char* items[] = { "None" };
     static const char* current_item = items[0];
 
     if (ImGui::BeginCombo("Debug view", current_item))

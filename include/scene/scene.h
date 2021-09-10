@@ -60,7 +60,7 @@ public:
     };
 
     // CPU side structure
-    struct RectLight
+    struct RectLightDesc
     {
         glm::float3 position; // world position
         glm::float3 orientation; // euler angles in degrees
@@ -70,7 +70,7 @@ public:
         glm::float3 color;
     };
 
-    std::vector<RectLight> mLightDesc;
+    std::vector<RectLightDesc> mLightDesc;
 
     enum class DebugView
     {
@@ -120,7 +120,7 @@ public:
         return mLights;
     }
 
-    std::vector<RectLight>& getLightsDesc()
+    std::vector<RectLightDesc>& getLightsDesc()
     {
         return mLightDesc;
     }
@@ -165,7 +165,7 @@ public:
     }
 
     void removeLight(uint32_t lightId);
-    void updateLight(uint32_t lightId, const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, glm::float3& color);
+    void updateLight(uint32_t lightId, const RectLightDesc& desc);
     /// <summary>
     /// Create Mesh geometry
     /// </summary>
@@ -185,7 +185,7 @@ public:
     uint32_t addMaterial(const Material& material);
 
    // uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
-    uint32_t createLight(const glm::float3& position, const glm::float3& orientation, const glm::float3& scale, const glm::float3& color);
+    uint32_t createLight(const RectLightDesc& desc);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>
