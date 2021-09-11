@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <set>
 #include <stack>
+#include <unordered_map>
 #include <vector>
 
 
@@ -67,9 +68,37 @@ public:
         float width; // OY
         float height; // OZ
         glm::float3 color;
+
+        RectLightDesc()
+        {
+        }
+        RectLightDesc(glm::float3 p, glm::float3 o, float w, float h, glm::float3 c)
+        {
+            position = p;
+            orientation = o;
+            width = w;
+            height = h;
+            color = c;
+        }
+        bool operator==(const RectLightDesc& rectLightDesc) const
+        {
+            return (position == rectLightDesc.position && orientation == rectLightDesc.orientation && width == rectLightDesc.width && height == rectLightDesc.height && color == rectLightDesc.color);
+        }
+        struct HashFunction
+        {
+            size_t operator()(const RectLightDesc& rectLightDesc) const
+            {
+                return (((((((std::hash<glm::float3>()(rectLightDesc.position) ^
+                    (std::hash<glm::float3>()(rectLightDesc.orientation) << 1)) >> 1) ^
+                    (std::hash<float>()(rectLightDesc.width) << 1)) >> 1) ^
+                    (std::hash<float>()(rectLightDesc.height) << 1)) >> 1) ^
+                    (std::hash<glm::float3>()(rectLightDesc.color) << 1));
+            }
+        };
     };
 
     std::vector<RectLightDesc> mLightDesc;
+    std::unordered_map<RectLightDesc, uint32_t, RectLightDesc::HashFunction> lightToId{};
 
     enum class DebugView
     {
@@ -123,6 +152,8 @@ public:
     {
         return mLightDesc;
     }
+
+    //std::vector<RectLightDesc> getLightsDesc();
 
     void addCamera(Camera camera)
     {
