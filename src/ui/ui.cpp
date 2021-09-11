@@ -439,11 +439,11 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
         json lightSettings[lightDescs.size()];
         for (uint32_t i = 0; i < lightDescs.size(); ++i)
         {
-            lightSettings[i]["position"] = { currLightDesc.position.x, currLightDesc.position.y, currLightDesc.position.z };
-            lightSettings[i]["orientation"] = { currLightDesc.orientation.x, currLightDesc.orientation.y, currLightDesc.orientation.z };
-            lightSettings[i]["width"] = currLightDesc.width;
-            lightSettings[i]["height"] = currLightDesc.height;
-            lightSettings[i]["color"] = { currLightDesc.color.x, currLightDesc.color.y, currLightDesc.color.z };
+            lightSettings[i]["position"] = { lightDescs[i].position.x, lightDescs[i].position.y, lightDescs[i].position.z };
+            lightSettings[i]["orientation"] = { lightDescs[i].orientation.x, lightDescs[i].orientation.y, lightDescs[i].orientation.z };
+            lightSettings[i]["width"] = lightDescs[i].width;
+            lightSettings[i]["height"] = lightDescs[i].height;
+            lightSettings[i]["color"] = { lightDescs[i].color.x, lightDescs[i].color.y, lightDescs[i].color.z };
         }
 
         json lights;
