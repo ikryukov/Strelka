@@ -1,84 +1,34 @@
 #pragma once
-#include <scene/scene.h>
-#include <vulkan/vulkan.h>
 
-#include <resourcemanager.h>
-#include <vector>
+#include "common.h"
+#include "shaderparameters.h"
 
-#include "gbuffer.h"
+#include <array>
 
 namespace nevk
 {
+template <typename T>
 class ComputePass
 {
-private:
-    struct UniformBufferObject
-    {
-        glm::float4x4 viewToProj;
-        glm::float4x4 worldToView;
-        glm::float3 CameraPos;
-        float pad0;
-        glm::int2 dimension;
-        uint32_t debugView;
-        float pad1;
-    };
+protected:
+    const SharedContext& mSharedCtx;
 
-    static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
+    VkPipeline mPipeline = VK_NULL_HANDLE;
+    VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
+    VkShaderModule mCS = VK_NULL_HANDLE;
 
-    VkDevice mDevice;
-    VkDescriptorPool mDescriptorPool;
-    VkPipeline mPipeline;
-    VkPipelineLayout mPipelineLayout;
-    VkShaderModule mCS;
-
-    ResourceManager* mResManager;
-
-    VkDescriptorSetLayout mDescriptorSetLayout;
-    std::vector<VkDescriptorSet> mDescriptorSets;
-
-    bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = {false, false, false};
-    
-    std::vector<Buffer*> uniformBuffers;
-
-    GBuffer* mGbuffer;
-    std::vector<VkImageView> mTextureImageView;
-    VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
-    VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
-    VkBuffer mLightBuffer = VK_NULL_HANDLE;
-
-    VkImageView mRtShadowImageView = VK_NULL_HANDLE;
-    VkImageView mLtcImageView = VK_NULL_HANDLE;
-
-    VkImageView mOutImageView;
-    std::vector<VkSampler> mTextureSamplers;
-
-    void createDescriptorSetLayout();
-    void createDescriptorSets(VkDescriptorPool& descriptorPool);
-    void updateDescriptorSet(uint32_t descIndex);
-    void updateDescriptorSets();
-
-    void createUniformBuffers();
+    ShaderParameters<T> mShaderParams;
 
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
     void createComputePipeline(VkShaderModule& shaderModule);
 
 public:
-    ComputePass(/* args */);
+    ComputePass(const SharedContext& ctx);
     ~ComputePass();
 
-    void init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr);
-    void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
+    void initialize();
+    void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
     void onDestroy();
 
-    void setMaterialBuffer(VkBuffer materialBuffer);
-    void setInstanceBuffer(VkBuffer instanceBuffer);
-    void setLightBuffer(VkBuffer lightBuffer);
-    void setGbuffer(GBuffer* gbuffer);
-    void setRtShadowImageView(VkImageView imageView);
-    void setLtcImageView(VkImageView imageView);
-    void setOutputImageView(VkImageView imageView);
-    void setTextureSamplers(std::vector<VkSampler>& textureSamplers);
-    void setTextureImageViews(const std::vector<VkImageView>& texImages);
-    void updateUniformBuffer(uint32_t currentImage, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
 };
 } // namespace nevk

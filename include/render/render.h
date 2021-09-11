@@ -14,7 +14,7 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "bvh.h"
-#include "computepass.h"
+#include "finalpass.h"
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
@@ -143,7 +143,7 @@ private:
     nevk::RtShadowPass mRtShadowPass;
     nevk::LtcPass mLtcPass;
     nevk::ModelLoader* modelLoader = nullptr;
-    nevk::ComputePass mComputePass;
+    nevk::FinalPass mComputePass;
     nevk::DepthPass mDepthPass;
 
     struct SceneRenderData

@@ -119,12 +119,15 @@ target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 
 # Render lib
 set(RENDER_SOURCES
+        include/render/common.h
         include/render/gbuffer.h
         include/render/bvh.h
         include/render/render.h
         include/render/renderpass.h
         include/render/gbufferpass.h
+        include/render/shaderparameters.h
         include/render/computepass.h
+        include/render/finalpass.h
         include/render/rtshadowpass.h
         include/render/ltcpass.h
         include/render/depthpass.h
@@ -133,7 +136,9 @@ set(RENDER_SOURCES
         src/render/renderpass.cpp
         src/render/gbufferpass.cpp
         src/render/bvh.cpp
+        src/render/shaderparameters.cpp 
         src/render/computepass.cpp
+        src/render/finalpass.cpp
         src/render/rtshadowpass.cpp
         src/render/ltcpass.cpp
         src/render/ltc_data.h
