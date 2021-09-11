@@ -349,12 +349,132 @@ void showGizmo(Camera& cam, float camDistance, float* matrix, ImGuizmo::OPERATIO
     ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, mCurrentGizmoMode, matrix, NULL, nullptr, nullptr, nullptr);
 }
 
+void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selectedCamera, const std::string& currentPath, const std::string& currentFileName)
+{
+    Camera& cam = scene.getCamera(selectedCamera);
+    glm::float3 camPos = cam.getPosition();
+
+    // get CPU light
+    std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
+    Scene::RectLightDesc& currLightDesc = lightDescs[lightId];
+
+    if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
+        mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+    ImGui::SameLine();
+    if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
+        mCurrentGizmoOperation = ImGuizmo::ROTATE;
+
+    glm::float2 scale = { currLightDesc.width, currLightDesc.height };
+    ImGui::Text("Rectangle light");
+    ImGui::Spacing();
+    ImGui::AlignTextToFramePadding();
+    ImGui::DragFloat3("Position", &currLightDesc.position.x);
+    ImGui::Spacing();
+    ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
+    ImGui::Spacing();
+    ImGui::DragFloat2("Width/Height", &scale.x, 0.005f, 1.0f);
+    ImGui::Spacing();
+    ImGui::ColorEdit3("Color", &currLightDesc.color.x);
+    // upd current scale params.
+    currLightDesc.width = scale.x;
+    currLightDesc.height = scale.y;
+
+    ImGuizmo::SetID(lightId);
+
+    // construct final xform for imguizmo
+    const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), currLightDesc.position);
+    glm::quat rotation = glm::quat(glm::radians(currLightDesc.orientation)); // to quaternion
+    const glm::float4x4 rotationMatrix{ rotation };
+    // light have o-y o-z scaling
+    const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, currLightDesc.width, currLightDesc.height));
+
+    float camDist = glm::distance(camPos, currLightDesc.position);
+    glm::float4x4 lightXform = translationMatrix * rotationMatrix * scaleMatrix;
+
+    // show controls
+    showGizmo(cam, camDist, &lightXform[0][0], mCurrentGizmoOperation);
+
+    // need to deconstruct final xform to components
+    float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+    ImGuizmo::DecomposeMatrixToComponents(&lightXform[0][0], matrixTranslation, matrixRotation, matrixScale);
+
+    // write result to description
+    currLightDesc.position = glm::float3(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
+    currLightDesc.orientation = glm::float3(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
+    currLightDesc.width = matrixScale[1];
+    currLightDesc.height = matrixScale[2];
+
+    // update in scene
+    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
+    scene.updateLight(lightId, desc);
+    if (ImGui::Button("Download"))
+    {
+        std::string jsonPath = currentPath + "/" + currentFileName + "_light" + ".json";
+        if (fs::exists(jsonPath))
+        {
+            std::ifstream i(jsonPath);
+            json light;
+            i >> light;
+
+            for (uint32_t j = 0; j < light["lights"].size(); ++j)
+            {
+                Scene::RectLightDesc desc = { glm::float3(light["lights"][j]["position"][0], light["lights"][j]["position"][1], light["lights"][j]["position"][2]),
+                                              glm::float3(light["lights"][j]["orientation"][0], light["lights"][j]["orientation"][1], light["lights"][j]["orientation"][2]),
+                                              float(light["lights"][j]["width"]), light["lights"][j]["height"],
+                                              glm::float3(light["lights"][j]["color"][0], light["lights"][j]["color"][1], light["lights"][j]["color"][2]) };
+
+                lightId = scene.createLight(desc);
+            }
+        }
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Add"))
+    {
+        Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
+        lightId = scene.createLight(desc);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Save"))
+    {
+        json lightSettings[lightDescs.size()];
+        for (uint32_t i = 0; i < lightDescs.size(); ++i)
+        {
+            lightSettings[i]["position"] = { currLightDesc.position.x, currLightDesc.position.y, currLightDesc.position.z };
+            lightSettings[i]["orientation"] = { currLightDesc.orientation.x, currLightDesc.orientation.y, currLightDesc.orientation.z };
+            lightSettings[i]["width"] = currLightDesc.width;
+            lightSettings[i]["height"] = currLightDesc.height;
+            lightSettings[i]["color"] = { currLightDesc.color.x, currLightDesc.color.y, currLightDesc.color.z };
+        }
+
+        json lights;
+        for (uint32_t i = 0; i < lightDescs.size(); ++i)
+        {
+            lights["lights"].push_back(lightSettings[i]);
+        }
+        std::string jsonPath = currentPath + "/" + currentFileName + "_lightSaved" + ".json";
+        std::ofstream o(jsonPath);
+        o << std::setw(4) << lights << std::endl;
+
+        lights.clear();
+        lightSettings->clear();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Remove"))
+    {
+        if (scene.mLights.size() > 1)
+        {
+            scene.removeLight(lightId);
+            lightId = 0;
+        }
+    }
+}
+
 void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
     static uint32_t showPropertiesId = -1;
-    static uint32_t showLightId = 0; // default
+    static uint32_t lightId = 0; // default
     static bool isLight = false; // todo: enum w/ mode (light, instance, etc)
     static bool openInspector = false;
     static std::string currentPath;
@@ -388,11 +508,11 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     {
         if (ImGui::BeginMenu("File"))
         {
-            if (ImGui::MenuItem("Open File", "Ctrl+O"))
+            if (ImGui::MenuItem("Open File"))
             {
                 openFD = true;
             }
-            if (ImGui::MenuItem("Inspector", "Ctrl+I"))
+            if (ImGui::MenuItem("Inspector"))
             {
                 openInspector = true;
             }
@@ -451,91 +571,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             }
             if (isLight)
             {
-                // get CPU light
-                std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
-                Scene::RectLightDesc& currLightDesc = lightDescs[showLightId];
-
-                if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
-                    mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-                ImGui::SameLine();
-                if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
-                    mCurrentGizmoOperation = ImGuizmo::ROTATE;
-
-                glm::float2 scale = { currLightDesc.width, currLightDesc.height };
-                ImGui::Text("Rectangle light");
-                ImGui::Spacing();
-                ImGui::AlignTextToFramePadding();
-                ImGui::DragFloat3("Position", &currLightDesc.position.x);
-                ImGui::Spacing();
-                ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
-                ImGui::Spacing();
-                ImGui::DragFloat2("Width/Height", &scale.x, 0.005f, 1.0f);
-                ImGui::Spacing();
-                ImGui::ColorEdit3("Color", &currLightDesc.color.x);
-                // upd current scale params.
-                currLightDesc.width = scale.x;
-                currLightDesc.height = scale.y;
-
-                ImGuizmo::SetID(showLightId);
-
-                // construct final xform for imguizmo
-                const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), currLightDesc.position);
-                glm::quat rotation = glm::quat(glm::radians(currLightDesc.orientation)); // to quaternion
-                const glm::float4x4 rotationMatrix{ rotation };
-                // light have o-y o-z scaling
-                const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, currLightDesc.width, currLightDesc.height));
-
-                float camDist = glm::distance(camPos, currLightDesc.position);
-                glm::float4x4 lightXform = translationMatrix * rotationMatrix * scaleMatrix;
-
-                // show controls
-                showGizmo(cam, camDist, &lightXform[0][0], mCurrentGizmoOperation);
-
-                // need to deconstruct final xform to components
-                float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-                ImGuizmo::DecomposeMatrixToComponents(&lightXform[0][0], matrixTranslation, matrixRotation, matrixScale);
-
-                // write result to description
-                currLightDesc.position = glm::float3(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
-                currLightDesc.orientation = glm::float3(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
-                currLightDesc.width = matrixScale[1];
-                currLightDesc.height = matrixScale[2];
-
-                // update in scene
-                Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
-                scene.updateLight(showLightId, desc);
-                if (ImGui::Button("Download"))
-                {
-                    std::string jsonPath = currentPath + "/" + currentFileName + "_light" + ".json";
-                    if (fs::exists(jsonPath))
-                    {
-                        std::ifstream i(jsonPath);
-                        json light;
-                        i >> light;
-
-                        Scene::RectLightDesc desc = { glm::float3(light["position"][0], light["position"][1], light["position"][2]),
-                                                      glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]),
-                                                      float(light["width"]), light["height"],
-                                                      glm::float3(light["color"][0], light["color"][1], light["color"][2]) };
-
-                        showLightId = scene.createLight(desc);
-                    }
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Add"))
-                {
-                    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
-                    showLightId = scene.createLight(desc);
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Remove"))
-                {
-                    if (scene.mLights.size() > 1)
-                    {
-                        scene.removeLight(showLightId);
-                        showLightId = 0;
-                    }
-                }
+                displayLightSettings(lightId, scene, selectedCamera, currentPath, currentFileName);
             }
             ImGui::EndChild();
             ImGui::PopStyleVar();
@@ -559,7 +595,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                         {
                             if (ImGui::IsItemClicked())
                             {
-                                showLightId = i;
+                                lightId = i;
                                 isLight = true;
                             }
                             ImGui::TreePop();
