@@ -2,7 +2,6 @@
 
 #include "camera.h"
 #include "glm-wrapper.hpp"
-
 #include "materials.h"
 #undef float4
 #undef float3
@@ -56,11 +55,11 @@ public:
     struct Light
     {
         glm::float4 points[4];
-        glm::float4 color;
+        glm::float4 color = glm::float4(1.0f);
     };
 
     // CPU side structure
-    struct RectLight
+    struct RectLightDesc
     {
         glm::float3 position; // world position
         glm::float3 orientation; // euler angles in degrees
@@ -69,6 +68,8 @@ public:
         float height; // OZ
         glm::float3 color;
     };
+
+    std::vector<RectLightDesc> mLightDesc;
 
     enum class DebugView
     {
@@ -118,6 +119,11 @@ public:
         return mLights;
     }
 
+    std::vector<RectLightDesc>& getLightsDesc()
+    {
+        return mLightDesc;
+    }
+
     void addCamera(Camera camera)
     {
         mCameras.push_back(camera);
@@ -156,6 +162,9 @@ public:
             camera.updateAspectRatio((float)width / height);
         }
     }
+
+    void removeLight(uint32_t lightId);
+    void updateLight(uint32_t lightId, const RectLightDesc& desc);
     /// <summary>
     /// Create Mesh geometry
     /// </summary>
@@ -174,8 +183,8 @@ public:
 
     uint32_t addMaterial(const Material& material);
 
-    uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
-
+    // uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
+    uint32_t createLight(const RectLightDesc& desc);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>

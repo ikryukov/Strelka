@@ -3,8 +3,15 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <ImGuizmo.h>
+#include <filesystem>
+#include <iostream>
 #include <stdexcept>
 #include <utility>
+
+namespace fs = std::filesystem;
+
+#include <json.hpp>
+using json = nlohmann::json;
 
 namespace nevk
 {
@@ -207,7 +214,7 @@ static const float identityMatrix[16] = { 1.f, 0.f, 0.f, 0.f,
 static bool useWindow = false;
 static int gizmoCount = 1;
 
-void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTransformDecomposition)
+void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTransformDecomposition, bool isLight, glm::float3& translation, glm::float3& rotation, float& width, float& height)
 {
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
     static bool useSnap = false;
@@ -235,12 +242,27 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
             mCurrentGizmoOperation = ImGuizmo::SCALE;
         //   if (ImGui::RadioButton("Universal", mCurrentGizmoOperation == ImGuizmo::UNIVERSAL))
         //      mCurrentGizmoOperation = ImGuizmo::UNIVERSAL;
-        float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-        ImGuizmo::DecomposeMatrixToComponents(matrix, matrixTranslation, matrixRotation, matrixScale);
-        ImGui::InputFloat3("Tr", matrixTranslation);
-        ImGui::InputFloat3("Rt", matrixRotation);
-        ImGui::InputFloat3("Sc", matrixScale);
-        ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix);
+
+        if (!isLight)
+        {
+            float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+            ImGuizmo::DecomposeMatrixToComponents(matrix, matrixTranslation, matrixRotation, matrixScale);
+            ImGui::InputFloat3("Tr", matrixTranslation);
+            ImGui::InputFloat3("Rt", matrixRotation);
+            ImGui::InputFloat3("Sc", matrixScale);
+            ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix);
+        }
+        if (isLight)
+        {
+            ImGui::InputFloat3("Tr", &translation.x);
+            ImGui::InputFloat3("Rt", &rotation.x);
+            ImGui::Spacing();
+            ImGui::InputFloat("Width", &width);
+            ImGui::Spacing();
+            ImGui::InputFloat("Height", &height);
+            float matrixTranslation[3] = { translation.x, translation.y, translation.z }, matrixRotation[3] = { rotation.x, rotation.y, rotation.z }, matrixScale[3] = { width, width, height };
+            ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix);
+        }
 
         if (mCurrentGizmoOperation != ImGuizmo::SCALE)
         {
@@ -306,7 +328,6 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
     glm::float4x4 cameraProjection = cam.getPerspective();
 
     ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
-
     ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), camDistance, ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
 
     cam.matrices.view = cameraView;
@@ -318,10 +339,26 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
     }
 }
 
+void showGizmo(Camera& cam, float camDistance, float* matrix, ImGuizmo::OPERATION operation)
+{
+    static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
+    glm::float4x4 cameraView = cam.getView();
+    glm::float4x4 cameraProjection = cam.getPerspective();
+    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, mCurrentGizmoMode, matrix, NULL, nullptr, nullptr, nullptr);
+}
 
 void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
 {
     ImGuiIO& io = ImGui::GetIO();
+    bool openFD = false;
+    static uint32_t showPropertiesId = -1;
+    static uint32_t showLightId = 0; // default
+    static bool isLight = false; // todo: enum w/ mode (light, instance, etc)
+    static bool openInspector = false;
+    static std::string currentPath;
+    static std::string currentFileName;
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -329,24 +366,234 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
 
     ImGuizmo::SetOrthographic(false);
     ImGuizmo::BeginFrame();
-    
     const std::vector<Instance>& instances = scene.getInstances();
 
     Camera& cam = scene.getCamera(selectedCamera);
     glm::float3 camPos = cam.getPosition();
 
-    for (uint32_t i = 0; i < instances.size(); ++i)
-    {
-        ImGuizmo::SetID(i);
-        float camDist = glm::distance(camPos, instances[i].massCenter);
-        glm::float4x4 xform = instances[i].transform;
-        EditTransform(cam, camDist, glm::value_ptr(xform), true);
+    // for (uint32_t i = 0; i < instances.size(); ++i)
+    // {
+    //     ImGuizmo::SetID(i);
+    //     float camDist = glm::distance(camPos, instances[i].massCenter);
+    //     glm::float4x4 xform = instances[i].transform;
+    //     glm::float3 tmp1 = glm::float3(1.0f);
+    //     float tmp2 = 0;
+    //     EditTransform(cam, camDist, glm::value_ptr( xform), true, false, tmp1, tmp1, tmp2, tmp2);
 
-        scene.updateInstanceTransform(i, xform);
+    //     scene.updateInstanceTransform(i, xform);
+    // }
+
+    ImGui::Begin("Menu:"); // begin window
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Open File", "Ctrl+O"))
+            {
+                openFD = true;
+            }
+            if (ImGui::MenuItem("Inspector", "Ctrl+I"))
+            {
+                openInspector = true;
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
+    // ImGui::ShowDemoWindow();
+    // open file dialog
+    if (openFD)
+        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gltf,.obj", ".");
+    // display
+    if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
+    {
+        if (ImGuiFileDialog::Instance()->IsOk())
+        {
+            newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
+            currentPath = ImGuiFileDialog::Instance()->GetCurrentPath();
+            currentFileName = ImGuiFileDialog::Instance()->GetCurrentFileName();
+
+            showPropertiesId = -1; // new scene, updated properties
+            openInspector = true;
+        }
+        ImGuiFileDialog::Instance()->Close();
     }
 
-    ImGui::Begin("Settings:"); // begin window
+    //ImGui::ShowDemoWindow();
+    // open new window w/ scene tree
+    const std::vector<nevk::Instance>& currInstance = scene.getInstances();
+    if (openInspector)
+    {
+        ImGui::Begin("Inspector", &openInspector); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+            ImGui::BeginChild("Properties", ImVec2(0, 200), true, ImGuiWindowFlags_MenuBar);
+            if (ImGui::BeginMenuBar())
+            {
+                ImGui::TextUnformatted("Properties");
+                ImGui::EndMenuBar();
+            }
+            if (!isLight)
+            {
+                if (showPropertiesId != -1)
+                {
+                    float pos[3] = { currInstance[showPropertiesId].transform[0].x, currInstance[showPropertiesId].transform[0].y, currInstance[showPropertiesId].transform[0].z };
+                    float rotation[3] = { currInstance[showPropertiesId].transform[1].x, currInstance[showPropertiesId].transform[1].y, currInstance[showPropertiesId].transform[1].z };
+                    float scale[3] = { currInstance[showPropertiesId].transform[2].x, currInstance[showPropertiesId].transform[2].y, currInstance[showPropertiesId].transform[2].z };
 
+                    ImGui::InputFloat3("Position", pos);
+                    ImGui::InputFloat3("Rotation", rotation);
+                    ImGui::InputFloat3("Scale", scale);
+
+                    ImGui::Text("Material ID: %d", currInstance[showPropertiesId].mMaterialId);
+                    ImGui::Text("Mass Center: %f %f %f", currInstance[showPropertiesId].massCenter.x, currInstance[showPropertiesId].massCenter.y, currInstance[showPropertiesId].massCenter.z);
+                }
+            }
+            if (isLight)
+            {
+                // get CPU light
+                std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
+                Scene::RectLightDesc& currLightDesc = lightDescs[showLightId];
+
+                if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
+                    mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+                ImGui::SameLine();
+                if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
+                    mCurrentGizmoOperation = ImGuizmo::ROTATE;
+
+                ImGui::Text("Rectangle light");
+                ImGui::Spacing();
+                ImGui::AlignTextToFramePadding();
+                ImGui::DragFloat3("Position", &currLightDesc.position.x);
+                ImGui::Spacing();
+                ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
+                ImGui::Spacing();
+                ImGui::PushItemWidth(67);
+                ImGui::DragFloat("Width", &currLightDesc.width, 0.005f, 1.0f);
+                ImGui::SameLine();
+                ImGui::DragFloat("Height", &currLightDesc.height, 0.005f, 1.0f);
+                ImGui::PopItemWidth();
+                ImGui::Spacing();
+                ImGui::ColorEdit3("Color", &currLightDesc.color.x);
+
+                ImGuizmo::SetID(showLightId);
+
+                // construct final xform for imguizmo
+                const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), currLightDesc.position);
+                glm::quat rotation = glm::quat(glm::radians(currLightDesc.orientation)); // to quaternion
+                const glm::float4x4 rotationMatrix{ rotation };
+                // light have o-y o-z scaling
+                const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, currLightDesc.width, currLightDesc.height));
+
+                float camDist = glm::distance(camPos, currLightDesc.position);
+                glm::float4x4 lightXform = translationMatrix * rotationMatrix * scaleMatrix;
+
+                // show controls
+                showGizmo(cam, camDist, &lightXform[0][0], mCurrentGizmoOperation);
+
+                // need to deconstruct final xform to components
+                float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+                ImGuizmo::DecomposeMatrixToComponents(&lightXform[0][0], matrixTranslation, matrixRotation, matrixScale);
+
+                // write result to description
+                currLightDesc.position = glm::float3(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
+                currLightDesc.orientation = glm::float3(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
+                currLightDesc.width = matrixScale[1];
+                currLightDesc.height = matrixScale[2];
+
+                // update in scene
+                Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
+                scene.updateLight(showLightId, desc);
+                ImGui::PushItemWidth(70);
+                if (ImGui::Button("Download"))
+                {
+                    std::string jsonPath = currentPath + "/" + currentFileName + "_light" + ".json";
+                    if (fs::exists(jsonPath))
+                    {
+                        std::ifstream i(jsonPath);
+                        json light;
+                        i >> light;
+
+                        Scene::RectLightDesc desc = { glm::float3(light["position"][0], light["position"][1], light["position"][2]),
+                                                      glm::float3(light["orientation"][0], light["orientation"][1], light["orientation"][2]),
+                                                      float(light["width"]), light["height"],
+                                                      glm::float3(light["color"][0], light["color"][1], light["color"][2]) };
+
+                        showLightId = scene.createLight(desc);
+                    }
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Add"))
+                {
+                    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
+                    showLightId = scene.createLight(desc);
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Remove"))
+                {
+                    if (scene.mLights.size() > 1)
+                    {
+                        scene.removeLight(showLightId);
+                        showLightId = 0;
+                    }
+                }
+            }
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+        }
+        {
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+            ImGui::BeginChild("SceneView", ImVec2(0, 260), true, ImGuiWindowFlags_MenuBar);
+            if (ImGui::BeginMenuBar())
+            {
+                ImGui::TextUnformatted("Scene View");
+                ImGui::EndMenuBar();
+            }
+            if (ImGui::TreeNode("Scene"))
+            {
+                if (ImGui::TreeNode("Lights"))
+                {
+                    for (uint32_t i = 0; i < scene.mLights.size(); i++)
+                    {
+                        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
+                        if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Light ID: %d", i))
+                        {
+                            if (ImGui::IsItemClicked())
+                            {
+                                showLightId = i;
+                                isLight = true;
+                            }
+                            ImGui::TreePop();
+                        }
+                    }
+                    ImGui::TreePop();
+                }
+                if (ImGui::TreeNode("Instances"))
+                {
+                    for (uint32_t i = 0; i < currInstance.size(); i++)
+                    {
+                        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
+                        if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", currInstance[i].mMeshId))
+                        {
+                            if (ImGui::IsItemClicked())
+                            {
+                                showPropertiesId = i;
+                                isLight = false;
+                            }
+                            ImGui::TreePop();
+                        }
+                    }
+                    ImGui::TreePop();
+                }
+                ImGui::TreePop();
+            }
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+        }
+        ImGui::End();
+    }
+
+    // simple settings
     ImGui::Text("MsPF = %f", msPerFrame);
     ImGui::Text("FPS = %f", 1000.0 / msPerFrame);
 
@@ -372,50 +619,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         ImGui::EndCombo();
     }
 
-    // open Dialog Simple
-    if (ImGui::Button("Open File Dialog"))
-        ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gltf,.obj", ".");
-    // display
-    if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
-    {
-        if (ImGuiFileDialog::Instance()->IsOk())
-        {
-            newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
-        }
-        ImGuiFileDialog::Instance()->Close();
-    }
-
-    ImGui::Text("Light Position");
-    ImGui::SliderFloat("pos coordinate X", &scene.mLightPosition.x, -100.0f, 100.0f);
-    ImGui::SliderFloat("pos coordinate Y", &scene.mLightPosition.y, -100.0f, 100.0f);
-    ImGui::SliderFloat("pos coordinate Z", &scene.mLightPosition.z, -100.0f, 100.0f);
-    if (ImGui::Button("Copy from current camera to light position"))
-    {
-        (glm::float3&)scene.mLightPosition = scene.getCamera(selectedCamera).getPosition();
-    }
-
-    ImGui::Text("Light At");
-    ImGui::SliderFloat("coordinate X", &depthPass.lightAt.x, -100.0f, 100.0f);
-    ImGui::SliderFloat("coordinate Y", &depthPass.lightAt.y, -100.0f, 100.0f);
-    ImGui::SliderFloat("coordinate Z", &depthPass.lightAt.z, -100.0f, 100.0f);
-    if (ImGui::Button("Copy from current camera to light at"))
-    {
-        depthPass.lightAt = scene.getCamera(selectedCamera).getPosition();
-    }
-
-    ImGui::Text("Light Direction Upwards");
-    ImGui::SliderFloat("up coordinate X", &depthPass.lightUpwards.x, -100.0f, 100.0f);
-    ImGui::SliderFloat("up coordinate Y", &depthPass.lightUpwards.y, -100.0f, 100.0f);
-    ImGui::SliderFloat("up coordinate Z", &depthPass.lightUpwards.z, -100.0f, 100.0f);
-
-    ImGui::Text("Other light settings");
-    ImGui::SliderFloat("fov angle", &depthPass.fovAngle, -100.0f, 100.0f);
-    ImGui::SliderFloat("zNear", &depthPass.zNear, -100.0f, 100.0f);
-    ImGui::SliderFloat("zFar", &depthPass.zFar, -100.0f, 100.0f);
-    ImGui::SliderFloat("depth bias factor", &depthPass.depthBiasConstant, -100.0f, 100.0f);
-    ImGui::SliderFloat("slope depth bias factor", &depthPass.depthBiasSlope, -100.0f, 100.0f);
-
-    const char* items[] = { "None", "Normals", "Shadow b&w", "Shadow PCF", "Shadow Poisson", "Shadow Poisson+PCF" };
+    const char* items[] = { "None" };
     static const char* current_item = items[0];
 
     if (ImGui::BeginCombo("Debug view", current_item))
@@ -439,7 +643,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     //     transparency settings
     ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
     ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
-
 
     ImGui::End(); // end window
 }
