@@ -461,6 +461,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 if (ImGui::RadioButton("Rotate", mCurrentGizmoOperation == ImGuizmo::ROTATE))
                     mCurrentGizmoOperation = ImGuizmo::ROTATE;
 
+                glm::float2 scale = { currLightDesc.width, currLightDesc.height };
                 ImGui::Text("Rectangle light");
                 ImGui::Spacing();
                 ImGui::AlignTextToFramePadding();
@@ -468,13 +469,12 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 ImGui::Spacing();
                 ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
                 ImGui::Spacing();
-                ImGui::PushItemWidth(67);
-                ImGui::DragFloat("Width", &currLightDesc.width, 0.005f, 1.0f);
-                ImGui::SameLine();
-                ImGui::DragFloat("Height", &currLightDesc.height, 0.005f, 1.0f);
-                ImGui::PopItemWidth();
+                ImGui::DragFloat2("Width/Height", &scale.x, 0.005f, 1.0f);
                 ImGui::Spacing();
                 ImGui::ColorEdit3("Color", &currLightDesc.color.x);
+                // upd current scale params.
+                currLightDesc.width = scale.x;
+                currLightDesc.height = scale.y;
 
                 ImGuizmo::SetID(showLightId);
 
@@ -504,7 +504,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 // update in scene
                 Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
                 scene.updateLight(showLightId, desc);
-                ImGui::PushItemWidth(70);
                 if (ImGui::Button("Download"))
                 {
                     std::string jsonPath = currentPath + "/" + currentFileName + "_light" + ".json";

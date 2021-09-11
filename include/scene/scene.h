@@ -183,7 +183,6 @@ public:
 
     uint32_t addMaterial(const Material& material);
 
-    // uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
     uint32_t createLight(const RectLightDesc& desc);
     /// <summary>
     /// Removes instance/mesh/material
