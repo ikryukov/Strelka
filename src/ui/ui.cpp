@@ -335,6 +335,19 @@ void showGizmo(Camera& cam, float camDistance, float* matrix, ImGuizmo::OPERATIO
     ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, mCurrentGizmoMode, matrix, NULL, nullptr, nullptr, nullptr);
 }
 
+Scene::RectLightDesc parseFromJson(json light, uint32_t j)
+{
+    Scene::RectLightDesc desc;
+    desc.position = glm::float3(light["lights"][j]["position"][0], light["lights"][j]["position"][1], light["lights"][j]["position"][2]);
+    desc.orientation = glm::float3(light["lights"][j]["orientation"][0], light["lights"][j]["orientation"][1], light["lights"][j]["orientation"][2]);
+    desc.width = float(light["lights"][j]["width"]);
+    desc.height = light["lights"][j]["height"];
+    desc.color = glm::float3(light["lights"][j]["color"][0], light["lights"][j]["color"][1], light["lights"][j]["color"][2]);
+    desc.intensity = float(light["lights"][j]["intensity"]);
+
+    return desc;
+}
+
 void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selectedCamera, const std::string& currentPath, const std::string& currentFileName)
 {
     Camera& cam = scene.getCamera(selectedCamera);
@@ -358,10 +371,10 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     ImGui::Spacing();
     ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
     ImGui::Spacing();
-    ImGui::DragFloat2("Width/Height", &scale.x, 1.f, 1.0f);
+    ImGui::DragFloat2("Width/Height", &scale.x, 0.005f, 1.0f);
     ImGui::Spacing();
     ImGui::ColorEdit3("Color", &currLightDesc.color.x);
-    ImGui::DragFloat("Intensity", &currLightDesc.intensity, 1.f, 0.0f);
+    ImGui::DragFloat("Intensity", &currLightDesc.intensity, 0.005f, 1.0f);
     // upd current scale params.
     currLightDesc.width = scale.x;
     currLightDesc.height = scale.y;
@@ -406,12 +419,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
 
             for (uint32_t j = 0; j < light["lights"].size(); ++j)
             {
-                Scene::RectLightDesc desc = { glm::float3(light["lights"][j]["position"][0], light["lights"][j]["position"][1], light["lights"][j]["position"][2]),
-                                              glm::float3(light["lights"][j]["orientation"][0], light["lights"][j]["orientation"][1], light["lights"][j]["orientation"][2]),
-                                              float(light["lights"][j]["width"]), light["lights"][j]["height"],
-                                              glm::float3(light["lights"][j]["color"][0], light["lights"][j]["color"][1], light["lights"][j]["color"][2]),
-                                              float(light["lights"][j]["intensity"]) };
-
+                Scene::RectLightDesc desc = parseFromJson(light, j);
                 lightId = scene.createLight(desc);
             }
         }
@@ -425,7 +433,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     ImGui::SameLine();
     if (ImGui::Button("Save"))
     {
-        json lightSettings[lightDescs.size()];
+        std::vector<json> lightSettings;
+        lightSettings.reserve(lightDescs.size());
         for (uint32_t i = 0; i < lightDescs.size(); ++i)
         {
             lightSettings[i]["position"] = { lightDescs[i].position.x, lightDescs[i].position.y, lightDescs[i].position.z };
@@ -446,7 +455,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
         o << std::setw(4) << lights << std::endl;
 
         lights.clear();
-        lightSettings->clear();
+        lightSettings.clear();
     }
     ImGui::SameLine();
     if (ImGui::Button("Remove"))
