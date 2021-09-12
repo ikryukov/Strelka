@@ -4,9 +4,19 @@ ConstantBuffer<Tonemapparam> ubo;
 Texture2D<float4> input;
 RWTexture2D<float4> output;
 
-float4 calc(uint2 pixelIndex)
+// original implementation https://github.com/NVIDIAGameWorks/Falcor/blob/5236495554f57a734cc815522d95ae9a7dfe458a/Source/RenderPasses/ToneMapper/ToneMapping.ps.slang
+
+float calcLuminance(float3 color)
 {
-    return input[pixelIndex];
+    return dot(color, float3(0.299, 0.587, 0.114));
+}
+
+// Reinhard
+float3 toneMapReinhard(float3 color)
+{
+    float luminance = calcLuminance(color);
+    float reinhard = luminance / (luminance + 1);
+    return color * (reinhard / luminance);
 }
 
 [numthreads(16, 16, 1)]
@@ -17,5 +27,6 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-    output[pixelIndex] = calc(pixelIndex);
+    float3 color = input[pixelIndex].rgb;
+    output[pixelIndex] = float4(toneMapReinhard(color), 1.0f);
 }

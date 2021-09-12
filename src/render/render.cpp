@@ -1221,6 +1221,9 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     recordBarrier(cmd, mResManager->getVkImage(textureCompImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
+    mToneParams.dimension.x = swapChainExtent.width;
+    mToneParams.dimension.y = swapChainExtent.height;
+    mTonemap->setParams(mToneParams);
     mTonemap->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
 
     recordBarrier(cmd, mResManager->getVkImage(textureCompImage), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
