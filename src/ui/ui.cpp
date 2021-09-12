@@ -375,7 +375,9 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     ImGui::Spacing();
     ImGui::ColorEdit3("Color", &currLightDesc.color.x);
     ImGui::DragFloat("Intensity", &currLightDesc.intensity, 0.005f, 1.0f);
+    currLightDesc.intensity = glm::clamp(currLightDesc.intensity, 1.0f, FLT_MAX);
     // upd current scale params.
+    scale = glm::clamp(scale, 1.0f, FLT_MAX);
     currLightDesc.width = scale.x;
     currLightDesc.height = scale.y;
 
@@ -478,8 +480,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     static uint32_t lightId = 0;
     static bool isLight = false;
     static bool openInspector = false;
-    static std::string currentPath;
-    static std::string currentFileName;
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -519,8 +519,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         if (ImGuiFileDialog::Instance()->IsOk())
         {
             newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
-            currentPath = ImGuiFileDialog::Instance()->GetCurrentPath();
-            currentFileName = ImGuiFileDialog::Instance()->GetCurrentFileName();
 
             showPropertiesId = -1; // new scene, updated properties
             openInspector = true;
