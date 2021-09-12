@@ -133,7 +133,6 @@ set(RENDER_SOURCES
         include/render/tonemap.h
         include/render/depthpass.h
         include/render/debugUtils.h
-        shaders/
         src/render/render.cpp
         src/render/renderpass.cpp
         src/render/gbufferpass.cpp
