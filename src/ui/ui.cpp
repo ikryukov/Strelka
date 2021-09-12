@@ -515,11 +515,11 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             }
             if (fs::exists(scene.getSceneDir()))
             {
-                if (ImGui::MenuItem("Save"))
+                if (ImGui::MenuItem("Save light"))
                 {
                     saveToJson(scene);
                 }
-                if (ImGui::MenuItem("Download"))
+                if (ImGui::MenuItem("Download light"))
                 {
                     loadFromJson(scene);
                 }
