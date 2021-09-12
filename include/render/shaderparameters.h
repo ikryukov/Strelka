@@ -39,9 +39,18 @@ protected:
 
     std::array<std::vector<VkWriteDescriptorSet>, MAX_FRAMES_IN_FLIGHT> mDescriptorWrites = {};
 
-    NeVkResult createUniformBuffers()
+    const size_t minUniformBufferOffsetAlignment = 256; // 0x40
+    size_t getConstantBufferOffset(const uint32_t index)
     {
-        VkDeviceSize bufferSize = sizeof(T) * MAX_FRAMES_IN_FLIGHT;
+        const size_t structSize = sizeof(T);
+        return ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) * minUniformBufferOffsetAlignment * index;        
+    }
+
+    NeVkResult createConstantBuffers()
+    {
+        const size_t structSize = sizeof(T);
+        // constan buffer size on must be a multiple of VkPhysicalDeviceLimits::minUniformBufferOffsetAlignment (256)
+        const VkDeviceSize bufferSize = ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) * minUniformBufferOffsetAlignment * MAX_FRAMES_IN_FLIGHT;
         mConstantBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         if (!mConstantBuffer)
         {
@@ -50,6 +59,34 @@ protected:
         return NeVkResult::eOk;
     }
 
+    void writeConstantBufferDescriptors()
+    {
+        assert(mConstantBuffer);
+        std::vector<VkWriteDescriptorSet> descriptorWrites;
+        std::vector<VkDescriptorBufferInfo> bufferInfos(MAX_FRAMES_IN_FLIGHT);
+        for (uint32_t descIndex = 0; descIndex < MAX_FRAMES_IN_FLIGHT; ++descIndex)
+        {
+            VkDescriptorSet& dstDescSet = mDescriptorSets[descIndex];
+
+            VkDescriptorBufferInfo& bufferInfo = bufferInfos[descIndex];
+            bufferInfo.buffer = mResManager->getVkBuffer(mConstantBuffer);
+            bufferInfo.offset = getConstantBufferOffset(descIndex); // we have one buffer, but split it per frame
+            bufferInfo.range = sizeof(T);
+
+            VkWriteDescriptorSet descWrite{};
+            descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            descWrite.dstSet = dstDescSet;
+            descWrite.dstBinding = 0; // TODO: do we need to support others binding for cbuffers?
+            descWrite.dstArrayElement = 0;
+            descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            descWrite.descriptorCount = 1; // TODO:
+            descWrite.pBufferInfo = &bufferInfo;
+
+            descriptorWrites.push_back(descWrite);
+        }
+
+        vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    }
 
     NeVkResult createDescriptorSetLayout()
     {
@@ -138,6 +175,7 @@ protected:
             case ShaderManager::ResourceType::eTexture2D:
             case ShaderManager::ResourceType::eRWTexture2D: {
                 ++texCount;
+                break;
             }
             default:
                 break;
@@ -146,7 +184,7 @@ protected:
 
         std::vector<VkDescriptorImageInfo> imageInfos(texCount);
         uint32_t imageInfosOffset = 0;
-        std::vector<VkDescriptorBufferInfo> bufferInfos(texCount);
+        std::vector<VkDescriptorBufferInfo> bufferInfos(buffCount);
         uint32_t bufferInfosOffset = 0;
 
         std::vector<VkWriteDescriptorSet> descriptorWrites;
@@ -172,6 +210,23 @@ protected:
                     descWrite.dstBinding = resDesc.binding;
                     descWrite.dstArrayElement = 0;
                     descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                    descWrite.descriptorCount = 1; // TODO:
+                    descWrite.pImageInfo = &imageInfo;
+
+                    descriptorWrites.push_back(descWrite);
+                    break;
+                }
+                case ShaderManager::ResourceType::eRWTexture2D: {
+                    VkDescriptorImageInfo& imageInfo = imageInfos[imageInfosOffset++];
+                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                    imageInfo.imageView = descriptor.imageView;
+
+                    VkWriteDescriptorSet descWrite{};
+                    descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                    descWrite.dstSet = dstDescSet;
+                    descWrite.dstBinding = resDesc.binding;
+                    descWrite.dstArrayElement = 0;
+                    descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
                     descWrite.descriptorCount = 1; // TODO:
                     descWrite.pImageInfo = &imageInfo;
 
@@ -231,7 +286,7 @@ public:
             void* data = mResManager->getMappedMemory(mConstantBuffer);
             assert(data);
             // offset to current frame
-            memcpy((void*) ((char*) data + sizeof(T) * index), &mConstants[index], sizeof(T));
+            memcpy((void*)((char*)data + sizeof(T) * index), &mConstants[index], sizeof(T));
             needConstantsUpdate[index] = false;
         }
         return mDescriptorSets[index];
@@ -251,8 +306,10 @@ public:
 
         res = createDescriptorSets(ctx.mDescriptorPool);
 
-        res = createUniformBuffers();
-
+        res = createConstantBuffers();
+        // Now we support only 1 constant buffer per shader
+        // it must be bound to 0
+        writeConstantBufferDescriptors(); 
 
         return res;
     }
@@ -266,8 +323,19 @@ public:
             needConstantsUpdate[i] = true;
         }
     }
+
+    void setBuffer(const std::string& name, VkBuffer buff)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            ResourceDescriptor resDescriptor{};
+            resDescriptor.type = ShaderManager::ResourceType::eStructuredBuffer;
+            resDescriptor.buffer = buff;
+            mResUpdate[i][name] = resDescriptor;
+            needDesciptorSetUpdate[i] = true;
+        }
+    }
     
-    void setBuffer(const std::string& name, VkBuffer buff);
     void setTexture(const std::string& name, VkImageView view)
     {
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
@@ -276,6 +344,7 @@ public:
             resDescriptor.type = ShaderManager::ResourceType::eTexture2D;
             resDescriptor.imageView = view;
             mResUpdate[i][name] = resDescriptor;
+            needDesciptorSetUpdate[i] = true;
         }
     }
 };

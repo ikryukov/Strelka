@@ -129,6 +129,10 @@ private:
     nevk::Image* textureCompImage;
     VkImageView textureCompImageView;
 
+    nevk::Image* textureTonemapImage;
+    VkImageView textureTonemapImageView;
+
+
     nevk::Image* shadowImage;
     VkImageView shadowImageView;
 

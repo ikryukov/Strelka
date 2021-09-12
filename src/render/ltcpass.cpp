@@ -499,7 +499,7 @@ void LtcPass::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint
     vkCmdDispatch(cmd, dispX, dispY, 1);
 }
 
-void LtcPass::createUniformBuffers()
+void LtcPass::createConstantBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -631,7 +631,7 @@ void LtcPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, Vk
     mResManager = resMngr;
     mDescriptorPool = descpool;
     mCS = createShaderModule(csCode, csCodeSize);
-    createUniformBuffers();
+    createConstantBuffers();
 
     // sampler
     VkSamplerCreateInfo samplerInfo{};

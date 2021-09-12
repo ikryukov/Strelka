@@ -489,7 +489,7 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
     endLabel(cmd);
 }
 
-void GbufferPass::createUniformBuffers()
+void GbufferPass::createConstantBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 

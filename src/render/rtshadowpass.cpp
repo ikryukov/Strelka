@@ -306,7 +306,7 @@ void RtShadowPass::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height,
     vkCmdDispatch(cmd, dispX, dispY, 1);
 }
 
-void RtShadowPass::createUniformBuffers()
+void RtShadowPass::createConstantBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -391,7 +391,7 @@ void RtShadowPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSiz
     mResManager = resMngr;
     mDescriptorPool = descpool;
     mCS = createShaderModule(csCode, csCodeSize);
-    createUniformBuffers();
+    createConstantBuffers();
     createDescriptorSetLayout();
     createDescriptorSets(mDescriptorPool);
     updateDescriptorSets();

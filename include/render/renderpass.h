@@ -74,7 +74,7 @@ private:
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
 
-    void createUniformBuffers();
+    void createConstantBuffers();
 
     std::vector<VkDescriptorSet> mDescriptorSets;
 
@@ -172,7 +172,7 @@ public:
         mHeight = height;
         mVS = createShaderModule(vsCode, vsCodeSize);
         mPS = createShaderModule(psCode, psCodeSize);
-        createUniformBuffers();
+        createConstantBuffers();
 
         createRenderPass();
         createDescriptorSetLayout();

@@ -420,7 +420,7 @@ void FinalPass::record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, ui
     vkCmdDispatch(cmd, dispX, dispY, 1);
 }
 
-void FinalPass::createUniformBuffers()
+void FinalPass::createConstantBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -549,7 +549,7 @@ void FinalPass::init(VkDevice& device, const char* csCode, uint32_t csCodeSize, 
     mResManager = resMngr;
     mDescriptorPool = descpool;
     mCS = createShaderModule(csCode, csCodeSize);
-    createUniformBuffers();
+    createConstantBuffers();
     createDescriptorSetLayout();
     createDescriptorSets(mDescriptorPool);
     updateDescriptorSets();

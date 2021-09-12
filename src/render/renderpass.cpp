@@ -467,7 +467,7 @@ void RenderPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer in
     endLabel(cmd);
 }
 
-void RenderPass::createUniformBuffers()
+void RenderPass::createConstantBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 

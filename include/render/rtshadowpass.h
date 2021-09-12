@@ -52,7 +52,7 @@ private:
     void updateDescriptorSet(uint32_t descIndex);
     void updateDescriptorSets();
 
-    void createUniformBuffers();
+    void createConstantBuffers();
 
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
     void createComputePipeline(VkShaderModule& shaderModule);
