@@ -148,12 +148,6 @@ void Scene::removeInstance(const uint32_t instId)
     mDelInstances.push(instId); // marked as removed
 }
 
-void Scene::removeLight(const uint32_t lightId)
-{
-    mLights.erase(mLights.begin() + lightId);
-    mLightDesc.erase(mLightDesc.begin() + lightId);
-}
-
 void Scene::removeMesh(const uint32_t meshId)
 {
     mDelMesh.push(meshId); // marked as removed

@@ -460,24 +460,6 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     // update in scene
     Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
     scene.updateLight(lightId, desc);
-
-    if (fs::exists(scene.getSceneDir()))
-    {
-        if (ImGui::Button("Add"))
-        {
-            desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
-            lightId = scene.createLight(desc);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Remove"))
-        {
-            if (scene.mLights.size() > 1)
-            {
-                scene.removeLight(lightId);
-                lightId = 0;
-            }
-        }
-    }
 }
 
 void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
@@ -515,13 +497,27 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             }
             if (fs::exists(scene.getSceneDir()))
             {
-                if (ImGui::MenuItem("Save light"))
+                if (ImGui::MenuItem("Save lights"))
                 {
                     saveToJson(scene);
                 }
-                if (ImGui::MenuItem("Download light"))
+                if (ImGui::MenuItem("Import lights"))
                 {
                     loadFromJson(scene);
+                }
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Create"))
+        {
+            if (fs::exists(scene.getSceneDir()))
+            {
+                if (ImGui::MenuItem("Light"))
+                {
+                    std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
+                    Scene::RectLightDesc& currLightDesc = lightDescs[lightId];
+                    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
+                    lightId = scene.createLight(desc);
                 }
             }
             ImGui::EndMenu();
