@@ -269,6 +269,20 @@ protected:
     }
 
 public:
+
+    ShaderParameters()
+    {
+    }
+    virtual ~ShaderParameters()
+    {
+        assert(mResManager);
+        if (mConstantBuffer)
+        {
+            mResManager->destroyBuffer(mConstantBuffer);
+        }
+        vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
+    }
+    
     VkDescriptorSetLayout getDescriptorSetLayout()
     {
         return mDescriptorSetLayout;

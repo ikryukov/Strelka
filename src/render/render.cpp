@@ -401,6 +401,9 @@ void Render::cleanup()
     vkDestroyImageView(mDevice, textureCompImageView, nullptr);
     mResManager->destroyImage(textureCompImage);
 
+    vkDestroyImageView(mDevice, textureTonemapImageView, nullptr);
+    mResManager->destroyImage(textureTonemapImage);
+
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
     mResManager->destroyImage(shadowImage);
 
@@ -408,6 +411,8 @@ void Render::cleanup()
     mResManager->destroyImage(mLtcOutputImage);
 
     destroyGbuffer(mGbuffer);
+
+    delete mTonemap;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -497,6 +502,21 @@ void Render::recreateSwapChain()
         mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
     mComputePass.setOutputImageView(textureCompImageView);
+
+    {
+        mResManager->destroyImage(textureTonemapImage);
+        vkDestroyImageView(mDevice, textureTonemapImageView, nullptr);
+    }
+    {
+        textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                       VK_IMAGE_TILING_OPTIMAL,
+                                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
+        textureTonemapImageView = mResManager->createImageView(textureTonemapImage, VK_IMAGE_ASPECT_COLOR_BIT);
+        mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    }
+    mTonemap->setInputTexture(textureCompImageView);
+    mTonemap->setOutputTexture(textureTonemapImageView);
 
     // RT shadow pass
     {

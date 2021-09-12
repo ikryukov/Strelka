@@ -72,6 +72,9 @@ public:
     }
     virtual ~ComputePass()
     {
+        vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
+        vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
+        vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
     }
 
     void initialize(const char* shaderFile)
