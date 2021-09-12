@@ -6,6 +6,7 @@
 #include <filesystem>
 
 namespace fs = std::filesystem;
+const uint32_t MAX_LIGHT_COUNT = 15;
 
 [[maybe_unused]] static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
@@ -953,7 +954,7 @@ void Render::createLightsBuffer(nevk::Scene& scene)
 {
     std::vector<nevk::Scene::Light>& sceneLights = scene.getLights();
 
-    VkDeviceSize bufferSize = sizeof(nevk::Scene::Light) * sceneLights.size();
+    VkDeviceSize bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
     if (bufferSize == 0)
     {
         return;
@@ -1507,7 +1508,7 @@ void Render::drawFrame()
         const std::vector<nevk::Scene::Light>& lights = scene->getLights();
         if (!lights.empty())
         {
-            size_t bufferSize = sizeof(nevk::Scene::Light) * lights.size();
+            size_t bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
             memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
 
             VkBufferCopy copyRegion{};
