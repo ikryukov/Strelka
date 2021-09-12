@@ -83,13 +83,13 @@ uint32_t Scene::addMaterial(const Material& material)
 std::string Scene::getSceneFileName()
 {
     fs::path p(modelPath);
-    return p.filename();
+    return p.filename().string();
 };
 
 std::string Scene::getSceneDir()
 {
     fs::path p(modelPath);
-    return p.parent_path();
+    return p.parent_path().string();
 };
 
 glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
