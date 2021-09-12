@@ -214,7 +214,7 @@ static const float identityMatrix[16] = { 1.f, 0.f, 0.f, 0.f,
 static bool useWindow = false;
 static int gizmoCount = 1;
 
-void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTransformDecomposition, bool isLight, glm::float3& translation, glm::float3& rotation, float& width, float& height)
+void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTransformDecomposition)
 {
     static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::LOCAL);
     static bool useSnap = false;
@@ -243,26 +243,12 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
         //   if (ImGui::RadioButton("Universal", mCurrentGizmoOperation == ImGuizmo::UNIVERSAL))
         //      mCurrentGizmoOperation = ImGuizmo::UNIVERSAL;
 
-        if (!isLight)
-        {
-            float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-            ImGuizmo::DecomposeMatrixToComponents(matrix, matrixTranslation, matrixRotation, matrixScale);
-            ImGui::InputFloat3("Tr", matrixTranslation);
-            ImGui::InputFloat3("Rt", matrixRotation);
-            ImGui::InputFloat3("Sc", matrixScale);
-            ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix);
-        }
-        if (isLight)
-        {
-            ImGui::InputFloat3("Tr", &translation.x);
-            ImGui::InputFloat3("Rt", &rotation.x);
-            ImGui::Spacing();
-            ImGui::InputFloat("Width", &width);
-            ImGui::Spacing();
-            ImGui::InputFloat("Height", &height);
-            float matrixTranslation[3] = { translation.x, translation.y, translation.z }, matrixRotation[3] = { rotation.x, rotation.y, rotation.z }, matrixScale[3] = { width, width, height };
-            ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix);
-        }
+        float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+        ImGuizmo::DecomposeMatrixToComponents(matrix, matrixTranslation, matrixRotation, matrixScale);
+        ImGui::DragFloat3("Translation", matrixTranslation);
+        ImGui::DragFloat3("Rotation", matrixRotation);
+        ImGui::DragFloat3("Scale", matrixScale);
+        ImGuizmo::RecomposeMatrixFromComponents(matrixTranslation, matrixRotation, matrixScale, matrix);
 
         if (mCurrentGizmoOperation != ImGuizmo::SCALE)
         {
@@ -493,18 +479,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     Camera& cam = scene.getCamera(selectedCamera);
     glm::float3 camPos = cam.getPosition();
 
-    // for (uint32_t i = 0; i < instances.size(); ++i)
-    // {
-    //     ImGuizmo::SetID(i);
-    //     float camDist = glm::distance(camPos, instances[i].massCenter);
-    //     glm::float4x4 xform = instances[i].transform;
-    //     glm::float3 tmp1 = glm::float3(1.0f);
-    //     float tmp2 = 0;
-    //     EditTransform(cam, camDist, glm::value_ptr( xform), true, false, tmp1, tmp1, tmp2, tmp2);
-
-    //     scene.updateInstanceTransform(i, xform);
-    // }
-
     ImGui::Begin("Menu:"); // begin window
     if (ImGui::BeginMainMenuBar())
     {
@@ -558,13 +532,11 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             {
                 if (showPropertiesId != -1)
                 {
-                    float pos[3] = { currInstance[showPropertiesId].transform[0].x, currInstance[showPropertiesId].transform[0].y, currInstance[showPropertiesId].transform[0].z };
-                    float rotation[3] = { currInstance[showPropertiesId].transform[1].x, currInstance[showPropertiesId].transform[1].y, currInstance[showPropertiesId].transform[1].z };
-                    float scale[3] = { currInstance[showPropertiesId].transform[2].x, currInstance[showPropertiesId].transform[2].y, currInstance[showPropertiesId].transform[2].z };
-
-                    ImGui::InputFloat3("Position", pos);
-                    ImGui::InputFloat3("Rotation", rotation);
-                    ImGui::InputFloat3("Scale", scale);
+                    ImGuizmo::SetID(showPropertiesId);
+                    float camDist = glm::distance(camPos, instances[showPropertiesId].massCenter);
+                    glm::float4x4 xform = instances[showPropertiesId].transform;
+                    EditTransform(cam, camDist, glm::value_ptr(xform), true);
+                    scene.updateInstanceTransform(showPropertiesId, xform);
 
                     ImGui::Text("Material ID: %d", currInstance[showPropertiesId].mMaterialId);
                     ImGui::Text("Mass Center: %f %f %f", currInstance[showPropertiesId].massCenter.x, currInstance[showPropertiesId].massCenter.y, currInstance[showPropertiesId].massCenter.z);
