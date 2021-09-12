@@ -476,8 +476,8 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
     static uint32_t showPropertiesId = -1;
-    static uint32_t lightId = 0; // default
-    static bool isLight = false; // todo: enum w/ mode (light, instance, etc)
+    static uint32_t lightId = 0;
+    static bool isLight = false;
     static bool openInspector = false;
     static std::string currentPath;
     static std::string currentFileName;
