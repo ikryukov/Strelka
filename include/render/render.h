@@ -22,6 +22,10 @@
 #include "renderpass.h"
 #include "rtshadowpass.h"
 
+#include "common.h"
+
+#include "tonemap.h"
+
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
 #include <scene/scene.h>
@@ -36,8 +40,6 @@
 #include <optional>
 #include <stdexcept>
 #include <vector>
-
-const int MAX_FRAMES_IN_FLIGHT = 3;
 
 const uint32_t SHADOW_MAP_WIDTH = 1024;
 const uint32_t SHADOW_MAP_HEIGHT = 1024;
@@ -78,6 +80,9 @@ struct SwapChainSupportDetails
     std::vector<VkSurfaceFormatKHR> formats;
     std::vector<VkPresentModeKHR> presentModes;
 };
+
+namespace nevk
+{
 
 class Render
 {
@@ -145,6 +150,9 @@ private:
     nevk::ModelLoader* modelLoader = nullptr;
     nevk::FinalPass mComputePass;
     nevk::DepthPass mDepthPass;
+
+    SharedContext mSharedCtx;
+    nevk::Tonemap* mTonemap;
 
     struct SceneRenderData
     {
@@ -437,3 +445,5 @@ public:
         mUi = _mUi;
     }
 };
+
+} // namespace nevk

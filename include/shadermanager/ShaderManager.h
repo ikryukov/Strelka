@@ -13,7 +13,26 @@ namespace nevk
 class ShaderManager
 {
 public:
-    enum class Stage
+
+    enum class ResourceType
+    {
+        eUnknown,
+        eConstantBuffer,
+        eStructuredBuffer,
+        eTexture2D,
+        eRWTexture2D
+
+    };
+
+    struct ResourceDesc
+    {
+        std::string name;
+        ResourceType type;
+        uint32_t binding;
+        uint32_t set;
+    };
+
+    enum class Stage: uint32_t
     {
         eNone,
         eVertex,
@@ -27,7 +46,8 @@ public:
     void reloadAllShaders();
     bool getShaderCode(uint32_t id, const char*& code, uint32_t& size);
 
-    void printInfo(uint32_t id);
+    std::vector<ResourceDesc> getResourcesDesc(uint32_t id);
+    
     // void printParameterBlock(slang::ShaderReflection* reflection, slang::VariableLayoutReflection* parameter);
 
 private:

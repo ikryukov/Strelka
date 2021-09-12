@@ -187,6 +187,51 @@ void print(slang::TypeLayoutReflection* typeLayout)
     }
 }
 
+ShaderManager::ResourceType getType(const char* resourceType)
+{
+    if (strcmp(resourceType, "Texture2D") == 0)
+    {
+        return ShaderManager::ResourceType::eTexture2D;
+    }
+    else if (strcmp(resourceType, "RWTexture2D") == 0)
+    {
+        return ShaderManager::ResourceType::eRWTexture2D;
+    }
+    else if (strcmp(resourceType, "StructuredBuffer") == 0)
+    {
+        return ShaderManager::ResourceType::eStructuredBuffer;
+    }
+    else
+    {
+        return ShaderManager::ResourceType::eUnknown;
+    }
+}
+
+ShaderManager::ResourceType getType(slang::TypeLayoutReflection* typeLayout)
+{
+    switch (typeLayout->getKind())
+    {
+    case slang::TypeReflection::Kind::ConstantBuffer: {
+        return ShaderManager::ResourceType::eConstantBuffer;
+        break;
+    }
+    case slang::TypeReflection::Kind::Resource: {
+        return getType(typeLayout->getName());
+        break;
+    }
+    case slang::TypeReflection::Kind::Struct:
+    case slang::TypeReflection::Kind::ParameterBlock:
+    case slang::TypeReflection::Kind::Array: {
+        printf("Not supported");
+        return ShaderManager::ResourceType::eUnknown;
+        break;
+    }
+    default:
+        return ShaderManager::ResourceType::eUnknown;
+        break;
+    }
+}
+
 void print(slang::VariableLayoutReflection* var)
 {
     const char* name = var->getName();
@@ -214,23 +259,63 @@ void print(slang::VariableLayoutReflection* var)
     print(typeLayout);
 }
 
-void ShaderManager::printInfo(uint32_t id)
+void fillResDesc(slang::VariableLayoutReflection* var, ShaderManager::ResourceDesc& desc)
+{
+    const char* name = var->getName();
+    printf("name: %s\t", name);
+    desc.name = std::string(name);
+    slang::TypeLayoutReflection* typeLayout = var->getTypeLayout();
+    auto categoryCount = var->getCategoryCount();
+    if (categoryCount)
+    {
+        for (uint32_t cc = 0; cc < categoryCount; ++cc)
+        {
+            auto category = var->getCategoryByIndex(cc);
+            auto index = var->getOffset(category);
+            auto space = var->getBindingSpace(category);
+            auto count = typeLayout->getSize(category);
+            if (category == SLANG_PARAMETER_CATEGORY_UNIFORM)
+            {
+                printf("offset=%d, size=%d\n", (uint32_t)index, (uint32_t)count);
+            }
+            else
+            {
+                printf("binding=%d, set=%d\n", (uint32_t)index, (uint32_t)space);
+                desc.binding = index;
+                desc.set = space;
+            }
+        }
+    }
+    //print(typeLayout);
+    desc.type = getType(typeLayout);
+}
+
+std::vector<ShaderManager::ResourceDesc> ShaderManager::getResourcesDesc(uint32_t id)
 {
     if (mShaderDescs.size() <= id)
     {
-        return;
+        return std::vector<ResourceDesc>();
     }
     ShaderDesc& desc = mShaderDescs[id];
     uint32_t paramCount = desc.slangReflection->getParameterCount();
     printf("%d \n", paramCount);
+    std::vector<ResourceDesc> descs(paramCount);
     for (uint32_t i = 0; i < paramCount; ++i)
     {
         slang::VariableLayoutReflection* parameter = desc.slangReflection->getParameterByIndex(i);
-        // unsigned index = parameter->getOffset();
-        // unsigned space = parameter->getBindingSpace();
-        // printf("binding=%d, set=%d\n", index, space);
-        print(parameter);
+        slang::TypeLayoutReflection* typeLayout = parameter->getTypeLayout();
+        unsigned index = parameter->getOffset();
+        unsigned space = parameter->getBindingSpace();
+        auto categoryCount = parameter->getCategoryCount();
+        //auto count = typeLayout->getSize(category);
+        const char* name = parameter->getName();
+
+        fillResDesc(parameter, descs[i]);
+
+        printf("name = %s, binding=%d, set=%d\n", name, index, space);
+        //print(parameter);
     }
+    return descs;
 }
 
 } // namespace nevk

@@ -86,7 +86,7 @@ struct MyStruct
     SamplerState mySampler;
     RWTexture2D<float4> myOutput;
 };
-ParameterBlock<Ubo> gUbo;
+ConstantBuffer<Ubo> gUbo;
 
 SamplerState gSampler;
 

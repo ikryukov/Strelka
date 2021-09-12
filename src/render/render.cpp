@@ -160,6 +160,14 @@ void Render::initVulkan()
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
 
+    mSharedCtx.mDescriptorPool = mDescriptorPool;
+    mSharedCtx.mDevice = mDevice;
+    mSharedCtx.mResManager = mResManager;
+    mSharedCtx.mShaderManager = &mShaderManager;
+
+    mTonemap = new Tonemap(mSharedCtx);
+    mTonemap->initialize();
+
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
     ImGui_ImplVulkan_InitInfo init_info{};
