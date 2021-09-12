@@ -163,7 +163,7 @@ float3 calc(uint2 pixelIndex)
     for (int i = 0; i < lightsCount; ++i)
     {    
         const RectLight light = lights[i];
-        bool twoSided = false;
+        bool twoSided = true;
         float3 spec = LTC_Evaluate(light, N, V, wpos, Minv, twoSided);
 
         float3 scol = float3(0.23, 0.23, 0.23);

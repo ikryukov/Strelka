@@ -89,7 +89,8 @@ public:
     void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
     {
         vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &mShaderParams.getDescriptorSet(imageIndex), 0, nullptr);
+        VkDescriptorSet descSet = mShaderParams.getDescriptorSet(imageIndex);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
         const uint32_t dispX = (width + 15) / 16;
         const uint32_t dispY = (height + 15) / 16;
         vkCmdDispatch(cmd, dispX, dispY, 1);
@@ -99,6 +100,11 @@ public:
         vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
         vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
         vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
+    }
+
+    void setParams(const T& params)
+    {
+        mShaderParams.setParams(params);
     }
 
 };

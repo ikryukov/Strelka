@@ -85,7 +85,7 @@ uint32_t Scene::createLight(const glm::float3& v0, const glm::float3& v1, const 
     l.points[1] = glm::float4(v1, 0.0);
     l.points[2] = glm::float4(v2, 0.0);
     l.points[3] = glm::float4(v3, 0.0);
-
+    l.color = glm::float4(1.0f);
     uint32_t lightId = (uint32_t)mLights.size();
     mLights.push_back(l);
     return lightId;

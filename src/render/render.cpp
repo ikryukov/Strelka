@@ -78,6 +78,14 @@ void Render::initVulkan()
 
     createDepthResources();
 
+    mSharedCtx.mDescriptorPool = mDescriptorPool;
+    mSharedCtx.mDevice = mDevice;
+    mSharedCtx.mResManager = mResManager;
+    mSharedCtx.mShaderManager = &mShaderManager;
+
+    mTonemap = new Tonemap(mSharedCtx);
+    mTonemap->initialize();
+
     nevk::TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
     modelLoader = new nevk::ModelLoader(mTexManager);
@@ -160,13 +168,7 @@ void Render::initVulkan()
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
 
-    mSharedCtx.mDescriptorPool = mDescriptorPool;
-    mSharedCtx.mDevice = mDevice;
-    mSharedCtx.mResManager = mResManager;
-    mSharedCtx.mShaderManager = &mShaderManager;
 
-    mTonemap = new Tonemap(mSharedCtx);
-    mTonemap->initialize();
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
@@ -1206,6 +1208,8 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 
     mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
 
+    mTonemap->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+
     // Copy to swapchain image
     {
 
@@ -1341,6 +1345,11 @@ void Render::setDescriptors()
         mLtcPass.setTextureImageViews(mTexManager->textureImageView);
         mLtcPass.setTextureSamplers(mTexManager->texSamplers);
     }
+
+    {
+        mTonemap->setParams(mToneParams);
+    }
+
 }
 
 // set default scene

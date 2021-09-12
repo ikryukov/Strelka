@@ -13,7 +13,7 @@ class ShaderParameters
 protected:
     VkDevice mDevice;
     ResourceManager* mResManager = nullptr;
-    std::array<T, MAX_FRAMES_IN_FLIGHT> mConstants;
+    std::array<T, MAX_FRAMES_IN_FLIGHT> mConstants = {};
     Buffer* mConstantBuffer = nullptr;
 
     VkDescriptorSetLayout mDescriptorSetLayout = VK_NULL_HANDLE;
@@ -128,7 +128,7 @@ protected:
 
         for (auto& currRes : resourcesToUpdate)
         {
-            switch (currRes->second.type)
+            switch (currRes.second.type)
             {
             case ShaderManager::ResourceType::eConstantBuffer:
             case ShaderManager::ResourceType::eStructuredBuffer: {
@@ -152,8 +152,9 @@ protected:
         std::vector<VkWriteDescriptorSet> descriptorWrites;
         for (auto& currRes : resourcesToUpdate)
         {
-            std::string& name = currRes->first;
-            auto& it = mNameToDesc.find(name);
+            std::string name = currRes.first;
+            ResourceDescriptor descriptor = currRes.second;
+            auto it = mNameToDesc.find(name);
             if (it != mNameToDesc.end())
             {
                 auto& resDesc = it->second;
@@ -163,7 +164,7 @@ protected:
                 case ShaderManager::ResourceType::eTexture2D: {
                     VkDescriptorImageInfo& imageInfo = imageInfos[imageInfosOffset++];
                     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    imageInfo.imageView = view;
+                    imageInfo.imageView = descriptor.imageView;
 
                     VkWriteDescriptorSet descWrite{};
                     descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -179,7 +180,7 @@ protected:
                 }
                 case ShaderManager::ResourceType::eStructuredBuffer: {
                     VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferInfosOffset++];
-                    bufferInfo.buffer = mInstanceConstantsBuffer;
+                    bufferInfo.buffer = descriptor.buffer;
                     bufferInfo.offset = 0;
                     bufferInfo.range = VK_WHOLE_SIZE;
 
@@ -221,7 +222,17 @@ public:
     {
         if (needDesciptorSetUpdate[index])
         {
-            updateDescriptorSet(index);
+            NeVkResult res = updateDescriptorSet(index);
+            assert(res == NeVkResult::eOk);
+            needDesciptorSetUpdate[index] = false;
+        }
+        if (needConstantsUpdate[index])
+        {
+            void* data = mResManager->getMappedMemory(mConstantBuffer);
+            assert(data);
+            // offset to current frame
+            memcpy((void*) ((char*) data + sizeof(T) * index), &mConstants[index], sizeof(T));
+            needConstantsUpdate[index] = false;
         }
         return mDescriptorSets[index];
     }
@@ -247,8 +258,17 @@ public:
     }
 
     // setters
-    void setTexture(const std::string& name, VkImageView view);
-    void setBuffer(const std::string& name, VkBuffer buff)
+    void setParams(const T& param)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            mConstants[i] = param;
+            needConstantsUpdate[i] = true;
+        }
+    }
+    
+    void setBuffer(const std::string& name, VkBuffer buff);
+    void setTexture(const std::string& name, VkImageView view)
     {
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
         {

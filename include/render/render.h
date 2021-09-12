@@ -152,7 +152,8 @@ private:
     nevk::DepthPass mDepthPass;
 
     SharedContext mSharedCtx;
-    nevk::Tonemap* mTonemap;
+    Tonemap* mTonemap;
+    Tonemapparam mToneParams;
 
     struct SceneRenderData
     {

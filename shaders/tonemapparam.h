@@ -16,10 +16,8 @@
 
 struct Tonemapparam
 {
-    float3 CameraPos;
-    float pad0;
     int2 dimension;
-    uint32_t debugView;
+    float pad0;
     float pad1;
 };
 

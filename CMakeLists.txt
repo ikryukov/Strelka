@@ -138,8 +138,6 @@ set(RENDER_SOURCES
         src/render/renderpass.cpp
         src/render/gbufferpass.cpp
         src/render/bvh.cpp
-        src/render/shaderparameters.cpp 
-        src/render/computepass.cpp
         src/render/finalpass.cpp
         src/render/rtshadowpass.cpp
         src/render/ltcpass.cpp
