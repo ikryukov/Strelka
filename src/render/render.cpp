@@ -1283,7 +1283,12 @@ void Render::loadScene(const std::string& modelPath)
     }
 
     // for pica pica
-    Scene::RectLightDesc desc = { glm::float3{ 0, 30, 10 }, glm::float3{ 0, 90, 0 }, 50.f, 50.f, glm::float3(1.0, 1.0, 1.0) };
+    Scene::RectLightDesc desc{};
+    desc.position = glm::float3{ 0, 30, 10 };
+    desc.orientation = glm::float3{ 0, 90, 0 };
+    desc.width = 50.f;
+    desc.height = 50.f;
+    desc.color = glm::float3{ 1.0, 1.0, 1.0 };
     mScene->createLight(desc);
 
     createMaterialBuffer(*mScene);
@@ -1348,7 +1353,13 @@ void Render::createDefaultScene()
 
     mScene->addCamera(camera);
 
-    Scene::RectLightDesc desc = { glm::float3{ 0, 30, 10 }, glm::float3{ 0, 90, 0 }, 50.f, 50.f, glm::float3(1.0, 1.0, 1.0) };
+    // for pica pica
+    Scene::RectLightDesc desc{};
+    desc.position = glm::float3{ 0, 30, 10 };
+    desc.orientation = glm::float3{ 0, 90, 0 };
+    desc.width = 50.f;
+    desc.height = 50.f;
+    desc.color = glm::float3{ 1.0, 1.0, 1.0 };
     mScene->createLight(desc);
 
     createMaterialBuffer(*mScene);

@@ -111,23 +111,10 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
 
     uint32_t lightId = (uint32_t)mLights.size();
     mLights.push_back(l);
-    // lightToId[lightDesc] = lightId;
     mLightDesc.push_back(desc);
 
     return lightId;
 }
-
-/*
-std::vector<Scene::RectLightDesc> Scene::getLightsDesc()
-{
-    std::vector<Scene::RectLightDesc> lights;
-    lights.reserve(lightToId.size());
-    for (auto light : lightToId)
-    {
-        lights.push_back(light.first);
-    }
-    return lights;
-}*/
 
 void Scene::updateLight(const uint32_t lightId, const RectLightDesc& desc)
 {
@@ -148,7 +135,6 @@ void Scene::removeInstance(const uint32_t instId)
 
 void Scene::removeLight(const uint32_t lightId)
 {
-    // todo: remove from map
     mLights.erase(mLights.begin() + lightId);
     mLightDesc.erase(mLightDesc.begin() + lightId);
 }

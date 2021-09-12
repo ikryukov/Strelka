@@ -409,7 +409,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateLight(lightId, desc);
     if (ImGui::Button("Download"))
     {
-        std::string jsonPath = currentPath + "/" + currentFileName + "_light" + ".json";
+        std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
+        std::string jsonPath = currentPath + "/" + fileName + "_light" + ".json";
         if (fs::exists(jsonPath))
         {
             std::ifstream i(jsonPath);
@@ -451,7 +452,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
         {
             lights["lights"].push_back(lightSettings[i]);
         }
-        std::string jsonPath = currentPath + "/" + currentFileName + "_lightSaved" + ".json";
+        std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
+        std::string jsonPath = currentPath + "/" + fileName + "_lightSaved" + ".json";
         std::ofstream o(jsonPath);
         o << std::setw(4) << lights << std::endl;
 
@@ -520,7 +522,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         }
         ImGui::EndMainMenuBar();
     }
-    // ImGui::ShowDemoWindow();
+
     // open file dialog
     if (openFD)
         ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gltf,.obj", ".");
@@ -539,7 +541,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
         ImGuiFileDialog::Instance()->Close();
     }
 
-    //ImGui::ShowDemoWindow();
     // open new window w/ scene tree
     const std::vector<nevk::Instance>& currInstance = scene.getInstances();
     if (openInspector)
