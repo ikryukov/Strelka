@@ -409,65 +409,71 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     // update in scene
     Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
     scene.updateLight(lightId, desc);
-    if (ImGui::Button("Download"))
+    if (fs::exists(scene.getSceneDir()))
     {
-        std::string currentFileName = scene.getSceneFileName();
-        std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
-        std::string jsonPath = scene.getSceneDir() + "/" + fileName + "_light" + ".json";
-        if (fs::exists(jsonPath))
+        if (ImGui::Button("Download"))
         {
-            std::ifstream i(jsonPath);
-            json light;
-            i >> light;
-
-            for (uint32_t j = 0; j < light["lights"].size(); ++j)
+            std::string currentFileName = scene.getSceneFileName();
+            std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
+            std::string jsonPath = scene.getSceneDir() + "/" + fileName + "_light" + ".json";
+            if (fs::exists(jsonPath))
             {
-                Scene::RectLightDesc desc = parseFromJson(light, j);
-                lightId = scene.createLight(desc);
+                std::ifstream i(jsonPath);
+                json light;
+                i >> light;
+
+                for (uint32_t j = 0; j < light["lights"].size(); ++j)
+                {
+                    Scene::RectLightDesc desc = parseFromJson(light, j);
+                    lightId = scene.createLight(desc);
+                }
             }
         }
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Add"))
-    {
-        Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
-        lightId = scene.createLight(desc);
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Save"))
-    {
-        std::vector<json> lightSettings;
-        lightSettings.reserve(lightDescs.size());
-        for (uint32_t i = 0; i < lightDescs.size(); ++i)
-        {
-            lightSettings[i]["position"] = { lightDescs[i].position.x, lightDescs[i].position.y, lightDescs[i].position.z };
-            lightSettings[i]["orientation"] = { lightDescs[i].orientation.x, lightDescs[i].orientation.y, lightDescs[i].orientation.z };
-            lightSettings[i]["width"] = lightDescs[i].width;
-            lightSettings[i]["height"] = lightDescs[i].height;
-            lightSettings[i]["color"] = { lightDescs[i].color.x, lightDescs[i].color.y, lightDescs[i].color.z };
-            lightSettings[i]["intensity"] = lightDescs[i].intensity;
-        }
-        json lights;
-        for (uint32_t i = 0; i < lightDescs.size(); ++i)
-        {
-            lights["lights"].push_back(lightSettings[i]);
-        }
-        std::string currentFileName = scene.getSceneFileName();
-        std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
-        std::string jsonPath = scene.getSceneDir() + "/" + fileName + "_lightSaved" + ".json";
-        std::ofstream o(jsonPath);
-        o << std::setw(4) << lights << std::endl;
+        ImGui::SameLine();
 
-        lights.clear();
-        lightSettings.clear();
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Remove"))
-    {
-        if (scene.mLights.size() > 1)
+        if (ImGui::Button("Add"))
         {
-            scene.removeLight(lightId);
-            lightId = 0;
+            Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
+            lightId = scene.createLight(desc);
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Save"))
+        {
+            std::vector<json> lightSettings;
+            lightSettings.reserve(lightDescs.size());
+            for (uint32_t i = 0; i < lightDescs.size(); ++i)
+            {
+                lightSettings[i]["position"] = { lightDescs[i].position.x, lightDescs[i].position.y, lightDescs[i].position.z };
+                lightSettings[i]["orientation"] = { lightDescs[i].orientation.x, lightDescs[i].orientation.y, lightDescs[i].orientation.z };
+                lightSettings[i]["width"] = lightDescs[i].width;
+                lightSettings[i]["height"] = lightDescs[i].height;
+                lightSettings[i]["color"] = { lightDescs[i].color.x, lightDescs[i].color.y, lightDescs[i].color.z };
+                lightSettings[i]["intensity"] = lightDescs[i].intensity;
+            }
+            json lights;
+            for (uint32_t i = 0; i < lightDescs.size(); ++i)
+            {
+                lights["lights"].push_back(lightSettings[i]);
+            }
+            std::string currentFileName = scene.getSceneFileName();
+            std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
+            std::string jsonPath = scene.getSceneDir() + "/" + fileName + "_lightSaved" + ".json";
+            std::ofstream o(jsonPath);
+            o << std::setw(4) << lights << std::endl;
+
+            lights.clear();
+            lightSettings.clear();
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Remove"))
+        {
+            if (scene.mLights.size() > 1)
+            {
+                scene.removeLight(lightId);
+                lightId = 0;
+            }
         }
     }
 }
