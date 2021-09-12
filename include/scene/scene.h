@@ -89,6 +89,10 @@ public:
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
 
+    std::string modelPath;
+    std::string getSceneFileName();
+    std::string getSceneDir();
+
     std::vector<Mesh> mMeshes;
     std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;

@@ -348,7 +348,7 @@ Scene::RectLightDesc parseFromJson(json light, uint32_t j)
     return desc;
 }
 
-void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selectedCamera, const std::string& currentPath, const std::string& currentFileName)
+void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selectedCamera)
 {
     Camera& cam = scene.getCamera(selectedCamera);
     glm::float3 camPos = cam.getPosition();
@@ -409,8 +409,9 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateLight(lightId, desc);
     if (ImGui::Button("Download"))
     {
+        std::string currentFileName = scene.getSceneFileName();
         std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
-        std::string jsonPath = currentPath + "/" + fileName + "_light" + ".json";
+        std::string jsonPath = scene.getSceneDir() + "/" + fileName + "_light" + ".json";
         if (fs::exists(jsonPath))
         {
             std::ifstream i(jsonPath);
@@ -449,8 +450,9 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
         {
             lights["lights"].push_back(lightSettings[i]);
         }
+        std::string currentFileName = scene.getSceneFileName();
         std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
-        std::string jsonPath = currentPath + "/" + fileName + "_lightSaved" + ".json";
+        std::string jsonPath = scene.getSceneDir() + "/" + fileName + "_lightSaved" + ".json";
         std::ofstream o(jsonPath);
         o << std::setw(4) << lights << std::endl;
 
@@ -555,7 +557,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
             }
             if (isLight)
             {
-                displayLightSettings(lightId, scene, selectedCamera, currentPath, currentFileName);
+                displayLightSettings(lightId, scene, selectedCamera);
             }
             ImGui::EndChild();
             ImGui::PopStyleVar();

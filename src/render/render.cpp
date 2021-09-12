@@ -1283,6 +1283,7 @@ void Render::loadScene(const std::string& modelPath)
         return;
     }
 
+    mScene->modelPath = MODEL_PATH;
     // for pica pica
     Scene::RectLightDesc desc{};
     desc.position = glm::float3{ 0, 30, 10 };

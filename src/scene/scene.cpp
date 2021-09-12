@@ -3,7 +3,9 @@
 #include <glm/gtx/norm.hpp>
 
 #include <algorithm>
+#include <filesystem>
 #include <utility>
+namespace fs = std::filesystem;
 
 namespace nevk
 {
@@ -77,6 +79,18 @@ uint32_t Scene::addMaterial(const Material& material)
     mMaterials.push_back(material);
     return res;
 }
+
+std::string Scene::getSceneFileName()
+{
+    fs::path p(modelPath);
+    return p.filename();
+};
+
+std::string Scene::getSceneDir()
+{
+    fs::path p(modelPath);
+    return p.parent_path();
+};
 
 glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
 {
