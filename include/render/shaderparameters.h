@@ -286,7 +286,7 @@ public:
             void* data = mResManager->getMappedMemory(mConstantBuffer);
             assert(data);
             // offset to current frame
-            memcpy((void*)((char*)data + sizeof(T) * index), &mConstants[index], sizeof(T));
+            memcpy((void*)((char*)data + getConstantBufferOffset(index)), &mConstants[index], sizeof(T));
             needConstantsUpdate[index] = false;
         }
         return mDescriptorSets[index];
