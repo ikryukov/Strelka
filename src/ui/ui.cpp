@@ -358,9 +358,10 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     ImGui::Spacing();
     ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
     ImGui::Spacing();
-    ImGui::DragFloat2("Width/Height", &scale.x, 0.005f, 1.0f);
+    ImGui::DragFloat2("Width/Height", &scale.x, 1.f, 1.0f);
     ImGui::Spacing();
     ImGui::ColorEdit3("Color", &currLightDesc.color.x);
+    ImGui::DragFloat("Intensity", &currLightDesc.intensity, 1.f, 0.0f);
     // upd current scale params.
     currLightDesc.width = scale.x;
     currLightDesc.height = scale.y;
@@ -391,7 +392,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     currLightDesc.height = matrixScale[2];
 
     // update in scene
-    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
+    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
     scene.updateLight(lightId, desc);
     if (ImGui::Button("Download"))
     {
@@ -408,7 +409,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
                 Scene::RectLightDesc desc = { glm::float3(light["lights"][j]["position"][0], light["lights"][j]["position"][1], light["lights"][j]["position"][2]),
                                               glm::float3(light["lights"][j]["orientation"][0], light["lights"][j]["orientation"][1], light["lights"][j]["orientation"][2]),
                                               float(light["lights"][j]["width"]), light["lights"][j]["height"],
-                                              glm::float3(light["lights"][j]["color"][0], light["lights"][j]["color"][1], light["lights"][j]["color"][2]) };
+                                              glm::float3(light["lights"][j]["color"][0], light["lights"][j]["color"][1], light["lights"][j]["color"][2]),
+                                              float(light["lights"][j]["intensity"]) };
 
                 lightId = scene.createLight(desc);
             }
@@ -417,7 +419,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     ImGui::SameLine();
     if (ImGui::Button("Add"))
     {
-        Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color };
+        Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
         lightId = scene.createLight(desc);
     }
     ImGui::SameLine();
@@ -431,8 +433,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
             lightSettings[i]["width"] = lightDescs[i].width;
             lightSettings[i]["height"] = lightDescs[i].height;
             lightSettings[i]["color"] = { lightDescs[i].color.x, lightDescs[i].color.y, lightDescs[i].color.z };
+            lightSettings[i]["intensity"] = lightDescs[i].intensity;
         }
-
         json lights;
         for (uint32_t i = 0; i < lightDescs.size(); ++i)
         {

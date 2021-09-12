@@ -1290,6 +1290,7 @@ void Render::loadScene(const std::string& modelPath)
     desc.width = 50.f;
     desc.height = 50.f;
     desc.color = glm::float3{ 1.0, 1.0, 1.0 };
+    desc.intensity = 1.0;
     mScene->createLight(desc);
 
     createMaterialBuffer(*mScene);
@@ -1361,6 +1362,7 @@ void Render::createDefaultScene()
     desc.width = 50.f;
     desc.height = 50.f;
     desc.color = glm::float3{ 1.0, 1.0, 1.0 };
+    desc.intensity = 1.0;
     mScene->createLight(desc);
 
     createMaterialBuffer(*mScene);

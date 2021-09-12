@@ -68,6 +68,7 @@ public:
         float width; // OY
         float height; // OZ
         glm::float3 color;
+        float intensity;
     };
 
     std::vector<RectLightDesc> mLightDesc;
