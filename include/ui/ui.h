@@ -38,6 +38,8 @@ public:
     void onResize(std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void onDestroy() const;
 
+    void loadFromJson(Scene& scene);
+
 private:
     ImGui_ImplVulkan_InitInfo mInitInfo{};
     ImGui_ImplVulkanH_Window wd{};

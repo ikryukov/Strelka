@@ -1282,17 +1282,27 @@ void Render::loadScene(const std::string& modelPath)
     {
         return;
     }
-
     mScene->modelPath = MODEL_PATH;
-    // for pica pica
-    Scene::RectLightDesc desc{};
-    desc.position = glm::float3{ 0, 30, 10 };
-    desc.orientation = glm::float3{ 0, 90, 0 };
-    desc.width = 50.f;
-    desc.height = 50.f;
-    desc.color = glm::float3{ 1.0, 1.0, 1.0 };
-    desc.intensity = 1.0;
-    mScene->createLight(desc);
+
+    std::string currentFileName = mScene->getSceneFileName();
+    std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
+    std::string lightPath = mScene->getSceneDir() + "/" + fileName + "_light" + ".json";
+    if (fs::exists(lightPath))
+    {
+        mUi.loadFromJson(*mScene);
+    }
+    else
+    {
+        // for pica pica
+        Scene::RectLightDesc desc{};
+        desc.position = glm::float3{ 0, 30, 10 };
+        desc.orientation = glm::float3{ 0, 90, 0 };
+        desc.width = 50.f;
+        desc.height = 50.f;
+        desc.color = glm::float3{ 1.0, 1.0, 1.0 };
+        desc.intensity = 1.0;
+        mScene->createLight(desc);
+    }
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
