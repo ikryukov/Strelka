@@ -138,7 +138,6 @@ private:
     VkImageView mRtShadowImageView;
 
     nevk::Image* mLtcOutputImage;
-    VkImageView mLtcOutputImageView;
 
     nevk::ResourceManager* mResManager = nullptr;
     nevk::TextureManager* mTexManager = nullptr;
@@ -148,13 +147,13 @@ private:
     GBuffer mGbuffer;
     nevk::GbufferPass mGbufferPass;
     nevk::RtShadowPass mRtShadowPass;
-    nevk::LtcPass mLtcPass;
     nevk::ModelLoader* modelLoader = nullptr;
     nevk::FinalPass mComputePass;
     nevk::DepthPass mDepthPass;
 
     SharedContext mSharedCtx;
     Tonemap* mTonemap;
+    LtcPass* mLtcPass;
     Tonemapparam mToneParams;
 
     struct SceneRenderData

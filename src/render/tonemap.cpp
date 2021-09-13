@@ -3,7 +3,7 @@
 namespace nevk
 {
 Tonemap::Tonemap(const SharedContext& ctx)
-    : ComputePass<Tonemapparam>(ctx)
+    : TonemapBase(ctx)
 {
     
 }
@@ -12,7 +12,7 @@ Tonemap::~Tonemap()
 }
 void Tonemap::initialize()
 {
-    ComputePass<Tonemapparam>::initialize("shaders/tonemap.hlsl");
+    TonemapBase::initialize("shaders/tonemap.hlsl");
 }
 void Tonemap::setInputTexture(VkImageView imageView)
 {

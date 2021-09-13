@@ -68,6 +68,7 @@ public:
     std::unordered_map<TextureSamplerDesc, uint32_t, TextureSamplerDesc::HashFunction> sampDescToId;
     std::vector<Texture> textures;
     std::vector<VkSampler> texSamplers;
+    std::vector<Image*> textureImages;
     std::vector<VkImageView> textureImageView;
     VkSampler shadowSampler = VK_NULL_HANDLE;
 

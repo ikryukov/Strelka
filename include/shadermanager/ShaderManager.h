@@ -20,7 +20,8 @@ public:
         eConstantBuffer,
         eStructuredBuffer,
         eTexture2D,
-        eRWTexture2D
+        eRWTexture2D,
+        eSampler
 
     };
 
@@ -28,6 +29,8 @@ public:
     {
         std::string name;
         ResourceType type;
+        bool isArray;
+        uint32_t arraySize;
         uint32_t binding;
         uint32_t set;
     };
@@ -47,8 +50,6 @@ public:
     bool getShaderCode(uint32_t id, const char*& code, uint32_t& size);
 
     std::vector<ResourceDesc> getResourcesDesc(uint32_t id);
-    
-    // void printParameterBlock(slang::ShaderReflection* reflection, slang::VariableLayoutReflection* parameter);
 
 private:
     struct ShaderDesc

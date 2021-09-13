@@ -9,7 +9,8 @@
 
 namespace nevk
 {
-class Tonemap: public ComputePass<Tonemapparam>
+using TonemapBase = ComputePass<Tonemapparam>;
+class Tonemap : public TonemapBase
 {
 public:
     Tonemap(const SharedContext& ctx);

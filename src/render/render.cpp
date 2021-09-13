@@ -83,9 +83,37 @@ void Render::initVulkan()
     mSharedCtx.mDevice = mDevice;
     mSharedCtx.mResManager = mResManager;
     mSharedCtx.mShaderManager = &mShaderManager;
+    mSharedCtx.mTextureManager = mTexManager;
+
+    mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
+
+    {
+        textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                    VK_IMAGE_TILING_OPTIMAL,
+                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Shading result");
+        textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
+        mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    }
+    {
+        textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                       VK_IMAGE_TILING_OPTIMAL,
+                                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
+        mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    }
 
     mTonemap = new Tonemap(mSharedCtx);
     mTonemap->initialize();
+
+    mLtcPass = new LtcPass(mSharedCtx);
+    mLtcPass->initialize();
+
+    mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                        VK_IMAGE_TILING_OPTIMAL,
+                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+
 
     nevk::TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
@@ -132,35 +160,10 @@ void Render::initVulkan()
         mRtShadowPass.init(mDevice, csRtShaderCode, csRtShaderCodeSize, mDescriptorPool, mResManager);
     }
 
-    // LTC
-    {
-        const char* csLtcShaderCode = nullptr;
-        uint32_t csLtcShaderCodeSize = 0;
-        uint32_t csLtcId = mShaderManager.loadShader("shaders/ltc.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-        mShaderManager.getShaderCode(csLtcId, csLtcShaderCode, csLtcShaderCodeSize);
-        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                   VK_IMAGE_TILING_OPTIMAL,
-                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
-        mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
-
-        mLtcPass.setGbuffer(&mGbuffer);
-        mLtcPass.setOutputImageView(mLtcOutputImageView);
-
-        mLtcPass.init(mDevice, csLtcShaderCode, csLtcShaderCodeSize, mDescriptorPool, mResManager, *mTexManager);
-    }
-
     //init passes
-    {
-        textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                    VK_IMAGE_TILING_OPTIMAL,
-                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Shading result");
-        textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-        mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    }
+
     mComputePass.setGbuffer(&mGbuffer);
-    mComputePass.setLtcImageView(mLtcOutputImageView);
+    mComputePass.setLtcImageView(mResManager->getView(mLtcOutputImage));
     mComputePass.setRtShadowImageView(mRtShadowImageView);
     mComputePass.setOutputImageView(textureCompImageView);
     mComputePass.setTextureSamplers(mTexManager->texSamplers);
@@ -169,16 +172,24 @@ void Render::initVulkan()
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
 
-    {
-        textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                       VK_IMAGE_TILING_OPTIMAL,
-                                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
-        mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    }
+
 
     mTonemap->setInputTexture(textureCompImageView);
     mTonemap->setOutputTexture(mResManager->getView(textureTonemapImage));
+
+    {
+        LtcResourceDesc desc{};
+
+        desc.gbuffer = &mGbuffer;
+        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+        desc.result = mLtcOutputImage;
+        desc.matSampler = mTexManager->texSamplers;
+        desc.matTextures = mTexManager->textureImages;
+
+        mLtcPass->setResources(desc);
+    }
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
@@ -386,7 +397,6 @@ void Render::cleanup()
     mGbufferPass.onDestroy();
     mRtShadowPass.onDestroy();
     mComputePass.onDestroy();
-    mLtcPass.onDestroy();
 
     mUi.onDestroy();
 
@@ -406,12 +416,12 @@ void Render::cleanup()
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
     mResManager->destroyImage(shadowImage);
 
-    vkDestroyImageView(mDevice, mLtcOutputImageView, nullptr);
     mResManager->destroyImage(mLtcOutputImage);
 
     destroyGbuffer(mGbuffer);
 
     delete mTonemap;
+    delete mLtcPass;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -487,7 +497,10 @@ void Render::recreateSwapChain()
     createImageViews();
     createDepthResources();
 
-    // TODO: add release prev gbuffer
+    destroyGbuffer(mGbuffer);
+    mGbuffer = createGbuffer(width, height);
+    mGbufferPass.onResize(&mGbuffer);
+
     {
         mResManager->destroyImage(textureCompImage);
         vkDestroyImageView(mDevice, textureCompImageView, nullptr);
@@ -533,23 +546,31 @@ void Render::recreateSwapChain()
     // LTC pass
     {
         mResManager->destroyImage(mLtcOutputImage);
-        vkDestroyImageView(mDevice, mLtcOutputImageView, nullptr);
     }
     {
         mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                    VK_IMAGE_TILING_OPTIMAL,
                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
-        mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
+    {
+        LtcResourceDesc desc{};
 
-        mLtcPass.setOutputImageView(mLtcOutputImageView);
+        desc.gbuffer = &mGbuffer;
+        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+        desc.matSampler = mTexManager->texSamplers;
+        desc.matTextures = mTexManager->textureImages;
+        desc.result = mLtcOutputImage;
+
+        mLtcPass->setResources(desc);
     }
 
-    mComputePass.setLtcImageView(mLtcOutputImageView);
 
-    destroyGbuffer(mGbuffer);
-    mGbuffer = createGbuffer(width, height);
-    mGbufferPass.onResize(&mGbuffer);
+    mComputePass.setLtcImageView(mResManager->getView(mLtcOutputImage));
+
+
 
     mUi.onResize(swapChainImageViews, width, height);
 
@@ -1219,7 +1240,11 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     // LTC
     recordBarrier(cmd, mResManager->getVkImage(mLtcOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mLtcPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    //mLtcPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+
+
+    mLtcPass->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+
     recordBarrier(cmd, mResManager->getVkImage(mLtcOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
@@ -1384,22 +1409,27 @@ void Render::setDescriptors()
         mComputePass.setTextureImageViews(mTexManager->textureImageView);
         mComputePass.setTextureSamplers(mTexManager->texSamplers);
         mComputePass.setRtShadowImageView(mRtShadowImageView);
-        mComputePass.setLtcImageView(mLtcOutputImageView);
+        mComputePass.setLtcImageView(mResManager->getView(mLtcOutputImage));
         mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
         mComputePass.setLightBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
     }
     {
-        mLtcPass.setGbuffer(&mGbuffer);
-        mLtcPass.setMaterialsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
-        mLtcPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-        mLtcPass.setLightsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
-        mLtcPass.setTextureImageViews(mTexManager->textureImageView);
-        mLtcPass.setTextureSamplers(mTexManager->texSamplers);
+        LtcResourceDesc desc{};
+        desc.gbuffer = &mGbuffer;
+        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+        desc.result = mLtcOutputImage;
+        desc.matSampler = mTexManager->texSamplers;
+        desc.matTextures = mTexManager->textureImages;
+        mLtcPass->setResources(desc);
     }
 
     {
         mTonemap->setParams(mToneParams);
+        mTonemap->setInputTexture(mResManager->getView(textureCompImage));
+        mTonemap->setOutputTexture(mResManager->getView(textureTonemapImage));
     }
 }
 
@@ -1479,11 +1509,19 @@ void Render::drawFrame()
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
     mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
-    mLtcPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
     mRtShadowPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mComputePass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
+
+    LtcParam ltcparams{};
+
+    ltcparams.CameraPos = cam.getPosition();
+    ltcparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    ltcparams.frameNumber = (uint32_t) mFrameNumber;
+    ltcparams.lightsCount = (uint32_t) scene->getLights().size();
+
+    mLtcPass->setParams(ltcparams);
 
     static int releaseAfterFrames = 0;
     static bool needReload = false;

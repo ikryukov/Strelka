@@ -1,6 +1,7 @@
 #include "random.h"
 #include "materials.h"
 #include "lights.h"
+#include "ltcparam.h"
 
 struct InstanceConstants
 {
@@ -12,16 +13,7 @@ struct InstanceConstants
     int32_t pad2;
 };
 
-cbuffer ubo
-{
-    float4x4 viewToProj;
-    float4x4 worldToView;
-    float3 CameraPos;
-    uint frameNumber;
-    uint2 dimension;
-    uint lightsCount;
-    float pad1;
-}
+ConstantBuffer<LtcParam> ubo;
 
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
@@ -32,8 +24,8 @@ StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<RectLight> lights;
 StructuredBuffer<Material> materials;
 
-Texture2D textures[]; // bindless
-SamplerState samplers[];
+Texture2D textures[64]; // bindless
+SamplerState samplers[15];
 
 Texture2D<float4> ltc1;
 Texture2D<float4> ltc2;
@@ -133,7 +125,7 @@ float3 calc(uint2 pixelIndex)
     
 
     float3 N = normalize(gbNormal[pixelIndex].xyz);
-    float3 V = normalize(CameraPos - wpos);
+    float3 V = normalize(ubo.CameraPos - wpos);
     float ndotv = saturate(dot(N, V));
     float roughness = material.roughnessFactor;
     float2 matUV = gbUV[pixelIndex].xy;
@@ -160,7 +152,7 @@ float3 calc(uint2 pixelIndex)
         float3(t1.z, 0, t1.w)
     );
     float3 res = float3(0.0f);
-    for (int i = 0; i < lightsCount; ++i)
+    for (int i = 0; i < ubo.lightsCount; ++i)
     {    
         const RectLight light = lights[i];
         bool twoSided = true;
@@ -185,7 +177,7 @@ float3 calc(uint2 pixelIndex)
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 {
-    if (pixelIndex.x >= dimension.x || pixelIndex.y >= dimension.y)
+    if (pixelIndex.x >= ubo.dimension.x || pixelIndex.y >= ubo.dimension.y)
     {
         return;
     }

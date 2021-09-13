@@ -28,12 +28,14 @@ protected:
     struct ResourceDescriptor
     {
         ShaderManager::ResourceType type;
-        union
+        union Handle
         {
             VkImageView imageView;
             VkBuffer buffer;
             VkSampler sampler;
         };
+        bool isArray = false;
+        std::vector<Handle> handles;
     };
     std::array<std::unordered_map<std::string, ResourceDescriptor>, MAX_FRAMES_IN_FLIGHT> mResUpdate = {};
 
@@ -43,7 +45,7 @@ protected:
     size_t getConstantBufferOffset(const uint32_t index)
     {
         const size_t structSize = sizeof(T);
-        return ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) * minUniformBufferOffsetAlignment * index;        
+        return ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) * minUniformBufferOffsetAlignment * index;
     }
 
     NeVkResult createConstantBuffers()
@@ -113,12 +115,17 @@ protected:
                 descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 break;
             }
+            case ShaderManager::ResourceType::eSampler: {
+                descType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                break;
+            }
             default:
+                assert(0);
                 break;
             }
             VkDescriptorSetLayoutBinding layoutBinding{};
             layoutBinding.binding = desc.binding;
-            layoutBinding.descriptorCount = 1; // TODO: fix count
+            layoutBinding.descriptorCount = desc.isArray ? desc.arraySize : 1;
             layoutBinding.descriptorType = descType;
             layoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT; // TODO: fix for graphics
             bindings.push_back(layoutBinding);
@@ -165,20 +172,27 @@ protected:
 
         for (auto& currRes : resourcesToUpdate)
         {
-            switch (currRes.second.type)
+            std::string name = currRes.first;
+            auto it = mNameToDesc.find(name);
+            if (it != mNameToDesc.end())
             {
-            case ShaderManager::ResourceType::eConstantBuffer:
-            case ShaderManager::ResourceType::eStructuredBuffer: {
-                ++buffCount;
-                break;
-            }
-            case ShaderManager::ResourceType::eTexture2D:
-            case ShaderManager::ResourceType::eRWTexture2D: {
-                ++texCount;
-                break;
-            }
-            default:
-                break;
+                ShaderManager::ResourceDesc& resDesc = it->second;
+                switch (currRes.second.type)
+                {
+                case ShaderManager::ResourceType::eConstantBuffer:
+                case ShaderManager::ResourceType::eStructuredBuffer: {
+                    buffCount += currRes.second.isArray ? resDesc.arraySize : 1;
+                    break;
+                }
+                case ShaderManager::ResourceType::eTexture2D:
+                case ShaderManager::ResourceType::eRWTexture2D:
+                case ShaderManager::ResourceType::eSampler: {
+                    texCount += currRes.second.isArray ? resDesc.arraySize : 1;
+                    break;
+                }
+                default:
+                    break;
+                }
             }
         }
 
@@ -191,18 +205,21 @@ protected:
         for (auto& currRes : resourcesToUpdate)
         {
             std::string name = currRes.first;
-            ResourceDescriptor descriptor = currRes.second;
+            ResourceDescriptor& descriptor = currRes.second;
             auto it = mNameToDesc.find(name);
             if (it != mNameToDesc.end())
             {
-                auto& resDesc = it->second;
+                ShaderManager::ResourceDesc& resDesc = it->second;
+                const uint32_t descriptorCount = resDesc.isArray ? resDesc.arraySize : 1;
 
                 switch (resDesc.type)
                 {
                 case ShaderManager::ResourceType::eTexture2D: {
-                    VkDescriptorImageInfo& imageInfo = imageInfos[imageInfosOffset++];
-                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                    imageInfo.imageView = descriptor.imageView;
+                    for (uint32_t i = 0; i < descriptorCount; ++i)
+                    {
+                        imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                        imageInfos[imageInfosOffset + i].imageView = (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
+                    }
 
                     VkWriteDescriptorSet descWrite{};
                     descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -210,16 +227,20 @@ protected:
                     descWrite.dstBinding = resDesc.binding;
                     descWrite.dstArrayElement = 0;
                     descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                    descWrite.descriptorCount = 1; // TODO:
-                    descWrite.pImageInfo = &imageInfo;
+                    descWrite.descriptorCount = descriptorCount;
+                    descWrite.pImageInfo = &imageInfos[imageInfosOffset];
+
+                    imageInfosOffset += descriptorCount;
 
                     descriptorWrites.push_back(descWrite);
                     break;
                 }
                 case ShaderManager::ResourceType::eRWTexture2D: {
-                    VkDescriptorImageInfo& imageInfo = imageInfos[imageInfosOffset++];
-                    imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-                    imageInfo.imageView = descriptor.imageView;
+                    for (uint32_t i = 0; i < descriptorCount; ++i)
+                    {
+                        imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                        imageInfos[imageInfosOffset + i].imageView = descriptor.handles[i].imageView;
+                    }
 
                     VkWriteDescriptorSet descWrite{};
                     descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -227,17 +248,45 @@ protected:
                     descWrite.dstBinding = resDesc.binding;
                     descWrite.dstArrayElement = 0;
                     descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                    descWrite.descriptorCount = 1; // TODO:
-                    descWrite.pImageInfo = &imageInfo;
+                    descWrite.descriptorCount = descriptorCount;
+                    descWrite.pImageInfo = &imageInfos[imageInfosOffset];
+
+                    imageInfosOffset += descriptorCount;
+
+                    descriptorWrites.push_back(descWrite);
+                    break;
+                }
+                case ShaderManager::ResourceType::eSampler: {
+                    //for (uint32_t i = 0; i < descriptorCount; ++i)
+                    //{
+                    //    imageInfos[imageInfosOffset + i].sampler = (i < descriptor.handles.size()) ? descriptor.handles[i].sampler : VK_NULL_HANDLE;
+                    //}
+                    for (uint32_t i = 0; i < (uint32_t) descriptor.handles.size(); ++i)
+                    {
+                        imageInfos[imageInfosOffset + i].sampler = descriptor.handles[i].sampler;
+                    }
+                    VkWriteDescriptorSet descWrite{};
+                    descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                    descWrite.dstSet = dstDescSet;
+                    descWrite.dstBinding = resDesc.binding;
+                    descWrite.dstArrayElement = 0;
+                    descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                    //descWrite.descriptorCount = descriptorCount;
+                    descWrite.descriptorCount = (uint32_t) descriptor.handles.size();
+                    descWrite.pImageInfo = &imageInfos[imageInfosOffset];
+
+                    imageInfosOffset += descriptorCount;
 
                     descriptorWrites.push_back(descWrite);
                     break;
                 }
                 case ShaderManager::ResourceType::eStructuredBuffer: {
-                    VkDescriptorBufferInfo& bufferInfo = bufferInfos[bufferInfosOffset++];
-                    bufferInfo.buffer = descriptor.buffer;
-                    bufferInfo.offset = 0;
-                    bufferInfo.range = VK_WHOLE_SIZE;
+                    for (uint32_t i = 0; i < descriptorCount; ++i)
+                    {
+                        bufferInfos[bufferInfosOffset + i].buffer = descriptor.handles[i].buffer;
+                        bufferInfos[bufferInfosOffset + i].offset = 0;
+                        bufferInfos[bufferInfosOffset + i].range = VK_WHOLE_SIZE;
+                    }
 
                     VkWriteDescriptorSet descWrite{};
                     descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -245,8 +294,10 @@ protected:
                     descWrite.dstBinding = resDesc.binding;
                     descWrite.dstArrayElement = 0;
                     descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                    descWrite.descriptorCount = 1; // TODO:
-                    descWrite.pBufferInfo = &bufferInfo;
+                    descWrite.descriptorCount = descriptorCount;
+                    descWrite.pBufferInfo = &bufferInfos[bufferInfosOffset];
+
+                    bufferInfosOffset += descriptorCount;
 
                     descriptorWrites.push_back(descWrite);
                     break;
@@ -265,11 +316,12 @@ protected:
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         needDesciptorSetUpdate[descIndex] = false;
 
+        mResUpdate[descIndex].clear();
+
         return NeVkResult::eOk;
     }
 
 public:
-
     ShaderParameters()
     {
     }
@@ -282,7 +334,7 @@ public:
         }
         vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
     }
-    
+
     VkDescriptorSetLayout getDescriptorSetLayout()
     {
         return mDescriptorSetLayout;
@@ -323,7 +375,7 @@ public:
         res = createConstantBuffers();
         // Now we support only 1 constant buffer per shader
         // it must be bound to 0
-        writeConstantBufferDescriptors(); 
+        writeConstantBufferDescriptors();
 
         return res;
     }
@@ -344,19 +396,71 @@ public:
         {
             ResourceDescriptor resDescriptor{};
             resDescriptor.type = ShaderManager::ResourceType::eStructuredBuffer;
-            resDescriptor.buffer = buff;
+            resDescriptor.isArray = false;
+            resDescriptor.handles.resize(1);
+            resDescriptor.handles[0].buffer = buff;
             mResUpdate[i][name] = resDescriptor;
             needDesciptorSetUpdate[i] = true;
         }
     }
-    
+
     void setTexture(const std::string& name, VkImageView view)
     {
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
         {
             ResourceDescriptor resDescriptor{};
             resDescriptor.type = ShaderManager::ResourceType::eTexture2D;
-            resDescriptor.imageView = view;
+            resDescriptor.isArray = false;
+            resDescriptor.handles.resize(1);
+            resDescriptor.handles[0].imageView = view;
+            mResUpdate[i][name] = resDescriptor;
+            needDesciptorSetUpdate[i] = true;
+        }
+    }
+
+    void setTextures(const std::string& name, std::vector<Image*>& images)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            ResourceDescriptor resDescriptor{};
+            resDescriptor.type = ShaderManager::ResourceType::eTexture2D;
+            resDescriptor.isArray = true;
+            resDescriptor.handles.resize(images.size());
+            for (uint32_t j = 0; j < images.size(); ++j)
+            {
+                resDescriptor.handles[j].imageView = mResManager->getView(images[j]);
+            }
+            mResUpdate[i][name] = resDescriptor;
+            needDesciptorSetUpdate[i] = true;
+        }
+    }
+
+    void setSampler(const std::string& name, VkSampler sampler)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            ResourceDescriptor resDescriptor{};
+            resDescriptor.type = ShaderManager::ResourceType::eSampler;
+            resDescriptor.isArray = false;
+            resDescriptor.handles.resize(1);
+            resDescriptor.handles[0].sampler = sampler;
+            mResUpdate[i][name] = resDescriptor;
+            needDesciptorSetUpdate[i] = true;
+        }
+    }
+
+    void setSamplers(const std::string& name, std::vector<VkSampler>& samplers)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            ResourceDescriptor resDescriptor{};
+            resDescriptor.type = ShaderManager::ResourceType::eSampler;
+            resDescriptor.isArray = true;
+            resDescriptor.handles.resize(samplers.size());
+            for (uint32_t j = 0; j < samplers.size(); ++j)
+            {
+                resDescriptor.handles[j].sampler = samplers[j];
+            }
             mResUpdate[i][name] = resDescriptor;
             needDesciptorSetUpdate[i] = true;
         }

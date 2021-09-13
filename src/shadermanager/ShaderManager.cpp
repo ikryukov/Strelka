@@ -201,6 +201,10 @@ ShaderManager::ResourceType getType(const char* resourceType)
     {
         return ShaderManager::ResourceType::eStructuredBuffer;
     }
+    else if (strcmp(resourceType, "SamplerState") == 0)
+    {
+        return ShaderManager::ResourceType::eSampler;
+    }
     else
     {
         return ShaderManager::ResourceType::eUnknown;
@@ -209,7 +213,8 @@ ShaderManager::ResourceType getType(const char* resourceType)
 
 ShaderManager::ResourceType getType(slang::TypeLayoutReflection* typeLayout)
 {
-    switch (typeLayout->getKind())
+    slang::TypeReflection::Kind kind = typeLayout->getKind();
+    switch (kind)
     {
     case slang::TypeReflection::Kind::ConstantBuffer: {
         return ShaderManager::ResourceType::eConstantBuffer;
@@ -219,9 +224,19 @@ ShaderManager::ResourceType getType(slang::TypeLayoutReflection* typeLayout)
         return getType(typeLayout->getName());
         break;
     }
-    case slang::TypeReflection::Kind::Struct:
-    case slang::TypeReflection::Kind::ParameterBlock:
+    case slang::TypeReflection::Kind::SamplerState: {
+        return ShaderManager::ResourceType::eSampler;
+        break;
+    }
     case slang::TypeReflection::Kind::Array: {
+        printf("array");
+        printf(" %s", typeLayout->getType()->getElementType()->getName());
+        printf("[%d]\n", (uint32_t)typeLayout->getElementCount());
+        return getType(typeLayout->getType()->getElementType()->getName());
+        break;
+    }
+    case slang::TypeReflection::Kind::Struct:
+    case slang::TypeReflection::Kind::ParameterBlock: {
         printf("Not supported");
         return ShaderManager::ResourceType::eUnknown;
         break;
@@ -288,6 +303,11 @@ void fillResDesc(slang::VariableLayoutReflection* var, ShaderManager::ResourceDe
     }
     //print(typeLayout);
     desc.type = getType(typeLayout);
+    if (typeLayout->getKind() == slang::TypeReflection::Kind::Array)
+    {
+        desc.isArray = true;
+        desc.arraySize = (uint32_t)typeLayout->getElementCount();
+    }
 }
 
 std::vector<ShaderManager::ResourceDesc> ShaderManager::getResourcesDesc(uint32_t id)

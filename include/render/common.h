@@ -3,6 +3,7 @@
 
 #include <ShaderManager.h>
 #include <resourcemanager.h>
+#include <texturemanager.h>
 
 namespace nevk
 {
@@ -22,6 +23,7 @@ struct SharedContext
     VkDescriptorPool mDescriptorPool = VK_NULL_HANDLE;
     ResourceManager* mResManager = nullptr;
     ShaderManager* mShaderManager = nullptr;
+    TextureManager* mTextureManager = nullptr;
 };
 
 enum class NeVkResult: uint32_t
