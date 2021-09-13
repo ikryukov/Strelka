@@ -168,6 +168,7 @@ public:
             camera.updateAspectRatio((float)width / height);
         }
     }
+    void createLightMesh();
 
     void updateLight(uint32_t lightId, const RectLightDesc& desc);
     /// <summary>

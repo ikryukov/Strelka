@@ -114,6 +114,25 @@ uint32_t packNormals(const glm::float3& normal)
     return packed;
 }
 
+void Scene::createLightMesh(){
+    std::vector<Scene::Vertex> vb;
+    Scene::Vertex v1, v2, v3, v4;
+    v1.pos = glm::float4(0.0f, 0.5f, 0.5f, 1.0f); // top right 0
+    v2.pos = glm::float4(0.0f, -0.5f, 0.5f, 1.0f); // top left 1
+    v3.pos = glm::float4(0.0f, -0.5f, -0.5f, 1.0f); // bottom left 2
+    v4.pos = glm::float4(0.0f, 0.5f, -0.5f, 1.0f); // bottom right 3
+    glm::float3 normal = glm::float3(1.f, 0.f, 0.f);
+    v1.normal = v2.normal = v3.normal = v4.normal = packNormals(normal);
+    std::vector<uint32_t> ib = {0, 1, 2, 2, 3, 0};
+    vb.push_back(v1);
+    vb.push_back(v2);
+    vb.push_back(v3);
+    vb.push_back(v4);
+
+    uint32_t meshId = createMesh(vb, ib);
+    assert(meshId != -1);
+}
+
 uint32_t Scene::createLight(const RectLightDesc& desc)
 {
     const glm::float4x4 localTransform = getTransform(desc);
@@ -137,21 +156,6 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     mLights.push_back(l);
     mLightDesc.push_back(desc);
 
-    // create light model
-    std::vector<Vertex> vb;
-    Vertex v1, v2, v3, v4;
-    v1.pos = glm::float4(0.0f, 0.5f, 0.5f, 1.0f); // top right 0
-    v2.pos = glm::float4(0.0f, -0.5f, 0.5f, 1.0f); // top left 1
-    v3.pos = glm::float4(0.0f, -0.5f, -0.5f, 1.0f); // bottom left 2
-    v4.pos = glm::float4(0.0f, 0.5f, -0.5f, 1.0f); // bottom right 3
-    glm::float3 normal = glm::float3(1.f, 0.f, 0.f);
-    v1.normal = v2.normal = v3.normal = v4.normal = packNormals(normal);
-    std::vector<uint32_t> ib = {0, 1, 2, 2, 3, 0};
-    vb.push_back(v1);
-    vb.push_back(v2);
-    vb.push_back(v3);
-    vb.push_back(v4);
-
     Material light;
     light.isLight = 1;
     light.baseColorFactor = glm::float4(desc.color, 1.0f);
@@ -161,10 +165,7 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     light.illum = 2;
     uint32_t matId = addMaterial(light);
 
-    uint32_t meshId = createMesh(vb, ib);
-    assert(meshId != -1);
-
-    uint32_t instId = createInstance(meshId, matId, localTransform, desc.position);
+    uint32_t instId = createInstance(0, matId, localTransform, desc.position);
     assert(instId != -1);
 
     return lightId;
