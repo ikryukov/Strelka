@@ -146,7 +146,7 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     v4.pos = glm::float4(0.0f, 0.5f, -0.5f, 1.0f); // bottom right 3
     glm::float3 normal = glm::float3(1.f, 0.f, 0.f);
     v1.normal = v2.normal = v3.normal = v4.normal = packNormals(normal);
-    std::vector<uint32_t> ib = {0, 1, 3, 1, 2, 3};
+    std::vector<uint32_t> ib = {0, 1, 2, 2, 3, 0};
     vb.push_back(v1);
     vb.push_back(v2);
     vb.push_back(v3);
@@ -154,10 +154,14 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
 
     Material light;
     light.isLight = true;
-    light.baseColorFactor = glm::float4(desc.color, 1.0f);
+    light.baseColorFactor = glm::float4(desc.color*glm::float3(255.0), 1.0f);
     uint32_t matId = addMaterial(light);
+    
     uint32_t meshId = createMesh(vb, ib);
-    createInstance(meshId, matId, localTransform, desc.position);
+    assert(meshId != -1);
+
+    uint32_t instId = createInstance(meshId, matId, localTransform, desc.position);
+    assert(instId != -1);
 
     return lightId;
 }
