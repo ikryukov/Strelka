@@ -460,6 +460,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     // update in scene
     Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
     scene.updateLight(lightId, desc);
+    
+    scene.updateInstanceTransform(scene.lightIdToInstanceId[lightId], lightXform);
 }
 
 void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
@@ -541,7 +543,6 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
     }
 
     // open new window w/ scene tree
-    const std::vector<nevk::Instance>& currInstance = scene.getInstances();
     if (openInspector)
     {
         ImGui::Begin("Inspector", &openInspector); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
@@ -563,8 +564,8 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                     EditTransform(cam, camDist, glm::value_ptr(xform), true);
                     scene.updateInstanceTransform(showPropertiesId, xform);
 
-                    ImGui::Text("Material ID: %d", currInstance[showPropertiesId].mMaterialId);
-                    ImGui::Text("Mass Center: %f %f %f", currInstance[showPropertiesId].massCenter.x, currInstance[showPropertiesId].massCenter.y, currInstance[showPropertiesId].massCenter.z);
+                    ImGui::Text("Material ID: %d", instances[showPropertiesId].mMaterialId);
+                    ImGui::Text("Mass Center: %f %f %f", instances[showPropertiesId].massCenter.x, instances[showPropertiesId].massCenter.y, instances[showPropertiesId].massCenter.z);
                 }
             }
             if (isLight)
@@ -603,17 +604,20 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 }
                 if (ImGui::TreeNode("Instances"))
                 {
-                    for (uint32_t i = 0; i < currInstance.size(); i++)
+                    for (uint32_t i = 0; i < instances.size(); i++)
                     {
-                        ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
-                        if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", currInstance[i].mMeshId))
+                        if (scene.mMaterials[instances[i].mMaterialId].isLight == 0)
                         {
-                            if (ImGui::IsItemClicked())
+                            ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
+                            if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", instances[i].mMeshId))
                             {
-                                showPropertiesId = i;
-                                isLight = false;
+                                if (ImGui::IsItemClicked())
+                                {
+                                    showPropertiesId = i;
+                                    isLight = false;
+                                }
+                                ImGui::TreePop();
                             }
-                            ImGui::TreePop();
                         }
                     }
                     ImGui::TreePop();

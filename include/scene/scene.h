@@ -105,6 +105,7 @@ public:
 
     ~Scene() = default;
 
+    std::unordered_map<uint32_t, uint32_t> lightIdToInstanceId{};
     std::vector<Vertex>& getVertices()
     {
         return mVertices;

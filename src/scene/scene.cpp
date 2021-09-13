@@ -168,6 +168,8 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     uint32_t instId = createInstance(0, matId, localTransform, desc.position);
     assert(instId != -1);
 
+    lightIdToInstanceId[lightId] = instId;
+
     return lightId;
 }
 
