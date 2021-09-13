@@ -3,7 +3,9 @@
 #include <glm/gtx/norm.hpp>
 
 #include <algorithm>
+#include <filesystem>
 #include <utility>
+namespace fs = std::filesystem;
 
 namespace nevk
 {
@@ -78,17 +80,67 @@ uint32_t Scene::addMaterial(const Material& material)
     return res;
 }
 
-uint32_t Scene::createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3)
+std::string Scene::getSceneFileName()
 {
+    fs::path p(modelPath);
+    return p.filename().string();
+};
+
+std::string Scene::getSceneDir()
+{
+    fs::path p(modelPath);
+    return p.parent_path().string();
+};
+
+glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
+{
+    const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
+    glm::quat rotation = glm::quat(glm::radians(desc.orientation)); // to quaternion
+    const glm::float4x4 rotationMatrix{ rotation };
+    glm::float3 scale = { 1.0f, desc.width, desc.height };
+    const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
+
+    const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;
+
+    return localTransform;
+}
+
+uint32_t Scene::createLight(const RectLightDesc& desc)
+{
+    const glm::float4x4 localTransform = getTransform(desc);
+
     Light l;
-    l.points[0] = glm::float4(v0, 0.0);
-    l.points[1] = glm::float4(v1, 0.0);
-    l.points[2] = glm::float4(v2, 0.0);
-    l.points[3] = glm::float4(v3, 0.0);
-    l.color = glm::float4(1.0f);
+    l.points[0] = localTransform * glm::float4(0.0f, 0.5f, 0.5f, 1.0f);
+    l.points[1] = localTransform * glm::float4(0.0f, -0.5f, 0.5f, 1.0f);
+    l.points[2] = localTransform * glm::float4(0.0f, -0.5f, -0.5f, 1.0f);
+    l.points[3] = localTransform * glm::float4(0.0f, 0.5f, -0.5f, 1.0f);
+    l.color = glm::float4(desc.color, 1.0f) * desc.intensity;
+
+    RectLightDesc lightDesc;
+    lightDesc.position = desc.position;
+    lightDesc.orientation = desc.orientation;
+    lightDesc.width = desc.width;
+    lightDesc.height = desc.height;
+    lightDesc.color = desc.color;
+    lightDesc.intensity = desc.intensity;
+
     uint32_t lightId = (uint32_t)mLights.size();
     mLights.push_back(l);
+    mLightDesc.push_back(desc);
+
     return lightId;
+}
+
+void Scene::updateLight(const uint32_t lightId, const RectLightDesc& desc)
+{
+    const glm::float4x4 localTransform = getTransform(desc);
+
+    // transform to GPU light
+    mLights[lightId].points[0] = localTransform * glm::float4(0.0f, 0.5f, 0.5f, 1.0f);
+    mLights[lightId].points[1] = localTransform * glm::float4(0.0f, -0.5f, 0.5f, 1.0f);
+    mLights[lightId].points[2] = localTransform * glm::float4(0.0f, -0.5f, -0.5f, 1.0f);
+    mLights[lightId].points[3] = localTransform * glm::float4(0.0f, 0.5f, -0.5f, 1.0f);
+    mLights[lightId].color = glm::float4(desc.color, 1.0f) * desc.intensity;
 }
 
 void Scene::removeInstance(const uint32_t instId)

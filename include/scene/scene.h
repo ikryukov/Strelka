@@ -2,7 +2,6 @@
 
 #include "camera.h"
 #include "glm-wrapper.hpp"
-
 #include "materials.h"
 #undef float4
 #undef float3
@@ -10,6 +9,7 @@
 #include <cstdint>
 #include <set>
 #include <stack>
+#include <unordered_map>
 #include <vector>
 
 
@@ -56,11 +56,11 @@ public:
     struct Light
     {
         glm::float4 points[4];
-        glm::float4 color;
+        glm::float4 color = glm::float4(1.0f);
     };
 
     // CPU side structure
-    struct RectLight
+    struct RectLightDesc
     {
         glm::float3 position; // world position
         glm::float3 orientation; // euler angles in degrees
@@ -68,7 +68,10 @@ public:
         float width; // OY
         float height; // OZ
         glm::float3 color;
+        float intensity;
     };
+
+    std::vector<RectLightDesc> mLightDesc;
 
     enum class DebugView
     {
@@ -85,6 +88,10 @@ public:
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
+
+    std::string modelPath;
+    std::string getSceneFileName();
+    std::string getSceneDir();
 
     std::vector<Mesh> mMeshes;
     std::vector<Material> mMaterials;
@@ -116,6 +123,11 @@ public:
     std::vector<Light>& getLights()
     {
         return mLights;
+    }
+
+    std::vector<RectLightDesc>& getLightsDesc()
+    {
+        return mLightDesc;
     }
 
     void addCamera(Camera camera)
@@ -156,6 +168,9 @@ public:
             camera.updateAspectRatio((float)width / height);
         }
     }
+
+    void removeLight(uint32_t lightId);
+    void updateLight(uint32_t lightId, const RectLightDesc& desc);
     /// <summary>
     /// Create Mesh geometry
     /// </summary>
@@ -174,8 +189,7 @@ public:
 
     uint32_t addMaterial(const Material& material);
 
-    uint32_t createLight(const glm::float3& v0, const glm::float3& v1, const glm::float3& v2, const glm::float3& v3);
-
+    uint32_t createLight(const RectLightDesc& desc);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>

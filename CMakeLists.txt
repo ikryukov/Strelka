@@ -97,10 +97,12 @@ target_include_directories(${UILIB_NAME} PUBLIC external/ImGuizmo)
 target_include_directories(${UILIB_NAME} PUBLIC external/glm)
 if (MSVC)
     target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
-endif()
+endif ()
 ## Vulkan
 target_include_directories(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
+# JSON
+target_include_directories(${UILIB_NAME} PUBLIC external/json)
 
 # Resource Manager lib
 set(RESMNGR_SOURCES
@@ -243,28 +245,28 @@ add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
 
 # Copy slang dlls to final directory after building
 if (MSVC)
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
-        "${OUTPUT_DIRECTORY}"
-        )
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
-        "${OUTPUT_DIRECTORY}"
-        )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/slang/slang.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/slang/slang-glslang.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        "${EMBREE_ROOT_DIR}/bin/tbb12.dll"
-        "${OUTPUT_DIRECTORY}"
-        )
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        "${EMBREE_ROOT_DIR}/bin/embree3.dll"
-        "${OUTPUT_DIRECTORY}"
-        )
-endif() 
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${EMBREE_ROOT_DIR}/bin/tbb12.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${EMBREE_ROOT_DIR}/bin/embree3.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
+endif ()
 
 ##########################################
 # External 3rd-party libraries
