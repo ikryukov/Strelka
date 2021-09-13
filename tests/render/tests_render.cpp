@@ -2,6 +2,8 @@
 
 #include <doctest.h>
 
+using namespace nevk;
+
 TEST_CASE("render test")
 {
     Render* e = new Render();
