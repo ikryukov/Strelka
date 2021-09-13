@@ -28,6 +28,7 @@ struct Instance
     uint32_t mMeshId;
     uint32_t mMaterialId;
     glm::float3 massCenter;
+    bool isLight = false;
 };
 
 class Scene
@@ -105,7 +106,7 @@ public:
 
     ~Scene() = default;
 
-    std::unordered_map<uint32_t, uint32_t> lightIdToInstanceId{};
+    std::unordered_map<uint32_t, uint32_t> mLightIdToInstanceId{};
     std::vector<Vertex>& getVertices()
     {
         return mVertices;

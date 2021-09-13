@@ -422,10 +422,10 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     ImGui::Spacing();
     ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
     ImGui::Spacing();
-    ImGui::DragFloat2("Width/Height", &scale.x, 0.005f, 1.0f);
+    ImGui::DragFloat2("Width/Height", &scale.x, 1.f, 1.0f);
     ImGui::Spacing();
     ImGui::ColorEdit3("Color", &currLightDesc.color.x);
-    ImGui::DragFloat("Intensity", &currLightDesc.intensity, 0.005f, 1.0f);
+    ImGui::DragFloat("Intensity", &currLightDesc.intensity, 1.0f, 1.0f);
     currLightDesc.intensity = glm::clamp(currLightDesc.intensity, 1.0f, FLT_MAX);
     // upd current scale params.
     scale = glm::clamp(scale, 1.0f, FLT_MAX);
@@ -460,8 +460,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     // update in scene
     Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
     scene.updateLight(lightId, desc);
-    
-    scene.updateInstanceTransform(scene.lightIdToInstanceId[lightId], lightXform);
+    scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
 void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
@@ -606,7 +605,7 @@ void Ui::updateUI(Scene& scene, DepthPass& depthPass, double msPerFrame, std::st
                 {
                     for (uint32_t i = 0; i < instances.size(); i++)
                     {
-                        if (scene.mMaterials[instances[i].mMaterialId].isLight == 0)
+                        if (instances[i].isLight == 0)
                         {
                             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
                             if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", instances[i].mMeshId))

@@ -59,6 +59,7 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     inst->mMeshId = meshId;
     inst->transform = transform;
     inst->massCenter = massCenter;
+    inst->isLight = mMaterials[materialId].isLight;
 
     if (mMaterials[materialId].isTransparent())
     {
@@ -114,7 +115,8 @@ uint32_t packNormals(const glm::float3& normal)
     return packed;
 }
 
-void Scene::createLightMesh(){
+void Scene::createLightMesh()
+{
     std::vector<Scene::Vertex> vb;
     Scene::Vertex v1, v2, v3, v4;
     v1.pos = glm::float4(0.0f, 0.5f, 0.5f, 1.0f); // top right 0
@@ -123,7 +125,7 @@ void Scene::createLightMesh(){
     v4.pos = glm::float4(0.0f, 0.5f, -0.5f, 1.0f); // bottom right 3
     glm::float3 normal = glm::float3(1.f, 0.f, 0.f);
     v1.normal = v2.normal = v3.normal = v4.normal = packNormals(normal);
-    std::vector<uint32_t> ib = {0, 1, 2, 2, 3, 0};
+    std::vector<uint32_t> ib = { 0, 1, 2, 2, 3, 0 };
     vb.push_back(v1);
     vb.push_back(v2);
     vb.push_back(v3);
@@ -168,7 +170,7 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     uint32_t instId = createInstance(0, matId, localTransform, desc.position);
     assert(instId != -1);
 
-    lightIdToInstanceId[lightId] = instId;
+    mLightIdToInstanceId[lightId] = instId;
 
     return lightId;
 }
