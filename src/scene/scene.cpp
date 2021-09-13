@@ -154,11 +154,10 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
 
     Material light;
     light.isLight = true;
-    light.diffuse = l.color;
-    mMaterials.push_back(light);
-
+    light.baseColorFactor = glm::float4(desc.color, 1.0f);
+    uint32_t matId = addMaterial(light);
     uint32_t meshId = createMesh(vb, ib);
-    createInstance(meshId, mMaterials.size() - 1, localTransform, desc.position);
+    createInstance(meshId, matId, localTransform, desc.position);
 
     return lightId;
 }
