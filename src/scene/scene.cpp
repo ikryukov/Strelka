@@ -153,10 +153,14 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     vb.push_back(v4);
 
     Material light;
-    light.isLight = true;
-    light.baseColorFactor = glm::float4(desc.color*glm::float3(255.0), 1.0f);
+    light.isLight = 1;
+    light.baseColorFactor = glm::float4(desc.color, 1.0f);
+    light.texBaseColor = -1;
+    light.texMetallicRoughness = -1;
+    light.roughnessFactor = 0.01;
+    light.illum = 2;
     uint32_t matId = addMaterial(light);
-    
+
     uint32_t meshId = createMesh(vb, ib);
     assert(meshId != -1);
 

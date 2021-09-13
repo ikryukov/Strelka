@@ -29,9 +29,9 @@ struct Material
     int32_t sampBaseId = -1;
 
     int32_t sampNormalId = -1;
+    int32_t isLight = 0;
     float pad0;
     float pad1;
-    bool isLight = false;
 
     bool isTransparent()
     {

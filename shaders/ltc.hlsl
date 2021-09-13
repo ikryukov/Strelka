@@ -147,6 +147,10 @@ float3 calc(uint2 pixelIndex)
     {
         dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV).rgb;
     }
+    if (material.isLight == 1)
+    {
+        return dcol;
+    }
 
     float2 uv = float2(roughness, sqrt(1.0 - ndotv));
     uv = uv * LUT_SCALE + LUT_BIAS;
