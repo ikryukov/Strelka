@@ -169,7 +169,6 @@ public:
         }
     }
 
-    void removeLight(uint32_t lightId);
     void updateLight(uint32_t lightId, const RectLightDesc& desc);
     /// <summary>
     /// Create Mesh geometry
