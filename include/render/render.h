@@ -130,8 +130,6 @@ private:
     VkImageView textureCompImageView;
 
     nevk::Image* textureTonemapImage;
-    VkImageView textureTonemapImageView;
-
 
     nevk::Image* shadowImage;
     VkImageView shadowImageView;

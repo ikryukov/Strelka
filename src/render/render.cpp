@@ -174,12 +174,11 @@ void Render::initVulkan()
                                                        VK_IMAGE_TILING_OPTIMAL,
                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
-        textureTonemapImageView = mResManager->createImageView(textureTonemapImage, VK_IMAGE_ASPECT_COLOR_BIT);
         mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
 
     mTonemap->setInputTexture(textureCompImageView);
-    mTonemap->setOutputTexture(textureTonemapImageView);
+    mTonemap->setOutputTexture(mResManager->getView(textureTonemapImage));
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
@@ -402,7 +401,6 @@ void Render::cleanup()
     vkDestroyImageView(mDevice, textureCompImageView, nullptr);
     mResManager->destroyImage(textureCompImage);
 
-    vkDestroyImageView(mDevice, textureTonemapImageView, nullptr);
     mResManager->destroyImage(textureTonemapImage);
 
     vkDestroyImageView(mDevice, shadowImageView, nullptr);
@@ -506,18 +504,16 @@ void Render::recreateSwapChain()
 
     {
         mResManager->destroyImage(textureTonemapImage);
-        vkDestroyImageView(mDevice, textureTonemapImageView, nullptr);
     }
     {
         textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
                                                        VK_IMAGE_TILING_OPTIMAL,
                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
-        textureTonemapImageView = mResManager->createImageView(textureTonemapImage, VK_IMAGE_ASPECT_COLOR_BIT);
         mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
     mTonemap->setInputTexture(textureCompImageView);
-    mTonemap->setOutputTexture(textureTonemapImageView);
+    mTonemap->setOutputTexture(mResManager->getView(textureTonemapImage));
 
     // RT shadow pass
     {
