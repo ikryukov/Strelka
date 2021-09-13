@@ -6,6 +6,7 @@
 #include <filesystem>
 
 namespace fs = std::filesystem;
+const uint32_t MAX_LIGHT_COUNT = 15;
 
 [[maybe_unused]] static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
@@ -953,7 +954,7 @@ void Render::createLightsBuffer(nevk::Scene& scene)
 {
     std::vector<nevk::Scene::Light>& sceneLights = scene.getLights();
 
-    VkDeviceSize bufferSize = sizeof(nevk::Scene::Light) * sceneLights.size();
+    VkDeviceSize bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
     if (bufferSize == 0)
     {
         return;
@@ -1281,11 +1282,27 @@ void Render::loadScene(const std::string& modelPath)
     {
         return;
     }
+    mScene->modelPath = MODEL_PATH;
 
-    // for pica pica
-    mScene->createLight(glm::float3(0, 50, 0), glm::float3(10, 50, 0.0), glm::float3(10.0, 50, 10), glm::float3(0.0, 50, 10));
-
-    //mScene->createLight(glm::float3(0, 0.5, 0), glm::float3(1, 0.5, 0.0), glm::float3(1.0, 2, 0), glm::float3(0.0, 2, 0.0));
+    std::string currentFileName = mScene->getSceneFileName();
+    std::string fileName = currentFileName.substr(0, currentFileName.rfind('.')); // w/o extension
+    std::string lightPath = mScene->getSceneDir() + "/" + fileName + "_light" + ".json";
+    if (fs::exists(lightPath))
+    {
+        mUi.loadFromJson(*mScene);
+    }
+    else
+    {
+        // for pica pica
+        Scene::RectLightDesc desc{};
+        desc.position = glm::float3{ 0, 30, 10 };
+        desc.orientation = glm::float3{ 0, 90, 0 };
+        desc.width = 50.f;
+        desc.height = 50.f;
+        desc.color = glm::float3{ 1.0, 1.0, 1.0 };
+        desc.intensity = 1.0;
+        mScene->createLight(desc);
+    }
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
@@ -1349,7 +1366,15 @@ void Render::createDefaultScene()
 
     mScene->addCamera(camera);
 
-    mScene->createLight(glm::float3(0, 0, 10), glm::float3(1.5, 0.0, 10), glm::float3(0.0, 1.5, 10), glm::float3(0.0, 1.5, 10));
+    // for pica pica
+    Scene::RectLightDesc desc{};
+    desc.position = glm::float3{ 0, 30, 10 };
+    desc.orientation = glm::float3{ 0, 90, 0 };
+    desc.width = 50.f;
+    desc.height = 50.f;
+    desc.color = glm::float3{ 1.0, 1.0, 1.0 };
+    desc.intensity = 1.0;
+    mScene->createLight(desc);
 
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
@@ -1496,7 +1521,7 @@ void Render::drawFrame()
         const std::vector<nevk::Scene::Light>& lights = scene->getLights();
         if (!lights.empty())
         {
-            size_t bufferSize = sizeof(nevk::Scene::Light) * lights.size();
+            size_t bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
             memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
 
             VkBufferCopy copyRegion{};

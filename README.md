@@ -6,6 +6,7 @@
 - glfw    - https://www.glfw.org/     *dll*
 - slang      - https://github.com/shader-slang/slang *dll*
 - cxxopts   - https://github.com/jarro2783/cxxopts  *header*
+- json - https://github.com/nlohmann/json *header*
 - imgui   - https://github.com/ocornut/imgui *header+source*
 - glm      - https://github.com/g-truc/glm *submodule*
 - stb       - https://github.com/nothings/stb *submodule*
