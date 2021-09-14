@@ -28,6 +28,7 @@ struct Instance
     uint32_t mMeshId;
     uint32_t mMaterialId;
     glm::float3 massCenter;
+    bool isLight = false;
 };
 
 class Scene
@@ -105,6 +106,7 @@ public:
 
     ~Scene() = default;
 
+    std::unordered_map<uint32_t, uint32_t> mLightIdToInstanceId{};
     std::vector<Vertex>& getVertices()
     {
         return mVertices;
@@ -168,8 +170,8 @@ public:
             camera.updateAspectRatio((float)width / height);
         }
     }
+    void createLightMesh();
 
-    void removeLight(uint32_t lightId);
     void updateLight(uint32_t lightId, const RectLightDesc& desc);
     /// <summary>
     /// Create Mesh geometry
