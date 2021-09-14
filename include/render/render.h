@@ -14,7 +14,6 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "bvh.h"
-#include "finalpass.h"
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
@@ -124,19 +123,9 @@ private:
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     nevk::Image* depthImage;
-    VkImageView depthImageView;
-
-    nevk::Image* textureCompImage;
-    VkImageView textureCompImageView;
 
     nevk::Image* textureTonemapImage;
-
-    nevk::Image* shadowImage;
-    VkImageView shadowImageView;
-
     nevk::Image* mRtShadowImage;
-    VkImageView mRtShadowImageView;
-
     nevk::Image* mLtcOutputImage;
 
     nevk::ResourceManager* mResManager = nullptr;
@@ -147,8 +136,8 @@ private:
     GBuffer mGbuffer;
     nevk::GbufferPass mGbufferPass;
     nevk::ModelLoader* modelLoader = nullptr;
-    nevk::FinalPass mComputePass;
-    nevk::DepthPass mDepthPass;
+    //disable depth prepass 
+    //nevk::DepthPass mDepthPass;
 
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadowPass;

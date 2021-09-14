@@ -129,7 +129,6 @@ set(RENDER_SOURCES
         include/render/gbufferpass.h
         include/render/shaderparameters.h
         include/render/computepass.h
-        include/render/finalpass.h
         include/render/rtshadowpass.h
         include/render/ltcpass.h
         include/render/tonemap.h
@@ -139,7 +138,6 @@ set(RENDER_SOURCES
         src/render/renderpass.cpp
         src/render/gbufferpass.cpp
         src/render/bvh.cpp
-        src/render/finalpass.cpp
         src/render/rtshadowpass.cpp
         src/render/ltcpass.cpp
         src/render/ltc_data.h
