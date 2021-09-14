@@ -68,6 +68,7 @@ public:
     std::unordered_map<TextureSamplerDesc, uint32_t, TextureSamplerDesc::HashFunction> sampDescToId;
     std::vector<Texture> textures;
     std::vector<VkSampler> texSamplers;
+    std::vector<Image*> textureImages;
     std::vector<VkImageView> textureImageView;
     VkSampler shadowSampler = VK_NULL_HANDLE;
 
@@ -115,6 +116,8 @@ public:
             mResManager->destroyImage(tex.textureImage);
         }
 
+        textureImages.clear();
+
         textures.clear();
         textureImageView.clear();
         mNameToID.clear();
@@ -137,6 +140,7 @@ public:
             delTextures.push_back(tex.textureImage);
         }
 
+        textureImages.clear();
         textureImageView.clear();
         textures.clear();
         mNameToID.clear();

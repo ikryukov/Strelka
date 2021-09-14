@@ -46,17 +46,12 @@ void Render::initVulkan()
     createSwapChain();
 
     // load shaders
-    const char* csShaderCode = nullptr;
-    uint32_t csShaderCodeSize = 0;
     const char* shShaderCode = nullptr;
     uint32_t shShaderCodeSize = 0;
     const char* pbrVertShaderCode = nullptr;
     uint32_t pbrVertShaderCodeSize = 0;
     const char* pbrFragShaderCode = nullptr;
     uint32_t pbrFragShaderCodeSize = 0;
-
-    uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-    mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
 
     uint32_t shId = mShaderManager.loadShader("shaders/shadowmap.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
     mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);
@@ -77,9 +72,38 @@ void Render::initVulkan()
     createCommandBuffers();
     createSyncObjects();
 
-    createDepthResources();
+    mSharedCtx.mDescriptorPool = mDescriptorPool;
+    mSharedCtx.mDevice = mDevice;
+    mSharedCtx.mResManager = mResManager;
+    mSharedCtx.mShaderManager = &mShaderManager;
+    mSharedCtx.mTextureManager = mTexManager;
 
-    nevk::TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
+    textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
+    mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                               VK_IMAGE_TILING_OPTIMAL,
+                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+    mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                              VK_IMAGE_TILING_OPTIMAL,
+                                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+
+    mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
+
+    mTonemap = new Tonemap(mSharedCtx);
+    mTonemap->initialize();
+
+    mLtcPass = new LtcPass(mSharedCtx);
+    mLtcPass->initialize();
+
+    mRtShadowPass = new RtShadowPass(mSharedCtx);
+    mRtShadowPass->initialize();
+
+    TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
@@ -91,75 +115,14 @@ void Render::initVulkan()
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        mUploadBuffer[i] = mResManager->createBuffer(SceneRenderData::MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    }
-
-    {
-        shadowImage = mResManager->createImage(SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, findDepthFormat(),
-                                               VK_IMAGE_TILING_OPTIMAL,
-                                               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "ShadowMap");
-        shadowImageView = mTexManager->createImageView(mResManager->getVkImage(shadowImage), findDepthFormat(), VK_IMAGE_ASPECT_DEPTH_BIT);
+        mUploadBuffer[i] = mResManager->createBuffer(MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 
     mTexManager->createShadowSampler();
 
-    mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
 
-    {
-        const char* csRtShaderCode = nullptr;
-        uint32_t csRtShaderCodeSize = 0;
-        uint32_t csRtId = mShaderManager.loadShader("shaders/rtshadows.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-        mShaderManager.getShaderCode(csRtId, csRtShaderCode, csRtShaderCodeSize);
-        mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
-        mRtShadowImageView = mTexManager->createImageView(mResManager->getVkImage(mRtShadowImage), VK_FORMAT_R16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-
-        mRtShadowPass.setGbuffer(&mGbuffer);
-        mRtShadowPass.setOutputImageView(mRtShadowImageView);
-
-        mRtShadowPass.init(mDevice, csRtShaderCode, csRtShaderCodeSize, mDescriptorPool, mResManager);
-    }
-
-    // LTC
-    {
-        const char* csLtcShaderCode = nullptr;
-        uint32_t csLtcShaderCodeSize = 0;
-        uint32_t csLtcId = mShaderManager.loadShader("shaders/ltc.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-        mShaderManager.getShaderCode(csLtcId, csLtcShaderCode, csLtcShaderCodeSize);
-        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                   VK_IMAGE_TILING_OPTIMAL,
-                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
-        mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
-
-        mLtcPass.setGbuffer(&mGbuffer);
-        mLtcPass.setOutputImageView(mLtcOutputImageView);
-
-        mLtcPass.init(mDevice, csLtcShaderCode, csLtcShaderCodeSize, mDescriptorPool, mResManager, *mTexManager);
-    }
-
-    //init passes
-    {
-        textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                    VK_IMAGE_TILING_OPTIMAL,
-                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Shading result");
-        textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-        mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    }
-    mComputePass.setGbuffer(&mGbuffer);
-    mComputePass.setLtcImageView(mLtcOutputImageView);
-    mComputePass.setRtShadowImageView(mRtShadowImageView);
-    mComputePass.setOutputImageView(textureCompImageView);
-    mComputePass.setTextureSamplers(mTexManager->texSamplers);
-    mComputePass.init(mDevice, csShaderCode, csShaderCodeSize, mDescriptorPool, mResManager);
-
-    mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-    mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+    setDescriptors();
 
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
@@ -343,9 +306,6 @@ void Render::mainLoop()
 
 void Render::cleanupSwapChain()
 {
-    vkDestroyImageView(mDevice, depthImageView, nullptr);
-    mResManager->destroyImage(depthImage);
-
     for (auto& framebuffer : swapChainFramebuffers)
     {
         vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
@@ -363,11 +323,8 @@ void Render::cleanup()
 {
     cleanupSwapChain();
 
-    mDepthPass.onDestroy();
+    // mDepthPass.onDestroy();
     mGbufferPass.onDestroy();
-    mRtShadowPass.onDestroy();
-    mComputePass.onDestroy();
-    mLtcPass.onDestroy();
 
     mUi.onDestroy();
 
@@ -377,18 +334,14 @@ void Render::cleanup()
     mTexManager->delTexturesFromQueue();
 
     mResManager->destroyImage(mRtShadowImage);
-    vkDestroyImageView(mDevice, mRtShadowImageView, nullptr);
-
-    vkDestroyImageView(mDevice, textureCompImageView, nullptr);
-    mResManager->destroyImage(textureCompImage);
-
-    vkDestroyImageView(mDevice, shadowImageView, nullptr);
-    mResManager->destroyImage(shadowImage);
-
-    vkDestroyImageView(mDevice, mLtcOutputImageView, nullptr);
+    mResManager->destroyImage(textureTonemapImage);
     mResManager->destroyImage(mLtcOutputImage);
 
     destroyGbuffer(mGbuffer);
+
+    delete mTonemap;
+    delete mLtcPass;
+    delete mRtShadowPass;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -462,58 +415,33 @@ void Render::recreateSwapChain()
 
     createSwapChain();
     createImageViews();
-    createDepthResources();
-
-    // TODO: add release prev gbuffer
-    {
-        mResManager->destroyImage(textureCompImage);
-        vkDestroyImageView(mDevice, textureCompImageView, nullptr);
-    }
-    {
-        textureCompImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                    VK_IMAGE_TILING_OPTIMAL,
-                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Shading result");
-        textureCompImageView = mTexManager->createImageView(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-        mTexManager->transitionImageLayout(mResManager->getVkImage(textureCompImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    }
-    mComputePass.setOutputImageView(textureCompImageView);
-
-    // RT shadow pass
-    {
-        mResManager->destroyImage(mRtShadowImage);
-        vkDestroyImageView(mDevice, mRtShadowImageView, nullptr);
-    }
-    {
-        mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
-        mRtShadowImageView = mTexManager->createImageView(mResManager->getVkImage(mRtShadowImage), VK_FORMAT_R16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
-    }
-    mRtShadowPass.setOutputImageView(mRtShadowImageView);
-    mComputePass.setRtShadowImageView(mRtShadowImageView);
-
-    // LTC pass
-    {
-        mResManager->destroyImage(mLtcOutputImage);
-        vkDestroyImageView(mDevice, mLtcOutputImageView, nullptr);
-    }
-    {
-        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                   VK_IMAGE_TILING_OPTIMAL,
-                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
-        mLtcOutputImageView = mResManager->createImageView(mLtcOutputImage, VK_IMAGE_ASPECT_COLOR_BIT);
-
-        mLtcPass.setOutputImageView(mLtcOutputImageView);
-    }
-
-    mComputePass.setLtcImageView(mLtcOutputImageView);
 
     destroyGbuffer(mGbuffer);
     mGbuffer = createGbuffer(width, height);
     mGbufferPass.onResize(&mGbuffer);
+
+    mResManager->destroyImage(textureTonemapImage);
+    textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
+    mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+
+    // RT shadow pass
+    mResManager->destroyImage(mRtShadowImage);
+    mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                              VK_IMAGE_TILING_OPTIMAL,
+                                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+
+    // LTC pass
+    mResManager->destroyImage(mLtcOutputImage);
+    mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                               VK_IMAGE_TILING_OPTIMAL,
+                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+    setDescriptors();
 
     mUi.onResize(swapChainImageViews, width, height);
 
@@ -785,37 +713,31 @@ GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
         res.depthFormat = findDepthFormat();
         res.depth = mResManager->createImage(width, height, res.depthFormat, VK_IMAGE_TILING_OPTIMAL,
                                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
-        res.depthView = mTexManager->createImageView(mResManager->getVkImage(res.depth), res.depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
     // Normals
     {
         res.normal = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
-        res.normalView = mTexManager->createImageView(mResManager->getVkImage(res.normal), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // Tangent
     {
         res.tangent = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
-        res.tangentView = mTexManager->createImageView(mResManager->getVkImage(res.tangent), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // wPos
     {
         res.wPos = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
-        res.wPosView = mTexManager->createImageView(mResManager->getVkImage(res.wPos), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // UV
     {
         res.uv = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
-        res.uvView = mTexManager->createImageView(mResManager->getVkImage(res.uv), VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // InstId
     {
         res.instId = mResManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
-        res.instIdView = mTexManager->createImageView(mResManager->getVkImage(res.instId), VK_FORMAT_R32_SINT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     return res;
 }
@@ -823,17 +745,11 @@ GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
 void Render::destroyGbuffer(GBuffer& gbuffer)
 {
     mResManager->destroyImage(gbuffer.depth);
-    vkDestroyImageView(mDevice, gbuffer.depthView, nullptr);
     mResManager->destroyImage(gbuffer.wPos);
-    vkDestroyImageView(mDevice, gbuffer.wPosView, nullptr);
     mResManager->destroyImage(gbuffer.normal);
-    vkDestroyImageView(mDevice, gbuffer.normalView, nullptr);
     mResManager->destroyImage(gbuffer.tangent);
-    vkDestroyImageView(mDevice, gbuffer.tangentView, nullptr);
     mResManager->destroyImage(gbuffer.uv);
-    vkDestroyImageView(mDevice, gbuffer.uvView, nullptr);
     mResManager->destroyImage(gbuffer.instId);
-    vkDestroyImageView(mDevice, gbuffer.instIdView, nullptr);
 }
 
 void Render::createGbufferPass()
@@ -868,13 +784,6 @@ void Render::createCommandPool()
             throw std::runtime_error("failed to create graphics command pool!");
         }
     }
-}
-
-void Render::createDepthResources()
-{
-    VkFormat depthFormat = findDepthFormat();
-    depthImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    depthImageView = mTexManager->createImageView(mResManager->getVkImage(depthImage), depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 VkFormat Render::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
@@ -1161,7 +1070,7 @@ void Render::recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout ol
 
 void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 {
-    mDepthPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex, getActiveCameraIndex());
+    // mDepthPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex, getActiveCameraIndex());
     mGbufferPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, swapChainExtent.width, swapChainExtent.height, imageIndex, getActiveCameraIndex());
 
     // barriers
@@ -1183,7 +1092,11 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     // LTC
     recordBarrier(cmd, mResManager->getVkImage(mLtcOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mLtcPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    //mLtcPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+
+
+    mLtcPass->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+
     recordBarrier(cmd, mResManager->getVkImage(mLtcOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
@@ -1191,18 +1104,21 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mRtShadowPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mRtShadowPass->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
 
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-    mComputePass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mToneParams.dimension.x = swapChainExtent.width;
+    mToneParams.dimension.y = swapChainExtent.height;
+    mTonemap->setParams(mToneParams);
+    mTonemap->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
 
     // Copy to swapchain image
     {
 
-        recordBarrier(cmd, mResManager->getVkImage(textureCompImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        recordBarrier(cmd, mResManager->getVkImage(textureTonemapImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
         recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -1219,9 +1135,9 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         imageBlitRegion.dstSubresource.layerCount = 1;
         imageBlitRegion.dstOffsets[1] = blitSize;
-        vkCmdBlitImage(cmd, mResManager->getVkImage(textureCompImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
+        vkCmdBlitImage(cmd, mResManager->getVkImage(textureTonemapImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
 
-        recordBarrier(cmd, mResManager->getVkImage(textureCompImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+        recordBarrier(cmd, mResManager->getVkImage(textureTonemapImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
                       VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -1327,29 +1243,32 @@ void Render::setDescriptors()
         mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
     {
-        mRtShadowPass.setBvhBuffers(mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhTriangleBuffer));
-        mRtShadowPass.setLightsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
+        RtShadowPassDesc desc{};
+        desc.result = mRtShadowImage;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.gbuffer = &mGbuffer;
+        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+        desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
+        mRtShadowPass->setResources(desc);
     }
     {
-        mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
+        // mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
+    } {
+        LtcResourceDesc desc{};
+        desc.gbuffer = &mGbuffer;
+        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+        desc.result = mLtcOutputImage;
+        desc.matSampler = mTexManager->texSamplers;
+        desc.matTextures = mTexManager->textureImages;
+        mLtcPass->setResources(desc);
     }
+
     {
-        mComputePass.setGbuffer(&mGbuffer);
-        mComputePass.setTextureImageViews(mTexManager->textureImageView);
-        mComputePass.setTextureSamplers(mTexManager->texSamplers);
-        mComputePass.setRtShadowImageView(mRtShadowImageView);
-        mComputePass.setLtcImageView(mLtcOutputImageView);
-        mComputePass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
-        mComputePass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-        mComputePass.setLightBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
-    }
-    {
-        mLtcPass.setGbuffer(&mGbuffer);
-        mLtcPass.setMaterialsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
-        mLtcPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-        mLtcPass.setLightsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
-        mLtcPass.setTextureImageViews(mTexManager->textureImageView);
-        mLtcPass.setTextureSamplers(mTexManager->texSamplers);
+        mTonemap->setParams(mToneParams);
+        mTonemap->setInputTexture(mResManager->getView(mLtcOutputImage));
+        mTonemap->setOutputTexture(mResManager->getView(textureTonemapImage));
     }
 }
 
@@ -1383,7 +1302,7 @@ void Render::createDefaultScene()
     createLightsBuffer(*mScene);
     createBvhBuffer(*mScene);
 
-    setDescriptors();
+    // setDescriptors();
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
@@ -1427,21 +1346,32 @@ void Render::drawFrame()
     Camera& cam = scene->getCamera(getActiveCameraIndex());
     cam.update((float)deltaTime);
 
-    const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
+    // const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
     mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
-    mLtcPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
-    mRtShadowPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
 
-    mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
-    mComputePass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
+    RtShadowParam rtShadowParam{};
+    rtShadowParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
+    mRtShadowPass->setParams(rtShadowParam);
+
+    // mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
+
+    LtcParam ltcparams{};
+
+    ltcparams.CameraPos = cam.getPosition();
+    ltcparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    ltcparams.frameNumber = (uint32_t)mFrameNumber;
+    ltcparams.lightsCount = (uint32_t)scene->getLights().size();
+
+    mLtcPass->setParams(ltcparams);
 
     static int releaseAfterFrames = 0;
     static bool needReload = false;
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
 
-    mUi.updateUI(*scene, mDepthPass, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex);
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {

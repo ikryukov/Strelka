@@ -6,6 +6,8 @@
 
 const std::string MODELPATH = "misc/test_data/cube/Cube.gltf";
 
+using namespace nevk;
+
 TEST_CASE("load model")
 {
     Render r;

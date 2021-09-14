@@ -11,6 +11,7 @@ int nevk::TextureManager::loadTextureGltf(const void* pixels, const uint32_t wid
         mNameToID[name] = textures.size();
         Texture tex = createTextureImage(pixels, width, height);
         textures.push_back(tex);
+        textureImages.push_back(tex.textureImage);
 
         createTextureImageView(tex);
     }

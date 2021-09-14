@@ -5,6 +5,8 @@
 
 const std::string MODEL_PATH = "misc/Cube/Cube.gltf";
 
+using namespace nevk;
+
 TEST_CASE("test UI init")
 {
     Render r;

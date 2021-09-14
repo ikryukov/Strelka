@@ -2,6 +2,8 @@
 
 #include <doctest.h>
 
+using namespace nevk;
+
 TEST_CASE("shader manager test")
 {
     nevk::ShaderManager* sm = new nevk::ShaderManager();
@@ -21,5 +23,6 @@ TEST_CASE("shader manager compute")
     nevk::ShaderManager* sm = new nevk::ShaderManager();
     uint32_t compShaderId = sm->loadShader("../../shaders/test/test_comp_shader.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
     CHECK(compShaderId != -1);
-    sm->printInfo(compShaderId);
+    std::vector<ShaderManager::ResourceDesc> descs = sm->getResourcesDesc(compShaderId);
+    CHECK(!descs.empty());
 }

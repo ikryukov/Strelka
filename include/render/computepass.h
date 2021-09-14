@@ -1,84 +1,112 @@
 #pragma once
-#include <scene/scene.h>
-#include <vulkan/vulkan.h>
 
-#include <resourcemanager.h>
-#include <vector>
-
-#include "gbuffer.h"
+#include "common.h"
+#include "shaderparameters.h"
 
 namespace nevk
 {
+template <typename T>
 class ComputePass
 {
-private:
-    struct UniformBufferObject
+protected:
+    const SharedContext& mSharedCtx;
+
+    VkPipeline mPipeline = VK_NULL_HANDLE;
+    VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
+    VkShaderModule mCS = VK_NULL_HANDLE;
+
+    ShaderParameters<T> mShaderParams;
+
+    VkShaderModule createShaderModule(const char* code, uint32_t codeSize)
     {
-        glm::float4x4 viewToProj;
-        glm::float4x4 worldToView;
-        glm::float3 CameraPos;
-        float pad0;
-        glm::int2 dimension;
-        uint32_t debugView;
-        float pad1;
-    };
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = codeSize;
+        createInfo.pCode = (uint32_t*)code;
 
-    static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
+        VkShaderModule shaderModule;
+        if (vkCreateShaderModule(mSharedCtx.mDevice, &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create shader module!");
+        }
 
-    VkDevice mDevice;
-    VkDescriptorPool mDescriptorPool;
-    VkPipeline mPipeline;
-    VkPipelineLayout mPipelineLayout;
-    VkShaderModule mCS;
+        return shaderModule;
+    }
+    void createComputePipeline(VkShaderModule& shaderModule)
+    {
+        VkPipelineShaderStageCreateInfo shaderStageInfo{};
+        shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+        shaderStageInfo.module = shaderModule;
+        shaderStageInfo.pName = "main";
 
-    ResourceManager* mResManager;
+        VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutInfo.setLayoutCount = 1;
+        VkDescriptorSetLayout layout = mShaderParams.getDescriptorSetLayout();
+        pipelineLayoutInfo.pSetLayouts = &layout;
 
-    VkDescriptorSetLayout mDescriptorSetLayout;
-    std::vector<VkDescriptorSet> mDescriptorSets;
+        if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create pipeline layout!");
+        }
 
-    bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = {false, false, false};
-    
-    std::vector<Buffer*> uniformBuffers;
+        VkComputePipelineCreateInfo pipelineInfo{};
+        pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        pipelineInfo.stage = shaderStageInfo;
+        pipelineInfo.layout = mPipelineLayout;
+        pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-    GBuffer* mGbuffer;
-    std::vector<VkImageView> mTextureImageView;
-    VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
-    VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
-    VkBuffer mLightBuffer = VK_NULL_HANDLE;
-
-    VkImageView mRtShadowImageView = VK_NULL_HANDLE;
-    VkImageView mLtcImageView = VK_NULL_HANDLE;
-
-    VkImageView mOutImageView;
-    std::vector<VkSampler> mTextureSamplers;
-
-    void createDescriptorSetLayout();
-    void createDescriptorSets(VkDescriptorPool& descriptorPool);
-    void updateDescriptorSet(uint32_t descIndex);
-    void updateDescriptorSets();
-
-    void createUniformBuffers();
-
-    VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
-    void createComputePipeline(VkShaderModule& shaderModule);
+        if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create compute pipeline!");
+        }
+    }
 
 public:
-    ComputePass(/* args */);
-    ~ComputePass();
+    ComputePass(const SharedContext& ctx)
+        : mSharedCtx(ctx)
+    {
+    }
+    virtual ~ComputePass()
+    {
+        vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
+        vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
+        vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
+    }
 
-    void init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr);
-    void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
-    void onDestroy();
+    void initialize(const char* shaderFile)
+    {
+        const char* csShaderCode = nullptr;
+        uint32_t csShaderCodeSize = 0;
+        uint32_t csId = mSharedCtx.mShaderManager->loadShader(shaderFile, "computeMain", nevk::ShaderManager::Stage::eCompute);
+        mSharedCtx.mShaderManager->getShaderCode(csId, csShaderCode, csShaderCodeSize);
+        mCS = createShaderModule(csShaderCode, csShaderCodeSize);
 
-    void setMaterialBuffer(VkBuffer materialBuffer);
-    void setInstanceBuffer(VkBuffer instanceBuffer);
-    void setLightBuffer(VkBuffer lightBuffer);
-    void setGbuffer(GBuffer* gbuffer);
-    void setRtShadowImageView(VkImageView imageView);
-    void setLtcImageView(VkImageView imageView);
-    void setOutputImageView(VkImageView imageView);
-    void setTextureSamplers(std::vector<VkSampler>& textureSamplers);
-    void setTextureImageViews(const std::vector<VkImageView>& texImages);
-    void updateUniformBuffer(uint32_t currentImage, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
+        mShaderParams.create(mSharedCtx, csId);
+
+        createComputePipeline(mCS);
+    }
+    void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
+    {
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
+        VkDescriptorSet descSet = mShaderParams.getDescriptorSet(imageIndex);
+        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
+        const uint32_t dispX = (width + 15) / 16;
+        const uint32_t dispY = (height + 15) / 16;
+        vkCmdDispatch(cmd, dispX, dispY, 1);
+    }
+    void onDestroy()
+    {
+        vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
+        vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
+        vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
+    }
+
+    void setParams(const T& params)
+    {
+        mShaderParams.setParams(params);
+    }
+
 };
 } // namespace nevk

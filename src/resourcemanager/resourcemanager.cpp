@@ -16,6 +16,7 @@ struct Buffer
 struct Image
 {
     VkImage handle = VK_NULL_HANDLE;
+    VkImageView view = VK_NULL_HANDLE;
     VkFormat format;
     VmaAllocation allocation = VK_NULL_HANDLE;
 };
@@ -162,15 +163,44 @@ public:
         {
             throw std::runtime_error("failed to create image!");
         }
-
         ret->format = format;
+        
+        VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+        if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        {
+            aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+        }
+        ret->view = createImageView(ret, aspectFlags);
+
         return ret;
+    }
+
+    VkImageView createImageView(const Image* image, VkImageAspectFlags aspectFlags)
+    {
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = image->handle;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        viewInfo.format = image->format;
+        viewInfo.subresourceRange.aspectMask = aspectFlags;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 1;
+
+        VkImageView imageView;
+        if (vkCreateImageView(mDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create texture image view!");
+        }
+        return imageView;
     }
 
     void destroyImage(Image* image)
     {
         assert(image);
         vmaDestroyImage(mAllocator, image->handle, image->allocation);
+        vkDestroyImageView(mDevice, image->view, nullptr);
         delete image;
         image = nullptr;
     }
@@ -245,25 +275,14 @@ VkImage ResourceManager::getVkImage(const Image* image)
     return mContext->getVkImage(image);
 }
 
+VkImageView ResourceManager::getView(Image* image)
+{
+    return image->view;
+}
+
 VkImageView ResourceManager::createImageView(const Image* image, VkImageAspectFlags aspectFlags)
 {
-    VkImageViewCreateInfo viewInfo{};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = image->handle;
-    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format = image->format;
-    viewInfo.subresourceRange.aspectMask = aspectFlags;
-    viewInfo.subresourceRange.baseMipLevel = 0;
-    viewInfo.subresourceRange.levelCount = 1;
-    viewInfo.subresourceRange.baseArrayLayer = 0;
-    viewInfo.subresourceRange.layerCount = 1;
-
-    VkImageView imageView;
-    if (vkCreateImageView(mDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create texture image view!");
-    }
-    return imageView;
+    return mContext->createImageView(image, aspectFlags);
 }
 
 VkCommandBuffer ResourceManager::beginSingleTimeCommands()

@@ -1,74 +1,29 @@
 #pragma once
-#include <scene/scene.h>
-#include <vulkan/vulkan.h>
-
-#include <resourcemanager.h>
-#include <vector>
-
+#include "common.h"
+#include "computepass.h"
 #include "gbuffer.h"
+#include "rtshadowparam.h"
 
 namespace nevk
 {
-class RtShadowPass
+struct RtShadowPassDesc
 {
-private:
-    struct UniformBufferObject
-    {
-        glm::float4x4 viewToProj;
-        glm::float4x4 worldToView;
-        glm::float3 CameraPos;
-        uint32_t frameNumber;
-        glm::int2 dimension;
-        float pad0;
-        float pad1;
-    };
+    GBuffer* gbuffer = nullptr;
+    Buffer* bvhNodes = VK_NULL_HANDLE;
+    Buffer* bvhTriangles = VK_NULL_HANDLE;
+    Buffer* lights = VK_NULL_HANDLE;
 
-    static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
+    Image* result = VK_NULL_HANDLE;
+};
 
-    VkDevice mDevice;
-    VkDescriptorPool mDescriptorPool;
-    VkPipeline mPipeline;
-    VkPipelineLayout mPipelineLayout;
-    VkShaderModule mCS;
-
-    ResourceManager* mResManager = nullptr;
-
-    VkDescriptorSetLayout mDescriptorSetLayout;
-    std::vector<VkDescriptorSet> mDescriptorSets;
-
-    bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = {false, false, false};
-    
-    std::vector<Buffer*> uniformBuffers;
-
-    GBuffer* mGbuffer = nullptr;
-    VkBuffer mBvhNodeBuffer = VK_NULL_HANDLE;
-    VkBuffer mBvhTriangleBuffer = VK_NULL_HANDLE;
-    VkBuffer mLightsBuffer = VK_NULL_HANDLE;
-
-    VkImageView mOutImageView = VK_NULL_HANDLE;
-
-    void createDescriptorSetLayout();
-    void createDescriptorSets(VkDescriptorPool& descriptorPool);
-    void updateDescriptorSet(uint32_t descIndex);
-    void updateDescriptorSets();
-
-    void createUniformBuffers();
-
-    VkShaderModule createShaderModule(const char* code, uint32_t codeSize);
-    void createComputePipeline(VkShaderModule& shaderModule);
-
+using RtShadowBase = ComputePass<RtShadowParam>;
+class RtShadowPass : public RtShadowBase
+{
 public:
-    RtShadowPass(/* args */);
+    RtShadowPass(const SharedContext& ctx);
     ~RtShadowPass();
 
-    void init(VkDevice& device, const char* csCode, uint32_t csCodeSize, VkDescriptorPool descpool, ResourceManager* resMngr);
-    void record(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex);
-    void onDestroy();
-
-    void setBvhBuffers(VkBuffer nodeBuffer, VkBuffer triangleBuffer);
-    void setLightsBuffer(VkBuffer buffer);
-    void setGbuffer(GBuffer* gbuffer);
-    void setOutputImageView(VkImageView imageView);
-    void updateUniformBuffer(uint32_t currentImage, uint64_t frameNumber, Scene& scene, uint32_t cameraIndex, const uint32_t width, const uint32_t height);
+    void initialize();
+    void setResources(RtShadowPassDesc& desc);
 };
 } // namespace nevk

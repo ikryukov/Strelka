@@ -338,7 +338,7 @@ void DepthPass::updateDescriptorSets(uint32_t descSetIndex)
     needDesciptorSetUpdate[descSetIndex] = false;
 }
 
-void DepthPass::createUniformBuffers()
+void DepthPass::createConstantBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -479,7 +479,7 @@ void DepthPass::init(VkDevice& device, bool enableValidation, const char* ssCode
     mResManager = resMngr;
     mDescriptorPool = descpool;
     mSS = createShaderModule(ssCode, ssCodeSize);
-    createUniformBuffers();
+    createConstantBuffers();
     createShadowPass();
     createDescriptorSetLayout();
     createDescriptorSets(mDescriptorPool);

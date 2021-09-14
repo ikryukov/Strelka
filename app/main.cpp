@@ -34,7 +34,7 @@ int main(int argc, char** argv)
     }
 
     // initialise & run render
-    Render r;
+    nevk::Render r;
 
     r.MODEL_PATH = mesh;
     r.WIDTH = result["width"].as<uint32_t>();
