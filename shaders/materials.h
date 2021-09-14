@@ -10,7 +10,7 @@ struct Material
     float4 diffuse; // Kd
     float4 baseColorFactor;
 
-    uint32_t illum; // illum 2 -- модель освещения //4 bytes
+    uint32_t illum; // illum 2 -- модель освещения
     int32_t texNormalId = -1; // map_normal - map_Bump
     float d;
     int32_t texMetallicRoughness = -1;
@@ -29,9 +29,9 @@ struct Material
     int32_t sampBaseId = -1;
 
     int32_t sampNormalId = -1;
+    int32_t isLight = 0;
     float pad0;
     float pad1;
-    float pad2;
 
     bool isTransparent()
     {

@@ -59,6 +59,7 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     inst->mMeshId = meshId;
     inst->transform = transform;
     inst->massCenter = massCenter;
+    inst->isLight = mMaterials[materialId].isLight;
 
     if (mMaterials[materialId].isTransparent())
     {
@@ -105,6 +106,35 @@ glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
     return localTransform;
 }
 
+//  valid range of coordinates [-1; 1]
+uint32_t packNormals(const glm::float3& normal)
+{
+    uint32_t packed = (uint32_t)((normal.x + 1.0f) / 2.0f * 511.99999f);
+    packed += (uint32_t)((normal.y + 1.0f) / 2.0f * 511.99999f) << 10;
+    packed += (uint32_t)((normal.z + 1.0f) / 2.0f * 511.99999f) << 20;
+    return packed;
+}
+
+void Scene::createLightMesh()
+{
+    std::vector<Scene::Vertex> vb;
+    Scene::Vertex v1, v2, v3, v4;
+    v1.pos = glm::float4(0.0f, 0.5f, 0.5f, 1.0f); // top right 0
+    v2.pos = glm::float4(0.0f, -0.5f, 0.5f, 1.0f); // top left 1
+    v3.pos = glm::float4(0.0f, -0.5f, -0.5f, 1.0f); // bottom left 2
+    v4.pos = glm::float4(0.0f, 0.5f, -0.5f, 1.0f); // bottom right 3
+    glm::float3 normal = glm::float3(1.f, 0.f, 0.f);
+    v1.normal = v2.normal = v3.normal = v4.normal = packNormals(normal);
+    std::vector<uint32_t> ib = { 0, 1, 2, 2, 3, 0 };
+    vb.push_back(v1);
+    vb.push_back(v2);
+    vb.push_back(v3);
+    vb.push_back(v4);
+
+    uint32_t meshId = createMesh(vb, ib);
+    assert(meshId != -1);
+}
+
 uint32_t Scene::createLight(const RectLightDesc& desc)
 {
     const glm::float4x4 localTransform = getTransform(desc);
@@ -127,6 +157,20 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     uint32_t lightId = (uint32_t)mLights.size();
     mLights.push_back(l);
     mLightDesc.push_back(desc);
+
+    Material light;
+    light.isLight = 1;
+    light.baseColorFactor = glm::float4(desc.color, 1.0f);
+    light.texBaseColor = -1;
+    light.texMetallicRoughness = -1;
+    light.roughnessFactor = 0.01;
+    light.illum = 2;
+    uint32_t matId = addMaterial(light);
+
+    uint32_t instId = createInstance(0, matId, localTransform, desc.position);
+    assert(instId != -1);
+
+    mLightIdToInstanceId[lightId] = instId;
 
     return lightId;
 }

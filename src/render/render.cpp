@@ -1277,6 +1277,7 @@ void Render::loadScene(const std::string& modelPath)
 
     mCurrentSceneRenderData = new SceneRenderData(mResManager);
     MODEL_PATH = modelPath;
+    mScene->createLightMesh();
     bool res = modelLoader->loadModelGltf(MODEL_PATH, *mScene);
     if (!res)
     {
@@ -1367,6 +1368,7 @@ void Render::createDefaultScene()
     mScene->addCamera(camera);
 
     // for pica pica
+    mScene->createLightMesh();
     Scene::RectLightDesc desc{};
     desc.position = glm::float3{ 0, 30, 10 };
     desc.orientation = glm::float3{ 0, 90, 0 };
