@@ -146,12 +146,12 @@ private:
 
     GBuffer mGbuffer;
     nevk::GbufferPass mGbufferPass;
-    nevk::RtShadowPass mRtShadowPass;
     nevk::ModelLoader* modelLoader = nullptr;
     nevk::FinalPass mComputePass;
     nevk::DepthPass mDepthPass;
 
     SharedContext mSharedCtx;
+    RtShadowPass* mRtShadowPass;
     Tonemap* mTonemap;
     LtcPass* mLtcPass;
     Tonemapparam mToneParams;

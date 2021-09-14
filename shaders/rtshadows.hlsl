@@ -1,16 +1,7 @@
 #include "random.h"
 #include "ray.h"
-
-cbuffer ubo
-{
-    float4x4 viewToProj;
-    float4x4 worldToView;
-    float3 CameraPos;
-    uint frameNumber;
-    uint2 dimension;
-    float pad0;
-    float pad1;
-}
+#include "lights.h"
+#include "rtshadowparam.h"
 
 struct BVHNode 
 {
@@ -25,22 +16,14 @@ struct BVHTriangle
     float4 v0;
 };
 
-struct Light
-{
-    float3 v0;
-    float pad0;
-    float3 v1;
-    float pad1;
-    float3 v2;
-    float pad2;
-};
+ConstantBuffer<RtShadowParam> ubo;
 
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
 
 StructuredBuffer<BVHNode> bvhNodes;
 StructuredBuffer<BVHTriangle> bvhTriangles;
-StructuredBuffer<Light> lights;
+StructuredBuffer<RectLight> lights;
 
 RWTexture2D<float> output;
 
@@ -155,12 +138,17 @@ float calcShadow(uint2 pixelIndex)
         return 0;
     float3 wpos = gbWPos[pixelIndex].xyz;
 
-    uint rngState = initRNG(pixelIndex, dimension, frameNumber);
+    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
 
     float2 rndUV = float2(rand(rngState), rand(rngState));
     float3 bary = UniformSampleTriangle(rndUV);
 
-    float3 pointOnLight = bary.z * lights[0].v0 + bary.x * lights[0].v1 + bary.y * lights[0].v2;
+    RectLight curLight = lights[0];
+    float3 e1 = curLight.points[1].xyz - curLight.points[0].xyz;
+    float3 e2 = curLight.points[2].xyz - curLight.points[0].xyz;
+    float3 pointOnLight = curLight.points[0].xyz + e1 * rndUV.x + e2 * rndUV.y;
+
+    // float3 pointOnLight = bary.z * curLight.points[0].xyz + bary.x * lcurLight.points[1].xyz + bary.y * curLight.points[2].xyz;
 
     float3 L = normalize(pointOnLight - wpos);
     float3 N = normalize(gbNormal[pixelIndex].xyz);
@@ -183,7 +171,7 @@ float calcShadow(uint2 pixelIndex)
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 {
-    if (pixelIndex.x >= dimension.x || pixelIndex.y >= dimension.y)
+    if (pixelIndex.x >= ubo.dimension.x || pixelIndex.y >= ubo.dimension.y)
     {
         return;
     }

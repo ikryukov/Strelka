@@ -102,6 +102,12 @@ void Render::initVulkan()
                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
         mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     }
+    {
+        mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                  VK_IMAGE_TILING_OPTIMAL,
+                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+    }
 
     mTonemap = new Tonemap(mSharedCtx);
     mTonemap->initialize();
@@ -110,9 +116,9 @@ void Render::initVulkan()
     mLtcPass->initialize();
 
     mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                        VK_IMAGE_TILING_OPTIMAL,
-                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+                                               VK_IMAGE_TILING_OPTIMAL,
+                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
 
 
     nevk::TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
@@ -143,35 +149,29 @@ void Render::initVulkan()
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
 
-    {
-        const char* csRtShaderCode = nullptr;
-        uint32_t csRtShaderCodeSize = 0;
-        uint32_t csRtId = mShaderManager.loadShader("shaders/rtshadows.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-        mShaderManager.getShaderCode(csRtId, csRtShaderCode, csRtShaderCodeSize);
-        mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
-        mRtShadowImageView = mTexManager->createImageView(mResManager->getVkImage(mRtShadowImage), VK_FORMAT_R16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
 
-        mRtShadowPass.setGbuffer(&mGbuffer);
-        mRtShadowPass.setOutputImageView(mRtShadowImageView);
+    mRtShadowPass = new RtShadowPass(mSharedCtx);
+    mRtShadowPass->initialize();
+    RtShadowPassDesc shadowDesc{};
+    shadowDesc.gbuffer = &mGbuffer;
+    shadowDesc.result = mRtShadowImage;
+    shadowDesc.lights = mCurrentSceneRenderData->mLightsBuffer;
+    shadowDesc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+    shadowDesc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
 
-        mRtShadowPass.init(mDevice, csRtShaderCode, csRtShaderCodeSize, mDescriptorPool, mResManager);
-    }
+    mRtShadowPass->setResources(shadowDesc);
 
     //init passes
 
     mComputePass.setGbuffer(&mGbuffer);
     mComputePass.setLtcImageView(mResManager->getView(mLtcOutputImage));
-    mComputePass.setRtShadowImageView(mRtShadowImageView);
+    mComputePass.setRtShadowImageView(mResManager->getView(mRtShadowImage));
     mComputePass.setOutputImageView(textureCompImageView);
     mComputePass.setTextureSamplers(mTexManager->texSamplers);
     mComputePass.init(mDevice, csShaderCode, csShaderCodeSize, mDescriptorPool, mResManager);
 
     mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
     mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-
 
 
     mTonemap->setInputTexture(textureCompImageView);
@@ -191,6 +191,8 @@ void Render::initVulkan()
         mLtcPass->setResources(desc);
     }
 
+    setDescriptors();
+    
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
     ImGui_ImplVulkan_InitInfo init_info{};
@@ -395,7 +397,6 @@ void Render::cleanup()
 
     mDepthPass.onDestroy();
     mGbufferPass.onDestroy();
-    mRtShadowPass.onDestroy();
     mComputePass.onDestroy();
 
     mUi.onDestroy();
@@ -422,6 +423,7 @@ void Render::cleanup()
 
     delete mTonemap;
     delete mLtcPass;
+    delete mRtShadowPass;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -538,10 +540,8 @@ void Render::recreateSwapChain()
                                                   VK_IMAGE_TILING_OPTIMAL,
                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
-        mRtShadowImageView = mTexManager->createImageView(mResManager->getVkImage(mRtShadowImage), VK_FORMAT_R16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
-    mRtShadowPass.setOutputImageView(mRtShadowImageView);
-    mComputePass.setRtShadowImageView(mRtShadowImageView);
+    mComputePass.setRtShadowImageView(mResManager->getView(mRtShadowImage));
 
     // LTC pass
     {
@@ -566,10 +566,18 @@ void Render::recreateSwapChain()
 
         mLtcPass->setResources(desc);
     }
+    {
+        RtShadowPassDesc desc{};
+        desc.result = mRtShadowImage;
+        desc.gbuffer = &mGbuffer;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+        desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
 
+        mRtShadowPass->setResources(desc);
+    }
 
     mComputePass.setLtcImageView(mResManager->getView(mLtcOutputImage));
-
 
 
     mUi.onResize(swapChainImageViews, width, height);
@@ -1252,7 +1260,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mRtShadowPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mRtShadowPass->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
 
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -1398,8 +1406,13 @@ void Render::setDescriptors()
         mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
     {
-        mRtShadowPass.setBvhBuffers(mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhTriangleBuffer));
-        mRtShadowPass.setLightsBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer));
+        RtShadowPassDesc desc{};
+        desc.result = mRtShadowImage;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.gbuffer = &mGbuffer;
+        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+        desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
+        mRtShadowPass->setResources(desc);
     }
     {
         mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
@@ -1462,7 +1475,7 @@ void Render::createDefaultScene()
     createLightsBuffer(*mScene);
     createBvhBuffer(*mScene);
 
-    setDescriptors();
+    // setDescriptors();
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
@@ -1509,7 +1522,11 @@ void Render::drawFrame()
     const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
     mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
-    mRtShadowPass.updateUniformBuffer(frameIndex, mFrameNumber, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
+
+    RtShadowParam rtShadowParam{};
+    rtShadowParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
+    mRtShadowPass->setParams(rtShadowParam);
 
     mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
     mComputePass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex(), swapChainExtent.width, swapChainExtent.height);
@@ -1518,8 +1535,8 @@ void Render::drawFrame()
 
     ltcparams.CameraPos = cam.getPosition();
     ltcparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
-    ltcparams.frameNumber = (uint32_t) mFrameNumber;
-    ltcparams.lightsCount = (uint32_t) scene->getLights().size();
+    ltcparams.frameNumber = (uint32_t)mFrameNumber;
+    ltcparams.lightsCount = (uint32_t)scene->getLights().size();
 
     mLtcPass->setParams(ltcparams);
 
