@@ -211,7 +211,7 @@ void FinalPass::updateDescriptorSet(uint32_t descIndex)
 
     VkDescriptorImageInfo imageInfoDepth{};
     imageInfoDepth.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoDepth.imageView = mGbuffer->depthView;
+    imageInfoDepth.imageView = mResManager->getView(mGbuffer->depth);
 
     descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[1].dstSet = mDescriptorSets[descIndex];
@@ -223,7 +223,7 @@ void FinalPass::updateDescriptorSet(uint32_t descIndex)
 
     VkDescriptorImageInfo imageInfoWPos{};
     imageInfoWPos.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoWPos.imageView = mGbuffer->wPosView;
+    imageInfoWPos.imageView = mResManager->getView(mGbuffer->wPos);
 
     descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[2].dstSet = mDescriptorSets[descIndex];
@@ -235,7 +235,7 @@ void FinalPass::updateDescriptorSet(uint32_t descIndex)
 
     VkDescriptorImageInfo imageInfoNormal{};
     imageInfoNormal.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoNormal.imageView = mGbuffer->normalView;
+    imageInfoNormal.imageView = mResManager->getView(mGbuffer->normal);
 
     descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[3].dstSet = mDescriptorSets[descIndex];
@@ -247,7 +247,7 @@ void FinalPass::updateDescriptorSet(uint32_t descIndex)
 
     VkDescriptorImageInfo imageInfoTangent{};
     imageInfoTangent.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoTangent.imageView = mGbuffer->tangentView;
+    imageInfoTangent.imageView = mResManager->getView(mGbuffer->tangent);
 
     descriptorWrites[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[4].dstSet = mDescriptorSets[descIndex];
@@ -259,7 +259,7 @@ void FinalPass::updateDescriptorSet(uint32_t descIndex)
 
     VkDescriptorImageInfo imageInfoUv{};
     imageInfoUv.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoUv.imageView = mGbuffer->uvView;
+    imageInfoUv.imageView = mResManager->getView(mGbuffer->uv);
 
     descriptorWrites[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[5].dstSet = mDescriptorSets[descIndex];
@@ -271,7 +271,7 @@ void FinalPass::updateDescriptorSet(uint32_t descIndex)
 
     VkDescriptorImageInfo imageInfoInstId{};
     imageInfoInstId.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfoInstId.imageView = mGbuffer->instIdView;
+    imageInfoInstId.imageView = mResManager->getView(mGbuffer->instId);
 
     descriptorWrites[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     descriptorWrites[6].dstSet = mDescriptorSets[descIndex];

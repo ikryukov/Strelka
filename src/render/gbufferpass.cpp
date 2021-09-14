@@ -185,9 +185,12 @@ void GbufferPass::createFrameBuffers(GBuffer& gbuffer)
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
         std::array<VkImageView, 6> attachments = {
-            gbuffer.wPosView, gbuffer.normalView,
-            gbuffer.tangentView, gbuffer.uvView, gbuffer.instIdView,
-            gbuffer.depthView
+            mResManager->getView(gbuffer.wPos),
+            mResManager->getView(gbuffer.normal),
+            mResManager->getView(gbuffer.tangent),
+            mResManager->getView(gbuffer.uv),
+            mResManager->getView(gbuffer.instId),
+            mResManager->getView(gbuffer.depth)
         };
 
         VkFramebufferCreateInfo framebufferInfo{};

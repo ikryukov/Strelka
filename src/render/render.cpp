@@ -192,7 +192,7 @@ void Render::initVulkan()
     }
 
     setDescriptors();
-    
+
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
     ImGui_ImplVulkan_InitInfo init_info{};
@@ -850,37 +850,31 @@ GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
         res.depthFormat = findDepthFormat();
         res.depth = mResManager->createImage(width, height, res.depthFormat, VK_IMAGE_TILING_OPTIMAL,
                                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
-        res.depthView = mTexManager->createImageView(mResManager->getVkImage(res.depth), res.depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
     // Normals
     {
         res.normal = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
-        res.normalView = mTexManager->createImageView(mResManager->getVkImage(res.normal), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // Tangent
     {
         res.tangent = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
-        res.tangentView = mTexManager->createImageView(mResManager->getVkImage(res.tangent), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // wPos
     {
         res.wPos = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
-        res.wPosView = mTexManager->createImageView(mResManager->getVkImage(res.wPos), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // UV
     {
         res.uv = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
-        res.uvView = mTexManager->createImageView(mResManager->getVkImage(res.uv), VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     // InstId
     {
         res.instId = mResManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
-        res.instIdView = mTexManager->createImageView(mResManager->getVkImage(res.instId), VK_FORMAT_R32_SINT, VK_IMAGE_ASPECT_COLOR_BIT);
     }
     return res;
 }
@@ -888,17 +882,11 @@ GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
 void Render::destroyGbuffer(GBuffer& gbuffer)
 {
     mResManager->destroyImage(gbuffer.depth);
-    vkDestroyImageView(mDevice, gbuffer.depthView, nullptr);
     mResManager->destroyImage(gbuffer.wPos);
-    vkDestroyImageView(mDevice, gbuffer.wPosView, nullptr);
     mResManager->destroyImage(gbuffer.normal);
-    vkDestroyImageView(mDevice, gbuffer.normalView, nullptr);
     mResManager->destroyImage(gbuffer.tangent);
-    vkDestroyImageView(mDevice, gbuffer.tangentView, nullptr);
     mResManager->destroyImage(gbuffer.uv);
-    vkDestroyImageView(mDevice, gbuffer.uvView, nullptr);
     mResManager->destroyImage(gbuffer.instId);
-    vkDestroyImageView(mDevice, gbuffer.instIdView, nullptr);
 }
 
 void Render::createGbufferPass()
