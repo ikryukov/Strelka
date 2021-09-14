@@ -14,15 +14,13 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "bvh.h"
+#include "common.h"
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
 #include "ltcpass.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
-
-#include "common.h"
-
 #include "tonemap.h"
 
 #include <modelloader/modelloader.h>
@@ -122,22 +120,20 @@ private:
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    nevk::Image* depthImage;
+    Image* textureTonemapImage;
+    Image* mRtShadowImage;
+    Image* mLtcOutputImage;
 
-    nevk::Image* textureTonemapImage;
-    nevk::Image* mRtShadowImage;
-    nevk::Image* mLtcOutputImage;
+    ResourceManager* mResManager = nullptr;
+    TextureManager* mTexManager = nullptr;
 
-    nevk::ResourceManager* mResManager = nullptr;
-    nevk::TextureManager* mTexManager = nullptr;
-
-    nevk::BvhBuilder mBvhBuilder;
+    BvhBuilder mBvhBuilder;
 
     GBuffer mGbuffer;
-    nevk::GbufferPass mGbufferPass;
-    nevk::ModelLoader* modelLoader = nullptr;
-    //disable depth prepass 
-    //nevk::DepthPass mDepthPass;
+    GbufferPass mGbufferPass;
+    ModelLoader* modelLoader = nullptr;
+    //disable depth prepass
+    //DepthPass mDepthPass;
 
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadowPass;
@@ -147,20 +143,19 @@ private:
 
     struct SceneRenderData
     {
-        static constexpr size_t MAX_UPLOAD_SIZE = 1 << 24; // 16mb
         uint32_t cameraIndex = 0;
         uint32_t mIndicesCount = 0;
         uint32_t mInstanceCount = 0;
-        nevk::Buffer* mVertexBuffer = nullptr;
-        nevk::Buffer* mMaterialBuffer = nullptr;
-        nevk::Buffer* mIndexBuffer = nullptr;
-        nevk::Buffer* mInstanceBuffer = nullptr;
-        nevk::Buffer* mLightsBuffer = nullptr;
-        nevk::Buffer* mBvhNodeBuffer = nullptr;
-        nevk::Buffer* mBvhTriangleBuffer = nullptr;
+        Buffer* mVertexBuffer = nullptr;
+        Buffer* mMaterialBuffer = nullptr;
+        Buffer* mIndexBuffer = nullptr;
+        Buffer* mInstanceBuffer = nullptr;
+        Buffer* mLightsBuffer = nullptr;
+        Buffer* mBvhNodeBuffer = nullptr;
+        Buffer* mBvhTriangleBuffer = nullptr;
 
-        nevk::ResourceManager* mResManager = nullptr;
-        explicit SceneRenderData(nevk::ResourceManager* resManager)
+        ResourceManager* mResManager = nullptr;
+        explicit SceneRenderData(ResourceManager* resManager)
         {
             mResManager = resManager;
         }
@@ -201,7 +196,8 @@ private:
     SceneRenderData* mCurrentSceneRenderData = nullptr;
     SceneRenderData* mDefaultSceneRenderData = nullptr;
 
-    nevk::Buffer* mUploadBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
+    static constexpr size_t MAX_UPLOAD_SIZE = 1 << 24; // 16mb
+    Buffer* mUploadBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
     VkDescriptorPool mDescriptorPool;
 
     struct FrameData
@@ -277,8 +273,6 @@ private:
     void createGbufferPass();
 
     void createCommandPool();
-
-    void createDepthResources();
 
     VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 
@@ -423,10 +417,6 @@ public:
         return mCurrentSceneRenderData;
     }
 
-    void setDepthResources()
-    {
-        createDepthResources();
-    }
     nevk::Ui getUi()
     {
         return mUi;

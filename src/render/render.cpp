@@ -77,8 +77,6 @@ void Render::initVulkan()
     createCommandBuffers();
     createSyncObjects();
 
-    createDepthResources();
-
     mSharedCtx.mDescriptorPool = mDescriptorPool;
     mSharedCtx.mDevice = mDevice;
     mSharedCtx.mResManager = mResManager;
@@ -125,7 +123,7 @@ void Render::initVulkan()
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        mUploadBuffer[i] = mResManager->createBuffer(SceneRenderData::MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        mUploadBuffer[i] = mResManager->createBuffer(MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 
     mTexManager->createShadowSampler();
@@ -350,8 +348,6 @@ void Render::mainLoop()
 
 void Render::cleanupSwapChain()
 {
-    mResManager->destroyImage(depthImage);
-
     for (auto& framebuffer : swapChainFramebuffers)
     {
         vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
@@ -461,7 +457,6 @@ void Render::recreateSwapChain()
 
     createSwapChain();
     createImageViews();
-    createDepthResources();
 
     destroyGbuffer(mGbuffer);
     mGbuffer = createGbuffer(width, height);
@@ -868,12 +863,6 @@ void Render::createCommandPool()
             throw std::runtime_error("failed to create graphics command pool!");
         }
     }
-}
-
-void Render::createDepthResources()
-{
-    VkFormat depthFormat = findDepthFormat();
-    depthImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
 VkFormat Render::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
@@ -1343,8 +1332,7 @@ void Render::setDescriptors()
     }
     {
         // mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-    }
-    {
+    } {
         LtcResourceDesc desc{};
         desc.gbuffer = &mGbuffer;
         desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
