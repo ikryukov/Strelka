@@ -3,8 +3,6 @@
 #include "common.h"
 #include "shaderparameters.h"
 
-#include <array>
-
 namespace nevk
 {
 template <typename T>
