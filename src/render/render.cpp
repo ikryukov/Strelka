@@ -83,21 +83,21 @@ void Render::initVulkan()
     mSharedCtx.mShaderManager = &mShaderManager;
     mSharedCtx.mTextureManager = mTexManager;
 
-    mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
+    textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
+    mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                               VK_IMAGE_TILING_OPTIMAL,
+                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+    mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                              VK_IMAGE_TILING_OPTIMAL,
+                                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
 
-    {
-        textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                       VK_IMAGE_TILING_OPTIMAL,
-                                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
-        mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    }
-    {
-        mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
-    }
+    mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
 
     mTonemap = new Tonemap(mSharedCtx);
     mTonemap->initialize();
@@ -105,13 +105,10 @@ void Render::initVulkan()
     mLtcPass = new LtcPass(mSharedCtx);
     mLtcPass->initialize();
 
-    mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                               VK_IMAGE_TILING_OPTIMAL,
-                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+    mRtShadowPass = new RtShadowPass(mSharedCtx);
+    mRtShadowPass->initialize();
 
-
-    nevk::TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
+    TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
     modelLoader = new nevk::ModelLoader(mTexManager);
     createDefaultScene();
@@ -128,41 +125,7 @@ void Render::initVulkan()
 
     mTexManager->createShadowSampler();
 
-    mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
     createGbufferPass();
-
-
-    mRtShadowPass = new RtShadowPass(mSharedCtx);
-    mRtShadowPass->initialize();
-    RtShadowPassDesc shadowDesc{};
-    shadowDesc.gbuffer = &mGbuffer;
-    shadowDesc.result = mRtShadowImage;
-    shadowDesc.lights = mCurrentSceneRenderData->mLightsBuffer;
-    shadowDesc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-    shadowDesc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
-
-    mRtShadowPass->setResources(shadowDesc);
-
-    //init passes
-    // mDepthPass.init(mDevice, enableValidationLayers, shShaderCode, shShaderCodeSize, mDescriptorPool, mResManager, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-    // mDepthPass.createFrameBuffers(shadowImageView, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-
-    mTonemap->setInputTexture(mResManager->getView(mLtcOutputImage));
-    mTonemap->setOutputTexture(mResManager->getView(textureTonemapImage));
-
-    {
-        LtcResourceDesc desc{};
-
-        desc.gbuffer = &mGbuffer;
-        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-        desc.result = mLtcOutputImage;
-        desc.matSampler = mTexManager->texSamplers;
-        desc.matTextures = mTexManager->textureImages;
-
-        mLtcPass->setResources(desc);
-    }
 
     setDescriptors();
 
@@ -462,65 +425,28 @@ void Render::recreateSwapChain()
     mGbuffer = createGbuffer(width, height);
     mGbufferPass.onResize(&mGbuffer);
 
-    {
-        mResManager->destroyImage(textureTonemapImage);
-    }
-    {
-        textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                       VK_IMAGE_TILING_OPTIMAL,
-                                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
-        mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-    }
+    mResManager->destroyImage(textureTonemapImage);
+    textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
+    mTexManager->transitionImageLayout(mResManager->getVkImage(textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
 
     // RT shadow pass
-    {
-        mResManager->destroyImage(mRtShadowImage);
-    }
-    {
-        mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
-    }
+    mResManager->destroyImage(mRtShadowImage);
+    mRtShadowImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                              VK_IMAGE_TILING_OPTIMAL,
+                                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
 
     // LTC pass
-    {
-        mResManager->destroyImage(mLtcOutputImage);
-    }
-    {
-        mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                   VK_IMAGE_TILING_OPTIMAL,
-                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
-    }
-    {
-        LtcResourceDesc desc{};
-
-        desc.gbuffer = &mGbuffer;
-        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-        desc.matSampler = mTexManager->texSamplers;
-        desc.matTextures = mTexManager->textureImages;
-        desc.result = mLtcOutputImage;
-
-        mLtcPass->setResources(desc);
-    }
-    {
-        RtShadowPassDesc desc{};
-        desc.result = mRtShadowImage;
-        desc.gbuffer = &mGbuffer;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
-
-        mRtShadowPass->setResources(desc);
-    }
-
-    mTonemap->setInputTexture(mResManager->getView(mLtcOutputImage));
-    mTonemap->setOutputTexture(mResManager->getView(textureTonemapImage));
+    mResManager->destroyImage(mLtcOutputImage);
+    mLtcOutputImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                               VK_IMAGE_TILING_OPTIMAL,
+                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+    setDescriptors();
 
     mUi.onResize(swapChainImageViews, width, height);
 
