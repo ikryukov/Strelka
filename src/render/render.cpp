@@ -46,17 +46,12 @@ void Render::initVulkan()
     createSwapChain();
 
     // load shaders
-    const char* csShaderCode = nullptr;
-    uint32_t csShaderCodeSize = 0;
     const char* shShaderCode = nullptr;
     uint32_t shShaderCodeSize = 0;
     const char* pbrVertShaderCode = nullptr;
     uint32_t pbrVertShaderCodeSize = 0;
     const char* pbrFragShaderCode = nullptr;
     uint32_t pbrFragShaderCodeSize = 0;
-
-    uint32_t csId = mShaderManager.loadShader("shaders/compute.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
-    mShaderManager.getShaderCode(csId, csShaderCode, csShaderCodeSize);
 
     uint32_t shId = mShaderManager.loadShader("shaders/shadowmap.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
     mShaderManager.getShaderCode(shId, shShaderCode, shShaderCodeSize);
