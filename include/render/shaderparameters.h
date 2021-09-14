@@ -219,6 +219,7 @@ protected:
                     {
                         imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                         imageInfos[imageInfosOffset + i].imageView = (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
+                        imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
                     }
 
                     VkWriteDescriptorSet descWrite{};
@@ -240,6 +241,7 @@ protected:
                     {
                         imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
                         imageInfos[imageInfosOffset + i].imageView = descriptor.handles[i].imageView;
+                        imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
                     }
 
                     VkWriteDescriptorSet descWrite{};
@@ -261,8 +263,10 @@ protected:
                     //{
                     //    imageInfos[imageInfosOffset + i].sampler = (i < descriptor.handles.size()) ? descriptor.handles[i].sampler : VK_NULL_HANDLE;
                     //}
+                    assert(descriptor.handles.size() > 0);
                     for (uint32_t i = 0; i < (uint32_t) descriptor.handles.size(); ++i)
                     {
+                        imageInfos[imageInfosOffset + i].imageView = VK_NULL_HANDLE;
                         imageInfos[imageInfosOffset + i].sampler = descriptor.handles[i].sampler;
                     }
                     VkWriteDescriptorSet descWrite{};

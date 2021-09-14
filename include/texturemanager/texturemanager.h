@@ -116,6 +116,8 @@ public:
             mResManager->destroyImage(tex.textureImage);
         }
 
+        textureImages.clear();
+
         textures.clear();
         textureImageView.clear();
         mNameToID.clear();
@@ -138,6 +140,7 @@ public:
             delTextures.push_back(tex.textureImage);
         }
 
+        textureImages.clear();
         textureImageView.clear();
         textures.clear();
         mNameToID.clear();
