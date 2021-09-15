@@ -16,8 +16,9 @@ void DebugView::initialize()
 }
 void DebugView::setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadow)
 {
-    mShaderParams.setTexture("inputLTC", imageViewLTC);
-    mShaderParams.setTexture("inputShadow", imageViewShadow);
+    std::vector<VkImageView> tex = {imageViewLTC, imageViewShadow};
+
+    mShaderParams.setTextures("input", tex);
 }
 void DebugView::setOutputTexture(VkImageView imageView)
 {
