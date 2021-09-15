@@ -143,7 +143,7 @@ float2 closestHit(Ray ray, inout Hit hit)
             bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
             if (minHit > hit.t)
             {
-                minHit = curHitDistance;
+                minHit = hit.t;
                 closestPoint = bary;
             }
         }
