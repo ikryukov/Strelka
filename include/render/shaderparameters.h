@@ -422,23 +422,6 @@ public:
         }
     }
 
-    void setTextures(const std::string& name, std::vector<VkImageView>& images)
-    {
-        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-        {
-            ResourceDescriptor resDescriptor{};
-            resDescriptor.type = ShaderManager::ResourceType::eTexture2D;
-            resDescriptor.isArray = true;
-            resDescriptor.handles.resize(images.size());
-            for (uint32_t j = 0; j < images.size(); ++j)
-            {
-                resDescriptor.handles[j].imageView = images[j];
-            }
-            mResUpdate[i][name] = resDescriptor;
-            needDesciptorSetUpdate[i] = true;
-        }
-    }
-
     void setTextures(const std::string& name, std::vector<Image*>& images)
     {
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)

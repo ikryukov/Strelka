@@ -1160,7 +1160,6 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                       VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
     }
-
     mToneParams.dimension.x = swapChainExtent.width;
     mToneParams.dimension.y = swapChainExtent.height;
     mTonemap->setParams(mToneParams);
@@ -1193,6 +1192,8 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
 
         recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                       VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+        vkCmdBlitImage(cmd, mResManager->getVkImage(textureDebugViewImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
     }
 
     mUi.render(cmd, imageIndex);
@@ -1318,7 +1319,7 @@ void Render::setDescriptors()
     {
         mDebugView->setParams(mDebugParams);
         mDebugView->setInputTexture(mResManager->getView(mLtcOutputImage), mResManager->getView(mRtShadowImage));
-        mDebugView->setOutputTexture(mResManager->getView(mRtShadowImage));
+        mDebugView->setOutputTexture(mResManager->getView(textureDebugViewImage));
     }
     {
         mTonemap->setParams(mToneParams);

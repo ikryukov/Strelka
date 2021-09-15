@@ -1,7 +1,8 @@
 #include "debugviewparam.h"
 
 ConstantBuffer<Debugviewparam> ubo;
-Texture2D<float4> input[2];
+Texture2D<float4> inputLTC;
+Texture2D<float4> inputShadow;
 RWTexture2D<float4> output;
 
 [numthreads(16, 16, 1)]
@@ -13,6 +14,6 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    float3 color = input[0][pixelIndex].rgb * input[1][pixelIndex].rgb;
+    float3 color = inputLTC[pixelIndex].rgb * inputShadow[pixelIndex].rgb;
     output[pixelIndex] = float4(color, 1.0f);
 }
