@@ -22,6 +22,7 @@
 #include "renderpass.h"
 #include "rtshadowpass.h"
 #include "tonemap.h"
+#include "debugview.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -121,6 +122,7 @@ private:
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     Image* textureTonemapImage;
+    Image* textureDebugViewImage;
     Image* mRtShadowImage;
     Image* mLtcOutputImage;
 
@@ -138,8 +140,10 @@ private:
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadowPass;
     Tonemap* mTonemap;
+    DebugView* mDebugView;
     LtcPass* mLtcPass;
     Tonemapparam mToneParams;
+    Debugviewparam mDebugParams;
 
     struct SceneRenderData
     {

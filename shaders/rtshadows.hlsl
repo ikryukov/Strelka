@@ -147,7 +147,7 @@ float2 closestHit(Ray ray, inout Hit hit)
                 closestPoint = bary;
             }
         }
-        else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds))
+        else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
         {
             if (boxT > ray.o.w) // check max ray trace distance: skip this node if collision far away
             {

@@ -78,6 +78,12 @@ void Render::initVulkan()
     mSharedCtx.mShaderManager = &mShaderManager;
     mSharedCtx.mTextureManager = mTexManager;
 
+    textureDebugViewImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
+    mTexManager->transitionImageLayout(mResManager->getVkImage(textureDebugViewImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
     textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
                                                    VK_IMAGE_TILING_OPTIMAL,
                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
@@ -93,6 +99,9 @@ void Render::initVulkan()
                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
+
+    mDebugView = new DebugView(mSharedCtx);
+    mDebugView->initialize();
 
     mTonemap = new Tonemap(mSharedCtx);
     mTonemap->initialize();
@@ -334,12 +343,14 @@ void Render::cleanup()
     mTexManager->delTexturesFromQueue();
 
     mResManager->destroyImage(mRtShadowImage);
+    mResManager->destroyImage(textureDebugViewImage);
     mResManager->destroyImage(textureTonemapImage);
     mResManager->destroyImage(mLtcOutputImage);
 
     destroyGbuffer(mGbuffer);
 
     delete mTonemap;
+    delete mDebugView;
     delete mLtcPass;
     delete mRtShadowPass;
 
@@ -419,6 +430,15 @@ void Render::recreateSwapChain()
     destroyGbuffer(mGbuffer);
     mGbuffer = createGbuffer(width, height);
     mGbufferPass.onResize(&mGbuffer);
+
+    mResManager->destroyImage(textureDebugViewImage);
+    textureDebugViewImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
+    mTexManager->transitionImageLayout(mResManager->getVkImage(textureDebugViewImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+
 
     mResManager->destroyImage(textureTonemapImage);
     textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
@@ -1110,6 +1130,37 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
+    mDebugParams.dimension.x = swapChainExtent.width;
+    mDebugParams.dimension.y = swapChainExtent.height;
+    mDebugView->setParams(mDebugParams);
+    mDebugView->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    // Copy to swapchain image
+    {
+        recordBarrier(cmd, mResManager->getVkImage(textureDebugViewImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+        VkOffset3D blitSize{};
+        blitSize.x = swapChainExtent.width;
+        blitSize.y = swapChainExtent.height;
+        blitSize.z = 1;
+        VkImageBlit imageBlitRegion{};
+        imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBlitRegion.srcSubresource.layerCount = 1;
+        imageBlitRegion.srcOffsets[1] = blitSize;
+        imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBlitRegion.dstSubresource.layerCount = 1;
+        imageBlitRegion.dstOffsets[1] = blitSize;
+        vkCmdBlitImage(cmd, mResManager->getVkImage(textureDebugViewImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
+
+        recordBarrier(cmd, mResManager->getVkImage(textureDebugViewImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    }
+
     mToneParams.dimension.x = swapChainExtent.width;
     mToneParams.dimension.y = swapChainExtent.height;
     mTonemap->setParams(mToneParams);
@@ -1264,7 +1315,11 @@ void Render::setDescriptors()
         desc.matTextures = mTexManager->textureImages;
         mLtcPass->setResources(desc);
     }
-
+    {
+        mDebugView->setParams(mDebugParams);
+        mDebugView->setInputTexture(mResManager->getView(mLtcOutputImage), mResManager->getView(mRtShadowImage));
+        mDebugView->setOutputTexture(mResManager->getView(mRtShadowImage));
+    }
     {
         mTonemap->setParams(mToneParams);
         mTonemap->setInputTexture(mResManager->getView(mLtcOutputImage));
