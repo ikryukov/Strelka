@@ -129,7 +129,7 @@ float2 closestHit(Ray ray, inout Hit hit)
     uint32_t nodeIndex = 0;
 
     uint32_t minHit = 1e9;
-    float2 closestPoint = float3(INVALID_INDEX);
+    float2 closestPoint;
 
     while (nodeIndex != INVALID_INDEX)
     {
