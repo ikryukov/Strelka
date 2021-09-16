@@ -14,6 +14,6 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    float3 color = inputLTC[pixelIndex].rgb * inputShadow[pixelIndex].rgb;
+    float3 color = inputLTC[pixelIndex].rgb * inputShadow[pixelIndex].r;
     output[pixelIndex] = float4(color, 1.0f);
 }
