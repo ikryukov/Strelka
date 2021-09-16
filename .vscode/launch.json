@@ -25,7 +25,12 @@
                 {
                     "name": "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS",
                     "value": ""
+                },
+                {
+                    "name": "MVK_CONFIG_API_VERSION_TO_ADVERTISE",
+                    "value": "VK_API_VERSION_1_2"
                 }
+
             ],
             "externalConsole": false,
             "MIMode": "lldb"
