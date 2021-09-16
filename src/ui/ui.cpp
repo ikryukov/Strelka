@@ -307,11 +307,12 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
         ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
     }
 
-    // ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix, 100.f);
     // ImGuizmo::DrawCubes(cameraView, cameraProjection, matrix, gizmoCount);
 
     glm::float4x4 cameraView = cam.getView();
     glm::float4x4 cameraProjection = cam.getPerspective();
+
+    ImGuizmo::DrawGrid(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), identityMatrix, 100.f);
 
     ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
     ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), camDistance, ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);

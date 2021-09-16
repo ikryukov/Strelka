@@ -44,6 +44,7 @@ private:
 
     std::set<uint32_t> mDirtyInstances;
 
+
 public:
     struct Vertex
     {
@@ -52,6 +53,54 @@ public:
         uint32_t normal;
         uint32_t uv;
     };
+
+    struct Node
+    {
+        std::string name;
+        glm::float3 translation;
+        glm::float3 scale;
+        glm::quat rotation;
+        int parent = -1;
+        std::vector<int> children;
+    };
+    std::vector<Node> mNodes;
+
+
+    struct AnimationSampler
+    {
+        enum class InterpolationType
+        {
+            LINEAR,
+            STEP,
+            CUBICSPLINE
+        };
+        InterpolationType interpolation;
+        std::vector<float> inputs;
+        std::vector<glm::float4> outputsVec4;
+    };
+
+    struct AnimationChannel
+    {
+        enum class PathType
+        {
+            TRANSLATION,
+            ROTATION,
+            SCALE
+        };
+        PathType path;
+        int node;
+        uint32_t samplerIndex;
+    };
+
+    struct Animation
+    {
+        std::string name;
+        std::vector<AnimationSampler> samplers;
+        std::vector<AnimationChannel> channels;
+        float start = std::numeric_limits<float>::max();
+        float end = std::numeric_limits<float>::min();
+    };
+    std::vector<Animation> mAnimations;
 
     // GPU side structure
     struct Light
@@ -171,6 +220,61 @@ public:
         }
     }
     void createLightMesh();
+
+
+    glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
+    {
+        const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
+        glm::quat rotation = glm::quat(glm::radians(desc.orientation)); // to quaternion
+        const glm::float4x4 rotationMatrix{ rotation };
+        glm::float3 scale = { 1.0f, desc.width, desc.height };
+        const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
+
+        const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;
+
+        return localTransform;
+    }
+
+    glm::float4x4 getTransformFromRoot(int nodeIdx)
+    {
+        std::stack<glm::float4x4> xforms;
+        while (nodeIdx != -1)
+        {
+            const Node& n = mNodes[nodeIdx];
+            glm::float4x4 xform = glm::translate(glm::float4x4(1.0f), n.translation) * glm::float4x4(n.rotation) * glm::scale(glm::float4x4(1.0f), n.scale);
+            xforms.push(xform);
+            nodeIdx = n.parent;
+        }
+        glm::float4x4 xform = glm::float4x4(1.0);
+        while (!xforms.empty())
+        {
+            xform = xform * xforms.top();
+            xforms.pop();
+        }
+        return xform;
+    }
+
+    glm::float4x4 getTransform(int nodeIdx)
+    {
+        glm::float4x4 xform = glm::float4x4(1.0);
+        while (nodeIdx != -1)
+        {
+            const Node& n = mNodes[nodeIdx];
+            xform = glm::translate(glm::float4x4(1.0f), n.translation) *
+                                  glm::float4x4(n.rotation) * glm::scale(glm::float4x4(1.0f), n.scale) * xform;
+            nodeIdx = n.parent;
+        }
+        return xform;
+    }
+
+
+    glm::float4x4 getCameraTransform(int nodeIdx)
+    {
+        int child = mNodes[nodeIdx].children[0];
+        return getTransform(child);
+    }
+
+    void updateAnimation(const float dt);
 
     void updateLight(uint32_t lightId, const RectLightDesc& desc);
     /// <summary>

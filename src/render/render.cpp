@@ -2,6 +2,9 @@
 
 #include "debugUtils.h"
 
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <chrono>
 #include <filesystem>
 
@@ -1232,6 +1235,7 @@ void Render::loadScene(const std::string& modelPath)
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
+    mCurrentSceneRenderData->mStartedTime = std::chrono::high_resolution_clock::now();
 }
 
 void Render::setDescriptors()
@@ -1342,9 +1346,31 @@ void Render::drawFrame()
     const uint32_t frameIndex = imageIndex;
 
     nevk::Scene* scene = getScene();
+
+    auto timeSinceStart = std::chrono::duration<float, std::milli>(currentTime - mCurrentSceneRenderData->mStartedTime).count() / 1000.0f;
+    if (timeSinceStart > 20.f)
+    {
+        mCurrentSceneRenderData->mStartedTime = currentTime;
+    }
+    
+    scene->updateAnimation(timeSinceStart);
+
     scene->updateCamerasParams(swapChainExtent.width, swapChainExtent.height);
     Camera& cam = scene->getCamera(getActiveCameraIndex());
     cam.update((float)deltaTime);
+    glm::float4x4 xform = scene->getTransformFromRoot(cam.node);
+    {
+        glm::vec3 scale;
+        glm::quat rotation;
+        glm::vec3 translation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(xform, scale, rotation, translation, skew, perspective);
+        rotation = glm::conjugate(rotation);
+        cam.position = translation * scale;
+        cam.mOrientation = rotation;
+        cam.updateViewMatrix();
+    }
 
     // const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
 
