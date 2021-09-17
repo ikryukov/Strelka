@@ -631,12 +631,16 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     }
     if (!scene.mAnimations.empty())
     {
-        ImGui::SliderFloat("Animation time", &animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
+        bool valueChanged = ImGui::SliderFloat("Animation time", &animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
         ImGuiDir dir = scene.mAnimState == Scene::AnimationState::ePlay ? ImGuiDir_Right : ImGuiDir_Down;
         bool isClicked = ImGui::ArrowButton("Play", ImGuiDir_Right);
         if (isClicked)
         {
             scene.mAnimState = scene.mAnimState == Scene::AnimationState::ePlay ? Scene::AnimationState::eStop : Scene::AnimationState::ePlay;
+        }
+        if (valueChanged)
+        {
+            scene.mAnimState = Scene::AnimationState::eScroll;
         }
     }
     // simple settings

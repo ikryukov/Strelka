@@ -68,7 +68,8 @@ public:
     enum class AnimationState : uint32_t
     {
         eStop,
-        ePlay
+        ePlay,
+        eScroll,
     };
     AnimationState mAnimState = AnimationState::eStop;
     struct AnimationSampler

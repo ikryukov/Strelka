@@ -1372,13 +1372,21 @@ void Render::drawFrame()
     scene = getScene();
     Camera& cam = scene->getCamera(getActiveCameraIndex());
 
-    if (scene->mAnimState == Scene::AnimationState::ePlay)
+    if (scene->mAnimState == Scene::AnimationState::ePlay || scene->mAnimState == Scene::AnimationState::eScroll)
     {
-        mCurrentSceneRenderData->animationTime += (float) deltaTime;
-        if (mCurrentSceneRenderData->animationTime > scene->mAnimations[0].end)
+        if (scene->mAnimState == Scene::AnimationState::ePlay)
         {
-            mCurrentSceneRenderData->animationTime = scene->mAnimations[0].start; // ring
+            mCurrentSceneRenderData->animationTime += (float)deltaTime;
+            if (mCurrentSceneRenderData->animationTime > scene->mAnimations[0].end)
+            {
+                mCurrentSceneRenderData->animationTime = scene->mAnimations[0].start; // ring
+            }
         }
+        else
+        {
+            scene->mAnimState = Scene::AnimationState::eStop;
+        }
+
         scene->updateAnimation(mCurrentSceneRenderData->animationTime);
         glm::float4x4 xform = scene->getTransformFromRoot(cam.node);
         {
