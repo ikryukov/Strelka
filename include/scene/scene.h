@@ -77,7 +77,7 @@ public:
     enum class DebugView
     {
         eNone = 0,
-        eNormals,
+        eDebug = 1,
     };
 
     DebugView mDebugViewSettings = DebugView::eNone;

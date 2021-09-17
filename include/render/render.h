@@ -145,8 +145,6 @@ private:
     Tonemapparam mToneParams;
     Debugviewparam mDebugParams;
 
-    bool debugView = true;
-
     struct SceneRenderData
     {
         uint32_t cameraIndex = 0;
