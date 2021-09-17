@@ -5,7 +5,6 @@ namespace nevk
 DebugView::DebugView(const SharedContext& ctx)
     : DebugViewBase(ctx)
 {
-
 }
 DebugView::~DebugView()
 {

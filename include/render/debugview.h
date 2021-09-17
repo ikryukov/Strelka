@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "computepass.h"
-
 #include "debugviewparam.h"
 
 #include <vector>

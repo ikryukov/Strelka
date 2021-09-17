@@ -15,6 +15,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "bvh.h"
 #include "common.h"
+#include "debugview.h"
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
@@ -22,7 +23,6 @@
 #include "renderpass.h"
 #include "rtshadowpass.h"
 #include "tonemap.h"
-#include "debugview.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
