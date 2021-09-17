@@ -37,6 +37,7 @@
 #include <optional>
 #include <stdexcept>
 #include <vector>
+#include <chrono>
 
 const uint32_t SHADOW_MAP_WIDTH = 1024;
 const uint32_t SHADOW_MAP_HEIGHT = 1024;
@@ -143,6 +144,7 @@ private:
 
     struct SceneRenderData
     {
+        float animationTime = 0;
         uint32_t cameraIndex = 0;
         uint32_t mIndicesCount = 0;
         uint32_t mInstanceCount = 0;

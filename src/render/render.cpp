@@ -2,6 +2,10 @@
 
 #include "debugUtils.h"
 
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
+
 #include <chrono>
 #include <filesystem>
 
@@ -1220,7 +1224,10 @@ void Render::loadScene(const std::string& modelPath)
         desc.intensity = 1.0;
         mScene->createLight(desc);
     }
-
+    if (!mScene->mAnimations.empty())
+    {
+        mCurrentSceneRenderData->animationTime = mScene->mAnimations[0].start;
+    }
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
     createLightsBuffer(*mScene);
@@ -1342,36 +1349,12 @@ void Render::drawFrame()
     const uint32_t frameIndex = imageIndex;
 
     nevk::Scene* scene = getScene();
-    scene->updateCamerasParams(swapChainExtent.width, swapChainExtent.height);
-    Camera& cam = scene->getCamera(getActiveCameraIndex());
-    cam.update((float)deltaTime);
-
-    // const glm::float4x4 lightSpaceMatrix = mDepthPass.computeLightSpaceMatrix((glm::float3&)scene->mLightPosition);
-
-    mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
-
-    RtShadowParam rtShadowParam{};
-    rtShadowParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
-    rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
-    mRtShadowPass->setParams(rtShadowParam);
-
-    // mDepthPass.updateUniformBuffer(frameIndex, lightSpaceMatrix);
-
-    LtcParam ltcparams{};
-
-    ltcparams.CameraPos = cam.getPosition();
-    ltcparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
-    ltcparams.frameNumber = (uint32_t)mFrameNumber;
-    ltcparams.lightsCount = (uint32_t)scene->getLights().size();
-
-    mLtcPass->setParams(ltcparams);
 
     static int releaseAfterFrames = 0;
     static bool needReload = false;
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
-
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex);
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1385,6 +1368,61 @@ void Render::drawFrame()
         mTexManager->saveTexturesInDelQueue();
         loadScene(newModelPath);
     }
+
+    scene = getScene();
+    Camera& cam = scene->getCamera(getActiveCameraIndex());
+
+    if (scene->mAnimState == Scene::AnimationState::ePlay || scene->mAnimState == Scene::AnimationState::eScroll)
+    {
+        if (scene->mAnimState == Scene::AnimationState::ePlay)
+        {
+            mCurrentSceneRenderData->animationTime += (float)deltaTime;
+            if (mCurrentSceneRenderData->animationTime > scene->mAnimations[0].end)
+            {
+                mCurrentSceneRenderData->animationTime = scene->mAnimations[0].start; // ring
+            }
+        }
+        else
+        {
+            scene->mAnimState = Scene::AnimationState::eStop;
+        }
+
+        scene->updateAnimation(mCurrentSceneRenderData->animationTime);
+        glm::float4x4 xform = scene->getTransformFromRoot(cam.node);
+        {
+            glm::vec3 scale;
+            glm::quat rotation;
+            glm::vec3 translation;
+            glm::vec3 skew;
+            glm::vec4 perspective;
+            glm::decompose(xform, scale, rotation, translation, skew, perspective);
+            rotation = glm::conjugate(rotation);
+            cam.position = translation * scale;
+            cam.mOrientation = rotation;
+            cam.updateViewMatrix();
+        }
+    }
+    else
+    {
+        cam.update((float)deltaTime);
+    }
+
+    scene->updateCamerasParams(swapChainExtent.width, swapChainExtent.height);
+
+
+    mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
+
+    RtShadowParam rtShadowParam{};
+    rtShadowParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
+    mRtShadowPass->setParams(rtShadowParam);
+
+    LtcParam ltcparams{};
+    ltcparams.CameraPos = cam.getPosition();
+    ltcparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    ltcparams.frameNumber = (uint32_t)mFrameNumber;
+    ltcparams.lightsCount = (uint32_t)scene->getLights().size();
+    mLtcPass->setParams(ltcparams);
 
     if (needReload && releaseAfterFrames == 0)
     {

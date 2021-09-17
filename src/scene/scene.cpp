@@ -1,5 +1,7 @@
 #include "scene.h"
 
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/norm.hpp>
 
 #include <algorithm>
@@ -93,19 +95,6 @@ std::string Scene::getSceneDir()
     return p.parent_path().string();
 };
 
-glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
-{
-    const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
-    glm::quat rotation = glm::quat(glm::radians(desc.orientation)); // to quaternion
-    const glm::float4x4 rotationMatrix{ rotation };
-    glm::float3 scale = { 1.0f, desc.width, desc.height };
-    const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
-
-    const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;
-
-    return localTransform;
-}
-
 //  valid range of coordinates [-1; 1]
 uint32_t packNormals(const glm::float3& normal)
 {
@@ -133,6 +122,66 @@ void Scene::createLightMesh()
 
     uint32_t meshId = createMesh(vb, ib);
     assert(meshId != -1);
+}
+
+void Scene::updateAnimation(const float time)
+{
+    if (mAnimations.empty())
+    {
+        return;
+    }
+    auto& animation = mAnimations[0];
+    for (auto& channel : animation.channels)
+    {
+        assert(channel.node < mNodes.size());
+        auto& sampler = animation.samplers[channel.samplerIndex];
+        if (sampler.inputs.size() > sampler.outputsVec4.size())
+        {
+            continue;
+        }
+        for (size_t i = 0; i < sampler.inputs.size() - 1; i++)
+        {
+            if ((time >= sampler.inputs[i]) && (time <= sampler.inputs[i + 1]))
+            {
+                float u = std::max(0.0f, time - sampler.inputs[i]) / (sampler.inputs[i + 1] - sampler.inputs[i]);
+                if (u <= 1.0f)
+                {
+                    switch (channel.path)
+                    {
+                    case AnimationChannel::PathType::TRANSLATION: {
+                        glm::vec4 trans = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], u);
+                        mNodes[channel.node].translation = glm::float3(trans);
+                        break;
+                    }
+                    case AnimationChannel::PathType::SCALE: {
+                        glm::vec4 scale = glm::mix(sampler.outputsVec4[i], sampler.outputsVec4[i + 1], u);
+                        mNodes[channel.node].scale = glm::float3(scale);
+                        break;
+                    }
+                    case AnimationChannel::PathType::ROTATION: {
+                        float floatRotation[4] = {
+                            (float)sampler.outputsVec4[i][3],
+                            (float)sampler.outputsVec4[i][0],
+                            (float)sampler.outputsVec4[i][1],
+                            (float)sampler.outputsVec4[i][2]
+                        };
+                        float floatRotation1[4] = {
+                            (float)sampler.outputsVec4[i + 1][3],
+                            (float)sampler.outputsVec4[i + 1][0],
+                            (float)sampler.outputsVec4[i + 1][1],
+                            (float)sampler.outputsVec4[i + 1][2]
+                        };
+                        glm::quat q1 = glm::make_quat(floatRotation);
+                        glm::quat q2 = glm::make_quat(floatRotation1);
+                        mNodes[channel.node].rotation = glm::normalize(glm::slerp(q1, q2, u));
+                        break;
+                    }
+                    }
+                }
+            }
+        }
+    }
+    mCameras[0].matrices.view = getTransform(mCameras[0].node);
 }
 
 uint32_t Scene::createLight(const RectLightDesc& desc)

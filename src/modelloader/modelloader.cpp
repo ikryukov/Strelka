@@ -231,7 +231,7 @@ glm::float4x4 getTransform(const tinygltf::Node& node, const float globalScale)
                 (float)node.rotation[3],
                 (float)node.rotation[0],
                 (float)node.rotation[1],
-                (float)node.rotation[2]
+                (float)node.rotation[2],
             };
             rotation = glm::make_quat(floatRotation);
         }
@@ -258,7 +258,7 @@ glm::float4x4 getTransform(const tinygltf::Node& node, const float globalScale)
     }
 }
 
-void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Node& node, const glm::float4x4& baseTransform, const float globalScale)
+void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinygltf::Node& node, const uint32_t currentNodeId, const glm::float4x4& baseTransform, const float globalScale)
 {
     using namespace std;
     cout << "Node name: " << node.name << endl;
@@ -279,14 +279,19 @@ void processNode(const tinygltf::Model& model, nevk::Scene& scene, const tinyglt
         glm::vec3 skew;
         glm::vec4 perspective;
         glm::decompose(globalTransform, scale, rotation, translation, skew, perspective);
-        scene.getCamera(node.camera).position = translation;
+
+        rotation = glm::conjugate(rotation);
+
+        scene.getCamera(node.camera).node = currentNodeId;
+        scene.getCamera(node.camera).position = translation * scale;
         scene.getCamera(node.camera).mOrientation = rotation;
         scene.getCamera(node.camera).updateViewMatrix();
     }
 
     for (int i = 0; i < node.children.size(); ++i)
     {
-        processNode(model, scene, model.nodes[node.children[i]], globalTransform, globalScale);
+        scene.mNodes[node.children[i]].parent = currentNodeId;
+        processNode(model, scene, model.nodes[node.children[i]], node.children[i], globalTransform, globalScale);
     }
 }
 
@@ -460,6 +465,152 @@ void loadCameras(const tinygltf::Model& model, nevk::Scene& scene)
     }
 }
 
+void loadAnimation(const tinygltf::Model& model, nevk::Scene& scene)
+{
+    std::vector<nevk::Scene::Animation> animations;
+
+    using namespace std;
+    for (const tinygltf::Animation& animation : model.animations)
+    {
+        nevk::Scene::Animation anim{};
+        cout << "Animation name: " << animation.name << endl;
+        for (const tinygltf::AnimationSampler& sampler : animation.samplers)
+        {
+            nevk::Scene::AnimationSampler samp{};
+            {
+                const tinygltf::Accessor& accessor = model.accessors[sampler.input];
+                const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+                assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+                const void* dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
+                const float* buf = static_cast<const float*>(dataPtr);
+
+                for (size_t index = 0; index < accessor.count; index++)
+                {
+                    samp.inputs.push_back(buf[index]);
+                }
+
+                for (auto input : samp.inputs)
+                {
+                    if (input < anim.start)
+                    {
+                        anim.start = input;
+                    };
+                    if (input > anim.end)
+                    {
+                        anim.end = input;
+                    }
+                }
+            }
+            {
+                const tinygltf::Accessor& accessor = model.accessors[sampler.output];
+                const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
+                const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
+                assert(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+                const void* dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
+                switch (accessor.type)
+                {
+                case TINYGLTF_TYPE_VEC3: {
+                    const glm::vec3* buf = static_cast<const glm::vec3*>(dataPtr);
+                    for (size_t index = 0; index < accessor.count; index++)
+                    {
+                        samp.outputsVec4.push_back(glm::vec4(buf[index], 0.0f));
+                    }
+                    break;
+                }
+                case TINYGLTF_TYPE_VEC4: {
+                    const glm::vec4* buf = static_cast<const glm::vec4*>(dataPtr);
+                    for (size_t index = 0; index < accessor.count; index++)
+                    {
+                        samp.outputsVec4.push_back(buf[index]);
+                    }
+                    break;
+                }
+                default: {
+                    std::cout << "unknown type" << std::endl;
+                    break;
+                }
+                }
+                anim.samplers.push_back(samp);
+            }
+        }
+        for (const tinygltf::AnimationChannel& channel : animation.channels)
+        {
+            nevk::Scene::AnimationChannel chan{};
+            if (channel.target_path == "rotation")
+            {
+                chan.path = nevk::Scene::AnimationChannel::PathType::ROTATION;
+            }
+            if (channel.target_path == "translation")
+            {
+                chan.path = nevk::Scene::AnimationChannel::PathType::TRANSLATION;
+            }
+            if (channel.target_path == "scale")
+            {
+                chan.path = nevk::Scene::AnimationChannel::PathType::SCALE;
+            }
+            if (channel.target_path == "weights")
+            {
+                std::cout << "weights not yet supported, skipping channel" << std::endl;
+                continue;
+            }
+            chan.samplerIndex = channel.sampler;
+            chan.node = channel.target_node;
+            if (chan.node < 0)
+            {
+                std::cout << "skipping channel" << std::endl;
+                continue;
+            }
+
+            anim.channels.push_back(chan);
+        }
+        animations.push_back(anim);
+    }
+    scene.mAnimations = animations;
+}
+
+void loadNodes(const tinygltf::Model& model, nevk::Scene& scene, const float globalScale = 1.0f)
+{
+    for (const auto& node : model.nodes)
+    {
+        nevk::Scene::Node n{};
+        n.name = node.name;
+        n.children = node.children;
+
+        glm::float3 scale{ 1.0f };
+        if (!node.scale.empty())
+        {
+            scale = glm::float3((float)node.scale[0], (float)node.scale[1], (float)node.scale[2]);
+            // check that scale is uniform, otherwise we have to support it in shader
+            // assert(scale.x == scale.y && scale.y == scale.z);
+        }
+        n.scale = scale;
+
+        //glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+        glm::quat rotation = glm::quat_cast(glm::float4x4(1.0f)); 
+        if (!node.rotation.empty())
+        {
+            const float floatRotation[4] = {
+                (float)node.rotation[3],
+                (float)node.rotation[0],
+                (float)node.rotation[1],
+                (float)node.rotation[2],
+            };
+            rotation = glm::make_quat(floatRotation);
+        }
+        n.rotation = rotation;
+
+        glm::float3 translation{ 0.0f };
+        if (!node.translation.empty())
+        {
+            translation = glm::float3((float)node.translation[0], (float)node.translation[1], (float)node.translation[2]);
+            translation *= globalScale;
+        }
+        n.translation = translation;
+        scene.mNodes.push_back(n);
+    }
+}
+
 bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene)
 {
     if (modelPath.empty())
@@ -492,12 +643,16 @@ bool ModelLoader::loadModelGltf(const std::string& modelPath, nevk::Scene& scene
     loadCameras(model, scene);
 
     const float globalScale = 1.0f;
+    loadNodes(model, scene, globalScale);
 
     for (int i = 0; i < model.scenes[sceneId].nodes.size(); ++i)
     {
         const int rootNodeIdx = model.scenes[sceneId].nodes[i];
-        processNode(model, scene, model.nodes[rootNodeIdx], glm::float4x4(1.0f), globalScale);
+        processNode(model, scene, model.nodes[rootNodeIdx], rootNodeIdx, glm::float4x4(1.0f), globalScale);
     }
+
+    loadAnimation(model, scene);
+
     return res;
 }
 } // namespace nevk

@@ -17,6 +17,7 @@ class Camera
 {
 public:
     std::string name = "Default camera";
+    int node = -1;
     enum class CameraType : uint32_t
     {
         lookat,
@@ -27,6 +28,7 @@ public:
     float fov = 45.0f;
     float znear = 0.1f, zfar = 1000.0f;
 
+    // View dir -Z
     glm::quat mOrientation = { 1.0f, 0.0f, 0.0f, 0.0f };
     glm::float3 position = { 0.0f, 0.0f, 10.0f };
 

@@ -307,11 +307,12 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
         ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
     }
 
-    // ImGuizmo::DrawGrid(cameraView, cameraProjection, identityMatrix, 100.f);
     // ImGuizmo::DrawCubes(cameraView, cameraProjection, matrix, gizmoCount);
 
     glm::float4x4 cameraView = cam.getView();
     glm::float4x4 cameraProjection = cam.getPerspective();
+
+    ImGuizmo::DrawGrid(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), identityMatrix, 100.f);
 
     ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
     ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), camDistance, ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
@@ -463,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -628,7 +629,20 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
         }
         ImGui::End();
     }
-
+    if (!scene.mAnimations.empty())
+    {
+        bool valueChanged = ImGui::SliderFloat("Animation time", &animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
+        ImGuiDir dir = scene.mAnimState == Scene::AnimationState::ePlay ? ImGuiDir_Right : ImGuiDir_Down;
+        bool isClicked = ImGui::ArrowButton("Play", ImGuiDir_Right);
+        if (isClicked)
+        {
+            scene.mAnimState = scene.mAnimState == Scene::AnimationState::ePlay ? Scene::AnimationState::eStop : Scene::AnimationState::ePlay;
+        }
+        if (valueChanged)
+        {
+            scene.mAnimState = Scene::AnimationState::eScroll;
+        }
+    }
     // simple settings
     ImGui::Text("MsPF = %f", msPerFrame);
     ImGui::Text("FPS = %f", 1000.0 / msPerFrame);

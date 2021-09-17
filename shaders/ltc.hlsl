@@ -137,7 +137,7 @@ float3 calc(uint2 pixelIndex)
     float3 dcol = material.baseColorFactor.rgb;
     if (material.texBaseColor != -1)
     {
-        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].Sample(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV).rgb;
+        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].SampleLevel(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV, 0).rgb;
     }
     if (material.isLight == 1)
     {
