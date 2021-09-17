@@ -144,7 +144,7 @@ private:
 
     struct SceneRenderData
     {
-        float animationTime;
+        float animationTime = 0;
         uint32_t cameraIndex = 0;
         uint32_t mIndicesCount = 0;
         uint32_t mInstanceCount = 0;

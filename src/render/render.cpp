@@ -1224,7 +1224,10 @@ void Render::loadScene(const std::string& modelPath)
         desc.intensity = 1.0;
         mScene->createLight(desc);
     }
-
+    if (!mScene->mAnimations.empty())
+    {
+        mCurrentSceneRenderData->animationTime = mScene->mAnimations[0].start;
+    }
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
     createLightsBuffer(*mScene);
@@ -1371,7 +1374,7 @@ void Render::drawFrame()
 
     if (scene->mAnimState == Scene::AnimationState::ePlay)
     {
-        mCurrentSceneRenderData->animationTime += deltaTime;
+        mCurrentSceneRenderData->animationTime += (float) deltaTime;
         if (mCurrentSceneRenderData->animationTime > scene->mAnimations[0].end)
         {
             mCurrentSceneRenderData->animationTime = scene->mAnimations[0].start; // ring
