@@ -1,8 +1,8 @@
 #include "scene.h"
 
-#include <glm/gtx/norm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/norm.hpp>
 
 #include <algorithm>
 #include <filesystem>
@@ -131,7 +131,7 @@ void Scene::updateAnimation(const float time)
         return;
     }
     auto& animation = mAnimations[0];
-    for (auto& channel: animation.channels)
+    for (auto& channel : animation.channels)
     {
         assert(channel.node < mNodes.size());
         auto& sampler = animation.samplers[channel.samplerIndex];
@@ -179,7 +179,6 @@ void Scene::updateAnimation(const float time)
                     }
                 }
             }
-
         }
     }
     mCameras[0].matrices.view = getTransform(mCameras[0].node);

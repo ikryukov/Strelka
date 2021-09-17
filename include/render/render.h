@@ -144,7 +144,7 @@ private:
 
     struct SceneRenderData
     {
-        std::chrono::high_resolution_clock::time_point mStartedTime;
+        float animationTime;
         uint32_t cameraIndex = 0;
         uint32_t mIndicesCount = 0;
         uint32_t mInstanceCount = 0;

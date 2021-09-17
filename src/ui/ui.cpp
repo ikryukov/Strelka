@@ -464,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera)
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -629,7 +629,16 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
         }
         ImGui::End();
     }
-
+    if (!scene.mAnimations.empty())
+    {
+        ImGui::SliderFloat("Animation time", &animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
+        ImGuiDir dir = scene.mAnimState == Scene::AnimationState::ePlay ? ImGuiDir_Right : ImGuiDir_Down;
+        bool isClicked = ImGui::ArrowButton("Play", ImGuiDir_Right);
+        if (isClicked)
+        {
+            scene.mAnimState = scene.mAnimState == Scene::AnimationState::ePlay ? Scene::AnimationState::eStop : Scene::AnimationState::ePlay;
+        }
+    }
     // simple settings
     ImGui::Text("MsPF = %f", msPerFrame);
     ImGui::Text("FPS = %f", 1000.0 / msPerFrame);

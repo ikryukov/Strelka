@@ -65,7 +65,12 @@ public:
     };
     std::vector<Node> mNodes;
 
-
+    enum class AnimationState : uint32_t
+    {
+        eStop,
+        ePlay
+    };
+    AnimationState mAnimState = AnimationState::eStop;
     struct AnimationSampler
     {
         enum class InterpolationType
@@ -261,7 +266,7 @@ public:
         {
             const Node& n = mNodes[nodeIdx];
             xform = glm::translate(glm::float4x4(1.0f), n.translation) *
-                                  glm::float4x4(n.rotation) * glm::scale(glm::float4x4(1.0f), n.scale) * xform;
+                    glm::float4x4(n.rotation) * glm::scale(glm::float4x4(1.0f), n.scale) * xform;
             nodeIdx = n.parent;
         }
         return xform;
