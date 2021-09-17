@@ -449,23 +449,6 @@ void loadCameras(const tinygltf::Model& model, nevk::Scene& scene)
             camera.znear = cameraGltf.perspective.znear;
             camera.zfar = cameraGltf.perspective.zfar;
             camera.name = cameraGltf.name;
-
-            //// need to find related node in scene
-            //int nodeIdx = -1;
-            //for (const auto& node: model.nodes)
-            //{
-            //    ++nodeIdx;
-            //    if (node.name == camera.name)
-            //    {
-            //        camera.node = nodeIdx;
-            //        break;
-            //    }
-            //}
-            //if (camera.node == -1)
-            //{
-            //    std::cout << "Camera node not found!" << std::endl;
-            //}
-
             scene.addCamera(camera);
         }
         else
@@ -484,40 +467,6 @@ void loadCameras(const tinygltf::Model& model, nevk::Scene& scene)
 
 void loadAnimation(const tinygltf::Model& model, nevk::Scene& scene)
 {
-    //struct AnimationSampler
-    //{
-    //    enum class InterpolationType
-    //    {
-    //        LINEAR,
-    //        STEP,
-    //        CUBICSPLINE
-    //    };
-    //    InterpolationType interpolation;
-    //    std::vector<float> inputs;
-    //    std::vector<glm::float4> outputsVec4;
-    //};
-
-    //struct AnimationChannel
-    //{
-    //    enum class PathType
-    //    {
-    //        TRANSLATION,
-    //        ROTATION,
-    //        SCALE
-    //    };
-    //    PathType path;
-    //    //Node* node;
-    //    uint32_t samplerIndex;
-    //};
-
-    //struct Animation
-    //{
-    //    std::string name;
-    //    std::vector<AnimationSampler> samplers;
-    //    std::vector<AnimationChannel> channels;
-    //    float start = std::numeric_limits<float>::max();
-    //    float end = std::numeric_limits<float>::min();
-    //};
     std::vector<nevk::Scene::Animation> animations;
 
     using namespace std;
