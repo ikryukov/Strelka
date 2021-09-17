@@ -131,6 +131,13 @@ float3 UniformSampleTriangle(float2 u)
     return float3(b0, b1, 1.0 - b0 - b1);
 }
 
+float3 UniformSampleRect(RectLight l, float2 u)
+{
+    float3 e1 = l.points[1].xyz - l.points[0].xyz;
+    float3 e2 = l.points[3].xyz - l.points[0].xyz;
+    return l.points[0].xyz + e1 * u.x + e2 * u.y;
+}
+
 float calcShadow(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
@@ -144,11 +151,7 @@ float calcShadow(uint2 pixelIndex)
     float3 bary = UniformSampleTriangle(rndUV);
 
     RectLight curLight = lights[0];
-    float3 e1 = curLight.points[1].xyz - curLight.points[0].xyz;
-    float3 e2 = curLight.points[2].xyz - curLight.points[0].xyz;
-    float3 pointOnLight = curLight.points[0].xyz + e1 * rndUV.x + e2 * rndUV.y;
-
-    // float3 pointOnLight = bary.z * curLight.points[0].xyz + bary.x * lcurLight.points[1].xyz + bary.y * curLight.points[2].xyz;
+    float3 pointOnLight = UniformSampleRect(curLight, rndUV);
 
     float3 L = normalize(pointOnLight - wpos);
     float3 N = normalize(gbNormal[pixelIndex].xyz);
