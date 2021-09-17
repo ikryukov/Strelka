@@ -141,7 +141,7 @@ float2 closestHit(Ray ray, inout Hit hit)
             const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
             float2 bary;
             bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
-            if (minHit > hit.t)
+            if (isIntersected && minHit > hit.t)
             {
                 minHit = hit.t;
                 closestPoint = bary;
