@@ -423,13 +423,13 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     ImGui::Spacing();
     ImGui::DragFloat3("Orientation", &currLightDesc.orientation.x);
     ImGui::Spacing();
-    ImGui::DragFloat2("Width/Height", &scale.x, 1.f, 1.0f);
+    ImGui::DragFloat2("Width/Height", &scale.x, 0.1f, 0.005f);
     ImGui::Spacing();
     ImGui::ColorEdit3("Color", &currLightDesc.color.x);
     ImGui::DragFloat("Intensity", &currLightDesc.intensity, 1.0f, 1.0f);
-    currLightDesc.intensity = glm::clamp(currLightDesc.intensity, 1.0f, FLT_MAX);
+    currLightDesc.intensity = glm::clamp(currLightDesc.intensity, 1.0f, std::numeric_limits<float>::max());
     // upd current scale params.
-    scale = glm::clamp(scale, 1.0f, FLT_MAX);
+    scale = glm::clamp(scale, 0.005f, std::numeric_limits<float>::max());
     currLightDesc.width = scale.x;
     currLightDesc.height = scale.y;
 
@@ -469,7 +469,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
     static uint32_t showPropertiesId = -1;
-    static uint32_t lightId = 0;
+    static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
 
@@ -537,6 +537,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
         {
             newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
             showPropertiesId = -1; // new scene, updated properties
+            lightId = -1;
             openInspector = true;
         }
         ImGuiFileDialog::Instance()->Close();
@@ -554,9 +555,9 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
                 ImGui::TextUnformatted("Properties");
                 ImGui::EndMenuBar();
             }
-            if (!isLight)
+            if (showPropertiesId != -1 || lightId != -1)
             {
-                if (showPropertiesId != -1)
+                if (!isLight)
                 {
                     ImGuizmo::SetID(showPropertiesId);
                     float camDist = glm::distance(camPos, instances[showPropertiesId].massCenter);
@@ -567,10 +568,10 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
                     ImGui::Text("Material ID: %d", instances[showPropertiesId].mMaterialId);
                     ImGui::Text("Mass Center: %f %f %f", instances[showPropertiesId].massCenter.x, instances[showPropertiesId].massCenter.y, instances[showPropertiesId].massCenter.z);
                 }
-            }
-            if (isLight)
-            {
-                displayLightSettings(lightId, scene, selectedCamera);
+                else
+                {
+                    displayLightSettings(lightId, scene, selectedCamera);
+                }
             }
             ImGui::EndChild();
             ImGui::PopStyleVar();
