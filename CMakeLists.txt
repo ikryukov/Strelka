@@ -3,6 +3,7 @@ project(nevk)
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
+add_compile_definitions(TRACY_ENABLE)
 include(ConfigSafeGuards)
 include(CTest)
 include(Doctest)
@@ -146,12 +147,17 @@ set(RENDER_SOURCES
         src/render/debugview.cpp
         src/render/depthpass.cpp
         src/render/debugUtils.cpp
+
+        # Tracy profiler
+        external/tracy/TracyClient.cpp
+        external/tracy/Tracy.hpp
         )
 set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/render)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/shaders/)
+target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/external/tracy)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${EMBREE_INCLUDE_PATH})
 
 # Model loader lib
