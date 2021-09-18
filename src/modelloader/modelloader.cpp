@@ -56,8 +56,8 @@ glm::float2 unpackUV(uint32_t val)
     return uv;
 }
 
-void ModelLoader::computeTangent(std::vector<Scene::Vertex>& vertices,
-                                 const std::vector<uint32_t>& indices) const
+void computeTangent(std::vector<Scene::Vertex>& vertices,
+                                 const std::vector<uint32_t>& indices)
 {
     const size_t lastIndex = indices.size();
     Scene::Vertex& v0 = vertices[indices[lastIndex - 3]];
@@ -162,7 +162,6 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
 
         indices.reserve(indexCount);
-
         switch (accessor.componentType)
         {
         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT: {
@@ -171,6 +170,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
             {
                 indices.push_back(buf[index]);
             }
+            computeTangent(vertices, indices);
             break;
         }
         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT: {
@@ -179,6 +179,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
             {
                 indices.push_back(buf[index]);
             }
+            computeTangent(vertices, indices);
             break;
         }
         case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE: {
@@ -187,6 +188,7 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
             {
                 indices.push_back(buf[index]);
             }
+            computeTangent(vertices, indices);
             break;
         }
         default:

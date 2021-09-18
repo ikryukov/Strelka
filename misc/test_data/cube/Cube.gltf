@@ -126,7 +126,10 @@
    ],
    "images" : [
       {
-         "uri" : "Cube_BaseColor.png"
+         "uri" : "patio_color.png"
+      },
+      {
+         "uri" : "patio_bump.png"
       },
       {
          "uri" : "Cube_MetallicRoughness.png"
@@ -135,12 +138,15 @@
    "materials" : [
       {
          "name" : "Cube",
+         "normalTexture" : {
+              "index" : 1
+         },
          "pbrMetallicRoughness" : {
             "baseColorTexture" : {
                "index" : 0
             },
             "metallicRoughnessTexture" : {
-               "index" : 1
+               "index" : 2
             }
          }
       }
@@ -205,12 +211,6 @@
             "minFilter": 9987,
             "wrapS": 10497,
             "wrapT": 10497
-      },
-      {
-            "magFilter": 9729,
-            "minFilter": 9987,
-            "wrapS": 10497,
-            "wrapT": 10497
       }
    ],
    "scene" : 0,
@@ -227,8 +227,12 @@
          "source" : 0
       },
       {
-         "sampler" : 1,
+         "sampler" : 0,
          "source" : 1
+      },
+      {
+          "sampler" : 0,
+          "source" : 2
       }
    ]
 }
