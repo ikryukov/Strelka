@@ -5,8 +5,6 @@
 
 #include "accumulationparam.h"
 
-#include <vector>
-
 namespace nevk
 {
 using AccumulationBase = ComputePass<AccumulationParam>;
