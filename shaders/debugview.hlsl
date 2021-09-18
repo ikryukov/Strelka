@@ -3,6 +3,7 @@
 ConstantBuffer<Debugviewparam> ubo;
 Texture2D<float4> inputLTC;
 Texture2D<float4> inputShadow;
+Texture2D<float4> inputNormals;
 RWTexture2D<float4> output;
 
 [numthreads(16, 16, 1)]
@@ -14,6 +15,6 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    float3 color = inputLTC[pixelIndex].rgb * inputShadow[pixelIndex].r;
-    output[pixelIndex] = float4(color, 1.0f);
+   //float3 color = inputLTC[pixelIndex].rgb * inputShadow[pixelIndex].r;
+   output[pixelIndex] = (inputNormals[pixelIndex] * 0.5 + 0.5);
 }

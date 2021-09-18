@@ -1342,7 +1342,7 @@ void Render::setDescriptors()
     }
     {
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mLtcOutputImage), mResManager->getView(mRtShadowImage));
+        mDebugView->setInputTexture(mResManager->getView(mLtcOutputImage), mResManager->getView(mRtShadowImage), mResManager->getView(mGbuffer.normal));
         mDebugView->setOutputTexture(mResManager->getView(textureDebugViewImage));
     }
     {
