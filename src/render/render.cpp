@@ -104,14 +104,14 @@ void Render::initVulkan()
                                               VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
-    mAccumulationHistory = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                    VK_IMAGE_TILING_OPTIMAL,
-                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Accumulation 1");
-    mAccumulationOutput = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                    VK_IMAGE_TILING_OPTIMAL,
-                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Accumulation 2");
+    for (int i = 0; i < 2; ++i)
+    {
+        std::string imageName = "Accumulation Image: " + std::to_string(i);
+        mAccumulationImages[i] = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                          VK_IMAGE_TILING_OPTIMAL,
+                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+    }
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
 
@@ -124,11 +124,11 @@ void Render::initVulkan()
     mLtcPass = new LtcPass(mSharedCtx);
     mLtcPass->initialize();
 
-    mRtShadowPass = new RtShadowPass(mSharedCtx);
-    mRtShadowPass->initialize();
+    mRtShadow = new RtShadowPass(mSharedCtx);
+    mRtShadow->initialize();
 
-    mAccumulationPass = new Accumulation(mSharedCtx);
-    mAccumulationPass->initialize();
+    mAccumulation = new Accumulation(mSharedCtx);
+    mAccumulation->initialize();
 
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
@@ -365,16 +365,17 @@ void Render::cleanup()
     mResManager->destroyImage(textureDebugViewImage);
     mResManager->destroyImage(textureTonemapImage);
     mResManager->destroyImage(mLtcOutputImage);
-    mResManager->destroyImage(mAccumulationHistory);
-    mResManager->destroyImage(mAccumulationOutput);
-
+    for (int i = 0; i < 2; ++i)
+    {
+        mResManager->destroyImage(mAccumulationImages[i]);
+    }
     destroyGbuffer(mGbuffer);
 
     delete mTonemap;
     delete mDebugView;
     delete mLtcPass;
-    delete mRtShadowPass;
-    delete mAccumulationPass;
+    delete mRtShadow;
+    delete mAccumulation;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -475,17 +476,16 @@ void Render::recreateSwapChain()
                                               VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
-    
-    mResManager->destroyImage(mAccumulationHistory);
-    mAccumulationHistory = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                    VK_IMAGE_TILING_OPTIMAL,
-                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Accumulation 1");
-    mResManager->destroyImage(mAccumulationOutput);
-    mAccumulationOutput = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
-                                                   VK_IMAGE_TILING_OPTIMAL,
-                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Accumulation 2");
+
+    for (int i = 0; i < 2; ++i)
+    {
+        mResManager->destroyImage(mAccumulationImages[i]);
+        std::string imageName = "Accumulation Image: " + std::to_string(i);
+        mAccumulationImages[i] = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                          VK_IMAGE_TILING_OPTIMAL,
+                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+    }
 
     // LTC pass
     mResManager->destroyImage(mLtcOutputImage);
@@ -781,7 +781,7 @@ GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
     // Motion
     res.motion = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
 
     return res;
 }
@@ -1161,49 +1161,29 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mRtShadowPass->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mRtShadow->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
 
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     // Accumulation pass
-    AccumulationParam accParam{};
-    accParam.alpha = 0.01f;
-    accParam.dimension.x = swapChainExtent.width;
-    accParam.dimension.y = swapChainExtent.height;
-    mAccumulationPass->setParams(accParam);
-    Image* accOut = nullptr;
-    Image* accHist = nullptr;
-    if (imageIndex % 2)
-    {
-        accHist = mAccumulationHistory;
-        accOut = mAccumulationOutput;
-    }
-    else
-    {
-        accHist = mAccumulationOutput;
-        accOut = mAccumulationHistory;
-    }
-    mAccumulationPass->setHistoryTexture(accHist);
-    mAccumulationPass->setOutputTexture(accOut);
-    
-    mDebugView->setInputTexture(mResManager->getView(mLtcOutputImage), mResManager->getView(mAccumulationHistory));
-
+    Image* accHist = mAccumulationImages[imageIndex % 2];
+    Image* accOut = mAccumulationImages[(imageIndex + 1) % 2];
+    mAccumulation->setHistoryTexture(accHist);
+    mAccumulation->setOutputTexture(accOut);
     recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-    mAccumulationPass->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
-
+    mAccumulation->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
     recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
 
     if (mScene->mDebugViewSettings == Scene::DebugView::eDebug)
     {
         mDebugParams.dimension.x = swapChainExtent.width;
         mDebugParams.dimension.y = swapChainExtent.height;
         mDebugView->setParams(mDebugParams);
+        mDebugView->setInputTexture(mResManager->getView(mLtcOutputImage), mResManager->getView(accHist));
         mDebugView->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
         // Copy to swapchain image
         {
@@ -1375,11 +1355,11 @@ void Render::setDescriptors()
         desc.gbuffer = &mGbuffer;
         desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
         desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
-        mRtShadowPass->setResources(desc);
+        mRtShadow->setResources(desc);
     }
     {
-        mAccumulationPass->setInputTexture(mRtShadowImage);
-    } 
+        mAccumulation->setInputTexture(mRtShadowImage);
+    }
     {
         LtcResourceDesc desc{};
         desc.gbuffer = &mGbuffer;
@@ -1542,7 +1522,12 @@ void Render::drawFrame()
     RtShadowParam rtShadowParam{};
     rtShadowParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
-    mRtShadowPass->setParams(rtShadowParam);
+    mRtShadow->setParams(rtShadowParam);
+
+    AccumulationParam accParam{};
+    accParam.alpha = 0.1f;
+    accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    mAccumulation->setParams(accParam);
 
     LtcParam ltcparams{};
     ltcparams.CameraPos = cam.getPosition();

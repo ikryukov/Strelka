@@ -17,11 +17,9 @@
 
 struct AccumulationParam
 {
-    float3 CameraPos;
-    uint frameNumber;
     int2 dimension;
+    uint frameNumber;
     float alpha;
-    float pad0;
 };
 
 #ifdef __cplusplus

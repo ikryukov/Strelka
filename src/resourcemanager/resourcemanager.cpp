@@ -93,9 +93,9 @@ public:
         std::string bufferName;
         if (name)
         {
-             vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-             bufferName = "Buffer: " + std::string(name);
-             vmaAllocInfo.pUserData = (void*)bufferName.c_str();
+            vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+            bufferName = "Buffer: " + std::string(name);
+            vmaAllocInfo.pUserData = (void*)bufferName.c_str();
         }
 
         Buffer* ret = new Buffer();
@@ -153,9 +153,9 @@ public:
         std::string imageName;
         if (name)
         {
-             vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
-             imageName = "Image: " + std::string(name);
-             vmaAllocInfo.pUserData = (void*)imageName.c_str();
+            vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+            imageName = "Image: " + std::string(name);
+            vmaAllocInfo.pUserData = (void*)imageName.c_str();
         }
 
         Image* ret = new Image();
@@ -164,7 +164,7 @@ public:
             throw std::runtime_error("failed to create image!");
         }
         ret->format = format;
-        
+
         VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
         if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
         {

@@ -13,6 +13,7 @@
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
+#include "accumulation.h"
 #include "bvh.h"
 #include "common.h"
 #include "debugview.h"
@@ -23,7 +24,6 @@
 #include "renderpass.h"
 #include "rtshadowpass.h"
 #include "tonemap.h"
-#include "accumulation.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -32,6 +32,7 @@
 #include <ui/ui.h>
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -39,7 +40,6 @@
 #include <optional>
 #include <stdexcept>
 #include <vector>
-#include <chrono>
 
 const uint32_t SHADOW_MAP_WIDTH = 1024;
 const uint32_t SHADOW_MAP_HEIGHT = 1024;
@@ -128,8 +128,7 @@ private:
     Image* mRtShadowImage;
     Image* mLtcOutputImage;
 
-    Image* mAccumulationHistory;
-    Image* mAccumulationOutput;
+    Image* mAccumulationImages[2] = { nullptr, nullptr };
 
     ResourceManager* mResManager = nullptr;
     TextureManager* mTexManager = nullptr;
@@ -143,8 +142,8 @@ private:
     //DepthPass mDepthPass;
 
     SharedContext mSharedCtx;
-    RtShadowPass* mRtShadowPass;
-    Accumulation* mAccumulationPass;
+    RtShadowPass* mRtShadow;
+    Accumulation* mAccumulation;
     Tonemap* mTonemap;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
