@@ -427,9 +427,9 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     ImGui::Spacing();
     ImGui::ColorEdit3("Color", &currLightDesc.color.x);
     ImGui::DragFloat("Intensity", &currLightDesc.intensity, 1.0f, 1.0f);
-    currLightDesc.intensity = glm::clamp(currLightDesc.intensity, 1.0f, FLT_MAX);
+    currLightDesc.intensity = glm::clamp(currLightDesc.intensity, 1.0f, std::numeric_limits<float>::max());
     // upd current scale params.
-    scale = glm::clamp(scale, 0.005f, FLT_MAX);
+    scale = glm::clamp(scale, 0.005f, std::numeric_limits<float>::max());
     currLightDesc.width = scale.x;
     currLightDesc.height = scale.y;
 
