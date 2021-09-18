@@ -15,6 +15,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "bvh.h"
 #include "common.h"
+#include "debugview.h"
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
@@ -122,6 +123,7 @@ private:
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
     Image* textureTonemapImage;
+    Image* textureDebugViewImage;
     Image* mRtShadowImage;
     Image* mLtcOutputImage;
 
@@ -139,8 +141,10 @@ private:
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadowPass;
     Tonemap* mTonemap;
+    DebugView* mDebugView;
     LtcPass* mLtcPass;
     Tonemapparam mToneParams;
+    Debugviewparam mDebugParams;
 
     struct SceneRenderData
     {

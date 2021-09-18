@@ -669,7 +669,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
         ImGui::EndCombo();
     }
 
-    const char* items[] = { "None" };
+    const char* items[] = { "None", "Debug" };
     static const char* current_item = items[0];
 
     if (ImGui::BeginCombo("Debug view", current_item))

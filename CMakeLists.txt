@@ -132,6 +132,7 @@ set(RENDER_SOURCES
         include/render/rtshadowpass.h
         include/render/ltcpass.h
         include/render/tonemap.h
+        include/render/debugview.h
         include/render/depthpass.h
         include/render/debugUtils.h
         src/render/render.cpp
@@ -142,6 +143,7 @@ set(RENDER_SOURCES
         src/render/ltcpass.cpp
         src/render/ltc_data.h
         src/render/tonemap.cpp
+        src/render/debugview.cpp
         src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )

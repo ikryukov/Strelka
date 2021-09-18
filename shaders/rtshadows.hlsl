@@ -123,6 +123,46 @@ bool anyHit(Ray ray, inout Hit hit)
     return false;
 }
 
+float2 closestHit(Ray ray, inout Hit hit)
+{
+    const float3 invdir = 1.0 / ray.d.xyz;
+    uint32_t nodeIndex = 0;
+
+    uint32_t minHit = 1e9;
+    float2 closestPoint;
+
+    while (nodeIndex != INVALID_INDEX)
+    {
+        BVHNode node = bvhNodes[NonUniformResourceIndex(nodeIndex)];
+        uint32_t primitiveIndex = node.instId;
+        float boxT = 1e9f;
+        if (primitiveIndex != INVALID_INDEX) // leaf
+        {
+            const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
+            float2 bary;
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
+            if (isIntersected && (hit.t < ray.o.w) && (hit.t < minHit))
+            {
+                minHit = hit.t;
+                closestPoint = bary;
+            }
+        }
+        else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
+        {
+            if (boxT > ray.o.w) // check max ray trace distance: skip this node if collision far away
+            {
+                nodeIndex = node.nodeOffset;
+                continue;
+            }
+            ++nodeIndex;
+            continue;
+        }
+        nodeIndex = node.nodeOffset;
+    }
+
+    return closestPoint;
+}
+
 float3 UniformSampleTriangle(float2 u) 
 {
     float su0 = sqrt(u.x);
