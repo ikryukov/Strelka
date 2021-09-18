@@ -104,6 +104,14 @@ void Render::initVulkan()
                                               VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+    mAccumulationHistory = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                    VK_IMAGE_TILING_OPTIMAL,
+                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Accumulation 1");
+    mAccumulationOutput = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                    VK_IMAGE_TILING_OPTIMAL,
+                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Accumulation 2");
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
 
@@ -118,6 +126,9 @@ void Render::initVulkan()
 
     mRtShadowPass = new RtShadowPass(mSharedCtx);
     mRtShadowPass->initialize();
+
+    mAccumulationPass = new Accumulation(mSharedCtx);
+    mAccumulationPass->initialize();
 
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
@@ -354,6 +365,8 @@ void Render::cleanup()
     mResManager->destroyImage(textureDebugViewImage);
     mResManager->destroyImage(textureTonemapImage);
     mResManager->destroyImage(mLtcOutputImage);
+    mResManager->destroyImage(mAccumulationHistory);
+    mResManager->destroyImage(mAccumulationOutput);
 
     destroyGbuffer(mGbuffer);
 
@@ -361,6 +374,7 @@ void Render::cleanup()
     delete mDebugView;
     delete mLtcPass;
     delete mRtShadowPass;
+    delete mAccumulationPass;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -461,6 +475,17 @@ void Render::recreateSwapChain()
                                               VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+    
+    mResManager->destroyImage(mAccumulationHistory);
+    mAccumulationHistory = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                    VK_IMAGE_TILING_OPTIMAL,
+                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Accumulation 1");
+    mResManager->destroyImage(mAccumulationOutput);
+    mAccumulationOutput = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Accumulation 2");
 
     // LTC pass
     mResManager->destroyImage(mLtcOutputImage);
@@ -1142,6 +1167,38 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
+    // Accumulation pass
+    AccumulationParam accParam{};
+    accParam.alpha = 0.01f;
+    accParam.dimension.x = swapChainExtent.width;
+    accParam.dimension.y = swapChainExtent.height;
+    mAccumulationPass->setParams(accParam);
+    Image* accOut = nullptr;
+    Image* accHist = nullptr;
+    if (imageIndex % 2)
+    {
+        accHist = mAccumulationHistory;
+        accOut = mAccumulationOutput;
+    }
+    else
+    {
+        accHist = mAccumulationOutput;
+        accOut = mAccumulationHistory;
+    }
+    mAccumulationPass->setHistoryTexture(accHist);
+    mAccumulationPass->setOutputTexture(accOut);
+    
+    mDebugView->setInputTexture(mResManager->getView(mLtcOutputImage), mResManager->getView(mAccumulationHistory));
+
+    recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+    mAccumulationPass->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+
+    recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+
     if (mScene->mDebugViewSettings == Scene::DebugView::eDebug)
     {
         mDebugParams.dimension.x = swapChainExtent.width;
@@ -1321,8 +1378,9 @@ void Render::setDescriptors()
         mRtShadowPass->setResources(desc);
     }
     {
-        // mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-    } {
+        mAccumulationPass->setInputTexture(mRtShadowImage);
+    } 
+    {
         LtcResourceDesc desc{};
         desc.gbuffer = &mGbuffer;
         desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
@@ -1438,6 +1496,8 @@ void Render::drawFrame()
 
     scene = getScene();
     Camera& cam = scene->getCamera(getActiveCameraIndex());
+    // save curr to prev
+    cam.prevMatrices = cam.matrices;
 
     if (scene->mAnimState == Scene::AnimationState::ePlay || scene->mAnimState == Scene::AnimationState::eScroll)
     {

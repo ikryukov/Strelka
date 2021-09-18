@@ -9,9 +9,6 @@ namespace nevk
 
 void Camera::updateViewMatrix()
 {
-    // save curr to prev
-    prevMatrices = matrices;
-    // calc new
     glm::mat4 rotM = mat4_cast(mOrientation);
     glm::float4x4 transM = glm::translate(glm::float4x4(1.0f), -position);
     if (type == CameraType::firstperson)

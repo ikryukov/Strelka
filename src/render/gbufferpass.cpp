@@ -128,7 +128,7 @@ VkPipeline GbufferPass::createGraphicsPipeline(VkShaderModule& vertShaderModule,
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.stencilTestEnable = VK_FALSE;
 
-    std::array<VkPipelineColorBlendAttachmentState, 5> gbufferAttachments = {};
+    std::array<VkPipelineColorBlendAttachmentState, 6> gbufferAttachments = {};
     for (VkPipelineColorBlendAttachmentState& colorBlendAttachment : gbufferAttachments)
     {
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;

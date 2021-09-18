@@ -23,6 +23,7 @@
 #include "renderpass.h"
 #include "rtshadowpass.h"
 #include "tonemap.h"
+#include "accumulation.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -127,6 +128,9 @@ private:
     Image* mRtShadowImage;
     Image* mLtcOutputImage;
 
+    Image* mAccumulationHistory;
+    Image* mAccumulationOutput;
+
     ResourceManager* mResManager = nullptr;
     TextureManager* mTexManager = nullptr;
 
@@ -140,6 +144,7 @@ private:
 
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadowPass;
+    Accumulation* mAccumulationPass;
     Tonemap* mTonemap;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
