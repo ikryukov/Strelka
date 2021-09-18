@@ -154,10 +154,6 @@ set(RENDER_SOURCES
         src/render/debugview.cpp
         src/render/depthpass.cpp
         src/render/debugUtils.cpp
-
-        # Tracy profiler
-        external/tracy/TracyClient.cpp
-        external/tracy/Tracy.hpp
         )
 set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
