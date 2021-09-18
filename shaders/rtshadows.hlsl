@@ -86,7 +86,8 @@ bool RayTriangleIntersect(
 
 struct Hit
 {
-    float t;    
+    float t;
+    uint instId;
 };
 
 bool anyHit(Ray ray, inout Hit hit)
@@ -100,11 +101,12 @@ bool anyHit(Ray ray, inout Hit hit)
         float boxT = 1e9f;
         if (primitiveIndex != INVALID_INDEX) // leaf
         {
-            const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
+            const float4 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0; // xyz - coord w - instId
             float2 bary;
-            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0.xyz, node.minBounds, node.maxBounds, hit.t, bary);
             if (isIntersected && (hit.t < ray.o.w)) // check max ray trace distance
             {
+                hit.instId = asuint(v0.w);
                 return true;
             }
         }
@@ -138,9 +140,9 @@ float2 closestHit(Ray ray, inout Hit hit)
         float boxT = 1e9f;
         if (primitiveIndex != INVALID_INDEX) // leaf
         {
-            const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
+            const float4 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0;
             float2 bary;
-            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0.xyz, node.minBounds, node.maxBounds, hit.t, bary);
             if (isIntersected && (hit.t < ray.o.w) && (hit.t < minHit))
             {
                 minHit = hit.t;

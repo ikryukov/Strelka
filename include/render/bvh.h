@@ -37,7 +37,7 @@ struct BVH
 struct BVHInputPosition
 {
     glm::float3 pos;
-    uint32_t instId = -1;
+    uint32_t instId = 0xFFFFFFFF;
 };
 
 class BvhBuilder
