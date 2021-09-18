@@ -120,6 +120,13 @@ target_include_directories(${RESMNGR_NAME} PUBLIC external/vma/src)
 target_include_directories(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 
+# Tracy profiler
+set(TRACY_SOURCES
+        external/tracy/TracyClient.cpp
+        external/tracy/Tracy.hpp)
+set(TRACY_LIB tracy)
+add_library(${TRACY_LIB} OBJECT ${TRACY_SOURCES})
+
 # Render lib
 set(RENDER_SOURCES
         include/render/common.h
@@ -147,10 +154,6 @@ set(RENDER_SOURCES
         src/render/debugview.cpp
         src/render/depthpass.cpp
         src/render/debugUtils.cpp
-
-        # Tracy profiler
-        external/tracy/TracyClient.cpp
-        external/tracy/Tracy.hpp
         )
 set(RENDERLIB_NAME render)
 add_library(${RENDERLIB_NAME} OBJECT ${RENDER_SOURCES})
@@ -226,7 +229,7 @@ target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB})  # Link the executable to library (if it uses it).
 target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 
