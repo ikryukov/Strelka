@@ -50,7 +50,7 @@ public:
     {
         glm::float4x4 perspective;
         glm::float4x4 view;
-    } matrices;
+    } matrices, prevMatrices;
 
     void updateViewMatrix();
 
