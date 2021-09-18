@@ -18,6 +18,8 @@ private:
     {
         alignas(16) glm::mat4 viewToProj;
         alignas(16) glm::mat4 worldToView;
+        alignas(16) glm::mat4 prevViewToProj;
+        alignas(16) glm::mat4 prevWorldToView;
         alignas(16) glm::float3 CameraPos;
         float pad;
     };

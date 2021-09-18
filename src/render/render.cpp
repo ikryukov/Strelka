@@ -104,6 +104,14 @@ void Render::initVulkan()
                                               VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+    for (int i = 0; i < 2; ++i)
+    {
+        std::string imageName = "Accumulation Image: " + std::to_string(i);
+        mAccumulationImages[i] = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                          VK_IMAGE_TILING_OPTIMAL,
+                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+    }
 
     mGbuffer = createGbuffer(swapChainExtent.width, swapChainExtent.height);
 
@@ -116,8 +124,11 @@ void Render::initVulkan()
     mLtcPass = new LtcPass(mSharedCtx);
     mLtcPass->initialize();
 
-    mRtShadowPass = new RtShadowPass(mSharedCtx);
-    mRtShadowPass->initialize();
+    mRtShadow = new RtShadowPass(mSharedCtx);
+    mRtShadow->initialize();
+
+    mAccumulation = new Accumulation(mSharedCtx);
+    mAccumulation->initialize();
 
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
@@ -354,13 +365,17 @@ void Render::cleanup()
     mResManager->destroyImage(textureDebugViewImage);
     mResManager->destroyImage(textureTonemapImage);
     mResManager->destroyImage(mLtcOutputImage);
-
+    for (int i = 0; i < 2; ++i)
+    {
+        mResManager->destroyImage(mAccumulationImages[i]);
+    }
     destroyGbuffer(mGbuffer);
 
     delete mTonemap;
     delete mDebugView;
     delete mLtcPass;
-    delete mRtShadowPass;
+    delete mRtShadow;
+    delete mAccumulation;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -461,6 +476,16 @@ void Render::recreateSwapChain()
                                               VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+
+    for (int i = 0; i < 2; ++i)
+    {
+        mResManager->destroyImage(mAccumulationImages[i]);
+        std::string imageName = "Accumulation Image: " + std::to_string(i);
+        mAccumulationImages[i] = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16_SFLOAT,
+                                                          VK_IMAGE_TILING_OPTIMAL,
+                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+    }
 
     // LTC pass
     mResManager->destroyImage(mLtcOutputImage);
@@ -736,36 +761,28 @@ GBuffer Render::createGbuffer(uint32_t width, uint32_t height)
     res.width = width;
     res.height = height;
     // Depth
-    {
-        res.depthFormat = findDepthFormat();
-        res.depth = mResManager->createImage(width, height, res.depthFormat, VK_IMAGE_TILING_OPTIMAL,
-                                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
-    }
+    res.depthFormat = findDepthFormat();
+    res.depth = mResManager->createImage(width, height, res.depthFormat, VK_IMAGE_TILING_OPTIMAL,
+                                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
     // Normals
-    {
-        res.normal = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
-    }
+    res.normal = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
     // Tangent
-    {
-        res.tangent = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
-    }
+    res.tangent = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
     // wPos
-    {
-        res.wPos = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
-    }
+    res.wPos = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
     // UV
-    {
-        res.uv = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
-    }
+    res.uv = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
     // InstId
-    {
-        res.instId = mResManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
-                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
-    }
+    res.instId = mResManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
+    // Motion
+    res.motion = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
+
     return res;
 }
 
@@ -777,6 +794,7 @@ void Render::destroyGbuffer(GBuffer& gbuffer)
     mResManager->destroyImage(gbuffer.tangent);
     mResManager->destroyImage(gbuffer.uv);
     mResManager->destroyImage(gbuffer.instId);
+    mResManager->destroyImage(gbuffer.motion);
 }
 
 void Render::createGbufferPass()
@@ -1143,10 +1161,21 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mRtShadowPass->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    mRtShadow->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
 
     // barrier
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+    // Accumulation pass
+    Image* accHist = mAccumulationImages[imageIndex % 2];
+    Image* accOut = mAccumulationImages[(imageIndex + 1) % 2];
+    mAccumulation->setHistoryTexture(accHist);
+    mAccumulation->setOutputTexture(accOut);
+    recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mAccumulation->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+    recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     if (mScene->mDebugViewSettings == Scene::DebugView::eDebug)
@@ -1154,6 +1183,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         mDebugParams.dimension.x = swapChainExtent.width;
         mDebugParams.dimension.y = swapChainExtent.height;
         mDebugView->setParams(mDebugParams);
+        mDebugView->setInputTexture(mResManager->getView(mLtcOutputImage), mResManager->getView(accHist));
         mDebugView->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
         // Copy to swapchain image
         {
@@ -1325,11 +1355,12 @@ void Render::setDescriptors()
         desc.gbuffer = &mGbuffer;
         desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
         desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
-        mRtShadowPass->setResources(desc);
+        mRtShadow->setResources(desc);
     }
     {
-        // mDepthPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-    } {
+        mAccumulation->setInputTexture(mRtShadowImage);
+    }
+    {
         LtcResourceDesc desc{};
         desc.gbuffer = &mGbuffer;
         desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
@@ -1445,6 +1476,8 @@ void Render::drawFrame()
 
     scene = getScene();
     Camera& cam = scene->getCamera(getActiveCameraIndex());
+    // save curr to prev
+    cam.prevMatrices = cam.matrices;
 
     if (scene->mAnimState == Scene::AnimationState::ePlay || scene->mAnimState == Scene::AnimationState::eScroll)
     {
@@ -1489,7 +1522,12 @@ void Render::drawFrame()
     RtShadowParam rtShadowParam{};
     rtShadowParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
-    mRtShadowPass->setParams(rtShadowParam);
+    mRtShadow->setParams(rtShadowParam);
+
+    AccumulationParam accParam{};
+    accParam.alpha = 0.1f;
+    accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    mAccumulation->setParams(accParam);
 
     LtcParam ltcparams{};
     ltcparams.CameraPos = cam.getPosition();

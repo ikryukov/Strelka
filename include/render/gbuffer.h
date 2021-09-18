@@ -13,6 +13,7 @@ struct GBuffer
     Image* tangent;
     Image* uv;
     Image* instId;
+    Image* motion;
 
     // utils
     VkFormat depthFormat;
