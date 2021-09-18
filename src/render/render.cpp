@@ -10,7 +10,7 @@
 #include <filesystem>
 
 // profiler
-#include "Tracy.hpp"
+// #include "Tracy.hpp"
 
 namespace fs = std::filesystem;
 const uint32_t MAX_LIGHT_COUNT = 15;
@@ -315,7 +315,7 @@ void Render::mainLoop()
 
         double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
         msPerFrame = fpsCounter(frameTime);
-        FrameMark;
+        // FrameMark;
     }
 
     vkDeviceWaitIdle(mDevice);
@@ -1379,7 +1379,7 @@ void Render::createDefaultScene()
 
 void Render::drawFrame()
 {
-    ZoneScoped;
+    // ZoneScoped;
     FrameData& currFrame = getCurrentFrameData();
 
     vkWaitForFences(mDevice, 1, &currFrame.inFlightFence, VK_TRUE, UINT64_MAX);

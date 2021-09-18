@@ -163,6 +163,68 @@ void BvhBuilder::splitPrimitive(const RTCBuildPrimitive* prim, unsigned int dim,
     (&rprim->lower_x)[dim] = pos;
 }
 
+BVH BvhBuilder::buildEmbree(const std::vector<BVHInputPosition>& positions)
+{
+    const uint32_t totalTriangles = (uint32_t)positions.size() / 3;
+    std::vector<RTCBuildPrimitive> prims;
+    const size_t extraSpace = totalTriangles / 2; // TODO: check this parameter
+    prims.reserve(totalTriangles + extraSpace);
+    prims.resize(totalTriangles);
+    for (uint32_t i = 0; i < totalTriangles; ++i)
+    {
+        RTCBuildPrimitive& prim = prims[i];
+        Triangle triangle{};
+        triangle.v0 = positions[i * 3 + 0].pos;
+        triangle.v1 = positions[i * 3 + 1].pos;
+        triangle.v2 = positions[i * 3 + 2].pos;
+        AABB box = boundingBox(triangle);
+
+        prim.geomID = 0;
+        prim.primID = positions[i * 3 + 0].instId;
+        prim.lower_x = box.minimum.x;
+        prim.lower_y = box.minimum.y;
+        prim.lower_z = box.minimum.z;
+        prim.upper_x = box.maximum.x;
+        prim.upper_y = box.maximum.y;
+        prim.upper_z = box.maximum.z;
+    }
+
+    RTCBVH embreeBvh = rtcNewBVH(mDevice);
+
+    RTCBuildArguments arguments = rtcDefaultBuildArguments();
+    arguments.byteSize = sizeof(arguments);
+    arguments.buildFlags = RTC_BUILD_FLAG_NONE;
+    arguments.buildQuality = RTC_BUILD_QUALITY_HIGH;
+    arguments.maxBranchingFactor = 2;
+    arguments.maxDepth = 1024;
+    arguments.sahBlockSize = 1;
+    arguments.minLeafSize = 1;
+    arguments.maxLeafSize = 1;
+    arguments.traversalCost = 1.0f;
+    arguments.intersectionCost = 1.0f;
+    arguments.bvh = embreeBvh;
+    arguments.primitives = prims.data();
+    arguments.primitiveCount = totalTriangles; //prims.size();
+    arguments.primitiveArrayCapacity = prims.capacity();
+    arguments.createNode = InnerNode::create;
+    arguments.setNodeChildren = InnerNode::setChildren;
+    arguments.setNodeBounds = InnerNode::setBounds;
+    arguments.createLeaf = LeafNode::create;
+    arguments.splitPrimitive = BvhBuilder::splitPrimitive;
+    arguments.buildProgress = nullptr;
+    arguments.userPtr = nullptr;
+
+    Node* root = (Node*)rtcBuildBVH(&arguments);
+    uint32_t order = 0;
+    setDepthFirstVisitOrder(root, order);
+
+    BVH res = repackEmbree(root, positions, order, totalTriangles);
+
+    rtcReleaseBVH(embreeBvh);
+
+    return res;
+}
+
 BVH BvhBuilder::buildEmbree(const std::vector<glm::float3>& positions)
 {
     const uint32_t totalTriangles = (uint32_t)positions.size() / 3;
@@ -238,6 +300,51 @@ void BvhBuilder::setDepthFirstVisitOrder(Node* current, uint32_t& order)
     }
 }
 
+void BvhBuilder::repackEmbree(const Node* current, const std::vector<BVHInputPosition>& positions, BVH& outBvh, uint32_t& positionInArray, uint32_t& positionInTrianglesArray, const uint32_t nextId)
+{
+    outBvh.nodes.push_back({});
+    BVHNode& curr = outBvh.nodes[positionInArray++];
+    curr.nodeOffset = nextId;
+    if (!current->children[0] && !current->children[1])
+    {
+        // leaf
+        uint32_t index = ((LeafNode*)current)->mTriangleId;
+        curr.nodeOffset =  LeafMask | ((LeafNode*)current)->mInstId;
+        Triangle t{};
+        t.v0 = positions[index * 3 + 0].pos;
+        t.v1 = positions[index * 3 + 1].pos;
+        t.v2 = positions[index * 3 + 2].pos;
+
+        curr.minBounds = t.v1 - t.v0;
+        curr.maxBounds = t.v2 - t.v0;
+        
+        if (positionInTrianglesArray >= outBvh.triangles.size())
+        {
+            outBvh.triangles.push_back({});
+        }
+
+        outBvh.triangles[positionInTrianglesArray].v0 = glm::float4(t.v0, 0.0f);
+        curr.instId = positionInTrianglesArray;
+        ++positionInTrianglesArray;
+    }
+    else
+    {
+        // inner
+        curr.minBounds = current->bounds.minimum;
+        curr.maxBounds = current->bounds.maximum;
+        curr.instId = InvalidMask;
+        if (current->children[0])
+        {
+            uint32_t offset = current->children[1] ? current->children[1]->visitOrder : InvalidMask;
+            repackEmbree(current->children[0], positions, outBvh, positionInArray, positionInTrianglesArray, offset);
+        }
+        if (current->children[1])
+        {
+            repackEmbree(current->children[1], positions, outBvh, positionInArray, positionInTrianglesArray, nextId);
+        }
+    }
+}
+
 void BvhBuilder::repackEmbree(const Node* current, const std::vector<glm::float3>& positions, BVH& outBvh, uint32_t& positionInArray, uint32_t& positionInTrianglesArray, const uint32_t nextId)
 {
     outBvh.nodes.push_back({});
@@ -246,7 +353,7 @@ void BvhBuilder::repackEmbree(const Node* current, const std::vector<glm::float3
     if (!current->children[0] && !current->children[1])
     {
         // leaf
-        uint32_t index = ((LeafNode*)current)->id;
+        uint32_t index = ((LeafNode*)current)->mTriangleId;
         Triangle t{};
         t.v0 = positions[index * 3 + 0];
         t.v1 = positions[index * 3 + 1];
@@ -282,6 +389,18 @@ void BvhBuilder::repackEmbree(const Node* current, const std::vector<glm::float3
     }
 }
 
+BVH BvhBuilder::repackEmbree(const Node* root, const std::vector<BVHInputPosition>& positions, const uint32_t totalNodes, const uint32_t totalTriangles)
+{
+    BVH res;
+    res.nodes.reserve(totalNodes);
+    res.triangles.resize(totalTriangles);
+    uint32_t posInNodeArray = 0;
+    uint32_t posInTriangleArray = 0;
+    repackEmbree(root, positions, res, posInNodeArray, posInTriangleArray, InvalidMask);
+
+    return res;
+}
+
 BVH BvhBuilder::repackEmbree(const Node* root, const std::vector<glm::float3>& positions, const uint32_t totalNodes, const uint32_t totalTriangles)
 {
     BVH res;
@@ -292,6 +411,43 @@ BVH BvhBuilder::repackEmbree(const Node* root, const std::vector<glm::float3>& p
     repackEmbree(root, positions, res, posInNodeArray, posInTriangleArray, InvalidMask);
 
     return res;
+}
+
+BVH BvhBuilder::build(const std::vector<BVHInputPosition>& positions)
+{
+    const uint32_t totalTriangles = (uint32_t)positions.size() / 3;
+    if (totalTriangles == 0)
+    {
+        return BVH();
+    }
+
+    if (mUseEmbree)
+    {
+        return buildEmbree(positions);
+    }
+    else
+    {
+        assert(0); // notsupported;
+        return BVH();
+    }
+
+    std::vector<BvhNodeInternal> nodes(totalTriangles);
+    for (uint32_t i = 0; i < totalTriangles; ++i)
+    {
+        BvhNodeInternal& leaf = nodes[i];
+        leaf.prim = i;
+        leaf.isLeaf = true;
+        leaf.triangle.v0 = positions[i * 3 + 0].pos;
+        leaf.triangle.v1 = positions[i * 3 + 1].pos;
+        leaf.triangle.v2 = positions[i * 3 + 2].pos;
+        leaf.box = boundingBox(leaf.triangle);
+    }
+
+    uint32_t root = recursiveBuild(nodes, 0, totalTriangles);
+
+    setDepthFirstVisitOrder(nodes, root);
+
+    return repack(nodes, totalTriangles);
 }
 
 BVH BvhBuilder::build(const std::vector<glm::float3>& positions)

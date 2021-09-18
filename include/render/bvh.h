@@ -34,6 +34,12 @@ struct BVH
     std::vector<BVHTriangle> triangles;
 };
 
+struct BVHInputPosition
+{
+    glm::float3 pos;
+    uint32_t instId = -1;
+};
+
 class BvhBuilder
 {
 public:
@@ -50,6 +56,7 @@ public:
     ~BvhBuilder();
 
     BVH build(const std::vector<glm::float3>& positions);
+    BVH build(const std::vector<BVHInputPosition>& positions);
 
 private:
     SplitMethod mSplitMethod = SplitMethod::eMiddleCentroids;
@@ -215,10 +222,12 @@ private:
 
     struct LeafNode : public Node
     {
-        unsigned id;
+        unsigned mTriangleId;
+        unsigned mInstId;
 
-        LeafNode(unsigned id, const AABB& bounds)
-            : id(id)
+        LeafNode(unsigned triangleId, unsigned instId, const AABB& bounds)
+            : mTriangleId(triangleId),
+            mInstId(instId)
         {
             this->bounds = bounds;
         }
@@ -233,7 +242,7 @@ private:
             (void)userPtr;
             assert(numPrims == 1);
             void* ptr = rtcThreadLocalAlloc(alloc, sizeof(LeafNode), 16);
-            return (void*)new (ptr) LeafNode(prims->primID, *(AABB*)prims);
+            return (void*)new (ptr) LeafNode(prims->primID, prims->geomID, *(AABB*)prims);
         }
     };
 
@@ -251,7 +260,6 @@ private:
         Triangle triangle; // only for leaf
     };
 
-
     void setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t nodeId, uint32_t nextId, uint32_t& order);
     void setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t root);
 
@@ -262,9 +270,12 @@ private:
 
     // embree
     BVH buildEmbree(const std::vector<glm::float3>& positions);
+    BVH buildEmbree(const std::vector<BVHInputPosition>& positions);
     BVH repackEmbree(const Node* root, const std::vector<glm::float3>& positions, const uint32_t totalNodes, const uint32_t totalTriangles);
+    BVH repackEmbree(const Node* root, const std::vector<BVHInputPosition>& positions, const uint32_t totalNodes, const uint32_t totalTriangles);
     void setDepthFirstVisitOrder(Node* current, uint32_t& order);
     void repackEmbree(const Node* current, const std::vector<glm::float3>& positions, BVH& outBvh, uint32_t& positionInArray, uint32_t& positionInTrianglesArray, const uint32_t nextId);
+    void repackEmbree(const Node* current, const std::vector<BVHInputPosition>& positions, BVH& outBvh, uint32_t& positionInArray, uint32_t& positionInTrianglesArray, const uint32_t nextId);
     static void splitPrimitive(const RTCBuildPrimitive* prim, unsigned int dim, float pos, RTCBounds* lprim, RTCBounds* rprim, void* userPtr);
 };
 
