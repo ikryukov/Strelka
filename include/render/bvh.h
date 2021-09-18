@@ -227,7 +227,7 @@ private:
 
         LeafNode(unsigned triangleId, unsigned instId, const AABB& bounds)
             : mTriangleId(triangleId),
-            mInstId(instId)
+              mInstId(instId)
         {
             this->bounds = bounds;
         }

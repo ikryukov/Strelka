@@ -316,7 +316,7 @@ void BvhBuilder::repackEmbree(const Node* current, const std::vector<BVHInputPos
 
         curr.minBounds = t.v1 - t.v0;
         curr.maxBounds = t.v2 - t.v0;
-        
+
         if (positionInTrianglesArray >= outBvh.triangles.size())
         {
             outBvh.triangles.push_back({});
@@ -435,7 +435,7 @@ BVH BvhBuilder::build(const std::vector<BVHInputPosition>& positions)
         assert(0); // notsupported;
         return BVH();
     }
-
+    // TODO: commented here. Need rework this code in two-level bvh
     //std::vector<BvhNodeInternal> nodes(totalTriangles);
     //for (uint32_t i = 0; i < totalTriangles; ++i)
     //{

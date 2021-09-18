@@ -195,7 +195,7 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     l.points[3] = localTransform * glm::float4(0.0f, 0.5f, -0.5f, 1.0f);
     l.color = glm::float4(desc.color, 1.0f) * desc.intensity;
 
-    RectLightDesc lightDesc;
+    RectLightDesc lightDesc{};
     lightDesc.position = desc.position;
     lightDesc.orientation = desc.orientation;
     lightDesc.width = desc.width;
