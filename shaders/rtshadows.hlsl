@@ -86,7 +86,9 @@ bool RayTriangleIntersect(
 
 struct Hit
 {
-    float t;    
+    float2 bary;
+    float t;
+    uint instId;
 };
 
 bool anyHit(Ray ray, inout Hit hit)
@@ -100,11 +102,12 @@ bool anyHit(Ray ray, inout Hit hit)
         float boxT = 1e9f;
         if (primitiveIndex != INVALID_INDEX) // leaf
         {
-            const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
+            const float4 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0; // xyz - coord w - instId
             float2 bary;
-            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0.xyz, node.minBounds, node.maxBounds, hit.t, bary);
             if (isIntersected && (hit.t < ray.o.w)) // check max ray trace distance
             {
+                hit.instId = asuint(v0.w);
                 return true;
             }
         }
@@ -123,14 +126,14 @@ bool anyHit(Ray ray, inout Hit hit)
     return false;
 }
 
-float2 closestHit(Ray ray, inout Hit hit)
+bool closestHit(Ray ray, inout Hit hit)
 {
     const float3 invdir = 1.0 / ray.d.xyz;
-    uint32_t nodeIndex = 0;
-
+    
     uint32_t minHit = 1e9;
-    float2 closestPoint;
+    bool isFound = false;
 
+    uint32_t nodeIndex = 0;
     while (nodeIndex != INVALID_INDEX)
     {
         BVHNode node = bvhNodes[NonUniformResourceIndex(nodeIndex)];
@@ -138,13 +141,15 @@ float2 closestHit(Ray ray, inout Hit hit)
         float boxT = 1e9f;
         if (primitiveIndex != INVALID_INDEX) // leaf
         {
-            const float3 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0.xyz;
+            const float4 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0;
             float2 bary;
-            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0, node.minBounds, node.maxBounds, hit.t, bary);
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0.xyz, node.minBounds, node.maxBounds, hit.t, bary);
             if (isIntersected && (hit.t < ray.o.w) && (hit.t < minHit))
             {
                 minHit = hit.t;
-                closestPoint = bary;
+                hit.bary = bary;
+                hit.instId = asuint(v0.w);
+                isFound = true;
             }
         }
         else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
@@ -160,7 +165,7 @@ float2 closestHit(Ray ray, inout Hit hit)
         nodeIndex = node.nodeOffset;
     }
 
-    return closestPoint;
+    return isFound;
 }
 
 float3 UniformSampleTriangle(float2 u) 
@@ -188,7 +193,6 @@ float calcShadow(uint2 pixelIndex)
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
 
     float2 rndUV = float2(rand(rngState), rand(rngState));
-    float3 bary = UniformSampleTriangle(rndUV);
 
     RectLight curLight = lights[0];
     float3 pointOnLight = UniformSampleRect(curLight, rndUV);
@@ -200,7 +204,7 @@ float calcShadow(uint2 pixelIndex)
     ray.d = float4(L, 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
     float distToLight = distance(pointOnLight, wpos + offset);
-    ray.o = float4(wpos + offset, distToLight);
+    ray.o = float4(wpos + offset, distToLight - 1e-5);
     Hit hit;
     hit.t = 0.0;
     if ((dot(N, L) > 0.0) && anyHit(ray, hit))

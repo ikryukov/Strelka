@@ -86,9 +86,9 @@ void Render::initVulkan()
     mSharedCtx.mTextureManager = mTexManager;
 
     textureDebugViewImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                   VK_IMAGE_TILING_OPTIMAL,
-                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
+                                                     VK_IMAGE_TILING_OPTIMAL,
+                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
     mTexManager->transitionImageLayout(mResManager->getVkImage(textureDebugViewImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     textureTonemapImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
@@ -441,11 +441,10 @@ void Render::recreateSwapChain()
 
     mResManager->destroyImage(textureDebugViewImage);
     textureDebugViewImage = mResManager->createImage(swapChainExtent.width, swapChainExtent.height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                   VK_IMAGE_TILING_OPTIMAL,
-                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
+                                                     VK_IMAGE_TILING_OPTIMAL,
+                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
     mTexManager->transitionImageLayout(mResManager->getVkImage(textureDebugViewImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
-
 
 
     mResManager->destroyImage(textureTonemapImage);
@@ -911,9 +910,9 @@ void Render::createBvhBuffer(nevk::Scene& scene)
     const std::vector<Instance>& instances = scene.getInstances();
     const std::vector<Mesh>& meshes = scene.getMeshes();
 
-    std::vector<glm::float3> positions;
+    std::vector<BVHInputPosition> positions;
     positions.reserve(indices.size());
-
+    uint32_t currInstId = 0;
     for (const Instance& currInstance : instances)
     {
         const uint32_t currentMeshId = currInstance.mMeshId;
@@ -934,10 +933,22 @@ void Render::createBvhBuffer(nevk::Scene& scene)
             glm::float3 v1 = m * glm::float4(vertices[i1].pos, 1.0);
             glm::float3 v2 = m * glm::float4(vertices[i2].pos, 1.0);
 
-            positions.push_back(v0);
-            positions.push_back(v1);
-            positions.push_back(v2);
+            BVHInputPosition p0;
+            p0.pos = v0;
+            p0.instId = currInstId;
+            positions.push_back(p0);
+
+            BVHInputPosition p1;
+            p1.pos = v1;
+            p1.instId = currInstId;
+            positions.push_back(p1);
+
+            BVHInputPosition p2;
+            p2.pos = v2;
+            p2.instId = currInstId;
+            positions.push_back(p2);
         }
+        ++currInstId;
     }
 
     BVH sceneBvh = mBvhBuilder.build(positions);
