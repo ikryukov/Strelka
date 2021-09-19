@@ -123,19 +123,11 @@ private:
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-    Image* textureTonemapImage;
-    Image* textureDebugViewImage;
-    Image* mRtShadowImage;
-    Image* mLtcOutputImage;
-
-    Image* mAccumulationImages[2] = { nullptr, nullptr };
-
     ResourceManager* mResManager = nullptr;
     TextureManager* mTexManager = nullptr;
 
     BvhBuilder mBvhBuilder;
 
-    GBuffer mGbuffer;
     GbufferPass mGbufferPass;
     ModelLoader* modelLoader = nullptr;
     //disable depth prepass
@@ -149,6 +141,53 @@ private:
     LtcPass* mLtcPass;
     Tonemapparam mToneParams;
     Debugviewparam mDebugParams;
+
+    struct ViewData
+    {
+        uint32_t width;
+        uint32_t height;
+        GBuffer* gbuffer;
+        Image* textureTonemapImage;
+        Image* textureDebugViewImage;
+        Image* mRtShadowImage;
+        Image* mLtcOutputImage;
+        Image* mAccumulationImages[2] = { nullptr, nullptr };
+        ResourceManager* mResManager = nullptr;
+        ~ViewData()
+        {
+            assert(mResManager);
+            if (gbuffer)
+            {
+                delete gbuffer;
+            }
+            if (textureTonemapImage)
+            {
+                mResManager->destroyImage(textureTonemapImage);
+            }
+            if (textureDebugViewImage)
+            {
+                mResManager->destroyImage(textureDebugViewImage);
+            }
+            if (mRtShadowImage)
+            {
+                mResManager->destroyImage(mRtShadowImage);
+            }
+            if (mLtcOutputImage)
+            {
+                mResManager->destroyImage(mLtcOutputImage);
+            }
+            for (uint32_t i = 0; i < 2; ++i)
+            {
+                if (mAccumulationImages[i])
+                {
+                    mResManager->destroyImage(mAccumulationImages[i]);
+                }
+            }
+        }
+    };
+
+    ViewData* mView = nullptr;
+
 
     struct SceneRenderData
     {
@@ -278,8 +317,8 @@ private:
 
     void createImageViews();
 
-    GBuffer createGbuffer(uint32_t width, uint32_t height);
-    void destroyGbuffer(GBuffer& gbuffer);
+    ViewData* createView(uint32_t width, uint32_t height);
+    GBuffer* createGbuffer(uint32_t width, uint32_t height);
     void createGbufferPass();
 
     void createCommandPool();
