@@ -123,12 +123,10 @@ private:
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
-
     ResourceManager* mResManager = nullptr;
     TextureManager* mTexManager = nullptr;
 
     BvhBuilder mBvhBuilder;
-
 
     GbufferPass mGbufferPass;
     ModelLoader* modelLoader = nullptr;
@@ -320,9 +318,7 @@ private:
     void createImageViews();
 
     ViewData* createView(uint32_t width, uint32_t height);
-
     GBuffer* createGbuffer(uint32_t width, uint32_t height);
-    void destroyGbuffer(GBuffer& gbuffer);
     void createGbufferPass();
 
     void createCommandPool();
