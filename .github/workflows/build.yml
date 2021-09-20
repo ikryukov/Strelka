@@ -32,6 +32,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Create Build Environment
+        run: |
+          cmake -E make_directory ${{github.workspace}}/build
+          cmake -E make_directory ${{github.workspace}}/build/deps
+          choco install wget
+
       - name: Download Vulkan SDK
         shell: bash
         working-directory: ${{github.workspace}}
@@ -63,12 +69,13 @@ jobs:
           wget https://github.com/embree/embree/releases/download/v${env:EMBREE_VERSION}/embree-${env:EMBREE_VERSION}.x64.vc14.windows.zip
           7z x embree-${env:EMBREE_VERSION}.x64.vc14.windows.zip -y
 
-      - name: Create and build project
+      - name: Configure CMake
         shell: bash
-        working-directory: ${{github.workspace}}
+        working-directory: ${{github.workspace}}/build
         run: |
           export VULKAN_SDK=$(pwd)/VULKAN_SDK
-          mkdir build
-          cd build
           cmake -DCMAKE_BUILD_TYPE=Release -Dembree_DIR="${env:GITHUB_WORKSPACE}/build/deps/embree-${env:EMBREE_VERSION}.x64.vc14.windows/lib/cmake/embree-${env:EMBREE_VERSION}" ..
-          cmake --build .
+
+      - name: Build
+        working-directory: ${{github.workspace}}/build
+        run: cmake --build . --config ${env:BUILD_TYPE}
