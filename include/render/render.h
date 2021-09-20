@@ -1,8 +1,5 @@
 #pragma once
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #define GLM_FORCE_SILENT_WARNINGS
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -23,8 +20,12 @@
 #include "ltcpass.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
+#undef APIENTRY
 #include "spdlog/sinks/basic_file_sink.h"
 #include "tonemap.h"
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -41,6 +42,8 @@
 #include <optional>
 #include <stdexcept>
 #include <vector>
+
+#define NEVK_LOG_ERROR(fmt, ...) nevk::Render::logger->error(fmt, __VA_ARGS__)
 
 const uint32_t SHADOW_MAP_WIDTH = 1024;
 const uint32_t SHADOW_MAP_HEIGHT = 1024;
@@ -99,6 +102,8 @@ public:
     std::string MODEL_PATH;
     uint32_t WIDTH;
     uint32_t HEIGHT;
+
+    inline static std::shared_ptr<spdlog::logger> logger = spdlog::basic_logger_mt("NeVK", "logs/renderLog.log");
 
     void initWindow();
     void initVulkan();
@@ -371,21 +376,20 @@ private:
 
     bool checkValidationLayerSupport();
 
+
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, [[maybe_unused]] void* pUserData)
     {
-        static std::shared_ptr<spdlog::logger> logger = spdlog::basic_logger_mt("NeVK", "logs/renderLog.log");
-
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
-            logger->warn("{}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+            NEVK_LOG_ERROR("{}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
         }
         else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
-            logger->error("{}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+            NEVK_LOG_ERROR("{}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
         }
         else
         {
-            logger->info("Validation: {}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
+            NEVK_LOG_ERROR("Validation: {}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
         }
         return VK_FALSE;
     }
