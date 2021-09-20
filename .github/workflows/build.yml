@@ -74,7 +74,7 @@ jobs:
         shell: bash
         working-directory: ${{github.workspace}}/build
         run: >
-          cmake -A x64 ${env:GITHUB_WORKSPACE}
+          cmake -A x64 ${{github.workspace}}
           -DCMAKE_BUILD_TYPE=Release 
           -Dembree_DIR="${env:GITHUB_WORKSPACE}/build/deps/embree-${env:EMBREE_VERSION}.x64.vc14.windows/lib/cmake/embree-${env:EMBREE_VERSION}"
           -DVULKAN_SDK="${env:GITHUB_WORKSPACE}/VULKAN_SDK"
