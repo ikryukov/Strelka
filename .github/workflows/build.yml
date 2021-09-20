@@ -38,37 +38,37 @@ jobs:
           cmake -E make_directory ${{github.workspace}}/build/deps
           choco install wget
       
-      - name: LunarG sdk
-        working-directory: ${{github.workspace}}/build/deps
+      # - name: LunarG sdk
+      #   working-directory: ${{github.workspace}}/build/deps
+      #   run: |
+      #     wget https://sdk.lunarg.com/sdk/download/1.2.189.2/windows/VulkanSDK-1.2.189.2-Installer.exe
+      #     ./VulkanSDK-1.2.189.2-Installer.exe /S
+
+      - name: Download Vulkan SDK
+        shell: bash
+        working-directory: ${{github.workspace}}
         run: |
-          wget https://sdk.lunarg.com/sdk/download/1.2.189.2/windows/VulkanSDK-1.2.189.2-Installer.exe
-          ./VulkanSDK-1.2.189.2-Installer.exe /S
+          mkdir VULKAN_SDK; cd VULKAN_SDK
+          mkdir build; cd build
+          git clone https://github.com/KhronosGroup/Vulkan-Headers.git --branch sdk-${VULKAN_SDK_VERSION}
+          git clone https://github.com/KhronosGroup/Vulkan-Loader.git --branch sdk-${VULKAN_SDK_VERSION}
 
-      # - name: Download Vulkan SDK
-      #   shell: bash
-      #   working-directory: ${{github.workspace}}
-      #   run: |
-      #     mkdir VULKAN_SDK; cd VULKAN_SDK
-      #     mkdir build; cd build
-      #     git clone https://github.com/KhronosGroup/Vulkan-Headers.git --branch sdk-${VULKAN_SDK_VERSION}
-      #     git clone https://github.com/KhronosGroup/Vulkan-Loader.git --branch sdk-${VULKAN_SDK_VERSION}
+      - name: Install Vulkan SDK Headers
+        shell: bash
+        working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Headers
+        run: |
+          cmake -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
+          cmake --build . --config Release
+          cmake --install . 
 
-      # - name: Install Vulkan SDK Headers
-      #   shell: bash
-      #   working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Headers
-      #   run: |
-      #     cmake -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
-      #     cmake --build . --config Release
-      #     cmake --install . 
-
-      # - name: Install Vulkan SDK Loader
-      #   shell: bash
-      #   working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Loader
-      #   run: |
-      #     cmake -DVULKAN_HEADERS_INSTALL_DIR=../.. -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
-      #     cmake --build . --config Release
-      #     cmake --install . 
-      #     export VULKAN_SDK=${{github.workspace}}/VULKAN_SDK
+      - name: Install Vulkan SDK Loader
+        shell: bash
+        working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Loader
+        run: |
+          cmake -DVULKAN_HEADERS_INSTALL_DIR=../.. -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
+          cmake --build . --config Release
+          cmake --install . 
+          export VULKAN_SDK=${{github.workspace}}/VULKAN_SDK
 
       - name: Setup Embree 
         working-directory: ${{github.workspace}}/build/deps
