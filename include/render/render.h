@@ -373,7 +373,8 @@ private:
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, [[maybe_unused]] void* pUserData)
     {
-        static std::shared_ptr<spdlog::logger> logger = spdlog::basic_logger_mt("NeVK logger", "logs/renderLog.txt");
+        static std::shared_ptr<spdlog::logger> logger = spdlog::basic_logger_mt("NeVK", "logs/renderLog.log");
+
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
             logger->warn("{}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
