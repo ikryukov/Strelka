@@ -349,6 +349,11 @@ public:
         {
             NeVkResult res = updateDescriptorSet(index);
             assert(res == NeVkResult::eOk);
+            if (res != NeVkResult::eOk)
+            {
+                // TODO: report error
+                printf("Error!\n");
+            }
             needDesciptorSetUpdate[index] = false;
         }
         if (needConstantsUpdate[index])

@@ -193,6 +193,7 @@ private:
         static void* create(RTCThreadLocalAllocator alloc, unsigned int numChildren, void* userPtr)
         {
             (void)userPtr;
+            (void)numChildren;
             assert(numChildren == 2);
             void* ptr = rtcThreadLocalAlloc(alloc, sizeof(InnerNode), 16);
             return (void*)new (ptr) InnerNode;
@@ -201,6 +202,7 @@ private:
         static void setChildren(void* nodePtr, void** childPtr, unsigned int numChildren, void* userPtr)
         {
             (void)userPtr;
+            (void)numChildren;
             assert(numChildren == 2);
             for (size_t i = 0; i < 2; i++)
             {
@@ -211,6 +213,7 @@ private:
         static void setBounds(void* nodePtr, const RTCBounds** bounds, unsigned int numChildren, void* userPtr)
         {
             (void)userPtr;
+            (void)numChildren;
             assert(numChildren == 2);
             const RTCBounds* leftChildBounds = bounds[0];
             const RTCBounds* rightChildBounds = bounds[1];
@@ -240,6 +243,7 @@ private:
         static void* create(RTCThreadLocalAllocator alloc, const RTCBuildPrimitive* prims, size_t numPrims, void* userPtr)
         {
             (void)userPtr;
+            (void)numPrims;
             assert(numPrims == 1);
             void* ptr = rtcThreadLocalAlloc(alloc, sizeof(LeafNode), 16);
             return (void*)new (ptr) LeafNode(prims->primID, prims->geomID, *(AABB*)prims);
