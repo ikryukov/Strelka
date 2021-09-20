@@ -38,12 +38,6 @@ jobs:
           cmake -E make_directory ${{github.workspace}}/build/deps
           choco install wget
       
-      # - name: LunarG sdk
-      #   working-directory: ${{github.workspace}}/build/deps
-      #   run: |
-      #     wget https://sdk.lunarg.com/sdk/download/1.2.189.2/windows/VulkanSDK-1.2.189.2-Installer.exe
-      #     ./VulkanSDK-1.2.189.2-Installer.exe /S
-
       - name: Download Vulkan SDK
         shell: bash
         working-directory: ${{github.workspace}}
