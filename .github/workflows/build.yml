@@ -2,6 +2,11 @@
 
 name: CI
 
+env:
+    BUILD_TYPE: Release
+    VULKAN_SDK_VERSION: 1.2.189.2
+    EMBREE_VERSION: 3.13.1
+
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
@@ -33,9 +38,9 @@ jobs:
         run: |
           mkdir VULKAN_SDK; cd VULKAN_SDK
           mkdir build; cd build
-          git clone https://github.com/KhronosGroup/Vulkan-Headers.git --branch sdk-1.2.176
-          git clone https://github.com/KhronosGroup/Vulkan-Loader.git --branch sdk-1.2.176
-      
+          git clone https://github.com/KhronosGroup/Vulkan-Headers.git --branch sdk-${VULKAN_SDK_VERSION}
+          git clone https://github.com/KhronosGroup/Vulkan-Loader.git --branch sdk-${VULKAN_SDK_VERSION}
+
       - name: Install Vulkan SDK Headers
         shell: bash
         working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Headers
@@ -43,7 +48,7 @@ jobs:
           cmake -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
           cmake --build . --config Release
           cmake --install . 
-      
+
       - name: Install Vulkan SDK Loader
         shell: bash
         working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Loader
@@ -51,7 +56,13 @@ jobs:
           cmake -DVULKAN_HEADERS_INSTALL_DIR=../.. -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
           cmake --build . --config Release
           cmake --install . 
-      
+
+      - name: Setup Embree 
+        working-directory: ${{github.workspace}}/build/deps
+        run: |
+          wget https://github.com/embree/embree/releases/download/v${env:EMBREE_VERSION}/embree-${env:EMBREE_VERSION}.x64.vc14.windows.zip
+          7z x embree-${env:EMBREE_VERSION}.x64.vc14.windows.zip -y
+
       - name: Create and build project
         shell: bash
         working-directory: ${{github.workspace}}
@@ -59,5 +70,5 @@ jobs:
           export VULKAN_SDK=$(pwd)/VULKAN_SDK
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release ..
+          cmake -DCMAKE_BUILD_TYPE=Release -Dembree_DIR="${env:GITHUB_WORKSPACE}/build/deps/embree-${env:EMBREE_VERSION}.x64.vc14.windows/lib/cmake/embree-${env:EMBREE_VERSION}" ..
           cmake --build .
