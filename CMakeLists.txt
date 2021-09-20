@@ -44,7 +44,7 @@ else ()
 endif ()
 
 # Embree
-find_package(embree 3.13 REQUIRED)
+find_package(embree 3 REQUIRED)
 
 # Shader Manager
 set(SHADERMANAGER_SOURCES
