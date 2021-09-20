@@ -83,7 +83,7 @@ jobs:
           cmake -A x64
           -DCMAKE_BUILD_TYPE=Release 
           -Dembree_DIR="${env:GITHUB_WORKSPACE}/build/deps/embree-${env:EMBREE_VERSION}.x64.vc14.windows/lib/cmake/embree-${env:EMBREE_VERSION}"
-          -DVULKAN_SDK="c:/VulkanSDK/1.2.189.2"
+          -DVULKAN_SDK="${env:GITHUB_WORKSPACE}/build/VULKAN_SDK"
           ..
 
       - name: Build
