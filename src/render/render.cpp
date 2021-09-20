@@ -1149,10 +1149,11 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     recordBarrier(cmd, mResManager->getVkImage(mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-    if (mScene->mDebugViewSettings == Scene::DebugView::eDebug)
+    if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
         mDebugParams.dimension.x = swapChainExtent.width;
         mDebugParams.dimension.y = swapChainExtent.height;
+        mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
         mDebugView->execute(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
         // Copy to swapchain image
@@ -1347,7 +1348,7 @@ void Render::setDescriptors()
     }
     {
         mTonemap->setParams(mToneParams);
-        mTonemap->setInputTexture(mResManager->getView(mLtcOutputImage));
+        mTonemap->setInputTexture(mResManager->getView(mLtcOutputImage), mResManager->getView(mRtShadowImage));
         mTonemap->setOutputTexture(mResManager->getView(textureTonemapImage));
     }
 }

@@ -14,7 +14,18 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-
-   //float3 color = inputLTC[pixelIndex].rgb * inputShadow[pixelIndex].r;
-   output[pixelIndex] = (inputNormals[pixelIndex] * 0.5 + 0.5);
+    if (ubo.debugView == 1) // Normals
+    {
+        output[pixelIndex] = inputNormals[pixelIndex] * 0.5 + 0.5;
+    }
+    if (ubo.debugView == 2) // b&w shadows
+    {
+        float3 color = inputShadow[pixelIndex].r;
+        output[pixelIndex] = float4(color, 0.0);
+    }
+    if (ubo.debugView == 3) // LTC
+    {
+        float3 color = inputLTC[pixelIndex].rgb;
+        output[pixelIndex] = float4(color, 0.0);
+    }
 }
