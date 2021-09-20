@@ -57,7 +57,7 @@ const std::vector<const char*> deviceExtensions = {
 };
 
 #ifdef NDEBUG
-const bool enableValidationLayers = false;
+const bool enableValidationLayers = true; // Enable validation in release
 #else
 const bool enableValidationLayers = true;
 #endif
