@@ -1,0 +1,63 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Download Vulkan SDK
+        shell: bash
+        working-directory: ${{github.workspace}}
+        run: |
+          mkdir VULKAN_SDK; cd VULKAN_SDK
+          mkdir build; cd build
+          git clone https://github.com/KhronosGroup/Vulkan-Headers.git --branch sdk-1.2.176
+          git clone https://github.com/KhronosGroup/Vulkan-Loader.git --branch sdk-1.2.176
+      
+      - name: Install Vulkan SDK Headers
+        shell: bash
+        working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Headers
+        run: |
+          cmake -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
+          cmake --build . --config Release
+          cmake --install . 
+      
+      - name: Install Vulkan SDK Loader
+        shell: bash
+        working-directory: ${{github.workspace}}/VULKAN_SDK/build/Vulkan-Loader
+        run: |
+          cmake -DVULKAN_HEADERS_INSTALL_DIR=../.. -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
+          cmake --build . --config Release
+          cmake --install . 
+      
+      - name: Create and build project
+        shell: bash
+        working-directory: ${{github.workspace}}
+        run: |
+          export VULKAN_SDK=$(pwd)/VULKAN_SDK
+          mkdir build
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=Release ..
+          cmake --build .
