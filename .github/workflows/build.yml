@@ -42,7 +42,7 @@ jobs:
         working-directory: ${{github.workspace}}/build/deps
         run: |
           wget https://sdk.lunarg.com/sdk/download/1.2.189.2/windows/VulkanSDK-1.2.189.2-Installer.exe
-          VulkanSDK-1.2.189.2-Installer.exe /S
+          ./VulkanSDK-1.2.189.2-Installer.exe /S
           export VULKAN_SDK=c:/VulkanSDK/1.2.189.2
 
       # - name: Download Vulkan SDK
