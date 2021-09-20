@@ -32,10 +32,19 @@ endif ()
 
 ######## Packages
 # Vulkan
-find_package(Vulkan REQUIRED)
+if (NOT DEFINED VULKAN_SDK)
+    find_package(Vulkan REQUIRED)
+else ()
+# Workaround for CI
+    set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/vulkan-1.lib)
+    set(Vulkan_INCLUDE_DIR ${VULKAN_SDK}/include)
+    message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
+    message(STATUS "VULKAN INCLUDE: ${Vulkan_INCLUDE_DIR}")
+endif ()
 
 # Embree
-find_package(embree 3.13 REQUIRED)
+find_package(embree 3 REQUIRED)
+message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
 
 # Shader Manager
 set(SHADERMANAGER_SOURCES
@@ -100,8 +109,8 @@ if (MSVC)
     target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
 endif ()
 ## Vulkan
-target_include_directories(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
-target_link_libraries(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
+target_include_directories(${UILIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${UILIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 # JSON
 target_include_directories(${UILIB_NAME} PUBLIC external/json)
 
@@ -117,8 +126,8 @@ target_include_directories(${RESMNGR_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/
 ## VMA
 target_include_directories(${RESMNGR_NAME} PUBLIC external/vma/src)
 ## Vulkan
-target_include_directories(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
-target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
+target_include_directories(${RESMNGR_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${RESMNGR_NAME} PUBLIC ${Vulkan_LIBRARY})
 
 # Tracy profiler
 set(TRACY_SOURCES
@@ -186,10 +195,10 @@ target_include_directories(${TEXTURELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/inclu
 target_link_libraries(${TEXTURELIB_NAME} PUBLIC ${SCENELIB_NAME} ${MODELLIB_NAME})
 
 ## Vulkan
-target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
-target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
-target_include_directories(${MODELLIB_NAME} PUBLIC Vulkan::Vulkan)
-target_link_libraries(${MODELLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_include_directories(${RENDERLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
+target_include_directories(${MODELLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${MODELLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
