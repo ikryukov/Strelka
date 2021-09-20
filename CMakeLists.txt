@@ -211,6 +211,9 @@ target_include_directories(${MODELLIB_NAME} PUBLIC external/glm)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
 target_include_directories(${MODELLIB_NAME} PUBLIC external/tol)
 
+# SPDLOG
+target_include_directories(${RENDERLIB_NAME} PUBLIC external/spdlog/include)
+
 # STB (image loader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
 target_include_directories(${TEXTURELIB_NAME} PUBLIC external/stb)
@@ -301,9 +304,6 @@ endif ()
 
 # TOL (TinyObjLoader)
 # target_include_directories(${PROJECT_NAME} PRIVATE external/tol)
-
-# SPDLOG
-# target_include_directories(${PROJECT_NAME} PRIVATE external/spdlog/include)
 
 # CXXOPTS
 target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)

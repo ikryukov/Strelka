@@ -23,6 +23,7 @@
 #include "ltcpass.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
+#include "spdlog/sinks/basic_file_sink.h"
 #include "tonemap.h"
 
 #include <modelloader/modelloader.h>
@@ -372,17 +373,18 @@ private:
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, [[maybe_unused]] void* pUserData)
     {
+        static std::shared_ptr<spdlog::logger> logger = spdlog::basic_logger_mt("NeVK logger", "logs/renderLog.txt");
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
-            std::cout << "Warning: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
+            logger->warn("{}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
         }
         else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
-            std::cerr << "Error: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
+            logger->error("{}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
         }
         else
         {
-            std::cerr << "Validation: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
+            logger->info("Validation: {}:{}:{}", pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage);
         }
         return VK_FALSE;
     }

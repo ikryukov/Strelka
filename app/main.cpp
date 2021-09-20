@@ -29,8 +29,7 @@ int main(int argc, char** argv)
     std::string mesh(result["m"].as<std::string>());
     if (!fs::exists(mesh) && !mesh.empty())
     {
-        std::cerr << "mesh file doesn't exist";
-        exit(0);
+        throw std::runtime_error("mesh file doesn't exist");
     }
 
     // initialise & run render
