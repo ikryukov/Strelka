@@ -113,6 +113,26 @@ float3 LTC_Evaluate(RectLight light, float3 N, float3 V, float3 P, float3x3 Minv
     return Lo_i;
 }
 
+float getRoughness(Material material, float2 matUV)
+{
+    float roughness = material.roughnessFactor;
+    if (material.texMetallicRoughness != -1)
+    {
+        roughness *= textures[NonUniformResourceIndex(material.texMetallicRoughness)].SampleLevel(samplers[NonUniformResourceIndex(material.sampMetallicRoughness)], matUV, 0).g;
+    }
+    return roughness;
+}
+
+float3 getBaseColor(Material material, float2 matUV)
+{
+    float3 dcol = material.baseColorFactor.rgb;
+    if (material.texBaseColor != -1)
+    {
+        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].SampleLevel(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV, 0).rgb;
+    }
+    return dcol;
+}
+
 float3 calc(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
@@ -122,27 +142,19 @@ float3 calc(uint2 pixelIndex)
     int instId = gbInstId[pixelIndex];
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(instId)];
     Material material = materials[NonUniformResourceIndex(constants.materialId)];
-    
 
     float3 N = normalize(gbNormal[pixelIndex].xyz);
     float3 V = normalize(ubo.CameraPos - wpos);
     float ndotv = saturate(dot(N, V));
-    float roughness = material.roughnessFactor;
     float2 matUV = gbUV[pixelIndex].xy;
-    if (material.texMetallicRoughness != -1)
-    {
-        roughness *= textures[NonUniformResourceIndex(material.texMetallicRoughness)].SampleLevel(samplers[NonUniformResourceIndex(material.sampMetallicRoughness)], matUV, 0).g;
-    }
+    float3 dcol = getBaseColor(material, matUV);
 
-    float3 dcol = material.baseColorFactor.rgb;
-    if (material.texBaseColor != -1)
-    {
-        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].SampleLevel(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV, 0).rgb;
-    }
     if (material.isLight == 1)
     {
         return dcol;
     }
+
+    float roughness = getRoughness(material, matUV);
 
     float2 uv = float2(roughness, sqrt(1.0 - ndotv));
     uv = uv * LUT_SCALE + LUT_BIAS;

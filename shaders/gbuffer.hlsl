@@ -22,6 +22,7 @@ struct InstanceConstants
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
+    float4 prevPos; // NDC
     float3 tangent;
     float3 normal;
     float3 wPos;
@@ -38,6 +39,8 @@ cbuffer ubo
 {
     float4x4 viewToProj;
     float4x4 worldToView;
+    float4x4 prevViewToProj;
+    float4x4 prevWorldToView;
     float3 CameraPos;
     float pad;
 }
@@ -54,6 +57,7 @@ PS_INPUT vertexMain(VertexInput vi)
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
     float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
     out.pos = mul(viewToProj, mul(worldToView, wpos));
+    out.prevPos = mul(prevViewToProj, mul(prevWorldToView, wpos)); // calc prev NDC pos
     out.uv = unpackUV(vi.uv);
     // assume that we don't use non-uniform scales
     // TODO:
@@ -89,7 +93,16 @@ struct FSOutput
     float4 tangent : SV_TARGET2;
     float2 uv : SV_TARGET3;
     int instId : SV_TARGET4;
+    float2 motion: SV_TARGET5;
 };
+
+// calc solid motion, need more logic for skinning
+float2 calcMotion(float4 currNDC, float4 prevNDC)
+{
+    float3 prev = prevNDC.xyz / prevNDC.w;
+    float3 curr = currNDC.xyz / currNDC.w;
+    return  prev.xy - curr.xy;
+}
 
 // Fragment Shader
 [shader("fragment")]
@@ -113,6 +126,8 @@ FSOutput fragmentMain(PS_INPUT inp) : SV_TARGET
     ret.tangent = float4(inp.tangent, 0.0);
     ret.uv = inp.uv;
     ret.instId = pconst.instanceId;
+
+    ret.motion = calcMotion(inp.pos, inp.prevPos);
 
     return ret;
 }
