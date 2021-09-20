@@ -4,7 +4,7 @@ name: CI
 
 env:
     BUILD_TYPE: Release
-    VULKAN_SDK_VERSION: 1.2.189.2
+    VULKAN_SDK_VERSION: 1.2.189
     EMBREE_VERSION: 3.13.1
 
 # Controls when the workflow will run
