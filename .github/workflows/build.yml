@@ -62,6 +62,7 @@ jobs:
           cmake -DVULKAN_HEADERS_INSTALL_DIR=../.. -DCMAKE_INSTALL_PREFIX=../.. -DCMAKE_BUILD_TYPE=Release .
           cmake --build . --config Release
           cmake --install . 
+          export VULKAN_SDK=${{github.workspace}}/VULKAN_SDK
 
       - name: Setup Embree 
         working-directory: ${{github.workspace}}/build/deps
@@ -72,9 +73,11 @@ jobs:
       - name: Configure CMake
         shell: bash
         working-directory: ${{github.workspace}}/build
-        run: |
-          export VULKAN_SDK=${{github.workspace}}/VULKAN_SDK
-          cmake -DCMAKE_BUILD_TYPE=Release -Dembree_DIR="${env:GITHUB_WORKSPACE}/build/deps/embree-${env:EMBREE_VERSION}.x64.vc14.windows/lib/cmake/embree-${env:EMBREE_VERSION}" ..
+        run: >
+          cmake -A x64 ${env:GITHUB_WORKSPACE}
+          -DCMAKE_BUILD_TYPE=Release 
+          -Dembree_DIR="${env:GITHUB_WORKSPACE}/build/deps/embree-${env:EMBREE_VERSION}.x64.vc14.windows/lib/cmake/embree-${env:EMBREE_VERSION}"
+          -DVULKAN_SDK="${env:GITHUB_WORKSPACE}/VULKAN_SDK"
 
       - name: Build
         working-directory: ${{github.workspace}}/build
