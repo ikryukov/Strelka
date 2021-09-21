@@ -19,16 +19,16 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     }
 
     float color = 0.f;
-    int2 neighbour = 0;
-    for (int x = -1; x <= 1; ++x)
+    const int KERNEL_RADIUS = 5;
+    for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
     {
-        for (int y = -1; y <= 1; ++y)
+        for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
         {
-             neighbour = pixelIndex + int2(x, y);
-             color += input[neighbour];
+            int2 neighbor = pixelIndex + int2(x, y);
+            color += input[neighbor];
         }
     }
 
-    color /= 9;
+    color /= (KERNEL_RADIUS * 2 - 1) * (KERNEL_RADIUS * 2 - 1);
     output[pixelIndex] = color;
 }
