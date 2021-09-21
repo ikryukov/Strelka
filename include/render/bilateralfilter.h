@@ -1,8 +1,8 @@
 #pragma once
+#include "bilateralparam.h"
 #include "common.h"
 #include "computepass.h"
 #include "gbuffer.h"
-#include "bilateralparam.h"
 
 namespace nevk
 {
@@ -16,10 +16,6 @@ struct BilateralResourceDesc
 using BilateralFilterBase = ComputePass<BilateralParam>;
 class BilateralFilter : public BilateralFilterBase
 {
-private:
-    Image* mBilateralFilter = nullptr;
-    VkSampler mBilateralSampler = VK_NULL_HANDLE;
-
 public:
     BilateralFilter(const SharedContext& ctx);
     ~BilateralFilter();

@@ -19,11 +19,13 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     }
 
     float color = 0.f;
+    int2 neighbour = 0;
     for (int x = -1; x <= 1; ++x)
     {
         for (int y = -1; y <= 1; ++y)
         {
-             color += input[pixelIndex.x + x, pixelIndex.y + y];
+             neighbour = pixelIndex + int2(x, y);
+             color += input[neighbour];
         }
     }
 
