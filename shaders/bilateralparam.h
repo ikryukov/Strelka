@@ -17,11 +17,8 @@
 
 struct BilateralParam
 {
-    float3 CameraPos;
-    uint frameNumber;
     int2 dimension;
-    uint lightsCount;
-    float pad1;
+    int2 pad0;
 };
 
 #ifdef __cplusplus

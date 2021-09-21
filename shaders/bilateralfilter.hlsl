@@ -1,17 +1,4 @@
-#include "random.h"
-#include "materials.h"
-#include "lights.h"
 #include "bilateralparam.h"
-
-struct InstanceConstants
-{
-    float4x4 model;
-    float4x4 normalMatrix;
-    int32_t materialId;
-    int32_t pad0;
-    int32_t pad1;
-    int32_t pad2;
-};
 
 ConstantBuffer<BilateralParam> ubo;
 
@@ -19,11 +6,7 @@ Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
 Texture2D<float4> depth;
 
-StructuredBuffer<InstanceConstants> instanceConstants;
-
 Texture2D<float> input;
-SamplerState bilateralSampler;
-
 RWTexture2D<float> output;
 
 [numthreads(16, 16, 1)]

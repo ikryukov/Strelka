@@ -1149,10 +1149,9 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     // Bilateral Filter
     BilateralResourceDesc desc{};
     desc.gbuffer = mView->gbuffer;
-    desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
     desc.result = mView->mBilateralOutputImage;
+    desc.input = accOut;
     mBilateralFilter->setResources(desc);
-    mBilateralFilter->setInputTexture(mResManager->getView(mView->gbuffer->depth), mResManager->getView(accOut));
     recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
@@ -1357,10 +1356,9 @@ void Render::setDescriptors()
     {
         BilateralResourceDesc desc{};
         desc.gbuffer = mView->gbuffer;
-        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
         desc.result = mView->mBilateralOutputImage;
+        desc.input = mView->mRtShadowImage;
         mBilateralFilter->setResources(desc);
-        mBilateralFilter->setInputTexture(mResManager->getView(mView->gbuffer->depth), mResManager->getView(mView->mRtShadowImage));
     }
     {
         mDebugView->setParams(mDebugParams);
@@ -1527,10 +1525,7 @@ void Render::drawFrame()
     mLtcPass->setParams(ltcparams);
 
     BilateralParam bilateralparams{};
-    bilateralparams.CameraPos = cam.getPosition();
     bilateralparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
-    bilateralparams.frameNumber = (uint32_t)mFrameNumber;
-    bilateralparams.lightsCount = (uint32_t)scene->getLights().size();
     mBilateralFilter->setParams(bilateralparams);
 
     if (needReload && releaseAfterFrames == 0)

@@ -9,7 +9,7 @@ namespace nevk
 struct BilateralResourceDesc
 {
     GBuffer* gbuffer;
-    Buffer* instanceConst;
+    Image* input;
     Image* result;
 };
 
@@ -22,7 +22,6 @@ private:
 
 public:
     BilateralFilter(const SharedContext& ctx);
-    void setInputTexture(VkImageView imageViewDepth, VkImageView imageViewAcc);
     ~BilateralFilter();
     void initialize();
     void setResources(BilateralResourceDesc& desc);
