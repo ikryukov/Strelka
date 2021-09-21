@@ -87,10 +87,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-
-      - name: Git Sumbodule Update
-        run: |
-          git pull --recurse-submodules
+        with:
+          submodules: recursive
 
       - name: Create Build Environment
         run: |
