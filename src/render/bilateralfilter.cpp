@@ -10,8 +10,6 @@ BilateralFilter::BilateralFilter(const SharedContext& ctx)
 
 BilateralFilter::~BilateralFilter()
 {
-    mSharedCtx.mResManager->destroyImage(mBilateralFilter);
-    vkDestroySampler(mSharedCtx.mDevice, mBilateralSampler, nullptr);
 }
 
 void BilateralFilter::initialize()
