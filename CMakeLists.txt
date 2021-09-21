@@ -81,7 +81,6 @@ target_include_directories(${SCENELIB_NAME} PUBLIC external/glm)
 set(UI_SOURCES
         include/ui/ui.h
         src/ui/ui.cpp
-
         # Imgui
         external/imgui/include
         external/imgui/src/imgui.cpp
@@ -91,7 +90,7 @@ set(UI_SOURCES
         external/imgui/src/imgui_tables.cpp
         external/imgui/src/imgui_impl_vulkan.cpp
         external/imgui/src/imgui_impl_glfw.cpp
-
+        # imguiFD
         external/imguiFD/ImGuiFileDialog.cpp
         # ImGuizmo
         external/ImGuizmo/ImGuizmo.cpp
