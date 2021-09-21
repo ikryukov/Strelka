@@ -472,6 +472,8 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
+    const char* items[] = { "None", "Normals", "Shadows", "LTC" };
+    static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -539,6 +541,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
             showPropertiesId = -1; // new scene, updated properties
             lightId = -1;
             openInspector = true;
+            current_item = items[0];
         }
         ImGuiFileDialog::Instance()->Close();
     }
@@ -669,9 +672,6 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
         }
         ImGui::EndCombo();
     }
-
-    const char* items[] = { "None", "Debug" };
-    static const char* current_item = items[0];
 
     if (ImGui::BeginCombo("Debug view", current_item))
     {

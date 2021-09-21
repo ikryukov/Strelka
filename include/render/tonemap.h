@@ -16,7 +16,7 @@ public:
     Tonemap(const SharedContext& ctx);
     ~Tonemap();
     void initialize();
-    void setInputTexture(VkImageView imageView);
+    void setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadows);
     void setOutputTexture(VkImageView imageView);
 };
 } // namespace nevk

@@ -1160,11 +1160,13 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-    if (mScene->mDebugViewSettings == Scene::DebugView::eDebug)
+    if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;
+        mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
+        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accHist), mResManager->getView(mView->gbuffer->normal));
         mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mBilateralOutputImage));
         mDebugView->execute(cmd, width, height, imageIndex);
         // Copy to swapchain image
@@ -1199,6 +1201,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         mToneParams.dimension.y = height;
         mTonemap->setParams(mToneParams);
         mTonemap->execute(cmd, width, height, imageIndex);
+        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accHist));
 
         // Copy to swapchain image
         {
@@ -1362,12 +1365,12 @@ void Render::setDescriptors()
     }
     {
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage));
+        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage), mResManager->getView(mView->gbuffer->normal));
         mDebugView->setOutputTexture(mResManager->getView(mView->textureDebugViewImage));
     }
     {
         mTonemap->setParams(mToneParams);
-        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage));
+        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage));
         mTonemap->setOutputTexture(mResManager->getView(mView->textureTonemapImage));
     }
 }
@@ -1504,6 +1507,7 @@ void Render::drawFrame()
     }
 
     scene->updateCamerasParams(swapChainExtent.width, swapChainExtent.height);
+
 
     mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
 

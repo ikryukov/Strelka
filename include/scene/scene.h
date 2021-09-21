@@ -132,7 +132,9 @@ public:
     enum class DebugView
     {
         eNone = 0,
-        eDebug = 1,
+        eNormals = 1,
+        eShadows = 2,
+        eLTC = 3
     };
 
     DebugView mDebugViewSettings = DebugView::eNone;
