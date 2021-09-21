@@ -41,7 +41,7 @@ void BilateralFilter::initialize()
 
     nevk::TextureManager::Texture bilateralTex{}; //?
     mBilateralFilter = bilateralTex.textureImage;
-    mShaderParams.setTexture("bilateralTexture", mSharedCtx.mResManager->getView(mBilateralFilter));
+   // mShaderParams.setTexture("bilateralTexture", mSharedCtx.mResManager->getView(mBilateralFilter));
     mShaderParams.setSampler("bilateralSampler", mBilateralSampler);
 
     BilateralFilterBase::initialize("shaders/bilateralfilter.hlsl");
