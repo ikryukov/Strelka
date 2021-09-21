@@ -1200,7 +1200,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         mToneParams.dimension.y = height;
         mTonemap->setParams(mToneParams);
         mTonemap->execute(cmd, width, height, imageIndex);
-        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accHist));
+        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mBilateralOutputImage));
 
         // Copy to swapchain image
         {
