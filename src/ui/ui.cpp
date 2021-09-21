@@ -464,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, float& sigma, int& radius)
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, float& sigma, int& radius, int& maxR)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -696,7 +696,8 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
 
     ImGui::DragFloat("sigma", &sigma, 1.0f, 1.0f);
-    ImGui::DragInt("radius", &radius, 1.0f, 1.0f);
+    ImGui::DragInt("maxR", &maxR, 1, 1);
+    ImGui::DragInt("radius", &radius, 1, 1);
     ImGui::End(); // end window
 }
 

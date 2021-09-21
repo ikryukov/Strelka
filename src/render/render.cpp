@@ -1452,8 +1452,9 @@ void Render::drawFrame()
     std::string newModelPath;
     static float sigma = 1.5;
     static int radius = 5;
+    static int maxR = 5;
 
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, sigma, radius);
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, sigma, radius, maxR);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1534,6 +1535,9 @@ void Render::drawFrame()
     bilateralparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     bilateralparams.sigma = sigma;
     bilateralparams.radius = radius;
+    bilateralparams.zfar = cam.zfar;
+    bilateralparams.znear = cam.znear;
+    bilateralparams.maxR = maxR;
     mBilateralFilter->setParams(bilateralparams);
 
     if (needReload && releaseAfterFrames == 0)

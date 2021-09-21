@@ -19,6 +19,9 @@ struct BilateralParam
     int2 dimension;
     float sigma;
     int radius;
+    float znear;
+    float zfar;
+    float maxR;
 };
 
 #ifdef __cplusplus

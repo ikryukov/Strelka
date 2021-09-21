@@ -11,6 +11,10 @@ RWTexture2D<float> output;
 
 #define PI 3.1415926535897
 
+float linearizeDepth(float d,float zNear,float zFar)
+{
+    return zNear * zFar / (zFar + d * (zNear - zFar));
+}
 
 float getWeight(int x, int y)
 {
@@ -29,6 +33,25 @@ float simpleBlur(uint2 pixelIndex){
         }
     }
     color /= (KERNEL_RADIUS * 2 - 1) * (KERNEL_RADIUS * 2 - 1);
+
+    return color;
+}
+
+float gaussianBlur2(uint2 pixelIndex) {
+    float color = 0.f;
+    float curr = 0.f;
+    float currDepth = 0.f;
+    currDepth = linearizeDepth(depth[pixelIndex.x][pixelIndex.y], ubo.znear, ubo.zfar);
+    int KERNEL_RADIUS = lerp(currDepth, 1, ubo.maxR);
+    for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
+    {
+        for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
+        {
+            curr = getWeight(x, y);
+            int2 neighbor = pixelIndex + int2(x, y);
+            color += curr * input[neighbor];
+        }
+    }
 
     return color;
 }
@@ -59,5 +82,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    output[pixelIndex] = gaussianBlur(pixelIndex);
+    output[pixelIndex] = gaussianBlur2(pixelIndex);
 }
