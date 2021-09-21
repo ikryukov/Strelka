@@ -36,7 +36,11 @@ if (NOT DEFINED VULKAN_SDK)
     find_package(Vulkan REQUIRED)
 else ()
 # Workaround for CI
+if (APPLE)
+    set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/libvulkan.dylib)
+elseif (MSVC)
     set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/vulkan-1.lib)
+endif ()
     set(Vulkan_INCLUDE_DIR ${VULKAN_SDK}/include)
     message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
     message(STATUS "VULKAN INCLUDE: ${Vulkan_INCLUDE_DIR}")
@@ -81,7 +85,6 @@ target_include_directories(${SCENELIB_NAME} PUBLIC external/glm)
 set(UI_SOURCES
         include/ui/ui.h
         src/ui/ui.cpp
-
         # Imgui
         external/imgui/include
         external/imgui/src/imgui.cpp
@@ -91,7 +94,7 @@ set(UI_SOURCES
         external/imgui/src/imgui_tables.cpp
         external/imgui/src/imgui_impl_vulkan.cpp
         external/imgui/src/imgui_impl_glfw.cpp
-
+        # imguiFD
         external/imguiFD/ImGuiFileDialog.cpp
         # ImGuizmo
         external/ImGuizmo/ImGuizmo.cpp
