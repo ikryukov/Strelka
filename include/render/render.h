@@ -21,6 +21,7 @@
 #include "gbuffer.h"
 #include "gbufferpass.h"
 #include "ltcpass.h"
+#include "bilateralfilter.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
 #include "tonemap.h"
@@ -139,6 +140,7 @@ private:
     Tonemap* mTonemap;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
+    BilateralFilter* mBilateralFilter;
     Tonemapparam mToneParams;
     Debugviewparam mDebugParams;
 
@@ -151,6 +153,7 @@ private:
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
         Image* mLtcOutputImage;
+        Image* mBilateralOutputImage;
         Image* mAccumulationImages[2] = { nullptr, nullptr };
         ResourceManager* mResManager = nullptr;
         ~ViewData()
@@ -175,6 +178,10 @@ private:
             if (mLtcOutputImage)
             {
                 mResManager->destroyImage(mLtcOutputImage);
+            }
+            if (mBilateralOutputImage)
+            {
+                mResManager->destroyImage(mBilateralOutputImage);
             }
             for (uint32_t i = 0; i < 2; ++i)
             {

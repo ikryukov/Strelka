@@ -148,6 +148,7 @@ set(RENDER_SOURCES
         include/render/computepass.h
         include/render/rtshadowpass.h
         include/render/ltcpass.h
+        include/render/bilateralfilter.h
         include/render/tonemap.h
         include/render/accumulation.h
         include/render/debugview.h
@@ -159,6 +160,7 @@ set(RENDER_SOURCES
         src/render/bvh.cpp
         src/render/rtshadowpass.cpp
         src/render/ltcpass.cpp
+        src/render/bilateralfilter.cpp
         src/render/ltc_data.h
         src/render/tonemap.cpp
         src/render/accumulation.cpp
