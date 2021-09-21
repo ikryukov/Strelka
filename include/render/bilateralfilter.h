@@ -9,13 +9,7 @@ namespace nevk
 struct BilateralResourceDesc
 {
     GBuffer* gbuffer;
-    Buffer* lights;
-    Buffer* materials;
     Buffer* instanceConst;
-    // bindless material
-    std::vector<Image*> matTextures;
-    std::vector<VkSampler> matSampler;
-    // output
     Image* result;
 };
 
@@ -28,6 +22,7 @@ private:
 
 public:
     BilateralFilter(const SharedContext& ctx);
+    void setInputTexture(VkImageView imageViewDepth);
     ~BilateralFilter();
     void initialize();
     void setResources(BilateralResourceDesc& desc);

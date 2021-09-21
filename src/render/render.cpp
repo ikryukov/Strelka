@@ -1136,14 +1136,14 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     // Bilateral Filter
-    /*recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+    recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     mBilateralFilter->execute(cmd, width, height, imageIndex);
 
     recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-*/
+
     // Accumulation pass
     Image* accHist = mView->mAccumulationImages[imageIndex % 2];
     Image* accOut = mView->mAccumulationImages[(imageIndex + 1) % 2];
@@ -1352,12 +1352,9 @@ void Render::setDescriptors()
         BilateralResourceDesc desc{};
         desc.gbuffer = mView->gbuffer;
         desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
         desc.result = mView->mBilateralOutputImage;
-        desc.matSampler = mTexManager->texSamplers;
-        desc.matTextures = mTexManager->textureImages;
         mBilateralFilter->setResources(desc);
+        mBilateralFilter->setInputTexture(mResManager->getView(mView->gbuffer->depth));
     }
     {
         mDebugView->setParams(mDebugParams);

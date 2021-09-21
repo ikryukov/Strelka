@@ -18,19 +18,15 @@ ConstantBuffer<BilateralParam> ubo;
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
 Texture2D<float2> gbUV;
+Texture2D<float4> depth;
 Texture2D<int> gbInstId;
 
 StructuredBuffer<InstanceConstants> instanceConstants;
-StructuredBuffer<RectLight> lights;
-StructuredBuffer<Material> materials;
 
-Texture2D textures[64]; // bindless
-SamplerState samplers[15];
-
-Texture2D<float4> bilateralTexture;
+Texture2D<float> input;
 SamplerState bilateralSampler;
 
-RWTexture2D<float4> output;
+RWTexture2D<float> output;
 
 [numthreads(16, 16, 1)]
 [shader("compute")]
@@ -41,5 +37,15 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    output[pixelIndex] = float4(bilateralTexture[pixelIndex].rgb, 0.0);
+    float color = 0.f;
+    for (int x = -1; x <= 1; ++x)
+    {
+        for (int y = -1; y <= 1; ++y)
+        {
+             color += input[pixelIndex.x + x, pixelIndex.y + y];
+        }
+    }
+
+    color /= 9;
+    output[pixelIndex] = color;
 }
