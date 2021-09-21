@@ -21,7 +21,7 @@ struct BilateralParam
     int radius;
     float znear;
     float zfar;
-    float maxR;
+    int32_t maxR;
 };
 
 #ifdef __cplusplus
