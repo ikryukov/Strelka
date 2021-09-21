@@ -1,7 +1,8 @@
 #include "Tonemapparam.h"
 
 ConstantBuffer<Tonemapparam> ubo;
-Texture2D<float4> input;
+Texture2D<float4> inputLTC;
+Texture2D<float4> inputShadows;
 RWTexture2D<float4> output;
 
 // original implementation https://github.com/NVIDIAGameWorks/Falcor/blob/5236495554f57a734cc815522d95ae9a7dfe458a/Source/RenderPasses/ToneMapper/ToneMapping.ps.slang
@@ -27,6 +28,6 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-    float3 color = input[pixelIndex].rgb;
-    output[pixelIndex] = float4(toneMapReinhard(color), 1.0f);
+    float3 color = inputLTC[pixelIndex].rgb;
+    output[pixelIndex] = float4(toneMapReinhard(color) * inputShadows[pixelIndex].r, 1.0f);
 }

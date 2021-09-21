@@ -17,7 +17,7 @@
 struct Debugviewparam
 {
     int2 dimension;
-    float pad0;
+    uint32_t debugView;
     float pad1;
 };
 
