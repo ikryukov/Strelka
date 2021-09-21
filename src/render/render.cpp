@@ -1529,6 +1529,7 @@ void Render::drawFrame()
 
     BilateralParam bilateralparams{};
     bilateralparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    bilateralparams.sigma = 1.5;
     mBilateralFilter->setParams(bilateralparams);
 
     if (needReload && releaseAfterFrames == 0)
