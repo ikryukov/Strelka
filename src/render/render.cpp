@@ -1450,7 +1450,10 @@ void Render::drawFrame()
     static bool needReload = false;
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime);
+    static float sigma = 1.5;
+    static int radius = 5;
+
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, sigma, radius);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1529,7 +1532,8 @@ void Render::drawFrame()
 
     BilateralParam bilateralparams{};
     bilateralparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
-    bilateralparams.sigma = 1.5;
+    bilateralparams.sigma = sigma;
+    bilateralparams.radius = radius;
     mBilateralFilter->setParams(bilateralparams);
 
     if (needReload && releaseAfterFrames == 0)
