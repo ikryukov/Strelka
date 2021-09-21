@@ -19,8 +19,9 @@ void BilateralFilter::initialize()
     BilateralFilterBase::initialize("shaders/bilateralfilter.hlsl");
 }
 
-void BilateralFilter::setInputTexture(VkImageView imageViewDepth)
+void BilateralFilter::setInputTexture(VkImageView imageViewDepth, VkImageView imageViewAcc)
 {
+    mShaderParams.setTexture("input", imageViewAcc);
     mShaderParams.setTexture("depth", imageViewDepth);
 }
 
@@ -30,8 +31,6 @@ void BilateralFilter::setResources(BilateralResourceDesc& desc)
 
     mShaderParams.setTexture("gbWPos", mSharedCtx.mResManager->getView(desc.gbuffer->wPos));
     mShaderParams.setTexture("gbNormal", mSharedCtx.mResManager->getView(desc.gbuffer->normal));
-    mShaderParams.setTexture("gbUV", mSharedCtx.mResManager->getView(desc.gbuffer->uv));
-    mShaderParams.setTexture("gbInstId", mSharedCtx.mResManager->getView(desc.gbuffer->instId));
     mShaderParams.setBuffer("instanceConstants", mSharedCtx.mResManager->getVkBuffer(desc.instanceConst));
 }
 

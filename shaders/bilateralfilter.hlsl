@@ -17,9 +17,7 @@ ConstantBuffer<BilateralParam> ubo;
 
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
-Texture2D<float2> gbUV;
 Texture2D<float4> depth;
-Texture2D<int> gbInstId;
 
 StructuredBuffer<InstanceConstants> instanceConstants;
 

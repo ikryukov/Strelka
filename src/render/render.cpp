@@ -708,7 +708,7 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                      VK_IMAGE_TILING_OPTIMAL,
                                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
-    view->mBilateralOutputImage = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
+    view->mBilateralOutputImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
                                                      VK_IMAGE_TILING_OPTIMAL,
                                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Bilateral Output");
@@ -1135,15 +1135,6 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-    // Bilateral Filter
-    recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-    mBilateralFilter->execute(cmd, width, height, imageIndex);
-
-    recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
     // Accumulation pass
     Image* accHist = mView->mAccumulationImages[imageIndex % 2];
     Image* accOut = mView->mAccumulationImages[(imageIndex + 1) % 2];
@@ -1155,12 +1146,27 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
     recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
+    // Bilateral Filter
+    BilateralResourceDesc desc{};
+    desc.gbuffer = mView->gbuffer;
+    desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+    desc.result = mView->mBilateralOutputImage;
+    mBilateralFilter->setResources(desc);
+    mBilateralFilter->setInputTexture(mResManager->getView(mView->gbuffer->depth), mResManager->getView(accOut));
+    recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+    mBilateralFilter->execute(cmd, width, height, imageIndex);
+
+    recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
     if (mScene->mDebugViewSettings == Scene::DebugView::eDebug)
     {
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accHist));
+        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mBilateralOutputImage));
         mDebugView->execute(cmd, width, height, imageIndex);
         // Copy to swapchain image
         {
@@ -1354,7 +1360,7 @@ void Render::setDescriptors()
         desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
         desc.result = mView->mBilateralOutputImage;
         mBilateralFilter->setResources(desc);
-        mBilateralFilter->setInputTexture(mResManager->getView(mView->gbuffer->depth));
+        mBilateralFilter->setInputTexture(mResManager->getView(mView->gbuffer->depth), mResManager->getView(mView->mRtShadowImage));
     }
     {
         mDebugView->setParams(mDebugParams);
