@@ -1,8 +1,8 @@
 #pragma once
+#include "bilateralparam.h"
 #include "common.h"
 #include "computepass.h"
 #include "gbuffer.h"
-#include "bilateralparam.h"
 
 namespace nevk
 {

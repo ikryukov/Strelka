@@ -12,7 +12,6 @@
 #    define float4 glm::float4
 #    define float3 glm::float3
 #    define int2 glm::int2
-#    define uint glm::uint
 #endif
 
 struct BilateralParam
