@@ -119,7 +119,7 @@ jobs:
           cmake --install . 
           export VULKAN_SDK=${{github.workspace}}/VULKAN_SDK
 
-      - name GLFW
+      - name: GLFW
         run: brew install glfw
 
       - name: Setup Embree 
