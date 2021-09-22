@@ -54,7 +54,7 @@ float gaussianBlur2(uint2 pixelIndex)
     viewSpacePosition /= viewSpacePosition.w;
     float currDepth = length(viewSpacePosition.xyz); // dist to camera
 
-    const int KERNEL_RADIUS = lerp(1.0, ubo.maxR, varianceOutput[pixelIndex]);
+    const int KERNEL_RADIUS = lerp(1.0, ubo.maxR, 1.0 - varianceOutput[pixelIndex]);
 
     const float sigma = ubo.sigma * KERNEL_RADIUS;
     for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
@@ -130,8 +130,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    varianceOutput[pixelIndex] = variance(pixelIndex);
-    if (varianceOutput[pixelIndex] == 0.0)
+    if (varianceOutput[pixelIndex] == 1.0)
     {
         output[pixelIndex] = input[pixelIndex];
         return;
