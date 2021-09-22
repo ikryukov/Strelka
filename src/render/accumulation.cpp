@@ -17,6 +17,18 @@ void Accumulation::setInputTexture(Image* input)
 {
     mShaderParams.setTexture("currTex", mSharedCtx.mResManager->getView(input));
 }
+void Accumulation::setWposTexture(Image* input)
+{
+    mShaderParams.setTexture("gbWpos", mSharedCtx.mResManager->getView(input));
+}
+void Accumulation::setMotionTexture(Image* motion)
+{
+    mShaderParams.setTexture("motion", mSharedCtx.mResManager->getView(motion));
+}
+void Accumulation::setPrevDepthTexture(Image* input)
+{
+    mShaderParams.setTexture("prevDepthTex", mSharedCtx.mResManager->getView(input));
+}
 void Accumulation::setHistoryTexture(Image* history)
 {
     mShaderParams.setTexture("prevTex", mSharedCtx.mResManager->getView(history));

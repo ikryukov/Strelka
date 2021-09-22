@@ -21,8 +21,8 @@ struct InstanceConstants
 
 struct PS_INPUT
 {
+    float4 prevPos;
     float4 pos : SV_POSITION;
-    float4 prevPos; // NDC
     float3 tangent;
     float3 normal;
     float3 wPos;
@@ -57,7 +57,7 @@ PS_INPUT vertexMain(VertexInput vi)
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
     float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
     out.pos = mul(viewToProj, mul(worldToView, wpos));
-    out.prevPos = mul(prevViewToProj, mul(prevWorldToView, wpos)); // calc prev NDC pos
+    out.prevPos = mul(prevViewToProj, mul(prevWorldToView, wpos));
     out.uv = unpackUV(vi.uv);
     // assume that we don't use non-uniform scales
     // TODO:
@@ -97,11 +97,11 @@ struct FSOutput
 };
 
 // calc solid motion, need more logic for skinning
-float2 calcMotion(float4 currNDC, float4 prevNDC)
+float2 calcMotion(float4 currClip, float4 prevClip)
 {
-    float3 prev = prevNDC.xyz / prevNDC.w;
-    float3 curr = currNDC.xyz / currNDC.w;
-    return  prev.xy - curr.xy;
+    float3 prevNDC = prevClip.xyz / prevClip.w;
+    float3 currNDC = currClip.xyz / currClip.w;
+    return  currNDC.xy - prevNDC.xy;
 }
 
 // Fragment Shader

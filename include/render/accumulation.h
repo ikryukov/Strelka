@@ -15,6 +15,9 @@ public:
     ~Accumulation();
     void initialize();
     void setInputTexture(Image* input);
+    void setWposTexture(Image* input);
+    void setMotionTexture(Image* motion);
+    void setPrevDepthTexture(Image* input);
     void setHistoryTexture(Image* history);
     void setOutputTexture(Image* output);
 };

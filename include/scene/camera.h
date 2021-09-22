@@ -46,11 +46,12 @@ public:
 
     glm::float2 mousePos;
 
-    struct
+    struct Matrices
     {
         glm::float4x4 perspective;
         glm::float4x4 view;
-    } matrices, prevMatrices;
+    };
+    Matrices matrices, prevMatrices;
 
     void updateViewMatrix();
 
