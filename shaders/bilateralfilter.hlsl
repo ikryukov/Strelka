@@ -21,6 +21,11 @@ float getWeight(int x, int y)
     return (1.0 / (2.0 * PI * ubo.sigma * ubo.sigma)) * exp(-((x * x + y * y) / (2.0 * ubo.sigma * ubo.sigma)));
 }
 
+float getWeight(int x, int y, float sigma)
+{
+    return (1.0 / (2.0 * PI * sigma * sigma)) * exp(-((x * x + y * y) / (2.0 * sigma * sigma)));
+}
+
 float simpleBlur(uint2 pixelIndex){
     float color = 0.f;
     const int KERNEL_RADIUS = 5;
@@ -49,11 +54,13 @@ float gaussianBlur2(uint2 pixelIndex)
     float currDepth = length(viewSpacePosition.xyz); // dist to camera
 
     const int KERNEL_RADIUS = lerp(ubo.maxR, 1.0, currDepth / ubo.zfar);
+    // const int KERNEL_RADIUS = ubo.radius;
+    const float sigma = ubo.sigma * KERNEL_RADIUS;
     for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
     {
         for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
         {
-            float weigth = getWeight(x, y);
+            float weigth = getWeight(x, y, sigma);
             int2 neighbor = pixelIndex + int2(x, y);
             color += weigth * input[neighbor];
         }
@@ -87,6 +94,11 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-
+    float4 gbWorldPos = gbWPos[pixelIndex];
+    if (gbWorldPos.w == 0.0)
+    {
+        output[pixelIndex] = 1.0;
+        return;
+    }
     output[pixelIndex] = gaussianBlur2(pixelIndex);
 }

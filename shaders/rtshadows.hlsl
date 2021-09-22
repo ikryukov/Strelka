@@ -187,7 +187,7 @@ float calcShadow(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
     if (gbWorldPos.w == 0.0)
-        return 0;
+        return 1.0; // no shadow
     float3 wpos = gbWPos[pixelIndex].xyz;
 
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);

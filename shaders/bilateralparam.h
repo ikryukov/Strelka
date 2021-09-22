@@ -20,7 +20,7 @@ struct BilateralParam
     float4x4 invProj;
     int2 dimension;
     int radius;
-    int32_t maxR;
+    int maxR;
 
     float sigma;
     float znear;
