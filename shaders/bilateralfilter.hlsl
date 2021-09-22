@@ -130,6 +130,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
+    varianceOutput[pixelIndex] = variance(pixelIndex);
     if (varianceOutput[pixelIndex] == 1.0)
     {
         output[pixelIndex] = input[pixelIndex];
