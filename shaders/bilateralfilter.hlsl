@@ -95,25 +95,15 @@ float variance(uint2 pixelIndex)
 {
     float2 sigmaVariancePair = float2(0.0, 0.0);
     float sampCount = 0.0;
-
     float color = 0.f;
-    float z = depth[pixelIndex].r;
-    // float2 pixelUV = pixelIndex + 0.5f; // pixel index -> center of pixel coordinate
-    float2 currNdc = (2.0 * pixelIndex) / ubo.dimension - 1.0;
-    const float4 clipSpacePosition = float4(currNdc, z, 1.0);
-    float4 viewSpacePosition = mul(ubo.invProj, clipSpacePosition);
-    viewSpacePosition /= viewSpacePosition.w;
-    float currDepth = length(viewSpacePosition.xyz); // dist to camera
+    const int KERNEL_RADIUS = 3;
 
-    const int KERNEL_RADIUS = lerp(ubo.maxR, 1.0, currDepth / ubo.zfar);
-    const float sigma = ubo.sigma * KERNEL_RADIUS;
     for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
     {
         for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
         {
-            float weigth = getWeight(x, y, sigma);
             int2 neighbor = pixelIndex + int2(x, y);
-            color += weigth * input[neighbor];
+            color += input[neighbor];
 
             // count variance
             float samp = color;
@@ -124,10 +114,10 @@ float variance(uint2 pixelIndex)
         }
     }
 
-    sigmaVariancePair /= sampCount;
-    float variance = max(0.0, sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x);
+    sigmaVariancePair.y /= sampCount;
+    float variance = sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x;
 
-   return variance;
+    return variance;
 }
 
 [numthreads(16, 16, 1)]
