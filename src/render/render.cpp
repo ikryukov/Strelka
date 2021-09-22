@@ -1520,7 +1520,7 @@ void Render::drawFrame()
     mRtShadow->setParams(rtShadowParam);
 
     AccumulationParam accParam{};
-    accParam.alpha = 0.1f;
+    accParam.alpha = 0.33f;
     accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     mAccumulation->setParams(accParam);
 
@@ -1538,6 +1538,7 @@ void Render::drawFrame()
     bilateralparams.zfar = cam.zfar;
     bilateralparams.znear = cam.znear;
     bilateralparams.maxR = maxR;
+    bilateralparams.invProj = glm::inverse(cam.getPerspective());
     mBilateralFilter->setParams(bilateralparams);
 
     if (needReload && releaseAfterFrames == 0)

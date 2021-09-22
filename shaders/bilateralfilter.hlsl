@@ -4,21 +4,21 @@ ConstantBuffer<BilateralParam> ubo;
 
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
-Texture2D<float4> depth;
+Texture2D<float> depth;
 
 Texture2D<float> input;
 RWTexture2D<float> output;
 
 #define PI 3.1415926535897
 
-float linearizeDepth(float d,float zNear,float zFar)
+float linearizeDepth(float d, float zNear, float zFar)
 {
     return zNear * zFar / (zFar + d * (zNear - zFar));
 }
 
 float getWeight(int x, int y)
 {
-    return (1 / (2 * PI * ubo.sigma * ubo.sigma)) * exp(-((x * x + y * y) / (2 * ubo.sigma * ubo.sigma)));
+    return (1.0 / (2.0 * PI * ubo.sigma * ubo.sigma)) * exp(-((x * x + y * y) / (2.0 * ubo.sigma * ubo.sigma)));
 }
 
 float simpleBlur(uint2 pixelIndex){
@@ -37,19 +37,25 @@ float simpleBlur(uint2 pixelIndex){
     return color;
 }
 
-float gaussianBlur2(uint2 pixelIndex) {
+float gaussianBlur2(uint2 pixelIndex) 
+{
     float color = 0.f;
-    float curr = 0.f;
-    float currDepth = 0.f;
-    currDepth = linearizeDepth(depth[pixelIndex.x][pixelIndex.y], ubo.znear, ubo.zfar);
-    int KERNEL_RADIUS = lerp(currDepth, 1, ubo.maxR);
+    float z = depth[pixelIndex].r;
+    // float2 pixelUV = pixelIndex + 0.5f; // pixel index -> center of pixel coordinate
+    float2 currNdc = (2.0 * pixelIndex) / ubo.dimension - 1.0;
+    const float4 clipSpacePosition = float4(currNdc, z, 1.0);
+    float4 viewSpacePosition = mul(ubo.invProj, clipSpacePosition);
+    viewSpacePosition /= viewSpacePosition.w;
+    float currDepth = length(viewSpacePosition.xyz); // dist to camera
+
+    const int KERNEL_RADIUS = lerp(ubo.maxR, 1.0, currDepth / ubo.zfar);
     for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
     {
         for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
         {
-            curr = getWeight(x, y);
+            float weigth = getWeight(x, y);
             int2 neighbor = pixelIndex + int2(x, y);
-            color += curr * input[neighbor];
+            color += weigth * input[neighbor];
         }
     }
 
