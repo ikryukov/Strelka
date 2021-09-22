@@ -134,7 +134,8 @@ public:
         eNone = 0,
         eNormals = 1,
         eShadows = 2,
-        eLTC = 3
+        eLTC = 3,
+        eMotion = 4
     };
 
     DebugView mDebugViewSettings = DebugView::eNone;

@@ -472,7 +472,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Shadows", "LTC" };
+    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion" };
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();

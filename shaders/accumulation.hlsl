@@ -15,20 +15,22 @@ float acc(uint2 pixelIndex)
     const float2 currNdc = (2.0 * pixelIndex) / ubo.dimension - 1.0;
     // prev pixel screen coord
     float2 mv = motion[pixelIndex];
-    const float2 prevNdc = currNdc + mv; // moved to prev ndc
+    const float2 prevNdc = currNdc - mv; // moved to prev ndc
 
     float3 currWpos = gbWpos[pixelIndex].xyz;
     // float4 currPosInPrev = mul(ubo.prevViewToProj, mul(ubo.prevWorldToView, float4(currWpos, 1.0))); // reproject current pos using prev matrices
     // float currDepthInPrev = currPosInPrev.z / currPosInPrev.w; // depth in NDC
 
-    uint2 prevPixel = ubo.dimension * 0.5 * prevNdc + ubo.dimension * 0.5; // to screen space
+    const uint2 prevPixel = (currNdc + 1.0) * ubo.dimension * 0.5; // to screen space
     const float prevDepth = prevDepthTex[prevPixel].r;
 
-    float4 prevNDC = float4(prevNdc.x, prevNdc.y, prevDepth, 1.0);
-    float4 prevWpos = mul(ubo.prevViewToWorld, mul(ubo.prevProjToView, prevNDC));
+    float4 prevClip = float4(prevNdc, prevDepth, 1.0);
+    float4 prevViewSpace = mul(ubo.prevProjToView, prevClip);
+    prevViewSpace /= prevViewSpace.w;
+    float4 prevWpos = mul(ubo.prevViewToWorld, prevViewSpace);
     
     float res = current;
-    if (length(prevWpos.xyz - currWpos) < 1e-5)
+    //if (length(prevWpos.xyz - currWpos) < 1e-5)
     {
         // found same pixel, reuse sample
         float prev = prevTex[prevPixel];

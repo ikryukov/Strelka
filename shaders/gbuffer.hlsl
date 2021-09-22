@@ -21,8 +21,9 @@ struct InstanceConstants
 
 struct PS_INPUT
 {
-    float4 prevPos;
     float4 pos : SV_POSITION;
+    float4 currPos;
+    float4 prevPos;
     float3 tangent;
     float3 normal;
     float3 wPos;
@@ -55,9 +56,10 @@ PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
-    float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
+    const float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
     out.pos = mul(viewToProj, mul(worldToView, wpos));
     out.prevPos = mul(prevViewToProj, mul(prevWorldToView, wpos));
+    out.currPos = out.pos;
     out.uv = unpackUV(vi.uv);
     // assume that we don't use non-uniform scales
     // TODO:
@@ -101,7 +103,8 @@ float2 calcMotion(float4 currClip, float4 prevClip)
 {
     float3 prevNDC = prevClip.xyz / prevClip.w;
     float3 currNDC = currClip.xyz / currClip.w;
-    return  currNDC.xy - prevNDC.xy;
+    return currNDC.xy - prevNDC.xy;
+    //return currClip.xy - prevClip.xy;
 }
 
 // Fragment Shader
@@ -127,7 +130,7 @@ FSOutput fragmentMain(PS_INPUT inp) : SV_TARGET
     ret.uv = inp.uv;
     ret.instId = pconst.instanceId;
 
-    ret.motion = calcMotion(inp.pos, inp.prevPos);
+    ret.motion = calcMotion(inp.currPos, inp.prevPos);
 
     return ret;
 }
