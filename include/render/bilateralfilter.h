@@ -11,6 +11,7 @@ struct BilateralResourceDesc
     GBuffer* gbuffer;
     Image* input;
     Image* result;
+    Image* variance;
 };
 
 using BilateralFilterBase = ComputePass<BilateralParam>;

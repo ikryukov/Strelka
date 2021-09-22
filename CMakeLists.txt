@@ -32,23 +32,10 @@ endif ()
 
 ######## Packages
 # Vulkan
-if (NOT DEFINED VULKAN_SDK)
-    find_package(Vulkan REQUIRED)
-else ()
-# Workaround for CI
-if (APPLE)
-    set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/libvulkan.dylib)
-elseif (MSVC)
-    set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/vulkan-1.lib)
-endif ()
-    set(Vulkan_INCLUDE_DIR ${VULKAN_SDK}/include)
-    message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
-    message(STATUS "VULKAN INCLUDE: ${Vulkan_INCLUDE_DIR}")
-endif ()
+find_package(Vulkan REQUIRED)
 
 # Embree
-find_package(embree 3 REQUIRED)
-message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
+find_package(embree 3.13 REQUIRED)
 
 # Shader Manager
 set(SHADERMANAGER_SOURCES
@@ -85,6 +72,7 @@ target_include_directories(${SCENELIB_NAME} PUBLIC external/glm)
 set(UI_SOURCES
         include/ui/ui.h
         src/ui/ui.cpp
+
         # Imgui
         external/imgui/include
         external/imgui/src/imgui.cpp
@@ -94,7 +82,7 @@ set(UI_SOURCES
         external/imgui/src/imgui_tables.cpp
         external/imgui/src/imgui_impl_vulkan.cpp
         external/imgui/src/imgui_impl_glfw.cpp
-        # imguiFD
+
         external/imguiFD/ImGuiFileDialog.cpp
         # ImGuizmo
         external/ImGuizmo/ImGuizmo.cpp
@@ -112,8 +100,8 @@ if (MSVC)
     target_link_libraries(${UILIB_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glfw/glfw3.lib")
 endif ()
 ## Vulkan
-target_include_directories(${UILIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_link_libraries(${UILIB_NAME} PUBLIC ${Vulkan_LIBRARY})
+target_include_directories(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${UILIB_NAME} PUBLIC Vulkan::Vulkan)
 # JSON
 target_include_directories(${UILIB_NAME} PUBLIC external/json)
 
@@ -129,8 +117,8 @@ target_include_directories(${RESMNGR_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/
 ## VMA
 target_include_directories(${RESMNGR_NAME} PUBLIC external/vma/src)
 ## Vulkan
-target_include_directories(${RESMNGR_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_link_libraries(${RESMNGR_NAME} PUBLIC ${Vulkan_LIBRARY})
+target_include_directories(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${RESMNGR_NAME} PUBLIC Vulkan::Vulkan)
 
 # Tracy profiler
 set(TRACY_SOURCES
@@ -200,10 +188,10 @@ target_include_directories(${TEXTURELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/inclu
 target_link_libraries(${TEXTURELIB_NAME} PUBLIC ${SCENELIB_NAME} ${MODELLIB_NAME})
 
 ## Vulkan
-target_include_directories(${RENDERLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_link_libraries(${RENDERLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
-target_include_directories(${MODELLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_link_libraries(${MODELLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
+target_include_directories(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${RENDERLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_include_directories(${MODELLIB_NAME} PUBLIC Vulkan::Vulkan)
+target_link_libraries(${MODELLIB_NAME} PUBLIC Vulkan::Vulkan)
 
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
@@ -224,6 +212,9 @@ target_include_directories(${MODELLIB_NAME} PUBLIC external/glm)
 # TOL (TinyObjLoader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
 target_include_directories(${MODELLIB_NAME} PUBLIC external/tol)
+
+# SPDLOG
+target_include_directories(${RENDERLIB_NAME} PUBLIC external/spdlog/include)
 
 # STB (image loader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
@@ -315,9 +306,6 @@ endif ()
 
 # TOL (TinyObjLoader)
 # target_include_directories(${PROJECT_NAME} PRIVATE external/tol)
-
-# SPDLOG
-# target_include_directories(${PROJECT_NAME} PRIVATE external/spdlog/include)
 
 # CXXOPTS
 target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)

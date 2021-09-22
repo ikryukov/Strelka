@@ -20,6 +20,7 @@ void BilateralFilter::initialize()
 void BilateralFilter::setResources(BilateralResourceDesc& desc)
 {
     mShaderParams.setTexture("output", mSharedCtx.mResManager->getView(desc.result));
+    mShaderParams.setTexture("varianceOutput", mSharedCtx.mResManager->getView(desc.variance));
     mShaderParams.setTexture("input", mSharedCtx.mResManager->getView(desc.input));
     mShaderParams.setTexture("gbWPos", mSharedCtx.mResManager->getView(desc.gbuffer->wPos));
     mShaderParams.setTexture("gbNormal", mSharedCtx.mResManager->getView(desc.gbuffer->normal));

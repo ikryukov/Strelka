@@ -154,6 +154,7 @@ private:
         Image* mRtShadowImage;
         Image* mLtcOutputImage;
         Image* mBilateralOutputImage;
+        Image* mBilateralVarianceOutputImage;
         Image* mAccumulationImages[2] = { nullptr, nullptr };
         ResourceManager* mResManager = nullptr;
         ~ViewData()
@@ -182,6 +183,10 @@ private:
             if (mBilateralOutputImage)
             {
                 mResManager->destroyImage(mBilateralOutputImage);
+            }
+            if (mBilateralVarianceOutputImage)
+            {
+                mResManager->destroyImage(mBilateralVarianceOutputImage);
             }
             for (uint32_t i = 0; i < 2; ++i)
             {

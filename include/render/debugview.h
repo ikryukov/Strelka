@@ -15,7 +15,7 @@ public:
     DebugView(const SharedContext& ctx);
     ~DebugView();
     void initialize();
-    void setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadow, VkImageView imageNormal);
+    void setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadow, VkImageView imageNormal, VkImageView imageVariance);
     void setOutputTexture(VkImageView imageView);
 };
 } // namespace nevk

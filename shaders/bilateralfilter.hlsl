@@ -8,6 +8,7 @@ Texture2D<float> depth;
 
 Texture2D<float> input;
 RWTexture2D<float> output;
+RWTexture2D<float> varianceOutput;
 
 #define PI 3.1415926535897
 
@@ -85,6 +86,50 @@ float gaussianBlur(uint2 pixelIndex) {
     return color;
 }
 
+//float luminance(float color)
+//{
+//    return dot(color, float(0.299f, 0.587f, 0.114f));
+//}
+
+float variance(uint2 pixelIndex)
+{
+    float2 sigmaVariancePair = float2(0.0, 0.0);
+    float sampCount = 0.0;
+
+    float color = 0.f;
+    float z = depth[pixelIndex].r;
+    // float2 pixelUV = pixelIndex + 0.5f; // pixel index -> center of pixel coordinate
+    float2 currNdc = (2.0 * pixelIndex) / ubo.dimension - 1.0;
+    const float4 clipSpacePosition = float4(currNdc, z, 1.0);
+    float4 viewSpacePosition = mul(ubo.invProj, clipSpacePosition);
+    viewSpacePosition /= viewSpacePosition.w;
+    float currDepth = length(viewSpacePosition.xyz); // dist to camera
+
+    const int KERNEL_RADIUS = lerp(ubo.maxR, 1.0, currDepth / ubo.zfar);
+    const float sigma = ubo.sigma * KERNEL_RADIUS;
+    for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
+    {
+        for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
+        {
+            float weigth = getWeight(x, y, sigma);
+            int2 neighbor = pixelIndex + int2(x, y);
+            color += weigth * input[neighbor];
+
+            // count variance
+            float samp = color;
+            float sampSquared = samp * samp;
+            sigmaVariancePair += float2(samp, sampSquared);
+
+            sampCount += 1.0;
+        }
+    }
+
+    sigmaVariancePair /= sampCount;
+    float variance = max(0.0, sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x);
+
+   return variance;
+}
+
 [numthreads(16, 16, 1)]
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
@@ -100,4 +145,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
     output[pixelIndex] = gaussianBlur2(pixelIndex);
+    varianceOutput[pixelIndex] = variance(pixelIndex);
 }
