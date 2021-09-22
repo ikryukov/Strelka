@@ -86,11 +86,6 @@ float gaussianBlur(uint2 pixelIndex) {
     return color;
 }
 
-//float luminance(float color)
-//{
-//    return dot(color, float(0.299f, 0.587f, 0.114f));
-//}
-
 float variance(uint2 pixelIndex)
 {
     float2 sigmaVariancePair = float2(0.0, 0.0);
@@ -103,19 +98,18 @@ float variance(uint2 pixelIndex)
         for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
         {
             int2 neighbor = pixelIndex + int2(x, y);
-            color += input[neighbor];
+            color = input[neighbor];
 
             // count variance
-            float samp = color;
-            float sampSquared = samp * samp;
-            sigmaVariancePair += float2(samp, sampSquared);
+            float sampSquared = color * color;
+            sigmaVariancePair += float2(color, sampSquared);
 
             sampCount += 1.0;
         }
     }
 
-    sigmaVariancePair.y /= sampCount;
-    float variance = sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x;
+    sigmaVariancePair /= sampCount;
+    float variance = max(0.0, sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x);
 
     return variance;
 }
@@ -134,6 +128,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         output[pixelIndex] = 1.0;
         return;
     }
+
     output[pixelIndex] = gaussianBlur2(pixelIndex);
     varianceOutput[pixelIndex] = variance(pixelIndex);
 }
