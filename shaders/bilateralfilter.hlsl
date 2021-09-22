@@ -129,6 +129,12 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    output[pixelIndex] = gaussianBlur2(pixelIndex);
     varianceOutput[pixelIndex] = variance(pixelIndex);
+    if (varianceOutput[pixelIndex] == 0.0)
+    {
+        output[pixelIndex] = input[pixelIndex];
+        return;
+    }
+    output[pixelIndex] = lerp(ubo.maxR, 1.0, varianceOutput[pixelIndex]);//gaussianBlur2(pixelIndex);
+
 }
