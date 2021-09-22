@@ -54,7 +54,6 @@ float gaussianBlur2(uint2 pixelIndex)
     float currDepth = length(viewSpacePosition.xyz); // dist to camera
 
     const int KERNEL_RADIUS = lerp(ubo.maxR, 1.0, currDepth / ubo.zfar);
-    // const int KERNEL_RADIUS = ubo.radius;
     const float sigma = ubo.sigma * KERNEL_RADIUS;
     for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
     {
