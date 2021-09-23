@@ -22,8 +22,8 @@ struct InstanceConstants
 struct PS_INPUT
 {
     float4 pos : SV_POSITION;
-    float4 currPos;
-    float4 prevPos;
+    float4 currPos; // Clip space
+    float4 prevPos; // Clip space
     float3 tangent;
     float3 normal;
     float3 wPos;
@@ -58,14 +58,14 @@ PS_INPUT vertexMain(VertexInput vi)
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
     const float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
     out.pos = mul(viewToProj, mul(worldToView, wpos));
-    out.prevPos = mul(prevViewToProj, mul(prevWorldToView, wpos));
     out.currPos = out.pos;
+    out.prevPos = mul(prevViewToProj, mul(prevWorldToView, wpos));
     out.uv = unpackUV(vi.uv);
     // assume that we don't use non-uniform scales
     // TODO:
     out.normal = mul((float3x3)constants.normalMatrix, unpackNormal(vi.normal));
     out.tangent = unpackTangent(vi.tangent);
-    out.wPos = wpos.xyz / wpos.w; 
+    out.wPos = wpos.xyz; // / wpos.w; 
     return out;
 }
 
@@ -96,6 +96,7 @@ struct FSOutput
     float2 uv : SV_TARGET3;
     int instId : SV_TARGET4;
     float2 motion: SV_TARGET5;
+    float4 debug : SV_TARGET6;
 };
 
 // calc solid motion, need more logic for skinning
@@ -104,7 +105,6 @@ float2 calcMotion(float4 currClip, float4 prevClip)
     float3 prevNDC = prevClip.xyz / prevClip.w;
     float3 currNDC = currClip.xyz / currClip.w;
     return currNDC.xy - prevNDC.xy;
-    //return currClip.xy - prevClip.xy;
 }
 
 // Fragment Shader
@@ -132,5 +132,6 @@ FSOutput fragmentMain(PS_INPUT inp) : SV_TARGET
 
     ret.motion = calcMotion(inp.currPos, inp.prevPos);
 
+    ret.debug = inp.pos;
     return ret;
 }
