@@ -1153,7 +1153,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         mDebugParams.dimension.y = height;
         mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accHist), 
+        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accOut), 
             mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
             mResManager->getView(mView->gbuffer->debug));
         mDebugView->execute(cmd, width, height, imageIndex);
@@ -1189,7 +1189,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         mToneParams.dimension.y = height;
         mTonemap->setParams(mToneParams);
         mTonemap->execute(cmd, width, height, imageIndex);
-        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accHist));
+        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accOut));
 
         // Copy to swapchain image
         {
@@ -1361,6 +1361,7 @@ void Render::setDescriptors()
         mAccumulation->setMotionTexture(mView->gbuffer->motion);
         mAccumulation->setPrevDepthTexture(mView->prevDepth);
         mAccumulation->setWposTexture(mView->gbuffer->wPos);
+        mAccumulation->setCurrDepthTexture(mView->gbuffer->depth);
     }
     {
         LtcResourceDesc desc{};
@@ -1531,8 +1532,12 @@ void Render::drawFrame()
     AccumulationParam accParam{};
     accParam.alpha = 0.1f;
     accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
-    accParam.prevProjToView = glm::inverse(cam.prevMatrices.perspective);
+    accParam.prevClipToView = glm::inverse(cam.prevMatrices.perspective);
     accParam.prevViewToWorld = glm::inverse(cam.prevMatrices.view);
+    // debug
+    accParam.clipToView = glm::inverse(cam.matrices.perspective);
+    accParam.viewToWorld = glm::inverse(cam.matrices.view);
+
     mAccumulation->setParams(accParam);
 
     LtcParam ltcparams{};

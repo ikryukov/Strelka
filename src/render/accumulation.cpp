@@ -29,6 +29,10 @@ void Accumulation::setPrevDepthTexture(Image* input)
 {
     mShaderParams.setTexture("prevDepthTex", mSharedCtx.mResManager->getView(input));
 }
+void Accumulation::setCurrDepthTexture(Image* input)
+{
+    mShaderParams.setTexture("currDepthTex", mSharedCtx.mResManager->getView(input));
+}
 void Accumulation::setHistoryTexture(Image* history)
 {
     mShaderParams.setTexture("prevTex", mSharedCtx.mResManager->getView(history));
