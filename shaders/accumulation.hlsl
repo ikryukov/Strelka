@@ -35,15 +35,15 @@ float acc(uint2 pixelIndex)
     prevWpos /= prevWpos.w;
     
     float res = current;
-    if (length(prevWpos.xyz - currWpos) < 0.0001)
+    if (length(prevWpos.xyz - currWpos) < 1e-5)
     {
         // same pixel, reuse sample from history
         float prev = prevTex[prevPixel];
         res = lerp(prev, current, ubo.alpha);
     }
     //return prevDepth;
-    return res;
-    //return length(prevWpos.xyz - currWpos);
+    //return res;
+    return length(prevWpos.xyz - currWpos);
 }
 
 float acc1(uint2 pixelIndex)
@@ -55,8 +55,9 @@ float acc1(uint2 pixelIndex)
     float4 currClip = float4(currNdc, currDepth, 1.0);
 
     float4 currViewSpace = mul(ubo.clipToView, currClip);
+    //currViewSpace /= currViewSpace.w;
     float4 currWpos = mul(ubo.viewToWorld, currViewSpace);
-    currWpos.xyz /= currWpos.w;
+    currWpos /= currWpos.w;
 
     float3 goldWpos = gbWpos[pixelIndex].xyz;
 
@@ -72,5 +73,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-    output[pixelIndex] = acc(pixelIndex);
+    output[pixelIndex] = acc1(pixelIndex);
 }
