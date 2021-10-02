@@ -47,7 +47,7 @@ float gaussianBlur2(uint2 pixelIndex)
 {
     float color = 0.f;
     float z = depth[pixelIndex].r;
-    // float2 pixelUV = pixelIndex + 0.5f; // pixel index -> center of pixel coordinate
+    float2 pixelUV = pixelIndex + 0.5f; // pixel index -> center of pixel coordinate
     float2 currNdc = (2.0 * pixelIndex) / ubo.dimension - 1.0;
     const float4 clipSpacePosition = float4(currNdc, z, 1.0);
     float4 viewSpacePosition = mul(ubo.invProj, clipSpacePosition);
@@ -56,6 +56,8 @@ float gaussianBlur2(uint2 pixelIndex)
 
     const int KERNEL_RADIUS = lerp(1.0, ubo.maxR, 1.0 - varianceOutput[pixelIndex]);
 
+    float normalization = 1;
+
     const float sigma = ubo.sigma * KERNEL_RADIUS;
     for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
     {
@@ -63,11 +65,14 @@ float gaussianBlur2(uint2 pixelIndex)
         {
             float weigth = getWeight(x, y, sigma);
             int2 neighbor = pixelIndex + int2(x, y);
-            color += weigth * input[neighbor];
+            // + bilateral ?
+            float closeness = 1.0f - abs(input[neighbor] - input[pixelIndex]);
+            color += weigth * input[neighbor] * closeness;
+            normalization += weigth * closeness;
         }
     }
 
-    return color;
+    return color / normalization;
 }
 
 float gaussianBlur(uint2 pixelIndex) {
@@ -110,7 +115,7 @@ float variance(uint2 pixelIndex)
     }
 
     sigmaVariancePair /= sampCount;
-    float variance = max(0.0, sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x);
+    float variance = max(0.1, sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x);
 
     return variance;
 }
@@ -131,12 +136,11 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     }
 
     varianceOutput[pixelIndex] = variance(pixelIndex);
-    if (varianceOutput[pixelIndex] == 1.0)
+    if (varianceOutput[pixelIndex] == 0.1) // shadow
     {
         output[pixelIndex] = input[pixelIndex];
         return;
     }
 
-    output[pixelIndex] = gaussianBlur2(pixelIndex);
-
+     output[pixelIndex] = gaussianBlur2(pixelIndex);
 }
