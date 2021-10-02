@@ -49,6 +49,7 @@ public:
     struct Matrices
     {
         glm::float4x4 perspective;
+        glm::float4x4 invPerspective;
         glm::float4x4 view;
     };
     Matrices matrices, prevMatrices;

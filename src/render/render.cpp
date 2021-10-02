@@ -749,7 +749,7 @@ GBuffer* Render::createGbuffer(uint32_t width, uint32_t height)
     res->instId = mResManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
     // Motion
-    res->motion = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+    res->motion = mResManager->createImage(width, height, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
     // Debug
     res->debug = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
@@ -1530,12 +1530,16 @@ void Render::drawFrame()
     mRtShadow->setParams(rtShadowParam);
 
     AccumulationParam accParam{};
-    accParam.alpha = 0.1f;
+    accParam.alpha = 0.08f;
     accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
-    accParam.prevClipToView = glm::inverse(cam.prevMatrices.perspective);
-    accParam.prevViewToWorld = glm::inverse(cam.prevMatrices.view);
+    glm::double4x4 persp = cam.prevMatrices.perspective;
+    //accParam.prevClipToView = glm::inverse(persp);
+    accParam.prevClipToView = cam.prevMatrices.invPerspective;
+    glm::double4x4 view = cam.prevMatrices.view;
+    accParam.prevViewToWorld = glm::inverse(view);
     // debug
     accParam.clipToView = glm::inverse(cam.matrices.perspective);
+    //accParam.clipToView = cam.matrices.invPerspective;
     accParam.viewToWorld = glm::inverse(cam.matrices.view);
 
     mAccumulation->setParams(accParam);
