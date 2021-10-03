@@ -49,10 +49,15 @@ float acc(uint2 pixelIndex)
 float acc1(uint2 pixelIndex)
 {
     float2 pixelPos = float2(pixelIndex) + 0.5;
-    float2 currNdc = (2.0 * pixelPos) / ubo.dimension - 1.0;
-    currNdc.y *= -1.0;
+    // https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/html/vkspec.html#vertexpostproc-viewport
+    // xf = (px / 2) * xd + ox
+    // xd = (xf - ox) / (px / 2)
+    // xd = 2 * (xf - ox) / px
+    // ox = ubo.dimension / 2
+    // ndc = 2 * (pixelPos - ubo.dimension / 2.0) / ubo.dimension
+    float2 currNdc = 2.0 * (pixelPos - ubo.dimension / 2.0) / ubo.dimension;
     float currDepth = currDepthTex[pixelIndex].r;
-    float4 currClip = float4(currNdc, currDepth, 1.0);
+    float4 currClip = float4(currNdc, currDepth * -1.0 + 1.0, 1.0);
 
     float4 currViewSpace = mul(ubo.clipToView, currClip);
     //currViewSpace /= currViewSpace.w;

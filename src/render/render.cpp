@@ -1532,14 +1532,14 @@ void Render::drawFrame()
     AccumulationParam accParam{};
     accParam.alpha = 0.08f;
     accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
-    glm::double4x4 persp = cam.prevMatrices.perspective;
+    // glm::double4x4 persp = cam.prevMatrices.perspective;
     //accParam.prevClipToView = glm::inverse(persp);
     accParam.prevClipToView = cam.prevMatrices.invPerspective;
     glm::double4x4 view = cam.prevMatrices.view;
     accParam.prevViewToWorld = glm::inverse(view);
     // debug
     accParam.clipToView = glm::inverse(cam.matrices.perspective);
-    //accParam.clipToView = cam.matrices.invPerspective;
+    // accParam.clipToView = cam.matrices.invPerspective;
     accParam.viewToWorld = glm::inverse(cam.matrices.view);
 
     mAccumulation->setParams(accParam);
