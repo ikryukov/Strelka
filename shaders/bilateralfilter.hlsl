@@ -124,7 +124,7 @@ float variance(uint2 pixelIndex)
     }
 
     sigmaVariancePair /= sampCount;
-    float variance = max(0.1, sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x);
+    float variance = max(0.0, sigmaVariancePair.y - sigmaVariancePair.x * sigmaVariancePair.x);
 
     return variance;
 }
@@ -146,7 +146,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 
     float var = variance(pixelIndex);
     varianceOutput[pixelIndex] = var;
-    if (var == 0.1) // shadow
+    if (var == 0.0) // shadow
     {
         output[pixelIndex] = input[pixelIndex];
         return;
