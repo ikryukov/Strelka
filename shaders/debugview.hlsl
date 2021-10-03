@@ -4,6 +4,8 @@ ConstantBuffer<Debugviewparam> ubo;
 Texture2D<float4> inputLTC;
 Texture2D<float4> inputShadow;
 Texture2D<float4> inputNormals;
+Texture2D<float2> inputMotion;
+Texture2D<float4> debugTex;
 RWTexture2D<float4> output;
 
 [numthreads(16, 16, 1)]
@@ -27,5 +29,13 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         float3 color = inputLTC[pixelIndex].rgb;
         output[pixelIndex] = float4(color, 0.0);
+    }
+    if (ubo.debugView == 4) // Motion
+    {
+        output[pixelIndex] = float4(abs(inputMotion[pixelIndex]), 0.0, 0.0);
+    }
+    if (ubo.debugView == 5) // Debug
+    {
+        output[pixelIndex] = debugTex[pixelIndex];
     }
 }

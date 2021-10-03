@@ -689,6 +689,9 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
     view->height = height;
     view->mResManager = mResManager;
     view->gbuffer = createGbuffer(width, height);
+    view->prevDepth = mResManager->createImage(width, height, view->gbuffer->depthFormat, VK_IMAGE_TILING_OPTIMAL,
+                                               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Prev depth");
+
     view->textureDebugViewImage = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
                                                            VK_IMAGE_TILING_OPTIMAL,
                                                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
@@ -729,7 +732,7 @@ GBuffer* Render::createGbuffer(uint32_t width, uint32_t height)
     // Depth
     res->depthFormat = findDepthFormat();
     res->depth = mResManager->createImage(width, height, res->depthFormat, VK_IMAGE_TILING_OPTIMAL,
-                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
+                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
     // Normals
     res->normal = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
@@ -746,9 +749,11 @@ GBuffer* Render::createGbuffer(uint32_t width, uint32_t height)
     res->instId = mResManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
     // Motion
-    res->motion = mResManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+    res->motion = mResManager->createImage(width, height, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
-
+    // Debug
+    res->debug = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Debug");
     return res;
 }
 
@@ -1081,137 +1086,6 @@ void Render::recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout ol
         1, &barrier);
 }
 
-void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
-{
-    assert(mView);
-    const uint32_t width = mView->width;
-    const uint32_t height = mView->height;
-    // mDepthPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, imageIndex, getActiveCameraIndex());
-    mGbufferPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, width, height, imageIndex, getActiveCameraIndex());
-
-    const GBuffer& gbuffer = *mView->gbuffer;
-
-    // barriers
-    {
-        recordBarrier(cmd, mResManager->getVkImage(gbuffer.wPos), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordBarrier(cmd, mResManager->getVkImage(gbuffer.normal), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordBarrier(cmd, mResManager->getVkImage(gbuffer.tangent), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordBarrier(cmd, mResManager->getVkImage(gbuffer.uv), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordBarrier(cmd, mResManager->getVkImage(gbuffer.instId), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordBarrier(cmd, mResManager->getVkImage(gbuffer.depth), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
-    }
-    // LTC
-    recordBarrier(cmd, mResManager->getVkImage(mView->mLtcOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    //mLtcPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
-
-
-    mLtcPass->execute(cmd, width, height, imageIndex);
-
-    recordBarrier(cmd, mResManager->getVkImage(mView->mLtcOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-    // Raytracing
-    // barrier
-    recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mRtShadow->execute(cmd, width, height, imageIndex);
-
-    // barrier
-    recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-    // Accumulation pass
-    Image* accHist = mView->mAccumulationImages[imageIndex % 2];
-    Image* accOut = mView->mAccumulationImages[(imageIndex + 1) % 2];
-    mAccumulation->setHistoryTexture(accHist);
-    mAccumulation->setOutputTexture(accOut);
-    recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mAccumulation->execute(cmd, width, height, imageIndex);
-    recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-    if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
-    {
-        mDebugParams.dimension.x = width;
-        mDebugParams.dimension.y = height;
-        mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
-        mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accHist), mResManager->getView(mView->gbuffer->normal));
-        mDebugView->execute(cmd, width, height, imageIndex);
-        // Copy to swapchain image
-        {
-            recordBarrier(cmd, mResManager->getVkImage(mView->textureDebugViewImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-            recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                          VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-            VkOffset3D blitSize{};
-            blitSize.x = width;
-            blitSize.y = height;
-            blitSize.z = 1;
-            VkImageBlit imageBlitRegion{};
-            imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            imageBlitRegion.srcSubresource.layerCount = 1;
-            imageBlitRegion.srcOffsets[1] = blitSize;
-            imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            imageBlitRegion.dstSubresource.layerCount = 1;
-            imageBlitRegion.dstOffsets[1] = blitSize;
-            vkCmdBlitImage(cmd, mResManager->getVkImage(mView->textureDebugViewImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
-
-            recordBarrier(cmd, mResManager->getVkImage(mView->textureDebugViewImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-            recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                          VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-        }
-    }
-    else
-    {
-        mToneParams.dimension.x = width;
-        mToneParams.dimension.y = height;
-        mTonemap->setParams(mToneParams);
-        mTonemap->execute(cmd, width, height, imageIndex);
-        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accHist));
-
-        // Copy to swapchain image
-        {
-
-            recordBarrier(cmd, mResManager->getVkImage(mView->textureTonemapImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-            recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                          VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-
-            VkOffset3D blitSize{};
-            blitSize.x = width;
-            blitSize.y = height;
-            blitSize.z = 1;
-            VkImageBlit imageBlitRegion{};
-            imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            imageBlitRegion.srcSubresource.layerCount = 1;
-            imageBlitRegion.srcOffsets[1] = blitSize;
-            imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            imageBlitRegion.dstSubresource.layerCount = 1;
-            imageBlitRegion.dstOffsets[1] = blitSize;
-            vkCmdBlitImage(cmd, mResManager->getVkImage(mView->textureTonemapImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
-
-            recordBarrier(cmd, mResManager->getVkImage(mView->textureTonemapImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-            recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                          VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-        }
-    }
-    mUi.render(cmd, imageIndex);
-}
-
 void Render::createCommandBuffers()
 {
     for (FrameData& fd : mFramesData)
@@ -1321,6 +1195,10 @@ void Render::setDescriptors()
     }
     {
         mAccumulation->setInputTexture(mView->mRtShadowImage);
+        mAccumulation->setMotionTexture(mView->gbuffer->motion);
+        mAccumulation->setPrevDepthTexture(mView->prevDepth);
+        mAccumulation->setWposTexture(mView->gbuffer->wPos);
+        mAccumulation->setCurrDepthTexture(mView->gbuffer->depth);
     }
     {
         LtcResourceDesc desc{};
@@ -1335,7 +1213,9 @@ void Render::setDescriptors()
     }
     {
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage), mResManager->getView(mView->gbuffer->normal));
+        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage),
+                                    mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
+                                    mResManager->getView(mView->gbuffer->debug));
         mDebugView->setOutputTexture(mResManager->getView(mView->textureDebugViewImage));
     }
     {
@@ -1421,7 +1301,9 @@ void Render::drawFrame()
     static bool needReload = false;
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime);
+    static bool enableAcc = true;
+    static float accAlpha = 0.125f;
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, enableAcc, accAlpha);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1478,7 +1360,6 @@ void Render::drawFrame()
 
     scene->updateCamerasParams(swapChainExtent.width, swapChainExtent.height);
 
-
     mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
 
     RtShadowParam rtShadowParam{};
@@ -1487,8 +1368,18 @@ void Render::drawFrame()
     mRtShadow->setParams(rtShadowParam);
 
     AccumulationParam accParam{};
-    accParam.alpha = 0.1f;
+    accParam.alpha = accAlpha;
     accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    //glm::double4x4 persp = cam.prevMatrices.perspective;
+    //accParam.prevClipToView = glm::inverse(persp);
+    accParam.prevClipToView = cam.prevMatrices.invPerspective;
+    glm::double4x4 view = cam.prevMatrices.view;
+    accParam.prevViewToWorld = glm::inverse(view);
+    // debug
+    // accParam.clipToView = glm::inverse(cam.matrices.perspective);
+    accParam.clipToView = cam.matrices.invPerspective;
+    accParam.viewToWorld = glm::inverse(cam.matrices.view);
+
     mAccumulation->setParams(accParam);
 
     LtcParam ltcparams{};
@@ -1511,8 +1402,8 @@ void Render::drawFrame()
 
     glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());
 
-    VkCommandBuffer& cmdBuff = getFrameData(imageIndex).cmdBuffer;
-    vkResetCommandBuffer(cmdBuff, 0);
+    VkCommandBuffer& cmd = getFrameData(imageIndex).cmdBuffer;
+    vkResetCommandBuffer(cmd, 0);
 
     VkCommandBufferBeginInfo cmdBeginInfo = {};
     cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1520,7 +1411,7 @@ void Render::drawFrame()
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-    vkBeginCommandBuffer(cmdBuff, &cmdBeginInfo);
+    vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
     // upload data
     {
@@ -1557,7 +1448,7 @@ void Render::drawFrame()
             copyRegion.size = bufferSize;
             copyRegion.dstOffset = 0;
             copyRegion.srcOffset = stagingBufferOffset;
-            vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
+            vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
 
             stagingBufferOffset += bufferSize;
             needBarrier = true;
@@ -1572,7 +1463,7 @@ void Render::drawFrame()
             copyRegion.size = bufferSize;
             copyRegion.dstOffset = 0;
             copyRegion.srcOffset = stagingBufferOffset;
-            vkCmdCopyBuffer(cmdBuff, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), 1, &copyRegion);
+            vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), 1, &copyRegion);
 
             stagingBufferOffset += bufferSize;
             needBarrier = true;
@@ -1585,7 +1476,7 @@ void Render::drawFrame()
             memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
             memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 
-            vkCmdPipelineBarrier(cmdBuff,
+            vkCmdPipelineBarrier(cmd,
                                  VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
                                  VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, // dstStageMask
                                  0,
@@ -1595,9 +1486,148 @@ void Render::drawFrame()
         }
     }
 
-    recordCommandBuffer(cmdBuff, frameIndex);
+    assert(mView);
+    const uint32_t width = mView->width;
+    const uint32_t height = mView->height;
+    mGbufferPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, width, height, imageIndex, getActiveCameraIndex());
 
-    if (vkEndCommandBuffer(cmdBuff) != VK_SUCCESS)
+    const GBuffer& gbuffer = *mView->gbuffer;
+
+    // barriers
+    {
+        recordBarrier(cmd, mResManager->getVkImage(gbuffer.wPos), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(gbuffer.normal), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(gbuffer.tangent), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(gbuffer.uv), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(gbuffer.instId), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(gbuffer.motion), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(gbuffer.depth), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(gbuffer.debug), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    }
+    // LTC
+    recordBarrier(cmd, mResManager->getVkImage(mView->mLtcOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    //mLtcPass.record(cmd, swapChainExtent.width, swapChainExtent.height, imageIndex);
+
+
+    mLtcPass->execute(cmd, width, height, imageIndex);
+
+    recordBarrier(cmd, mResManager->getVkImage(mView->mLtcOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+    // Raytracing
+    // barrier
+    recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mRtShadow->execute(cmd, width, height, imageIndex);
+
+    // barrier
+    recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    Image* finalRtImage = mView->mRtShadowImage;
+    if (enableAcc)
+    {
+        // Accumulation pass
+        Image* accHist = mView->mAccumulationImages[imageIndex % 2];
+        Image* accOut = mView->mAccumulationImages[(imageIndex + 1) % 2];
+        mAccumulation->setHistoryTexture(accHist);
+        mAccumulation->setOutputTexture(accOut);
+        recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAccumulation->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalRtImage = accOut;
+    }
+    Image* finalImage = nullptr;
+    if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
+    {
+        mDebugParams.dimension.x = width;
+        mDebugParams.dimension.y = height;
+        mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
+        mDebugView->setParams(mDebugParams);
+        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage),
+                                    mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
+                                    mResManager->getView(mView->gbuffer->debug));
+        mDebugView->execute(cmd, width, height, imageIndex);
+        finalImage = mView->textureDebugViewImage;
+    }
+    else
+    {
+        mToneParams.dimension.x = width;
+        mToneParams.dimension.y = height;
+        mTonemap->setParams(mToneParams);
+        mTonemap->execute(cmd, width, height, imageIndex);
+        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage));
+        finalImage = mView->textureTonemapImage;
+    }
+
+    // Copy to swapchain image
+    {
+
+        recordBarrier(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+        recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+        VkOffset3D blitSize{};
+        blitSize.x = width;
+        blitSize.y = height;
+        blitSize.z = 1;
+        VkImageBlit imageBlitRegion{};
+        imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBlitRegion.srcSubresource.layerCount = 1;
+        imageBlitRegion.srcOffsets[1] = blitSize;
+        imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageBlitRegion.dstSubresource.layerCount = 1;
+        imageBlitRegion.dstOffsets[1] = blitSize;
+        vkCmdBlitImage(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
+
+        recordBarrier(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+    }
+
+    mUi.render(cmd, imageIndex);
+
+    // copy current depth from gbuffer to prev gbuffer
+    {
+        recordBarrier(cmd, mResManager->getVkImage(mView->gbuffer->depth), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(mView->prevDepth), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        VkImageCopy region{};
+        region.extent.width = mView->width;
+        region.extent.height = mView->height;
+        region.extent.depth = 1;
+
+        region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        region.srcSubresource.mipLevel = 0;
+        region.srcSubresource.layerCount = 1;
+        region.srcSubresource.baseArrayLayer = 0;
+
+        region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        region.dstSubresource.mipLevel = 0;
+        region.dstSubresource.layerCount = 1;
+        region.dstSubresource.baseArrayLayer = 0;
+
+        vkCmdCopyImage(cmd, mResManager->getVkImage(mView->gbuffer->depth), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mResManager->getVkImage(mView->prevDepth), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        recordBarrier(cmd, mResManager->getVkImage(mView->prevDepth), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+    }
+
+    if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to record command buffer!");
     }
@@ -1612,7 +1642,7 @@ void Render::drawFrame()
     submitInfo.pWaitDstStageMask = waitStages;
 
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmdBuff;
+    submitInfo.pCommandBuffers = &cmd;
 
     VkSemaphore signalSemaphores[] = { currFrame.renderFinished };
     submitInfo.signalSemaphoreCount = 1;

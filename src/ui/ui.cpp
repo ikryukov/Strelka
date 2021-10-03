@@ -464,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime)
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -472,7 +472,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Shadows", "LTC" };
+    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug" };
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();
@@ -690,10 +690,15 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
         }
         ImGui::EndCombo();
     }
+    ImGui::Checkbox("Accumulation", &enableAcc);
+    if (enableAcc)
+    {
+        ImGui::SliderFloat("Alpha", &accAlpha, 0.01, 0.5);
+    }
 
     //     transparency settings
-    ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
-    ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
+    // ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
+    // ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
 
     ImGui::End(); // end window
 }

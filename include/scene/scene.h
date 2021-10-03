@@ -129,12 +129,14 @@ public:
 
     std::vector<RectLightDesc> mLightDesc;
 
-    enum class DebugView
+    enum class DebugView: uint32_t
     {
         eNone = 0,
         eNormals = 1,
         eShadows = 2,
-        eLTC = 3
+        eLTC = 3,
+        eMotion = 4,
+        eCustomDebug = 5
     };
 
     DebugView mDebugViewSettings = DebugView::eNone;

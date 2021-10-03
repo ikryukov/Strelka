@@ -9,7 +9,8 @@ namespace nevk
 
 void Camera::updateViewMatrix()
 {
-    glm::mat4 rotM = mat4_cast(mOrientation);
+    //glm::mat4 rotM = mat4_cast(mOrientation);
+    const glm::float4x4 rotM{ mOrientation };
     glm::float4x4 transM = glm::translate(glm::float4x4(1.0f), -position);
     if (type == CameraType::firstperson)
     {
@@ -57,12 +58,70 @@ void Camera::setFov(float fov)
     this->fov = fov;
 }
 
+// original implementation: https://vincent-p.github.io/notes/20201216234910-the_projection_matrix_in_vulkan/
+glm::float4x4 perspective(float fov, float aspect_ratio, float n, float f, glm::float4x4* inverse)
+{
+    float focal_length = 1.0f / std::tan(glm::radians(fov) / 2.0f);
+
+    float x = focal_length / aspect_ratio;
+    float y = -focal_length;
+    float A = n / (f - n);
+    float B = f * A;
+
+    glm::float4x4 projection({
+        x,
+        0.0f,
+        0.0f,
+        0.0f,
+
+        0.0f,
+        y,
+        0.0f,
+        0.0f,
+        
+        0.0f,
+        0.0f,
+        A,
+        B,
+        
+        0.0f,
+        0.0f,
+        -1.0f,
+        0.0f,
+    });
+
+    if (inverse)
+    {
+        *inverse = glm::transpose(glm::float4x4({
+            1 / x,
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            1 / y,
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f,
+            -1.0f,
+            0.0f,
+            0.0f,
+            1 / B,
+            A / B,
+        }));
+    }
+
+    return glm::transpose(projection);
+}
+
 void Camera::setPerspective(float _fov, float _aspect, float _znear, float _zfar)
 {
     fov = _fov;
     znear = _znear;
     zfar = _zfar;
-    matrices.perspective = glm::perspective(glm::radians(fov), _aspect, znear, zfar);
+    // swap near and far plane for reverse z
+    matrices.perspective = perspective(fov, _aspect, zfar, znear, &matrices.invPerspective);
 }
 
 glm::float4x4& Camera::getPerspective()
@@ -75,9 +134,9 @@ glm::float4x4 Camera::getView()
     return matrices.view;
 }
 
-void Camera::updateAspectRatio(float aspect)
+void Camera::updateAspectRatio(float _aspect)
 {
-    matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
+    setPerspective(fov, _aspect, znear, zfar);
 }
 
 void Camera::setPosition(glm::float3 _position)

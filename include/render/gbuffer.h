@@ -15,6 +15,7 @@ struct GBuffer
     Image* uv;
     Image* instId;
     Image* motion;
+    Image* debug;
 
     // utils
     VkFormat depthFormat;
@@ -51,6 +52,10 @@ struct GBuffer
         if (motion)
         {
             mResManager->destroyImage(motion);
+        }
+        if (debug)
+        {
+            mResManager->destroyImage(debug);
         }
     }
 };
