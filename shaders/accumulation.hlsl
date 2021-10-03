@@ -2,72 +2,58 @@
 
 ConstantBuffer<AccumulationParam> ubo;
 Texture2D<float4> gbWpos;
-Texture2D<float2> motion;
+Texture2D<float2> motionTex;
 Texture2D<float> currTex;
 Texture2D<float> prevTex;
 Texture2D<float> prevDepthTex;
 Texture2D<float> currDepthTex;
 RWTexture2D<float> output;
 
-//RWTexture2D<float4> debug;
-
-float acc(uint2 pixelIndex)
-{
-    const float current = currTex[pixelIndex];
-    // pixel coord -> ndc
-    const float2 pixelPos = pixelIndex + 0.5;
-    float2 currNdc = (2.0 * pixelPos) / ubo.dimension - 1.0;
-    //currNdc.y *= -1.0;
-    // prev pixel screen coord
-    float2 mv = motion[pixelIndex];
-    const float2 prevNdc = currNdc - mv; // moved to prev ndc
-
-    float3 currWpos = gbWpos[pixelIndex].xyz;
-
-    const int2 prevPixel = (prevNdc + 1.0) * ubo.dimension * 0.5; // to screen space
-    const float prevDepth = prevDepthTex[prevPixel].r;
-
-    prevNdc.y *= -1.0;
-
-    float4 prevClip = float4(prevNdc, prevDepth, 1.0);
-    float4 prevViewSpace = mul(ubo.prevClipToView, prevClip);
-    float4 prevWpos = mul(ubo.prevViewToWorld, prevViewSpace);
-    prevWpos /= prevWpos.w;
-    
-    float res = current;
-    if (length(prevWpos.xyz - currWpos) < 1e-5)
-    {
-        // same pixel, reuse sample from history
-        float prev = prevTex[prevPixel];
-        res = lerp(prev, current, ubo.alpha);
-    }
-    //return prevDepth;
-    //return res;
-    return length(prevWpos.xyz - currWpos);
-}
-
-float acc1(uint2 pixelIndex)
+float3 reconstructWorldPos(uint2 pixelIndex, float2 motion, uint2 dimension, Texture2D<float> depthTex, float4x4 clipToView, float4x4 viewToWorld)
 {
     float2 pixelPos = float2(pixelIndex) + 0.5;
     // https://www.khronos.org/registry/vulkan/specs/1.0-wsi_extensions/html/vkspec.html#vertexpostproc-viewport
     // xf = (px / 2) * xd + ox
+    // px = viewport width
     // xd = (xf - ox) / (px / 2)
     // xd = 2 * (xf - ox) / px
     // ox = ubo.dimension / 2
     // ndc = 2 * (pixelPos - ubo.dimension / 2.0) / ubo.dimension
-    float2 currNdc = 2.0 * (pixelPos - ubo.dimension / 2.0) / ubo.dimension;
-    float currDepth = currDepthTex[pixelIndex].r;
-    float4 currClip = float4(currNdc, currDepth * -1.0 + 1.0, 1.0);
+    const float2 ndc = 2.0 * (pixelPos - dimension / 2.0) / dimension - motion;
+    // zf = pz * zd + oz
+    // zd = (zf - oz) / pz;
+    // pz - range scale depth, oz - range bias depth
+    const float depth = depthTex[pixelIndex].r * -1.0 + 1.0;
+    float4 clip = float4(ndc, depth, 1.0);
 
-    float4 currViewSpace = mul(ubo.clipToView, currClip);
-    //currViewSpace /= currViewSpace.w;
-    float4 currWpos = mul(ubo.viewToWorld, currViewSpace);
-    currWpos /= currWpos.w;
+    float4 viewSpace = mul(clipToView, clip);
+    float4 wpos = mul(viewToWorld, viewSpace);
+    wpos /= wpos.w;
+    return wpos.xyz;
+}
 
-    float3 goldWpos = gbWpos[pixelIndex].xyz;
+float acc(uint2 pixelIndex)
+{
+    const float current = currTex[pixelIndex];
+    float3 currWpos = gbWpos[pixelIndex].xyz;
+    float2 motion = motionTex[pixelIndex].xy;
+    float3 prevWpos = reconstructWorldPos(pixelIndex, motion, ubo.dimension, prevDepthTex, ubo.prevClipToView, ubo.prevViewToWorld);
+    
+    float res = current;
+    if (length(prevWpos - currWpos) < 0.01)
+    {
+        // same pixel, reuse sample from history
+        float2 pixelPos = float2(pixelIndex) + 0.5;
+        const float2 ndc = 2.0 * (pixelPos - ubo.dimension / 2.0) / ubo.dimension - motion;
+        // ndc -> screen
+        uint2 prevPixel = (ubo.dimension / 2.0) * ndc + ubo.dimension / 2.0;
 
-    float res = length(goldWpos.xyz - currWpos.xyz);
+        float prev = prevTex[prevPixel];
+        res = lerp(prev, current, ubo.alpha);
+    }
+    //return prevDepth;
     return res;
+    //return length(prevWpos.xyz - currWpos);
 }
 
 [numthreads(16, 16, 1)]
@@ -78,5 +64,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-    output[pixelIndex] = acc1(pixelIndex);
+    output[pixelIndex] = acc(pixelIndex);
 }

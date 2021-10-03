@@ -23,7 +23,7 @@ void Accumulation::setWposTexture(Image* input)
 }
 void Accumulation::setMotionTexture(Image* motion)
 {
-    mShaderParams.setTexture("motion", mSharedCtx.mResManager->getView(motion));
+    mShaderParams.setTexture("motionTex", mSharedCtx.mResManager->getView(motion));
 }
 void Accumulation::setPrevDepthTexture(Image* input)
 {
