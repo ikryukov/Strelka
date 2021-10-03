@@ -697,8 +697,8 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     }
 
     //     transparency settings
-    ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
-    ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
+    // ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
+    // ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
 
     ImGui::End(); // end window
 }
