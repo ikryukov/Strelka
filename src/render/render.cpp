@@ -1153,9 +1153,9 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         mDebugParams.dimension.y = height;
         mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accOut), 
-            mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
-            mResManager->getView(mView->gbuffer->debug));
+        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(accOut),
+                                    mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
+                                    mResManager->getView(mView->gbuffer->debug));
         mDebugView->execute(cmd, width, height, imageIndex);
         // Copy to swapchain image
         {
@@ -1232,7 +1232,7 @@ void Render::recordCommandBuffer(VkCommandBuffer& cmd, uint32_t imageIndex)
         region.extent.width = mView->width;
         region.extent.height = mView->height;
         region.extent.depth = 1;
-        
+
         region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
         region.srcSubresource.mipLevel = 0;
         region.srcSubresource.layerCount = 1;
@@ -1376,9 +1376,9 @@ void Render::setDescriptors()
     }
     {
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage), 
-            mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
-            mResManager->getView(mView->gbuffer->debug));
+        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage),
+                                    mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
+                                    mResManager->getView(mView->gbuffer->debug));
         mDebugView->setOutputTexture(mResManager->getView(mView->textureDebugViewImage));
     }
     {

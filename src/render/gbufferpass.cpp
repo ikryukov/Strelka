@@ -89,9 +89,7 @@ VkPipeline GbufferPass::createGraphicsPipeline(VkShaderModule& vertShaderModule,
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    //viewport.y = (float)height;
     viewport.width = (float)width;
-    //viewport.height = -(float)height;
     viewport.height = (float)height;
     viewport.minDepth = 1.0f;
     viewport.maxDepth = 0.0f;
@@ -484,9 +482,7 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
     VkViewport viewport{};
     viewport.x = 0;
     viewport.y = 0;
-    //viewport.y = (float)height;
     viewport.width = (float)width;
-    //viewport.height = -(float)height;
     viewport.height = (float)height;
     viewport.minDepth = 1.0f;
     viewport.maxDepth = 0.0f;

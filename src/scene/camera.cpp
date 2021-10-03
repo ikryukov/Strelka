@@ -59,20 +59,6 @@ void Camera::setFov(float fov)
 }
 
 glm::float4x4 perspective(float fov, float aspect_ratio, float n, float f, glm::float4x4* inverse)
-//{
-//    float h = 1.0 / std::tan(glm::radians(fov) * 0.5f);
-//    float w = h / aspect_ratio;
-//    float a = -n / (f - n);
-//    float b = (n * f) / (f - n);
-//    glm::float4x4 proj = {
-//        w, 0, 0, 0,
-//        0, -h, 0, 0,
-//        0, 0, a, 1.0,
-//        0, 0, b, 0
-//    };
-//
-//    return proj;
-//}
 {
     float focal_length = 1.0f / std::tan(glm::radians(fov) / 2.0f);
 
@@ -126,7 +112,6 @@ glm::float4x4 perspective(float fov, float aspect_ratio, float n, float f, glm::
     }
 
     return glm::transpose(projection);
-    //return projection;
 }
 
 void Camera::setPerspective(float _fov, float _aspect, float _znear, float _zfar)
@@ -150,7 +135,6 @@ glm::float4x4 Camera::getView()
 
 void Camera::updateAspectRatio(float _aspect)
 {
-    //matrices.perspective = glm::perspective(glm::radians(fov), aspect, znear, zfar);
     setPerspective(fov, _aspect, znear, zfar);
 }
 

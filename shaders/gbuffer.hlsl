@@ -65,7 +65,7 @@ PS_INPUT vertexMain(VertexInput vi)
     // TODO:
     out.normal = mul((float3x3)constants.normalMatrix, unpackNormal(vi.normal));
     out.tangent = unpackTangent(vi.tangent);
-    out.wPos = wpos.xyz; // / wpos.w; 
+    out.wPos = wpos.xyz;
     return out;
 }
 
