@@ -57,7 +57,7 @@ float gaussianBlur2(uint2 pixelIndex)
     const int KERNEL_RADIUS = lerp(1.0, ubo.maxR, 1.0 - varianceOutput[pixelIndex]);
 
     float normalization = 1;
-
+    float closeness = 0.f;
     const float sigma = ubo.sigma * KERNEL_RADIUS;
     for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
     {
@@ -66,7 +66,16 @@ float gaussianBlur2(uint2 pixelIndex)
             float weigth = getWeight(x, y, sigma);
             int2 neighbor = pixelIndex + int2(x, y);
             // + bilateral ?
-            float closeness = 1.0f - abs(input[neighbor] - input[pixelIndex]);
+            float plane = gbNormal[pixelIndex].x * (gbWPos[neighbor].x - gbWPos[pixelIndex].x) + gbNormal[pixelIndex].y * (gbWPos[neighbor].y - gbWPos[pixelIndex].y) + gbNormal[pixelIndex].z * (gbWPos[neighbor].z - gbWPos[pixelIndex].z);
+            if (plane == 0)
+            {
+                closeness = 1.f; // neighbour pixel is laying on the same plane
+            }
+            else
+            {
+                closeness = 1.f - abs(input[neighbor] - input[pixelIndex]);
+            }
+
             color += weigth * input[neighbor] * closeness;
             normalization += weigth * closeness;
         }
