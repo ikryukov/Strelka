@@ -146,11 +146,11 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 
     float var = variance(pixelIndex);
     varianceOutput[pixelIndex] = var;
-    if (var == 0.0) // shadow
+    /*if (var == 0.0) // shadow ?
     {
         output[pixelIndex] = input[pixelIndex];
         return;
-    }
+    }*/
 
      output[pixelIndex] = gaussianBlur2(pixelIndex, var);
 }
