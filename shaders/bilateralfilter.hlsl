@@ -58,7 +58,7 @@ float gaussianBlur2(uint2 pixelIndex)
 
     float normalization = 1;
     float closeness = 0.f;
-    const float sigma = ubo.sigma * KERNEL_RADIUS;
+    const float sigma = lerp(0.1, KERNEL_RADIUS, ubo.sigma);
     for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
     {
         for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
