@@ -464,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime)
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -689,6 +689,11 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
             }
         }
         ImGui::EndCombo();
+    }
+    ImGui::Checkbox("Accumulation", &enableAcc);
+    if (enableAcc)
+    {
+        ImGui::SliderFloat("Alpha", &accAlpha, 0.01, 0.5);
     }
 
     //     transparency settings
