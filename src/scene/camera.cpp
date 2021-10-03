@@ -58,6 +58,7 @@ void Camera::setFov(float fov)
     this->fov = fov;
 }
 
+// original implementation: https://vincent-p.github.io/notes/20201216234910-the_projection_matrix_in_vulkan/
 glm::float4x4 perspective(float fov, float aspect_ratio, float n, float f, glm::float4x4* inverse)
 {
     float focal_length = 1.0f / std::tan(glm::radians(fov) / 2.0f);
