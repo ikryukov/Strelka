@@ -25,7 +25,6 @@ float3 reconstructWorldPos(uint2 pixelIndex, float2 motion, uint2 dimension, Tex
     // pz - range scale depth, oz - range bias depth
     const float depth = depthTex[pixelIndex].r * -1.0 + 1.0;
     float4 clip = float4(ndc, depth, 1.0);
-
     float4 viewSpace = mul(clipToView, clip);
     float4 wpos = mul(viewToWorld, viewSpace);
     wpos /= wpos.w;
@@ -38,7 +37,6 @@ float acc(uint2 pixelIndex)
     float3 currWpos = gbWpos[pixelIndex].xyz;
     float2 motion = motionTex[pixelIndex].xy;
     float3 prevWpos = reconstructWorldPos(pixelIndex, motion, ubo.dimension, prevDepthTex, ubo.prevClipToView, ubo.prevViewToWorld);
-    
     float res = current;
     if (length(prevWpos - currWpos) < 0.01)
     {
@@ -47,13 +45,10 @@ float acc(uint2 pixelIndex)
         const float2 ndc = 2.0 * (pixelPos - ubo.dimension / 2.0) / ubo.dimension - motion;
         // ndc -> screen
         uint2 prevPixel = (ubo.dimension / 2.0) * ndc + ubo.dimension / 2.0;
-
         float prev = prevTex[prevPixel];
         res = lerp(prev, current, ubo.alpha);
     }
-    //return prevDepth;
     return res;
-    //return length(prevWpos.xyz - currWpos);
 }
 
 [numthreads(16, 16, 1)]
