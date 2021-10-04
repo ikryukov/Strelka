@@ -13,8 +13,7 @@ void DebugView::initialize()
 {
     DebugViewBase::initialize("shaders/debugview.hlsl");
 }
-void DebugView::setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadow, VkImageView imageNormal, VkImageView imageMotion, VkImageView debug)
-void DebugView::setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadow, VkImageView imageNormal, VkImageView imageVariance)
+void DebugView::setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadow, VkImageView imageNormal, VkImageView imageMotion, VkImageView debug, VkImageView imageVariance)
 {
     mShaderParams.setTexture("inputLTC", imageViewLTC);
     mShaderParams.setTexture("inputShadow", imageViewShadow);

@@ -464,8 +464,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, float& sigma, int& radius, int& maxR)
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha)
+
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha, float& sigma, int& radius, int& maxR)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -473,8 +473,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug" };
-    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Variance" };
+    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "Variance" };
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();

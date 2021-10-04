@@ -31,11 +31,6 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         float3 color = inputLTC[pixelIndex].rgb;
         output[pixelIndex] = float4(color, 0.0);
     }
-    if (ubo.debugView == 4) // variance
-    {
-    float3 color = inputVariance[pixelIndex].r;
-    output[pixelIndex] = float4(color, 0.0);
-    }
     if (ubo.debugView == 4) // Motion
     {
         output[pixelIndex] = float4(abs(inputMotion[pixelIndex]), 0.0, 0.0);
@@ -43,5 +38,10 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     if (ubo.debugView == 5) // Debug
     {
         output[pixelIndex] = debugTex[pixelIndex];
+    }
+    if (ubo.debugView == 6) // Variance
+    {
+        float3 color = inputVariance[pixelIndex].r;
+        output[pixelIndex] = float4(color, 0.0);
     }
 }
