@@ -54,7 +54,7 @@ float gaussianBlur2(uint2 pixelIndex, float var)
             float weigth = getWeight(x, y, sigma);
             int2 neighbor = pixelIndex + int2(x, y);
             // + bilateral ?
-            float plane = gbNormal[pixelIndex].x * (gbWPos[neighbor].x - gbWPos[pixelIndex].x) + gbNormal[pixelIndex].y * (gbWPos[neighbor].y - gbWPos[pixelIndex].y) + gbNormal[pixelIndex].z * (gbWPos[neighbor].z - gbWPos[pixelIndex].z);
+            float plane = dot(gbNormal[pixelIndex].xyz, gbWPos[neighbor].xyz - gbWPos[pixelIndex].xyz);
             if (plane == 0)
             {
                 closeness = 1.f; // neighbour pixel is laying on the same plane
