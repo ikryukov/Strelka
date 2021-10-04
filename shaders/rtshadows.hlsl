@@ -209,7 +209,7 @@ float calcShadow(uint2 pixelIndex)
     hit.t = 0.0;
     if ((dot(N, L) > 0.0) && anyHit(ray, hit))
     {
-        return 0.1;
+        return 0.0;
     }
     return 1.0;
 }
