@@ -1616,7 +1616,7 @@ void Render::drawFrame()
         mDebugParams.dimension.y = height;
         mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage),
+        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage),
                                     mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
                                     mResManager->getView(mView->gbuffer->debug),  mResManager->getView(finalRtImage));
         mDebugView->execute(cmd, width, height, imageIndex);
