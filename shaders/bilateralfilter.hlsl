@@ -12,11 +12,6 @@ RWTexture2D<float> varianceOutput;
 
 #define PI 3.1415926535897
 
-float linearizeDepth(float d, float zNear, float zFar)
-{
-    return zNear * zFar / (zFar + d * (zNear - zFar));
-}
-
 float getWeight(int x, int y)
 {
     return (1.0 / (2.0 * PI * ubo.sigma * ubo.sigma)) * exp(-((x * x + y * y) / (2.0 * ubo.sigma * ubo.sigma)));
@@ -46,13 +41,6 @@ float simpleBlur(uint2 pixelIndex){
 float gaussianBlur2(uint2 pixelIndex, float var)
 {
     float color = 0.f;
-    float z = depth[pixelIndex].r;
-    float2 pixelUV = pixelIndex + 0.5f; // pixel index -> center of pixel coordinate
-    float2 currNdc = (2.0 * pixelIndex) / ubo.dimension - 1.0;
-    const float4 clipSpacePosition = float4(currNdc, z, 1.0);
-    float4 viewSpacePosition = mul(ubo.invProj, clipSpacePosition);
-    viewSpacePosition /= viewSpacePosition.w;
-    float currDepth = length(viewSpacePosition.xyz); // dist to camera
 
     const int KERNEL_RADIUS = lerp(1.0, ubo.maxR, var);
     float normalization = 1;
