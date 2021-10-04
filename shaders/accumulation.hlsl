@@ -64,11 +64,11 @@ float acc1(uint2 pixelIndex)
     int2 prevPixel = (ubo.dimension / 2.0) * ndc.xy + ubo.dimension / 2.0;
     float res = currTex[pixelIndex];
 
-    if (all(prevPixel > 0.0) && all(prevPixel < ubo.dimension))
+    if (all(prevPixel >= 0) && all(prevPixel < ubo.dimension))
     {
         float prevZ = prevDepthTex[prevPixel].r * -1.0 + 1.0;
-        float currZ = currDepthTex[prevPixel].r * -1.0 + 1.0;
-        if (abs(prevZ - currZ) < 0.001)
+        float recZ = ndc.z;
+        if (abs(prevZ - recZ) < 0.0001)
         {
             // same pixel, reuse sample from history
             float prev = prevTex[prevPixel];
