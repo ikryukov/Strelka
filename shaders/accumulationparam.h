@@ -20,6 +20,8 @@ struct AccumulationParam
 {
     float4x4 prevViewToWorld;
     float4x4 prevClipToView;
+    float4x4 prevWorldToView;
+    float4x4 prevViewToClip;    
     float4x4 viewToWorld;
     float4x4 clipToView;
     int2 dimension;

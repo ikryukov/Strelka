@@ -51,6 +51,26 @@ float acc(uint2 pixelIndex)
     return res;
 }
 
+float acc1(uint2 pixelIndex)
+{
+    const float current = currTex[pixelIndex];
+    float3 currWpos = gbWpos[pixelIndex].xyz;
+    float4 clip = mul(ubo.prevViewToClip, mul(ubo.prevWorldToView, float4(currWpos, 1.0)));
+    float3 ndc = clip.xyz / clip.w;
+    uint2 prevPixel = (ubo.dimension / 2.0) * ndc.xy + ubo.dimension / 2.0;
+    float prevZ = prevDepthTex[prevPixel].r * -1.0 + 1.0;
+    float currZ = currDepthTex[prevPixel].r * -1.0 + 1.0;
+
+    float res = currTex[pixelIndex];
+    if (abs(prevZ - currZ) < 0.001)
+    {
+        // same pixel, reuse sample from history
+        float prev = prevTex[prevPixel];
+        res = lerp(prev, current, ubo.alpha);
+    }
+    return res;
+}
+
 [numthreads(16, 16, 1)]
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
@@ -59,5 +79,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-    output[pixelIndex] = acc(pixelIndex);
+    output[pixelIndex] = acc1(pixelIndex);
 }
