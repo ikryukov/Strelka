@@ -64,7 +64,7 @@ float gaussianBlur2(uint2 pixelIndex, float var)
             }
             else
             {
-                closeness = 0;
+                closeness = 1.f - abs(input[neighbor] - input[pixelIndex]);
             }
 
             color += weigth * input[neighbor] * closeness;
