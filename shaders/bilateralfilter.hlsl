@@ -42,6 +42,9 @@ float gaussianBlur2(uint2 pixelIndex, float var)
 {
     float color = 0.f;
 
+    var = clamp(var, 0.0, 0.05);
+    var /= 0.05;
+
     const int KERNEL_RADIUS = lerp(1.0, ubo.maxR, var);
     float normalization = 1;
     float closeness = 0.f;
@@ -129,6 +132,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     if (gbWorldPos.w == 0.0)
     {
         output[pixelIndex] = 1.0;
+        varianceOutput[pixelIndex] = 0.0;
         return;
     }
 
