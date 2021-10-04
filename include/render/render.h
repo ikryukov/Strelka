@@ -149,6 +149,7 @@ private:
         uint32_t width;
         uint32_t height;
         GBuffer* gbuffer;
+        Image* prevDepth;
         Image* textureTonemapImage;
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
@@ -163,6 +164,10 @@ private:
             if (gbuffer)
             {
                 delete gbuffer;
+            }
+            if (prevDepth)
+            {
+                mResManager->destroyImage(prevDepth);
             }
             if (textureTonemapImage)
             {

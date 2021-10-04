@@ -88,11 +88,11 @@ VkPipeline GbufferPass::createGraphicsPipeline(VkShaderModule& vertShaderModule,
     // Fix view port: vulkan specific to handle right hand coordinates
     VkViewport viewport{};
     viewport.x = 0.0f;
-    viewport.y = (float)height;
+    viewport.y = 0.0f;
     viewport.width = (float)width;
-    viewport.height = -(float)height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
+    viewport.height = (float)height;
+    viewport.minDepth = 1.0f;
+    viewport.maxDepth = 0.0f;
 
     VkRect2D scissor{};
     scissor.offset = { 0, 0 };
@@ -111,7 +111,7 @@ VkPipeline GbufferPass::createGraphicsPipeline(VkShaderModule& vertShaderModule,
     rasterizer.rasterizerDiscardEnable = VK_FALSE;
     rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
     rasterizer.lineWidth = 1.0f;
-    rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+    rasterizer.cullMode = VK_CULL_MODE_NONE;
     rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer.depthBiasEnable = VK_FALSE;
 
@@ -124,11 +124,11 @@ VkPipeline GbufferPass::createGraphicsPipeline(VkShaderModule& vertShaderModule,
     depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     depthStencil.depthTestEnable = VK_TRUE;
     depthStencil.depthWriteEnable = VK_TRUE;
-    depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
+    depthStencil.depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
     depthStencil.depthBoundsTestEnable = VK_FALSE;
     depthStencil.stencilTestEnable = VK_FALSE;
 
-    std::array<VkPipelineColorBlendAttachmentState, 6> gbufferAttachments = {};
+    std::array<VkPipelineColorBlendAttachmentState, 7> gbufferAttachments = {};
     for (VkPipelineColorBlendAttachmentState& colorBlendAttachment : gbufferAttachments)
     {
         colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -184,13 +184,14 @@ void GbufferPass::createFrameBuffers(GBuffer& gbuffer)
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
     {
-        std::array<VkImageView, 7> attachments = {
+        std::array<VkImageView, 8> attachments = {
             mResManager->getView(gbuffer.wPos),
             mResManager->getView(gbuffer.normal),
             mResManager->getView(gbuffer.tangent),
             mResManager->getView(gbuffer.uv),
             mResManager->getView(gbuffer.instId),
             mResManager->getView(gbuffer.motion),
+            mResManager->getView(gbuffer.debug),
             mResManager->getView(gbuffer.depth)
         };
 
@@ -303,7 +304,7 @@ void GbufferPass::createRenderPass()
     // Motion
     {
         VkAttachmentDescription colorAttachment{};
-        colorAttachment.format = VK_FORMAT_R16G16_SFLOAT;
+        colorAttachment.format = VK_FORMAT_R32G32_SFLOAT;
         colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
         colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -313,6 +314,20 @@ void GbufferPass::createRenderPass()
         colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         gbuffAttachments.push_back(colorAttachment);
         gbuffReferences.push_back({ 5, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
+    }
+    // Debug
+    {
+        VkAttachmentDescription colorAttachment{};
+        colorAttachment.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+        colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        gbuffAttachments.push_back(colorAttachment);
+        gbuffReferences.push_back({ 6, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL });
     }
 
     VkAttachmentDescription depthAttachment{};
@@ -449,14 +464,15 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { width, height };
 
-    std::array<VkClearValue, 7> clearValues{};
+    std::array<VkClearValue, 8> clearValues{};
     clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
     clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
     clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
     clearValues[3].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
     clearValues[4].color = { { -1, 0, 0, 0 } }; // inst IDs
     clearValues[5].color = { { 0.0f, 0.0f, 0.0f, 0.0f } }; // motion
-    clearValues[6].depthStencil = { 1.0f, 0 };
+    clearValues[6].color = { { 0.0f, 0.0f, 0.0f, 0.0f } }; // debug
+    clearValues[7].depthStencil = { 0.0f, 0 };
 
     renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
     renderPassInfo.pClearValues = clearValues.data();
@@ -465,11 +481,11 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
 
     VkViewport viewport{};
     viewport.x = 0;
-    viewport.y = (float)height;
+    viewport.y = 0;
     viewport.width = (float)width;
-    viewport.height = -(float)height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
+    viewport.height = (float)height;
+    viewport.minDepth = 1.0f;
+    viewport.maxDepth = 0.0f;
     vkCmdSetViewport(cmd, 0, 1, &viewport);
 
     VkBuffer vertexBuffers[] = { vertexBuffer };
