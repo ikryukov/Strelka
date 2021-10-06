@@ -23,9 +23,9 @@ struct BilateralParam
     int maxR;
 
     float sigma;
+    float sigmaNormal;
     float znear;
     float zfar;
-    float pad0;
 };
 
 #ifdef __cplusplus

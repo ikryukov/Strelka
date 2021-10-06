@@ -120,6 +120,34 @@ float variance(uint2 pixelIndex)
     return variance;
 }
 
+float simpleBilateral(uint2 pixelIndex)
+{
+    float res = 0;
+    const int KERNEL_RADIUS = ubo.radius;
+    const int i = pixelIndex.x;
+    const int j = pixelIndex.y;
+    const float sigma2 = ubo.sigma * ubo.sigma;
+    const float sigmaNormal2 = ubo.sigmaNormal * ubo.sigmaNormal;
+    float normalization = 1;
+    for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
+    {
+        for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
+        {
+            int2 neighbor = pixelIndex + int2(x, y);
+            if (all(neighbor > 0) && all(neighbor < ubo.dimension))
+            {
+                // inside image
+                float w1 = exp(-(pow(x, 2.0) + pow(y, 2.0)) / (2.0 * sigma2));
+                // calculate normal weight
+                float w2 = exp(-(dot(gbNormal[pixelIndex].xyz, gbNormal[neighbor].xyz)) / (2.0 * sigmaNormal2));
+                res += w1 * w2 * input[neighbor];
+                normalization += w1 * w2;
+            }
+        }
+    }
+    return res / normalization;
+}
+
 [numthreads(16, 16, 1)]
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
@@ -144,5 +172,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-     output[pixelIndex] = gaussianBlur2(pixelIndex, var);
+     output[pixelIndex] = simpleBilateral(pixelIndex);
 }

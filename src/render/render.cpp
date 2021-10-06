@@ -1320,14 +1320,16 @@ void Render::drawFrame()
     static int releaseAfterFrames = 0;
     static bool needReload = false;
     static SceneRenderData* toRemoveSceneData = nullptr;
-    static float sigma = 1.5;
-    static int radius = 5;
+    static float sigma = 2.9f;
+    static float sigmaNormal = 1.5f;
+    static int radius = 3;
     static int maxR = 5;
     static bool enableAcc = true;
     static bool enableFilter = true;
     static float accAlpha = 0.125f;
     std::string newModelPath;
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, enableAcc, accAlpha, sigma, radius, maxR, enableFilter);
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, 
+    enableAcc, accAlpha, sigma, sigmaNormal, radius, maxR, enableFilter);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1418,6 +1420,7 @@ void Render::drawFrame()
     BilateralParam bilateralparams{};
     bilateralparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     bilateralparams.sigma = sigma;
+    bilateralparams.sigmaNormal = sigmaNormal;
     bilateralparams.radius = radius;
     bilateralparams.zfar = cam.zfar;
     bilateralparams.znear = cam.znear;

@@ -465,7 +465,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
 }
 
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha, float& sigma, int& radius, int& maxR, bool& enableFilter)
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, 
+bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius, int& maxR, bool& enableFilter)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -704,7 +705,8 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     ImGui::Checkbox("Bilateral Filter", &enableFilter);
     if (enableFilter)
     {
-        ImGui::DragFloat("sigma", &sigma, 1.0f, 1.0f);
+        ImGui::DragFloat("sigma", &sigma, 0.1f, 0.1f);
+        ImGui::DragFloat("sigma normal", &sigmaNormal, 0.1f, 0.1f);
         ImGui::DragInt("maxR", &maxR, 1, 1);
         ImGui::DragInt("radius", &radius, 1, 1);
     }
