@@ -198,6 +198,18 @@ float3 SampleHemisphere(uint2 pixelIndex)
     return mul(tangentSpaceDir, GetTangentSpace(pixelIndex));
 }
 
+float3 SampleHemisphere(uint2 pixelIndex, float alpha)
+{
+    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
+
+    float cosTheta = pow(rand(rngState), 1.0f / (alpha + 1.0f));
+    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+    float phi = 2 * PI * rand(rngState);
+    float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+
+    return mul(tangentSpaceDir, GetTangentSpace(pixelIndex));
+}
+
 float calcShadow(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
@@ -209,7 +221,7 @@ float calcShadow(uint2 pixelIndex)
     float rayLen = 0.2;
     for (int i = 0; i < ubo.samples; ++i)
     {
-        float3 rndPoint = SampleHemisphere(pixelIndex);
+        float3 rndPoint = SampleHemisphere(pixelIndex, 0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
         float3 L = normalize(rndPoint);
         float3 N = normalize(gbNormal[pixelIndex].xyz);
 
