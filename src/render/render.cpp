@@ -1204,7 +1204,6 @@ void Render::setDescriptors()
     {
         AOPassDesc desc{};
         desc.result = mView->mAOImage;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
         desc.gbuffer = mView->gbuffer;
         desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
         desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;

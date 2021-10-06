@@ -1,6 +1,5 @@
 #include "random.h"
 #include "ray.h"
-#include "lights.h"
 #include "aopassparam.h"
 
 struct BVHNode
@@ -23,7 +22,6 @@ Texture2D<float4> gbNormal;
 
 StructuredBuffer<BVHNode> bvhNodes;
 StructuredBuffer<BVHTriangle> bvhTriangles;
-StructuredBuffer<RectLight> lights;
 
 RWTexture2D<float> output;
 
@@ -176,13 +174,6 @@ float3 UniformSampleTriangle(float2 u)
     return float3(b0, b1, 1.0 - b0 - b1);
 }
 
-float3 UniformSampleRect(RectLight l, float2 u)
-{
-    float3 e1 = l.points[1].xyz - l.points[0].xyz;
-    float3 e2 = l.points[3].xyz - l.points[0].xyz;
-    return l.points[0].xyz + e1 * u.x + e2 * u.y;
-}
-
 float3x3 GetTangentSpace(uint2 pixelIndex)
 {
     float3 normal = gbNormal[pixelIndex].xyz;
@@ -219,7 +210,7 @@ float calcShadow(uint2 pixelIndex)
     for (int i = 0; i < ubo.samples; ++i)
     {
         float3 rndPoint = SampleHemisphere(pixelIndex);
-        float3 L = normalize(rndPoint - wpos);
+        float3 L = normalize(rndPoint);
         float3 N = normalize(gbNormal[pixelIndex].xyz);
 
         Ray ray;
@@ -230,7 +221,7 @@ float calcShadow(uint2 pixelIndex)
         ray.o.w = rayLen;
         Hit hit;
         hit.t = 0.0;
-        if ((dot(N, L) > 0.0) && anyHit(ray, hit))
+        if (anyHit(ray, hit))
         {
             color += 0.0;
         }
