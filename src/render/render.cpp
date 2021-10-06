@@ -99,6 +99,9 @@ void Render::initVulkan()
     mRtShadow = new RtShadowPass(mSharedCtx);
     mRtShadow->initialize();
 
+    mAO = new AOPass(mSharedCtx);
+    mAO->initialize();
+
     mAccumulation = new Accumulation(mSharedCtx);
     mAccumulation->initialize();
 
@@ -339,6 +342,7 @@ void Render::cleanup()
     delete mDebugView;
     delete mLtcPass;
     delete mRtShadow;
+    delete mAO;
     delete mAccumulation;
 
     delete mDefaultSceneRenderData;
@@ -711,6 +715,10 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                     VK_IMAGE_TILING_OPTIMAL,
                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+    view->mAOImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                    VK_IMAGE_TILING_OPTIMAL,
+                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "AO Output");
     for (int i = 0; i < 2; ++i)
     {
         const std::string imageName = "Accumulation Image: " + std::to_string(i);
@@ -1194,6 +1202,15 @@ void Render::setDescriptors()
         mRtShadow->setResources(desc);
     }
     {
+        AOPassDesc desc{};
+        desc.result = mView->mAOImage;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.gbuffer = mView->gbuffer;
+        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+        desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
+        mAO->setResources(desc);
+    }
+    {
         mAccumulation->setInputTexture(mView->mRtShadowImage);
         mAccumulation->setMotionTexture(mView->gbuffer->motion);
         mAccumulation->setPrevDepthTexture(mView->prevDepth);
@@ -1368,6 +1385,12 @@ void Render::drawFrame()
     rtShadowParam.samples = (uint32_t)mSamples;
     mRtShadow->setParams(rtShadowParam);
 
+    AOParam aoParam{};
+    aoParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    aoParam.frameNumber = (uint32_t)mFrameNumber;
+    aoParam.samples = (uint32_t)mSamples;
+    mAO->setParams(aoParam);
+
     AccumulationParam accParam{};
     accParam.alpha = accAlpha;
     accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
@@ -1534,6 +1557,16 @@ void Render::drawFrame()
     recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     Image* finalRtImage = mView->mRtShadowImage;
+
+    // AO
+    // barrier
+    recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mAO->execute(cmd, width, height, imageIndex);
+    recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+
     if (enableAcc)
     {
         // Accumulation pass
