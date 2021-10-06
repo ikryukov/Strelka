@@ -1232,7 +1232,7 @@ void Render::setDescriptors()
         mDebugView->setParams(mDebugParams);
         mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage),
                                     mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
-                                    mResManager->getView(mView->gbuffer->debug));
+                                    mResManager->getView(mView->gbuffer->debug), mResManager->getView(mView->mAOImage));
         mDebugView->setOutputTexture(mResManager->getView(mView->textureDebugViewImage));
     }
     {
@@ -1590,7 +1590,7 @@ void Render::drawFrame()
         mDebugView->setParams(mDebugParams);
         mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage),
                                     mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
-                                    mResManager->getView(mView->gbuffer->debug));
+                                    mResManager->getView(mView->gbuffer->debug), mResManager->getView(mView->mAOImage));
         mDebugView->execute(cmd, width, height, imageIndex);
         finalImage = mView->textureDebugViewImage;
     }

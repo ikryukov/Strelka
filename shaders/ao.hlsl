@@ -183,6 +183,30 @@ float3 UniformSampleRect(RectLight l, float2 u)
     return l.points[0].xyz + e1 * u.x + e2 * u.y;
 }
 
+float3x3 GetTangentSpace(uint2 pixelIndex)
+{
+    float3 normal = gbNormal[pixelIndex].xyz;
+    float3 helper = float3(1, 0, 0);
+    if (abs(normal.x) > 0.99f)
+        helper = float3(0, 0, 1);
+
+    float3 tangent = normalize(cross(normal, helper));
+    float3 binormal = normalize(cross(normal, tangent));
+    return float3x3(tangent, binormal, normal);
+}
+
+float3 SampleHemisphere(uint2 pixelIndex)
+{
+    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
+
+    float cosTheta = rand(rngState);
+    float sinTheta = sqrt(max(0.0f, 1.0f - cosTheta * cosTheta));
+    float phi = 2 * PI * rand(rngState);
+    float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+
+    return mul(tangentSpaceDir, GetTangentSpace(pixelIndex));
+}
+
 float calcShadow(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
@@ -191,25 +215,24 @@ float calcShadow(uint2 pixelIndex)
     float3 wpos = gbWPos[pixelIndex].xyz;
 
     float color = 0.0;
+    float rayLen = 0.2;
     for (int i = 0; i < ubo.samples; ++i)
     {
-        uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-        float3 rndPoint = float3(rand(rngState), rand(rngState), rand(rngState));
-
+        float3 rndPoint = SampleHemisphere(pixelIndex);
         float3 L = normalize(rndPoint - wpos);
         float3 N = normalize(gbNormal[pixelIndex].xyz);
 
         Ray ray;
         ray.d = float4(L, 0.0);
         const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-        float distToLight = distance(rndPoint, wpos + offset);
-        ray.o = float4(wpos + offset, distToLight - 1e-5);
+        float distToPoint = distance(rndPoint, wpos + offset);
+        ray.o = float4(wpos + offset, distToPoint - 1e-5);
+        ray.o.w = rayLen;
         Hit hit;
         hit.t = 0.0;
-
         if ((dot(N, L) > 0.0) && anyHit(ray, hit))
         {
-            color += 0.1;
+            color += 0.0;
         }
         else
         {
