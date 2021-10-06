@@ -271,6 +271,7 @@ private:
     }
 
     size_t mFrameNumber = 0;
+    uint32_t mSamples = 1;
 
     // fps counter
     double msPerFrame = 33.33;

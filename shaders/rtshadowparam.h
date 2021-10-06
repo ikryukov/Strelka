@@ -19,7 +19,7 @@ struct RtShadowParam
 {
     int2 dimension;
     uint frameNumber;
-    float pad1;
+    uint samples;
 };
 
 #ifdef __cplusplus

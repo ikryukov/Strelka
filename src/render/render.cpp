@@ -1303,7 +1303,7 @@ void Render::drawFrame()
     std::string newModelPath;
     static bool enableAcc = true;
     static float accAlpha = 0.125f;
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, enableAcc, accAlpha);
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, enableAcc, accAlpha, mSamples);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1365,6 +1365,7 @@ void Render::drawFrame()
     RtShadowParam rtShadowParam{};
     rtShadowParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
+    rtShadowParam.samples = (uint32_t)mSamples;
     mRtShadow->setParams(rtShadowParam);
 
     AccumulationParam accParam{};

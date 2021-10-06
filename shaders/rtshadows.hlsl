@@ -190,28 +190,37 @@ float calcShadow(uint2 pixelIndex)
         return 0;
     float3 wpos = gbWPos[pixelIndex].xyz;
 
-    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-
-    float2 rndUV = float2(rand(rngState), rand(rngState));
-
-    RectLight curLight = lights[0];
-    float3 pointOnLight = UniformSampleRect(curLight, rndUV);
-
-    float3 L = normalize(pointOnLight - wpos);
-    float3 N = normalize(gbNormal[pixelIndex].xyz);
-    
-    Ray ray;
-    ray.d = float4(L, 0.0);
-    const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-    float distToLight = distance(pointOnLight, wpos + offset);
-    ray.o = float4(wpos + offset, distToLight - 1e-5);
-    Hit hit;
-    hit.t = 0.0;
-    if ((dot(N, L) > 0.0) && anyHit(ray, hit))
+    float color = 0.0;
+    for (int i = 0; i < ubo.samples; ++i)
     {
-        return 0.1;
+        uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
+
+        float2 rndUV = float2(rand(rngState), rand(rngState));
+
+        RectLight curLight = lights[0];
+        float3 pointOnLight = UniformSampleRect(curLight, rndUV);
+
+        float3 L = normalize(pointOnLight - wpos);
+        float3 N = normalize(gbNormal[pixelIndex].xyz);
+
+        Ray ray;
+        ray.d = float4(L, 0.0);
+        const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
+        float distToLight = distance(pointOnLight, wpos + offset);
+        ray.o = float4(wpos + offset, distToLight - 1e-5);
+        Hit hit;
+        hit.t = 0.0;
+        if ((dot(N, L) > 0.0) && anyHit(ray, hit))
+        {
+            color += 0.1;
+        }
+        else
+        {
+            color += 1.0;
+        }
     }
-    return 1.0;
+
+   return color / ubo.samples;
 }
 
 [numthreads(16, 16, 1)]

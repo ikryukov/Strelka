@@ -464,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha)
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha, uint32_t& samples)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -695,6 +695,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     {
         ImGui::SliderFloat("Alpha", &accAlpha, 0.01, 0.5);
     }
+    ImGui::SliderInt("Samples per pixel", reinterpret_cast<int*>(&samples), 1, 100);
 
     //     transparency settings
     // ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
