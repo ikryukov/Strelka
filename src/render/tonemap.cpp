@@ -14,10 +14,9 @@ void Tonemap::initialize()
 {
     TonemapBase::initialize("shaders/tonemap.hlsl");
 }
-void Tonemap::setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadows)
+void Tonemap::setInputTexture(VkImageView compositionImageView)
 {
-    mShaderParams.setTexture("inputLTC", imageViewLTC);
-    mShaderParams.setTexture("inputShadows", imageViewShadows);
+    mShaderParams.setTexture("input", compositionImageView);
 }
 void Tonemap::setOutputTexture(VkImageView imageView)
 {

@@ -1262,7 +1262,7 @@ void Render::setDescriptors()
     }
     {
         mTonemap->setParams(mToneParams);
-        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage));
+        mTonemap->setInputTexture(mResManager->getView(mView->textureCompositionImage));
         mTonemap->setOutputTexture(mResManager->getView(mView->textureTonemapImage));
     }
     {
@@ -1592,8 +1592,7 @@ void Render::drawFrame()
     Image* finalAOImage = mView->mAOImage;
     if (mRenderConfig.enableAO)
     {
-        // AO
-        // barrier
+        // AO barrier
         recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                       VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         mAO->execute(cmd, width, height, imageIndex);
@@ -1646,21 +1645,21 @@ void Render::drawFrame()
     }
     else
     {
-        // tonemap LTC
-        mToneParams.dimension.x = width;
-        mToneParams.dimension.y = height;
-        mTonemap->setParams(mToneParams);
-        mTonemap->execute(cmd, width, height, imageIndex);
-        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage));
-
         // compose final image ltc + rtshadow + ao
         mCompositionParam.dimension.x = width;
         mCompositionParam.dimension.y = height;
         mCompositionParam.enableAO = (int32_t)mRenderConfig.enableAO;
         mComposition->setParams(mCompositionParam);
         mComposition->execute(cmd, width, height, imageIndex);
-        mComposition->setInputTexture(mResManager->getView(mView->textureTonemapImage), mResManager->getView(finalRtImage), mResManager->getView(finalAOImage));
-        finalImage = mView->textureCompositionImage;
+        mComposition->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage), mResManager->getView(finalAOImage));
+
+        // tonemap
+        mToneParams.dimension.x = width;
+        mToneParams.dimension.y = height;
+        mTonemap->setParams(mToneParams);
+        mTonemap->execute(cmd, width, height, imageIndex);
+        mTonemap->setInputTexture(mResManager->getView(mView->textureCompositionImage));
+        finalImage = mView->textureTonemapImage;
     }
 
     // Copy to swapchain image
