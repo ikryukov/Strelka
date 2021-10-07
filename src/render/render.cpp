@@ -1351,8 +1351,9 @@ void Render::drawFrame()
     static bool enableAcc = true;
     static bool enableAO = true;
     static bool enableAOAcc = true;
+    static float rayLen = 0.2;
     static float accAlpha = 0.125f;
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, enableAcc, accAlpha, mSamples, enableAO, enableAOAcc);
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, enableAcc, accAlpha, mSamples, enableAO, enableAOAcc, rayLen);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1421,6 +1422,7 @@ void Render::drawFrame()
     aoParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     aoParam.frameNumber = (uint32_t)mFrameNumber;
     aoParam.samples = (uint32_t)mSamples;
+    aoParam.rayLen = rayLen;
     mAO->setParams(aoParam);
 
     AccumulationParam accParam{};

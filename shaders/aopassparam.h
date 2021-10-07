@@ -20,6 +20,8 @@ struct AOParam
     int2 dimension;
     uint frameNumber;
     uint samples;
+    float rayLen;
+    int2 pad0;
 };
 
 #ifdef __cplusplus

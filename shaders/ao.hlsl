@@ -230,7 +230,6 @@ float calcAO(uint2 pixelIndex)
     float3 wpos = gbWPos[pixelIndex].xyz;
 
     float res = 0.0;
-    float rayLen = 0.2;
     for (int i = 0; i < ubo.samples; ++i)
     {
         float3 rndPoint = SampleHemisphere(pixelIndex, 1); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
@@ -240,7 +239,7 @@ float calcAO(uint2 pixelIndex)
         Ray ray;
         ray.d = float4(L, 0.0);
         const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-        ray.o = float4(wpos + offset, rayLen);
+        ray.o = float4(wpos + offset, ubo.rayLen);
 
         Hit hit;
         hit.t = 0.0;

@@ -464,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha, int32_t& samples, bool& enableAO, bool& enableAOAcc)
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha, int32_t& samples, bool& enableAO, bool& enableAOAcc, float& rayLen)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -694,6 +694,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     if (enableAO)
     {
         ImGui::Checkbox("AO Accumulation", &enableAOAcc);
+        ImGui::SliderFloat("Ray length", &rayLen, 0.01, 100);
         ImGui::SliderInt("Samples per pixel", &samples, 1, 100);
     }
     ImGui::Checkbox("Shadow Accumulation", &enableAcc);
