@@ -464,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, int32_t& samples, RenderConfig& renderConfig)
+void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, std::string& newModelPath)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -483,7 +483,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     ImGuizmo::BeginFrame();
     const std::vector<Instance>& instances = scene.getInstances();
 
-    Camera& cam = scene.getCamera(selectedCamera);
+    Camera& cam = scene.getCamera(renderConfig.selectedCamera);
     glm::float3 camPos = cam.getPosition();
 
     ImGui::Begin("Menu:"); // begin window
@@ -573,7 +573,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
                 }
                 else
                 {
-                    displayLightSettings(lightId, scene, selectedCamera);
+                    displayLightSettings(lightId, scene, renderConfig.selectedCamera);
                 }
             }
             ImGui::EndChild();
@@ -635,7 +635,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     }
     if (!scene.mAnimations.empty())
     {
-        bool valueChanged = ImGui::SliderFloat("Animation time", &animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
+        bool valueChanged = ImGui::SliderFloat("Animation time", &renderConfig.animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
         ImGuiDir dir = scene.mAnimState == Scene::AnimationState::ePlay ? ImGuiDir_Right : ImGuiDir_Down;
         bool isClicked = ImGui::ArrowButton("Play", ImGuiDir_Right);
         if (isClicked)
@@ -648,12 +648,12 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
         }
     }
     // simple settings
-    ImGui::Text("MsPF = %f", msPerFrame);
-    ImGui::Text("FPS = %f", 1000.0 / msPerFrame);
+    ImGui::Text("MsPF = %f", renderConfig.msPerFrame);
+    ImGui::Text("FPS = %f", 1000.0 / renderConfig.msPerFrame);
 
     const std::vector<nevk::Camera>& cameras = scene.getCameras();
-    assert(selectedCamera < cameras.size());
-    const char* currentCameraName = cameras[selectedCamera].name.c_str();
+    assert(renderConfig.selectedCamera < cameras.size());
+    const char* currentCameraName = cameras[renderConfig.selectedCamera].name.c_str();
 
     if (ImGui::BeginCombo("Camera", currentCameraName))
     {
@@ -663,7 +663,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
             if (ImGui::Selectable(cameras[i].name.c_str(), isSelected))
             {
                 currentCameraName = cameras[i].name.c_str();
-                selectedCamera = i;
+                renderConfig.selectedCamera = i;
             }
             if (isSelected)
             {
@@ -695,7 +695,7 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
     {
         ImGui::Checkbox("AO Accumulation", &renderConfig.enableAOAcc);
         ImGui::SliderFloat("Ray length", &renderConfig.rayLen, 0.01, 100);
-        ImGui::SliderInt("Samples per pixel", &samples, 1, 100);
+        ImGui::SliderInt("Samples per pixel", &renderConfig.samples, 1, 100);
     }
     ImGui::Checkbox("Shadow Accumulation", &renderConfig.enableAcc);
     if (renderConfig.enableAcc)

@@ -1354,7 +1354,12 @@ void Render::drawFrame()
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
 
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, mSamples, mRenderConfig);
+    mRenderConfig.selectedCamera = mCurrentSceneRenderData->cameraIndex;
+    mRenderConfig.animTime = mCurrentSceneRenderData->animationTime;
+    mRenderConfig.samples = mSamples;
+    mRenderConfig.msPerFrame = msPerFrame;
+
+    mUi.updateUI(*scene, mRenderConfig, newModelPath);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1642,7 +1647,7 @@ void Render::drawFrame()
         mDebugImageViews.LTC = mResManager->getView(mView->mLtcOutputImage);
         mDebugImageViews.normal = mResManager->getView(mView->gbuffer->normal);
         mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
-        mDebugImageViews.AO = mResManager->getView(mView->mAOImage);
+        mDebugImageViews.AO = mResManager->getView(finalAOImage);
         mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
 
         mDebugParams.dimension.x = width;

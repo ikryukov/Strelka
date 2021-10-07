@@ -35,10 +35,14 @@ public:
         bool enableAOAcc = true;
         float rayLen = 0.2f;
         float accAlpha = 0.125f;
+        double msPerFrame;
+        uint32_t selectedCamera;
+        float animTime;
+        int32_t samples;
     };
 
     bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
-    void updateUI(Scene& scene, double msPerFrame, std::string& newModelFile, uint32_t& selectedCamera, float& animTime, int32_t& samples, RenderConfig& renderConfig);
+    void updateUI(Scene& scene, RenderConfig& renderConfig, std::string& newModelPath);
     void render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void createVkRenderPass(VkFormat framebufferFormat);
