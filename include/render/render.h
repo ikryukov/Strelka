@@ -138,6 +138,7 @@ private:
     RtShadowPass* mRtShadow;
     AOPass* mAO;
     Accumulation* mAccumulation;
+    Accumulation* mAccumulationAO;
     Tonemap* mTonemap;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
@@ -156,6 +157,7 @@ private:
         Image* mAOImage;
         Image* mLtcOutputImage;
         Image* mAccumulationImages[2] = { nullptr, nullptr };
+        Image* mAccumulationAOImages[2] = { nullptr, nullptr };
         ResourceManager* mResManager = nullptr;
         ~ViewData()
         {
@@ -193,6 +195,10 @@ private:
                 if (mAccumulationImages[i])
                 {
                     mResManager->destroyImage(mAccumulationImages[i]);
+                }
+                if (mAccumulationAOImages[i])
+                {
+                    mResManager->destroyImage(mAccumulationAOImages[i]);
                 }
             }
         }

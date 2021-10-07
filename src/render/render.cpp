@@ -105,6 +105,9 @@ void Render::initVulkan()
     mAccumulation = new Accumulation(mSharedCtx);
     mAccumulation->initialize();
 
+    mAccumulationAO = new Accumulation(mSharedCtx);
+    mAccumulationAO->initialize();
+
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
     modelLoader = new nevk::ModelLoader(mTexManager);
@@ -344,6 +347,7 @@ void Render::cleanup()
     delete mRtShadow;
     delete mAO;
     delete mAccumulation;
+    delete mAccumulationAO;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -726,6 +730,10 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                                 VK_IMAGE_TILING_OPTIMAL,
                                                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        view->mAccumulationAOImages[i] = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                                VK_IMAGE_TILING_OPTIMAL,
+                                                                VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
     }
     return view;
 }
@@ -759,6 +767,8 @@ GBuffer* Render::createGbuffer(uint32_t width, uint32_t height)
     // Motion
     res->motion = mResManager->createImage(width, height, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
+    res->motionAO = mResManager->createImage(width, height, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MotionAO");
     // Debug
     res->debug = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Debug");
@@ -1217,6 +1227,13 @@ void Render::setDescriptors()
         mAccumulation->setCurrDepthTexture(mView->gbuffer->depth);
     }
     {
+        mAccumulationAO->setInputTexture(mView->mAOImage);
+        mAccumulationAO->setMotionTexture(mView->gbuffer->motionAO);
+        mAccumulationAO->setPrevDepthTexture(mView->prevDepth);
+        mAccumulationAO->setWposTexture(mView->gbuffer->wPos);
+        mAccumulationAO->setCurrDepthTexture(mView->gbuffer->depth);
+    }
+    {
         LtcResourceDesc desc{};
         desc.gbuffer = mView->gbuffer;
         desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
@@ -1404,6 +1421,7 @@ void Render::drawFrame()
     accParam.viewToWorld = glm::inverse(cam.matrices.view);
 
     mAccumulation->setParams(accParam);
+    mAccumulationAO->setParams(accParam);
 
     LtcParam ltcparams{};
     ltcparams.CameraPos = cam.getPosition();
@@ -1530,6 +1548,8 @@ void Render::drawFrame()
                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         recordBarrier(cmd, mResManager->getVkImage(gbuffer.motion), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(gbuffer.motionAO), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         recordBarrier(cmd, mResManager->getVkImage(gbuffer.depth), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
         recordBarrier(cmd, mResManager->getVkImage(gbuffer.debug), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -1564,7 +1584,7 @@ void Render::drawFrame()
     mAO->execute(cmd, width, height, imageIndex);
     recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
+    Image* finalAOImage = mView->mAOImage;
 
     if (enableAcc)
     {
@@ -1579,7 +1599,20 @@ void Render::drawFrame()
         recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         finalRtImage = accOut;
+
+        // Accumulation AO pass
+        Image* accHistAO = mView->mAccumulationAOImages[imageIndex % 2];
+        Image* accOutAO = mView->mAccumulationAOImages[(imageIndex + 1) % 2];
+        mAccumulationAO->setHistoryTexture(accHistAO);
+        mAccumulationAO->setOutputTexture(accOutAO);
+        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAccumulationAO->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalAOImage = accOutAO;
     }
+
     Image* finalImage = nullptr;
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
@@ -1589,7 +1622,7 @@ void Render::drawFrame()
         mDebugView->setParams(mDebugParams);
         mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage),
                                     mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
-                                    mResManager->getView(mView->gbuffer->debug), mResManager->getView(mView->mAOImage));
+                                    mResManager->getView(mView->gbuffer->debug), mResManager->getView(finalAOImage));
         mDebugView->execute(cmd, width, height, imageIndex);
         finalImage = mView->textureDebugViewImage;
     }
