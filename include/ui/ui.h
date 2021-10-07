@@ -30,11 +30,11 @@ public:
 
     struct RenderConfig
     {
-        inline static bool enableAcc = true;
-        inline static bool enableAO = true;
-        inline static bool enableAOAcc = true;
-        inline static float rayLen = 0.2f;
-        inline static float accAlpha = 0.125f;
+        bool enableAcc = true;
+        bool enableAO = true;
+        bool enableAOAcc = true;
+        float rayLen = 0.2f;
+        float accAlpha = 0.125f;
     };
 
     bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
