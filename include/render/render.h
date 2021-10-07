@@ -214,6 +214,7 @@ private:
 
     ViewData* mView = nullptr;
 
+    Ui::RenderConfig mRenderConfig{};
 
     struct SceneRenderData
     {
