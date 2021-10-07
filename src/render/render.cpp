@@ -717,9 +717,9 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
     mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     view->textureCompositionImage = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                         VK_IMAGE_TILING_OPTIMAL,
-                                                         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Composition result");
+                                                             VK_IMAGE_TILING_OPTIMAL,
+                                                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Composition result");
     mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureCompositionImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     view->mLtcOutputImage = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -1349,8 +1349,10 @@ void Render::drawFrame()
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
     static bool enableAcc = true;
+    static bool enableAO = true;
+    static bool enableAOAcc = true;
     static float accAlpha = 0.125f;
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, enableAcc, accAlpha, mSamples);
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, enableAcc, accAlpha, mSamples, enableAO, enableAOAcc);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1589,14 +1591,32 @@ void Render::drawFrame()
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     Image* finalRtImage = mView->mRtShadowImage;
 
-    // AO
-    // barrier
-    recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mAO->execute(cmd, width, height, imageIndex);
-    recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     Image* finalAOImage = mView->mAOImage;
+    if (enableAO)
+    {
+        // AO
+        // barrier
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAO->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalAOImage = mView->mAOImage;
+    }
+    if (enableAO && enableAOAcc)
+    {
+        // Accumulation AO pass
+        Image* accHistAO = mView->mAccumulationAOImages[imageIndex % 2];
+        Image* accOutAO = mView->mAccumulationAOImages[(imageIndex + 1) % 2];
+        mAccumulationAO->setHistoryTexture(accHistAO);
+        mAccumulationAO->setOutputTexture(accOutAO);
+        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAccumulationAO->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalAOImage = accOutAO;
+    }
 
     if (enableAcc)
     {
@@ -1611,18 +1631,6 @@ void Render::drawFrame()
         recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         finalRtImage = accOut;
-
-        // Accumulation AO pass
-        Image* accHistAO = mView->mAccumulationAOImages[imageIndex % 2];
-        Image* accOutAO = mView->mAccumulationAOImages[(imageIndex + 1) % 2];
-        mAccumulationAO->setHistoryTexture(accHistAO);
-        mAccumulationAO->setOutputTexture(accOutAO);
-        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        mAccumulationAO->execute(cmd, width, height, imageIndex);
-        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        finalAOImage = accOutAO;
     }
 
     Image* finalImage = nullptr;
@@ -1650,6 +1658,7 @@ void Render::drawFrame()
         // compose final image ltc + rtshadow + ao
         mCompositionParam.dimension.x = width;
         mCompositionParam.dimension.y = height;
+        mCompositionParam.enableAO = (int32_t)enableAO;
         mComposition->setParams(mCompositionParam);
         mComposition->execute(cmd, width, height, imageIndex);
         mComposition->setInputTexture(mResManager->getView(mView->textureTonemapImage), mResManager->getView(finalRtImage), mResManager->getView(finalAOImage));

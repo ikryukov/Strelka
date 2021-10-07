@@ -17,7 +17,7 @@
 struct Compositionparam
 {
     int2 dimension;
-    float pad0;
+    int enableAO;
     float pad1;
 };
 

@@ -15,5 +15,12 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    output[pixelIndex] = float4(inputLTC[pixelIndex].rgb * inputShadows[pixelIndex].r * inputAO[pixelIndex].r, 1.0f);
+    if (ubo.enableAO)
+    {
+        output[pixelIndex] = float4(inputLTC[pixelIndex].rgb * inputShadows[pixelIndex].r * inputAO[pixelIndex].r, 1.0f);
+    }
+    else
+    {
+        output[pixelIndex] = float4(inputLTC[pixelIndex].rgb * inputShadows[pixelIndex].r, 1.0f);
+    }
 }
