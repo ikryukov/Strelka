@@ -15,7 +15,6 @@ struct GBuffer
     Image* uv;
     Image* instId;
     Image* motion;
-    Image* motionAO;
     Image* debug;
 
     // utils
@@ -53,10 +52,6 @@ struct GBuffer
         if (motion)
         {
             mResManager->destroyImage(motion);
-        }
-        if (motionAO)
-        {
-            mResManager->destroyImage(motionAO);
         }
         if (debug)
         {

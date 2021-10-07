@@ -96,8 +96,7 @@ struct FSOutput
     float2 uv : SV_TARGET3;
     int instId : SV_TARGET4;
     float2 motion: SV_TARGET5;
-    float2 motionAO: SV_TARGET6;
-    float4 debug : SV_TARGET7;
+    float4 debug : SV_TARGET6;
 };
 
 // calc solid motion, need more logic for skinning
@@ -132,7 +131,6 @@ FSOutput fragmentMain(PS_INPUT inp) : SV_TARGET
     ret.instId = pconst.instanceId;
 
     ret.motion = calcMotion(inp.currPos, inp.prevPos);
-    ret.motionAO = calcMotion(inp.currPos, inp.prevPos);;
 
     ret.debug = inp.pos;
     return ret;
