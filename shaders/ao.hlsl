@@ -210,14 +210,14 @@ float3 SampleHemisphere(uint2 pixelIndex, float alpha)
     return mul(tangentSpaceDir, GetTangentSpace(pixelIndex));
 }
 
-float calcShadow(uint2 pixelIndex)
+float calcAO(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
     if (gbWorldPos.w == 0.0)
         return 0;
     float3 wpos = gbWPos[pixelIndex].xyz;
 
-    float color = 0.0;
+    float res = 0.0;
     float rayLen = 0.2;
     for (int i = 0; i < ubo.samples; ++i)
     {
@@ -228,22 +228,21 @@ float calcShadow(uint2 pixelIndex)
         Ray ray;
         ray.d = float4(L, 0.0);
         const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-        float distToPoint = distance(rndPoint, wpos + offset);
-        ray.o = float4(wpos + offset, distToPoint - 1e-5);
-        ray.o.w = rayLen;
+        ray.o = float4(wpos + offset, rayLen);
+
         Hit hit;
         hit.t = 0.0;
         if (anyHit(ray, hit))
         {
-            color += 0.0;
+            res += 0.0;
         }
         else
         {
-            color += 1.0;
+            res += 1.0;
         }
     }
 
-   return color / ubo.samples;
+   return res / ubo.samples;
 }
 
 [numthreads(16, 16, 1)]
@@ -255,5 +254,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    output[pixelIndex] = calcShadow(pixelIndex);
+    output[pixelIndex] = calcAO(pixelIndex);
 }
