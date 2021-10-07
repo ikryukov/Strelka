@@ -1254,10 +1254,15 @@ void Render::setDescriptors()
         mLtcPass->setResources(desc);
     }
     {
+        mDebugImageViews.imageViewShadow = mResManager->getView(mView->mRtShadowImage);
+        mDebugImageViews.imageViewLTC = mResManager->getView(mView->mLtcOutputImage);
+        mDebugImageViews.imageNormal = mResManager->getView(mView->gbuffer->normal);
+        mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
+        mDebugImageViews.imageAO = mResManager->getView(mView->mAOImage);
+        mDebugImageViews.imageMotion = mResManager->getView(mView->gbuffer->motion);
+
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage),
-                                    mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
-                                    mResManager->getView(mView->gbuffer->debug), mResManager->getView(mView->mAOImage));
+        mDebugView->setInputTexture(mDebugImageViews);
         mDebugView->setOutputTexture(mResManager->getView(mView->textureDebugViewImage));
     }
     {
@@ -1633,13 +1638,18 @@ void Render::drawFrame()
     Image* finalImage = nullptr;
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
+        mDebugImageViews.imageViewShadow = mResManager->getView(mView->mRtShadowImage);
+        mDebugImageViews.imageViewLTC = mResManager->getView(mView->mLtcOutputImage);
+        mDebugImageViews.imageNormal = mResManager->getView(mView->gbuffer->normal);
+        mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
+        mDebugImageViews.imageAO = mResManager->getView(mView->mAOImage);
+        mDebugImageViews.imageMotion = mResManager->getView(mView->gbuffer->motion);
+
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;
         mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage),
-                                    mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
-                                    mResManager->getView(mView->gbuffer->debug), mResManager->getView(finalAOImage));
+        mDebugView->setInputTexture(mDebugImageViews);
         mDebugView->execute(cmd, width, height, imageIndex);
         finalImage = mView->textureDebugViewImage;
     }

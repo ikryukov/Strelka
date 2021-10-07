@@ -12,10 +12,20 @@ using DebugViewBase = ComputePass<Debugviewparam>;
 class DebugView : public DebugViewBase
 {
 public:
+    struct DebugImageViews
+    {
+        VkImageView imageViewLTC;
+        VkImageView imageViewShadow;
+        VkImageView imageNormal;
+        VkImageView imageMotion;
+        VkImageView debug;
+        VkImageView imageAO;
+    };
+
     DebugView(const SharedContext& ctx);
     ~DebugView();
     void initialize();
-    void setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadow, VkImageView imageNormal, VkImageView imageMotion, VkImageView debug, VkImageView imageAO);
+    void setInputTexture(DebugImageViews imageViews);
     void setOutputTexture(VkImageView imageView);
 };
 } // namespace nevk

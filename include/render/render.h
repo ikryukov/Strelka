@@ -215,6 +215,7 @@ private:
     ViewData* mView = nullptr;
 
     Ui::RenderConfig mRenderConfig{};
+    DebugView::DebugImageViews mDebugImageViews{};
 
     struct SceneRenderData
     {
