@@ -195,19 +195,16 @@ float3 SampleHemisphere(uint2 pixelIndex)
     float phi = 2 * PI * rand(rngState);
     float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 
-    return mul(tangentSpaceDir, GetTangentSpace(pixelIndex));
+    return mul(GetTangentSpace(pixelIndex), tangentSpaceDir);
 }
 
-float3 SampleHemisphere(uint2 pixelIndex, float alpha)
+float3 SampleHemisphere(float u1, float u2, float alpha)
 {
-    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-
-    float cosTheta = pow(rand(rngState), 1.0f / (alpha + 1.0f));
+    float cosTheta = pow(u1, 1.0f / (alpha + 1.0f));
     float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
-    float phi = 2 * PI * rand(rngState);
+    float phi = 2 * PI * u2;
     float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
-
-    return mul(tangentSpaceDir, GetTangentSpace(pixelIndex));
+    return tangentSpaceDir;
 }
 
 // Returns a random direction on the hemisphere around z = 1
@@ -228,18 +225,20 @@ float calcAO(uint2 pixelIndex)
     if (gbWorldPos.w == 0.0)
         return 0;
     float3 wpos = gbWPos[pixelIndex].xyz;
-
+    float3 N = normalize(gbNormal[pixelIndex].xyz);
+    const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
+    Ray ray;
+    ray.o = float4(wpos + offset, ubo.rayLen);
+    float3x3 TBN = GetTangentSpace(pixelIndex);
+    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
     float res = 0.0;
     for (int i = 0; i < ubo.samples; ++i)
     {
-        float3 rndPoint = SampleHemisphere(pixelIndex, 1); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
-        float3 L = normalize(rndPoint);
-        float3 N = normalize(gbNormal[pixelIndex].xyz);
-
-        Ray ray;
-        ray.d = float4(L, 0.0);
-        const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-        ray.o = float4(wpos + offset, ubo.rayLen);
+        float u1 = rand(rngState);
+        float u2 = rand(rngState);
+        float3 tangentSpaceDir = SampleHemisphere(u1, u2, 1.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
+        const float3 dir = mul(TBN, tangentSpaceDir);
+        ray.d = float4(dir, 0.0);        
 
         Hit hit;
         hit.t = 0.0;
