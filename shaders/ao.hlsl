@@ -183,7 +183,7 @@ float3x3 GetTangentSpace(uint2 pixelIndex)
 
     float3 tangent = normalize(cross(normal, helper));
     float3 binormal = normalize(cross(normal, tangent));
-    return float3x3(tangent, binormal, normal);
+    return transpose(float3x3(tangent, binormal, normal));
 }
 
 float3 SampleHemisphere(uint2 pixelIndex)
@@ -210,6 +210,18 @@ float3 SampleHemisphere(uint2 pixelIndex, float alpha)
     return mul(tangentSpaceDir, GetTangentSpace(pixelIndex));
 }
 
+// Returns a random direction on the hemisphere around z = 1
+// Uniform
+float3 SampleDirectionHemisphere(float u1, float u2)
+{
+    float z = u1;
+    float r = sqrt(max(0.0f, 1.0f - z * z));
+    float phi = 2 * PI * u2;
+    float x = r * cos(phi);
+    float y = r * sin(phi);
+    return float3(x, y, z);
+}
+
 float calcAO(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
@@ -221,7 +233,7 @@ float calcAO(uint2 pixelIndex)
     float rayLen = 0.2;
     for (int i = 0; i < ubo.samples; ++i)
     {
-        float3 rndPoint = SampleHemisphere(pixelIndex, 0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
+        float3 rndPoint = SampleHemisphere(pixelIndex, 1); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
         float3 L = normalize(rndPoint);
         float3 N = normalize(gbNormal[pixelIndex].xyz);
 
