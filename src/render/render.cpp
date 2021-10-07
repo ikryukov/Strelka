@@ -1348,12 +1348,9 @@ void Render::drawFrame()
     static bool needReload = false;
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
-    static bool enableAcc = true;
-    static bool enableAO = true;
-    static bool enableAOAcc = true;
-    static float rayLen = 0.2;
-    static float accAlpha = 0.125f;
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, enableAcc, accAlpha, mSamples, enableAO, enableAOAcc, rayLen);
+
+    static nevk::Ui::RenderConfig renderConfig{};
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, mSamples, renderConfig);
 
     if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
     {
@@ -1422,11 +1419,11 @@ void Render::drawFrame()
     aoParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     aoParam.frameNumber = (uint32_t)mFrameNumber;
     aoParam.samples = (uint32_t)mSamples;
-    aoParam.rayLen = rayLen;
+    aoParam.rayLen = renderConfig.rayLen;
     mAO->setParams(aoParam);
 
     AccumulationParam accParam{};
-    accParam.alpha = accAlpha;
+    accParam.alpha = renderConfig.accAlpha;
     accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     //glm::double4x4 persp = cam.prevMatrices.perspective;
     //accParam.prevClipToView = glm::inverse(persp);
@@ -1594,7 +1591,7 @@ void Render::drawFrame()
     Image* finalRtImage = mView->mRtShadowImage;
 
     Image* finalAOImage = mView->mAOImage;
-    if (enableAO)
+    if (renderConfig.enableAO)
     {
         // AO
         // barrier
@@ -1605,7 +1602,7 @@ void Render::drawFrame()
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         finalAOImage = mView->mAOImage;
     }
-    if (enableAO && enableAOAcc)
+    if (renderConfig.enableAO && renderConfig.enableAOAcc)
     {
         // Accumulation AO pass
         Image* accHistAO = mView->mAccumulationAOImages[imageIndex % 2];
@@ -1620,7 +1617,7 @@ void Render::drawFrame()
         finalAOImage = accOutAO;
     }
 
-    if (enableAcc)
+    if (renderConfig.enableAcc)
     {
         // Accumulation pass
         Image* accHist = mView->mAccumulationImages[imageIndex % 2];
@@ -1660,7 +1657,7 @@ void Render::drawFrame()
         // compose final image ltc + rtshadow + ao
         mCompositionParam.dimension.x = width;
         mCompositionParam.dimension.y = height;
-        mCompositionParam.enableAO = (int32_t)enableAO;
+        mCompositionParam.enableAO = (int32_t)renderConfig.enableAO;
         mComposition->setParams(mCompositionParam);
         mComposition->execute(cmd, width, height, imageIndex);
         mComposition->setInputTexture(mResManager->getView(mView->textureTonemapImage), mResManager->getView(finalRtImage), mResManager->getView(finalAOImage));

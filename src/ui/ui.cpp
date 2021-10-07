@@ -464,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, bool& enableAcc, float& accAlpha, int32_t& samples, bool& enableAO, bool& enableAOAcc, float& rayLen)
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, int32_t& samples, RenderConfig& renderConfig)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -690,17 +690,17 @@ void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, ui
         }
         ImGui::EndCombo();
     }
-    ImGui::Checkbox("Enable AO", &enableAO);
-    if (enableAO)
+    ImGui::Checkbox("Enable AO", &renderConfig.enableAO);
+    if (renderConfig.enableAO)
     {
-        ImGui::Checkbox("AO Accumulation", &enableAOAcc);
-        ImGui::SliderFloat("Ray length", &rayLen, 0.01, 100);
+        ImGui::Checkbox("AO Accumulation", &renderConfig.enableAOAcc);
+        ImGui::SliderFloat("Ray length", &renderConfig.rayLen, 0.01, 100);
         ImGui::SliderInt("Samples per pixel", &samples, 1, 100);
     }
-    ImGui::Checkbox("Shadow Accumulation", &enableAcc);
-    if (enableAcc)
+    ImGui::Checkbox("Shadow Accumulation", &renderConfig.enableAcc);
+    if (renderConfig.enableAcc)
     {
-        ImGui::SliderFloat("Alpha", &accAlpha, 0.01, 0.5);
+        ImGui::SliderFloat("Alpha", &renderConfig.accAlpha, 0.01, 0.5);
     }
 
     //     transparency settings
