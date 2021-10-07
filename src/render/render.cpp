@@ -93,6 +93,9 @@ void Render::initVulkan()
     mTonemap = new Tonemap(mSharedCtx);
     mTonemap->initialize();
 
+    mComposition = new Composition(mSharedCtx);
+    mComposition->initialize();
+
     mLtcPass = new LtcPass(mSharedCtx);
     mLtcPass->initialize();
 
@@ -342,6 +345,7 @@ void Render::cleanup()
     delete mView;
 
     delete mTonemap;
+    delete mComposition;
     delete mDebugView;
     delete mLtcPass;
     delete mRtShadow;
@@ -711,6 +715,13 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
     mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+    view->textureCompositionImage = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                         VK_IMAGE_TILING_OPTIMAL,
+                                                         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Composition result");
+    mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureCompositionImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
     view->mLtcOutputImage = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                      VK_IMAGE_TILING_OPTIMAL,
                                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -1254,6 +1265,11 @@ void Render::setDescriptors()
         mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage));
         mTonemap->setOutputTexture(mResManager->getView(mView->textureTonemapImage));
     }
+    {
+        mComposition->setParams(mCompositionParam);
+        mComposition->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage), mResManager->getView(mView->mAOImage));
+        mComposition->setOutputTexture(mResManager->getView(mView->textureCompositionImage));
+    }
 }
 
 // set default scene
@@ -1624,12 +1640,20 @@ void Render::drawFrame()
     }
     else
     {
+        // tonemap LTC
         mToneParams.dimension.x = width;
         mToneParams.dimension.y = height;
         mTonemap->setParams(mToneParams);
         mTonemap->execute(cmd, width, height, imageIndex);
         mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage));
-        finalImage = mView->textureTonemapImage;
+
+        // compose final image ltc + rtshadow + ao
+        mCompositionParam.dimension.x = width;
+        mCompositionParam.dimension.y = height;
+        mComposition->setParams(mCompositionParam);
+        mComposition->execute(cmd, width, height, imageIndex);
+        mComposition->setInputTexture(mResManager->getView(mView->textureTonemapImage), mResManager->getView(finalRtImage), mResManager->getView(finalAOImage));
+        finalImage = mView->textureCompositionImage;
     }
 
     // Copy to swapchain image

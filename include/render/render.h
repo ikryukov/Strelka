@@ -25,6 +25,7 @@
 #include "rtshadowpass.h"
 #include "aopass.h"
 #include "tonemap.h"
+#include "composition.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -140,9 +141,11 @@ private:
     Accumulation* mAccumulation;
     Accumulation* mAccumulationAO;
     Tonemap* mTonemap;
+    Composition* mComposition;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
     Tonemapparam mToneParams;
+    Compositionparam mCompositionParam;
     Debugviewparam mDebugParams;
 
     struct ViewData
@@ -152,6 +155,7 @@ private:
         GBuffer* gbuffer;
         Image* prevDepth;
         Image* textureTonemapImage;
+        Image* textureCompositionImage;
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
         Image* mAOImage;
@@ -173,6 +177,10 @@ private:
             if (textureTonemapImage)
             {
                 mResManager->destroyImage(textureTonemapImage);
+            }
+            if (textureCompositionImage)
+            {
+                mResManager->destroyImage(textureCompositionImage);
             }
             if (textureDebugViewImage)
             {
