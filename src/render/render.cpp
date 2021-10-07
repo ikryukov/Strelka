@@ -1254,12 +1254,12 @@ void Render::setDescriptors()
         mLtcPass->setResources(desc);
     }
     {
-        mDebugImageViews.imageViewShadow = mResManager->getView(mView->mRtShadowImage);
-        mDebugImageViews.imageViewLTC = mResManager->getView(mView->mLtcOutputImage);
-        mDebugImageViews.imageNormal = mResManager->getView(mView->gbuffer->normal);
+        mDebugImageViews.shadow = mResManager->getView(mView->mRtShadowImage);
+        mDebugImageViews.LTC = mResManager->getView(mView->mLtcOutputImage);
+        mDebugImageViews.normal = mResManager->getView(mView->gbuffer->normal);
         mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
-        mDebugImageViews.imageAO = mResManager->getView(mView->mAOImage);
-        mDebugImageViews.imageMotion = mResManager->getView(mView->gbuffer->motion);
+        mDebugImageViews.AO = mResManager->getView(mView->mAOImage);
+        mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
 
         mDebugView->setParams(mDebugParams);
         mDebugView->setInputTexture(mDebugImageViews);
@@ -1638,12 +1638,12 @@ void Render::drawFrame()
     Image* finalImage = nullptr;
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
-        mDebugImageViews.imageViewShadow = mResManager->getView(mView->mRtShadowImage);
-        mDebugImageViews.imageViewLTC = mResManager->getView(mView->mLtcOutputImage);
-        mDebugImageViews.imageNormal = mResManager->getView(mView->gbuffer->normal);
+        mDebugImageViews.shadow = mResManager->getView(mView->mRtShadowImage);
+        mDebugImageViews.LTC = mResManager->getView(mView->mLtcOutputImage);
+        mDebugImageViews.normal = mResManager->getView(mView->gbuffer->normal);
         mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
-        mDebugImageViews.imageAO = mResManager->getView(mView->mAOImage);
-        mDebugImageViews.imageMotion = mResManager->getView(mView->gbuffer->motion);
+        mDebugImageViews.AO = mResManager->getView(mView->mAOImage);
+        mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
 
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;

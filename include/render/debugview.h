@@ -14,12 +14,12 @@ class DebugView : public DebugViewBase
 public:
     struct DebugImageViews
     {
-        VkImageView imageViewLTC;
-        VkImageView imageViewShadow;
-        VkImageView imageNormal;
-        VkImageView imageMotion;
+        VkImageView LTC;
+        VkImageView shadow;
+        VkImageView normal;
+        VkImageView motion;
         VkImageView debug;
-        VkImageView imageAO;
+        VkImageView AO;
     };
 
     DebugView(const SharedContext& ctx);
