@@ -1354,14 +1354,15 @@ void Render::drawFrame()
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
 
-    mRenderConfig.selectedCamera = mCurrentSceneRenderData->cameraIndex;
+    mRenderStats.msPerFrame = msPerFrame;
+    mSceneConfig.selectedCamera = mCurrentSceneRenderData->cameraIndex;
+    mSceneConfig.newModelPath = newModelPath;
     mRenderConfig.animTime = mCurrentSceneRenderData->animationTime;
     mRenderConfig.samples = mSamples;
-    mRenderConfig.msPerFrame = msPerFrame;
 
-    mUi.updateUI(*scene, mRenderConfig, newModelPath);
+    mUi.updateUI(*scene, mRenderConfig, mRenderStats, mSceneConfig);
 
-    if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
+    if (!mSceneConfig.newModelPath.empty() && fs::exists(mSceneConfig.newModelPath) && mSceneConfig.newModelPath != MODEL_PATH)
     {
         if (mScene != mDefaultScene) // if we reload non-default scene
         {
@@ -1371,7 +1372,7 @@ void Render::drawFrame()
             releaseAfterFrames = MAX_FRAMES_IN_FLIGHT;
         }
         mTexManager->saveTexturesInDelQueue();
-        loadScene(newModelPath);
+        loadScene(mSceneConfig.newModelPath);
     }
 
     scene = getScene();

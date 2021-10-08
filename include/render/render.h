@@ -14,8 +14,10 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "accumulation.h"
+#include "aopass.h"
 #include "bvh.h"
 #include "common.h"
+#include "composition.h"
 #include "debugview.h"
 #include "depthpass.h"
 #include "gbuffer.h"
@@ -23,9 +25,7 @@
 #include "ltcpass.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
-#include "aopass.h"
 #include "tonemap.h"
-#include "composition.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -215,6 +215,8 @@ private:
     ViewData* mView = nullptr;
 
     Ui::RenderConfig mRenderConfig{};
+    Ui::SceneConfig mSceneConfig{};
+    Ui::RenderStats mRenderStats{};
     DebugView::DebugImageViews mDebugImageViews{};
 
     struct SceneRenderData
@@ -296,8 +298,7 @@ private:
     size_t mFrameNumber = 0;
     int32_t mSamples = 1;
 
-    // fps counter
-    double msPerFrame = 33.33;
+    double msPerFrame = 33.33; // fps counter
 
     bool framebufferResized = false;
 

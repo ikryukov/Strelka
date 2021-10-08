@@ -464,7 +464,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
-void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, std::string& newModelPath)
+void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -483,7 +483,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, std::string& newMode
     ImGuizmo::BeginFrame();
     const std::vector<Instance>& instances = scene.getInstances();
 
-    Camera& cam = scene.getCamera(renderConfig.selectedCamera);
+    Camera& cam = scene.getCamera(sceneConfig.selectedCamera);
     glm::float3 camPos = cam.getPosition();
 
     ImGui::Begin("Menu:"); // begin window
@@ -537,7 +537,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, std::string& newMode
     {
         if (ImGuiFileDialog::Instance()->IsOk())
         {
-            newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
+            sceneConfig.newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
             showPropertiesId = -1; // new scene, updated properties
             lightId = -1;
             openInspector = true;
@@ -573,7 +573,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, std::string& newMode
                 }
                 else
                 {
-                    displayLightSettings(lightId, scene, renderConfig.selectedCamera);
+                    displayLightSettings(lightId, scene, sceneConfig.selectedCamera);
                 }
             }
             ImGui::EndChild();
@@ -648,12 +648,12 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, std::string& newMode
         }
     }
     // simple settings
-    ImGui::Text("MsPF = %f", renderConfig.msPerFrame);
-    ImGui::Text("FPS = %f", 1000.0 / renderConfig.msPerFrame);
+    ImGui::Text("MsPF = %f", renderStats.msPerFrame);
+    ImGui::Text("FPS = %f", 1000.0 / renderStats.msPerFrame);
 
     const std::vector<nevk::Camera>& cameras = scene.getCameras();
-    assert(renderConfig.selectedCamera < cameras.size());
-    const char* currentCameraName = cameras[renderConfig.selectedCamera].name.c_str();
+    assert(sceneConfig.selectedCamera < cameras.size());
+    const char* currentCameraName = cameras[sceneConfig.selectedCamera].name.c_str();
 
     if (ImGui::BeginCombo("Camera", currentCameraName))
     {
@@ -663,7 +663,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, std::string& newMode
             if (ImGui::Selectable(cameras[i].name.c_str(), isSelected))
             {
                 currentCameraName = cameras[i].name.c_str();
-                renderConfig.selectedCamera = i;
+                sceneConfig.selectedCamera = i;
             }
             if (isSelected)
             {

@@ -11,9 +11,8 @@ StructuredBuffer<BVHTriangle> bvhTriangles;
 
 RWTexture2D<float> output;
 
-float3x3 GetTangentSpace(uint2 pixelIndex)
+float3x3 GetTangentSpace(float3 normal)
 {
-    float3 normal = gbNormal[pixelIndex].xyz;
     float3 helper = float3(1, 0, 0);
     if (abs(normal.x) > 0.99f)
         helper = float3(0, 0, 1);
@@ -23,7 +22,7 @@ float3x3 GetTangentSpace(uint2 pixelIndex)
     return transpose(float3x3(tangent, binormal, normal));
 }
 
-float3 SampleHemisphere(uint2 pixelIndex)
+float3 SampleHemisphere(uint2 pixelIndex, float3 normal)
 {
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
 
@@ -32,7 +31,7 @@ float3 SampleHemisphere(uint2 pixelIndex)
     float phi = 2 * PI * rand(rngState);
     float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 
-    return mul(GetTangentSpace(pixelIndex), tangentSpaceDir);
+    return mul(GetTangentSpace(normal), tangentSpaceDir);
 }
 
 float3 SampleHemisphere(float u1, float u2, float alpha)
@@ -66,7 +65,7 @@ float calcAO(uint2 pixelIndex)
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
     Ray ray;
     ray.o = float4(wpos + offset, ubo.rayLen);
-    float3x3 TBN = GetTangentSpace(pixelIndex);
+    float3x3 TBN = GetTangentSpace(N);
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
     float res = 0.0;
     for (int i = 0; i < ubo.samples; ++i)

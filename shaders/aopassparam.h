@@ -21,7 +21,8 @@ struct AOParam
     uint frameNumber;
     uint samples;
     float rayLen;
-    int2 pad0;
+    float pad0;
+    int2 pad1;
 };
 
 #ifdef __cplusplus
