@@ -20,6 +20,7 @@ public:
         VkImageView motion;
         VkImageView debug;
         VkImageView AO;
+        VkImageView reflection;
     };
 
     DebugView(const SharedContext& ctx);

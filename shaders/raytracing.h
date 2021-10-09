@@ -77,6 +77,8 @@ struct Hit
     float2 bary;
     float t;
     uint instId;
+    uint triangleId;
+    uint materialId;
 };
 
 
@@ -103,6 +105,7 @@ bool closestHit(Ray ray, inout Hit hit)
                 minHit = hit.t;
                 hit.bary = bary;
                 hit.instId = asuint(v0.w);
+                hit.triangleId = NonUniformResourceIndex(primitiveIndex);
                 isFound = true;
             }
         }

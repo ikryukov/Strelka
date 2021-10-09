@@ -25,6 +25,7 @@
 #include "ltcpass.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
+#include "reflection.h"
 #include "tonemap.h"
 
 #include <modelloader/modelloader.h>
@@ -137,6 +138,7 @@ private:
 
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadow;
+    Reflection* mReflection;
     AOPass* mAO;
     Accumulation* mAccumulation;
     Accumulation* mAccumulationAO;
@@ -158,6 +160,7 @@ private:
         Image* textureCompositionImage;
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
+        Image* mReflectionImage;
         Image* mAOImage;
         Image* mLtcOutputImage;
         Image* mAccumulationImages[2] = { nullptr, nullptr };
@@ -186,9 +189,9 @@ private:
             {
                 mResManager->destroyImage(textureDebugViewImage);
             }
-            if (mRtShadowImage)
+            if (mReflectionImage)
             {
-                mResManager->destroyImage(mRtShadowImage);
+                mResManager->destroyImage(mReflectionImage);
             }
             if (mAOImage)
             {

@@ -102,6 +102,9 @@ void Render::initVulkan()
     mRtShadow = new RtShadowPass(mSharedCtx);
     mRtShadow->initialize();
 
+    mReflection = new Reflection(mSharedCtx);
+    mReflection->initialize();
+
     mAO = new AOPass(mSharedCtx);
     mAO->initialize();
 
@@ -349,6 +352,7 @@ void Render::cleanup()
     delete mDebugView;
     delete mLtcPass;
     delete mRtShadow;
+    delete mReflection;
     delete mAO;
     delete mAccumulation;
     delete mAccumulationAO;
@@ -730,6 +734,10 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                     VK_IMAGE_TILING_OPTIMAL,
                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+    view->mReflectionImage = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                     VK_IMAGE_TILING_OPTIMAL,
+                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Reflection Output");
     view->mAOImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
                                               VK_IMAGE_TILING_OPTIMAL,
                                               VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -1221,6 +1229,15 @@ void Render::setDescriptors()
         mRtShadow->setResources(desc);
     }
     {
+        ReflectionDesc desc{};
+        desc.result = mView->mReflectionImage;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.gbuffer = mView->gbuffer;
+        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+        desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
+        mReflection->setResources(desc);
+    }
+    {
         AOPassDesc desc{};
         desc.result = mView->mAOImage;
         desc.gbuffer = mView->gbuffer;
@@ -1422,8 +1439,12 @@ void Render::drawFrame()
     RtShadowParam rtShadowParam{};
     rtShadowParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
-    rtShadowParam.samples = (uint32_t)mSamples;
     mRtShadow->setParams(rtShadowParam);
+
+    ReflectionParam reflectionParam{};
+    reflectionParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    reflectionParam.frameNumber = (uint32_t)mFrameNumber;
+    mReflection->setParams(reflectionParam);
 
     AOParam aoParam{};
     aoParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
@@ -1594,11 +1615,16 @@ void Render::drawFrame()
     recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     mRtShadow->execute(cmd, width, height, imageIndex);
-
-    // barrier
     recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     Image* finalRtImage = mView->mRtShadowImage;
+
+    // Reflection
+    recordBarrier(cmd, mResManager->getVkImage(mView->mReflectionImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mReflection->execute(cmd, width, height, imageIndex);
+    recordBarrier(cmd, mResManager->getVkImage(mView->mReflectionImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     Image* finalAOImage = mView->mAOImage;
     if (mRenderConfig.enableAO)
@@ -1650,6 +1676,7 @@ void Render::drawFrame()
         mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
         mDebugImageViews.AO = mResManager->getView(finalAOImage);
         mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
+        mDebugImageViews.reflection = mResManager->getView(mView->mReflectionImage);
 
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;

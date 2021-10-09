@@ -21,6 +21,7 @@ void DebugView::setInputTexture(DebugImageViews imageViews)
     mShaderParams.setTexture("inputMotion", imageViews.motion);
     mShaderParams.setTexture("debugTex", imageViews.debug);
     mShaderParams.setTexture("inputAO", imageViews.AO);
+    mShaderParams.setTexture("inputReflection", imageViews.reflection);
 }
 void DebugView::setOutputTexture(VkImageView imageView)
 {

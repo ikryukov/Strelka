@@ -15,7 +15,7 @@
 #    define uint glm::uint
 #endif
 
-struct RtShadowParam
+struct ReflectionParam
 {
     int2 dimension;
     uint frameNumber;
