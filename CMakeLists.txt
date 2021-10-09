@@ -150,8 +150,10 @@ set(RENDER_SOURCES
         include/render/shaderparameters.h
         include/render/computepass.h
         include/render/rtshadowpass.h
+        include/render/aopass.h
         include/render/ltcpass.h
         include/render/tonemap.h
+        include/render/composition.h
         include/render/accumulation.h
         include/render/debugview.h
         include/render/depthpass.h
@@ -161,9 +163,11 @@ set(RENDER_SOURCES
         src/render/gbufferpass.cpp
         src/render/bvh.cpp
         src/render/rtshadowpass.cpp
+        src/render/aopass.cpp
         src/render/ltcpass.cpp
         src/render/ltc_data.h
         src/render/tonemap.cpp
+        src/render/composition.cpp
         src/render/accumulation.cpp
         src/render/debugview.cpp
         src/render/depthpass.cpp

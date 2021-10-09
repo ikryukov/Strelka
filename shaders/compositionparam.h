@@ -12,14 +12,13 @@
 #    define float4 glm::float4
 #    define float3 glm::float3
 #    define int2 glm::int2
-#    define uint glm::uint
 #endif
 
-struct RtShadowParam
+struct Compositionparam
 {
     int2 dimension;
-    uint frameNumber;
-    uint samples;
+    int enableAO;
+    float pad1;
 };
 
 #ifdef __cplusplus
