@@ -13,6 +13,10 @@ struct ReflectionDesc
     Buffer* bvhTriangles = VK_NULL_HANDLE;
     Buffer* lights = VK_NULL_HANDLE;
     Image* result = VK_NULL_HANDLE;
+    Buffer* materials;
+    Buffer* instanceConst;
+    std::vector<Image*> matTextures;
+    std::vector<VkSampler> matSampler;
 };
 
 using ReflectionBase = ComputePass<ReflectionParam>;

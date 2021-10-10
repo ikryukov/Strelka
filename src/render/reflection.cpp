@@ -27,6 +27,10 @@ void Reflection::setResources(ReflectionDesc& desc)
     mShaderParams.setBuffer("bvhNodes", mSharedCtx.mResManager->getVkBuffer(desc.bvhNodes));
     mShaderParams.setBuffer("bvhTriangles", mSharedCtx.mResManager->getVkBuffer(desc.bvhTriangles));
     mShaderParams.setBuffer("lights", mSharedCtx.mResManager->getVkBuffer(desc.lights));
+    mShaderParams.setBuffer("instanceConstants", mSharedCtx.mResManager->getVkBuffer(desc.instanceConst));
+    mShaderParams.setBuffer("materials", mSharedCtx.mResManager->getVkBuffer(desc.materials));
+    mShaderParams.setSamplers("samplers", desc.matSampler);
+    mShaderParams.setTextures("textures", desc.matTextures);
 }
 
 } // namespace nevk

@@ -37,7 +37,10 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     {
         mIndices.push_back(ibOffset + ib[i]);
     }
+
+    mesh->mVertex = mVertices.size(); // Index of 1st vertex in vertex buffer
     mVertices.insert(mVertices.end(), vb.begin(), vb.end()); // copy vertices
+
     return meshId;
 }
 

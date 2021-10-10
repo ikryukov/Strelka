@@ -193,6 +193,10 @@ private:
             {
                 mResManager->destroyImage(mReflectionImage);
             }
+            if (mRtShadowImage)
+            {
+                mResManager->destroyImage(mRtShadowImage);
+            }
             if (mAOImage)
             {
                 mResManager->destroyImage(mAOImage);

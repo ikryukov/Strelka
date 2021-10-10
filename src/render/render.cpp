@@ -1020,12 +1020,13 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
         glm::float4x4 model;
         glm::float4x4 normalMatrix;
         int32_t materialId;
+        int32_t ibId;
+        int32_t vbId;
         int32_t pad0;
-        int32_t pad1;
-        int32_t pad2;
     };
 
     const std::vector<nevk::Instance>& sceneInstances = scene.getInstances();
+    const std::vector<nevk::Mesh>& sceneMeshes = scene.getMeshes();
     mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
     VkDeviceSize bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
     if (bufferSize == 0)
@@ -1039,6 +1040,8 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
         instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
         instanceConsts[i].model = sceneInstances[i].transform;
         instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
+        instanceConsts[i].ibId = sceneMeshes[sceneInstances[i].mMeshId].mIndex;
+        instanceConsts[i].vbId = sceneMeshes[sceneInstances[i].mMeshId].mVertex;
     }
 
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -1235,6 +1238,10 @@ void Render::setDescriptors()
         desc.gbuffer = mView->gbuffer;
         desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
         desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
+        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+        desc.matSampler = mTexManager->texSamplers;
+        desc.matTextures = mTexManager->textureImages;
         mReflection->setResources(desc);
     }
     {
