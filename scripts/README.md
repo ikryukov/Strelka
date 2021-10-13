@@ -2,12 +2,11 @@
 ### OS X
 1. Run:
 
-> brew install wget
-> 
-> cd scripts/
->
-> sh miscLoader.sh
 
+       brew install wget
+       cd scripts/
+       sh miscLoader.sh
+           
 ### Windows
 <ol>
 <li>Download wget http://www.gnu.org/software/wget
@@ -19,7 +18,7 @@
 </li>
 <li>Run:
 
-> cd scripts/
->
-> sh miscLoader.sh
+    cd scripts/
+    sh miscLoader.sh
+    
 </ol>
