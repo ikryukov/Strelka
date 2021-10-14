@@ -465,9 +465,6 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
 }
 
 void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig)
-
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime,
-bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius, int& maxR, bool& enableFilter)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -710,13 +707,14 @@ bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius,
     // ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
     // ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
 
-    ImGui::Checkbox("Bilateral Filter", &enableFilter);
-    if (enableFilter)
+    ImGui::Checkbox("Bilateral Filter", &renderConfig.enableFilter);
+    ImGui::Checkbox("AO Bilateral Filter", &renderConfig.enableAOFilter);
+    if (renderConfig.enableFilter || renderConfig.enableAOFilter)
     {
-        ImGui::DragFloat("sigma", &sigma, 0.1f, 0.1f);
-        ImGui::DragFloat("sigma normal", &sigmaNormal, 0.1f, 0.1f);
-        ImGui::DragInt("maxR", &maxR, 1, 1);
-        ImGui::DragInt("radius", &radius, 1, 1);
+        ImGui::DragFloat("sigma", &renderConfig.sigma, 0.1f, 0.1f);
+        ImGui::DragFloat("sigma normal", &renderConfig.sigmaNormal, 0.1f, 0.1f);
+        ImGui::DragInt("maxR", &renderConfig.maxR, 1, 1);
+        ImGui::DragInt("radius", &renderConfig.radius, 1, 1);
     }
     ImGui::End(); // end window
 }

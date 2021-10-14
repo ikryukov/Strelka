@@ -16,12 +16,12 @@ void DebugView::initialize()
 void DebugView::setInputTexture(DebugImageViews imageViews)
 {
     mShaderParams.setTexture("inputLTC", imageViews.LTC);
-    mShaderParams.setTexture("inputShadow", imageViewShadow);
-    mShaderParams.setTexture("inputNormals", imageNormal);
-    mShaderParams.setTexture("inputMotion", imageMotion);
-    mShaderParams.setTexture("debugTex", debug);
+    mShaderParams.setTexture("inputShadow", imageViews.shadow);
+    mShaderParams.setTexture("inputNormals", imageViews.normal);
+    mShaderParams.setTexture("inputMotion", imageViews.motion);
+    mShaderParams.setTexture("debugTex", imageViews.debug);
     mShaderParams.setTexture("inputAO", imageViews.AO);
-    mShaderParams.setTexture("inputVariance", imageVariance);
+    mShaderParams.setTexture("inputVariance", imageViews.variance);
 }
 void DebugView::setOutputTexture(VkImageView imageView)
 {

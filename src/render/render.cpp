@@ -102,6 +102,9 @@ void Render::initVulkan()
     mBilateralFilter = new BilateralFilter(mSharedCtx);
     mBilateralFilter->initialize();
 
+    mAOBilateralFilter = new BilateralFilter(mSharedCtx);
+    mAOBilateralFilter->initialize();
+
     mRtShadow = new RtShadowPass(mSharedCtx);
     mRtShadow->initialize();
 
@@ -352,6 +355,7 @@ void Render::cleanup()
     delete mDebugView;
     delete mLtcPass;
     delete mBilateralFilter;
+    delete mAOBilateralFilter;
     delete mRtShadow;
     delete mAO;
     delete mAccumulation;
@@ -738,6 +742,14 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                                    VK_IMAGE_TILING_OPTIMAL,
                                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Bilateral Variance Output");
+    view->mAOBilateralOutputImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                           VK_IMAGE_TILING_OPTIMAL,
+                                                           VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "AO Bilateral Output");
+    view->mAOBilateralVarianceOutputImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "AO Bilateral Variance Output");
     view->mRtShadowImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
                                                     VK_IMAGE_TILING_OPTIMAL,
                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -1282,8 +1294,16 @@ void Render::setDescriptors()
         mBilateralFilter->setResources(desc);
     }
     {
+        BilateralResourceDesc desc{};
+        desc.gbuffer = mView->gbuffer;
+        desc.result = mView->mAOBilateralOutputImage;
+        desc.variance = mView->mAOBilateralVarianceOutputImage;
+        desc.input = mView->mRtShadowImage;
+        mAOBilateralFilter->setResources(desc);
+    }
+    {
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mDebugImageViews); // add variance
+        mDebugView->setInputTexture(mDebugImageViews);
         mDebugView->setOutputTexture(mResManager->getView(mView->textureDebugViewImage));
     }
     {
@@ -1380,18 +1400,9 @@ void Render::drawFrame()
     mSceneConfig.newModelPath = newModelPath;
     mRenderConfig.animTime = mCurrentSceneRenderData->animationTime;
     mRenderConfig.samples = mSamples;
-    static float sigma = 2.9f;
-    static float sigmaNormal = 1.5f;
-    static int radius = 3;
-    static int maxR = 5;
-    static bool enableAcc = true;
-    static bool enableFilter = true;
-    static float accAlpha = 0.125f;
-
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime,
-    enableAcc, accAlpha, sigma, sigmaNormal, radius, maxR, enableFilter);
 
     mUi.updateUI(*scene, mRenderConfig, mRenderStats, mSceneConfig);
+    mCurrentSceneRenderData->animationTime = mRenderConfig.animTime;
 
     if (!mSceneConfig.newModelPath.empty() && fs::exists(mSceneConfig.newModelPath) && mSceneConfig.newModelPath != MODEL_PATH)
     {
@@ -1488,14 +1499,15 @@ void Render::drawFrame()
 
     BilateralParam bilateralparams{};
     bilateralparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
-    bilateralparams.sigma = sigma;
-    bilateralparams.sigmaNormal = sigmaNormal;
-    bilateralparams.radius = radius;
+    bilateralparams.sigma = mRenderConfig.sigma;
+    bilateralparams.sigmaNormal = mRenderConfig.sigmaNormal;
+    bilateralparams.radius = mRenderConfig.radius;
     bilateralparams.zfar = cam.zfar;
     bilateralparams.znear = cam.znear;
-    bilateralparams.maxR = maxR;
+    bilateralparams.maxR = mRenderConfig.maxR;
     bilateralparams.invProj = glm::inverse(cam.getPerspective());
     mBilateralFilter->setParams(bilateralparams);
+    mAOBilateralFilter->setParams(bilateralparams);
 
     if (needReload && releaseAfterFrames == 0)
     {
@@ -1667,6 +1679,30 @@ void Render::drawFrame()
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         finalAOImage = accOutAO;
     }
+    if (mRenderConfig.enableAO && mRenderConfig.enableAOFilter)
+    {
+        // Bilateral Filter AO
+        BilateralResourceDesc desc{};
+        desc.gbuffer = mView->gbuffer;
+        desc.result = mView->mAOBilateralOutputImage;
+        desc.variance = mView->mAOBilateralVarianceOutputImage;
+        desc.input = finalAOImage;
+        mAOBilateralFilter->setResources(desc);
+
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        mAOBilateralFilter->execute(cmd, width, height, imageIndex);
+
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOBilateralOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalAOImage = mView->mAOBilateralOutputImage;
+    }
 
     if (mRenderConfig.enableAcc)
     {
@@ -1684,7 +1720,7 @@ void Render::drawFrame()
     }
 
 
-    if (enableFilter)
+    if (mRenderConfig.enableFilter)
     {
         // Bilateral Filter
         BilateralResourceDesc desc{};
@@ -1712,12 +1748,13 @@ void Render::drawFrame()
     Image* finalImage = nullptr;
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
-        mDebugImageViews.shadow = mResManager->getView(mView->mRtShadowImage);
+        mDebugImageViews.shadow = mResManager->getView(finalRtImage);
         mDebugImageViews.LTC = mResManager->getView(mView->mLtcOutputImage);
         mDebugImageViews.normal = mResManager->getView(mView->gbuffer->normal);
         mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
         mDebugImageViews.AO = mResManager->getView(finalAOImage);
         mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
+        mDebugImageViews.variance = mResManager->getView(mView->mBilateralVarianceOutputImage);
 
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;

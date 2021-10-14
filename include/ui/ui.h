@@ -33,10 +33,16 @@ public:
         bool enableAcc = true;
         bool enableAO = true;
         bool enableAOAcc = true;
+        bool enableFilter = true;
+        bool enableAOFilter = true;
         float rayLen = 0.2f;
         float accAlpha = 0.125f;
-        float animTime;
+        float animTime = 0.f;
         int32_t samples;
+        float sigma = 2.9f;
+        float sigmaNormal = 1.5f;
+        int radius = 3;
+        int maxR = 5;
     };
 
     struct RenderStats
@@ -51,8 +57,6 @@ public:
     };
 
     bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
-    void updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime,
-    bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius, int& maxR, bool& enableFilter);
     void updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig);
     void render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
