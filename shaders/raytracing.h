@@ -92,6 +92,7 @@ struct Hit
     float2 bary;
     float t;
     uint instId;
+    uint primId;
 };
 
 struct BVHTriangle 
@@ -156,6 +157,7 @@ bool closestHit(Accel accel, Ray ray, inout Hit hit)
                 minHit = hit.t;
                 hit.bary = bary;
                 hit.instId = instanceIndex;
+                hit.primId = primitiveIndex;
                 isFound = true;
             }
         }
@@ -195,6 +197,7 @@ bool anyHit(Accel accel, Ray ray, inout Hit hit)
             if (isIntersected && (hit.t < ray.o.w)) // check max ray trace distance
             {
                 hit.instId = instanceIndex;
+                hit.primId = primitiveIndex;
                 return true;
             }
         }
