@@ -210,7 +210,6 @@ void BvhBuilder::repackEmbree(const Node* current, const std::vector<BVHInputPos
     }
 }
 
-
 BVH BvhBuilder::repackEmbree(const Node* root, const std::vector<BVHInputPosition>& positions, const uint32_t totalNodes, const uint32_t totalTriangles)
 {
     (void)totalTriangles;

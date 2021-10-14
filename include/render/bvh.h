@@ -43,7 +43,6 @@ public:
     BvhBuilder();
     ~BvhBuilder();
 
-    BVH build(const std::vector<glm::float3>& positions);
     BVH build(const std::vector<BVHInputPosition>& positions);
 
 private:
