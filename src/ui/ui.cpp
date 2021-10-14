@@ -703,10 +703,6 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
         ImGui::SliderFloat("Alpha", &renderConfig.accAlpha, 0.01, 0.5);
     }
 
-    //     transparency settings
-    // ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
-    // ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
-
     ImGui::Checkbox("Bilateral Filter", &renderConfig.enableFilter);
     if (renderConfig.enableFilter)
     {

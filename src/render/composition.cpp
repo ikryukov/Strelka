@@ -5,7 +5,6 @@ namespace nevk
 Composition::Composition(const SharedContext& ctx)
     : CompositionBase(ctx)
 {
-
 }
 Composition::~Composition()
 {
