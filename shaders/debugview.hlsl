@@ -7,6 +7,7 @@ Texture2D<float4> inputNormals;
 Texture2D<float4> inputVariance;
 Texture2D<float2> inputMotion;
 Texture2D<float4> debugTex;
+Texture2D<float4> inputAO;
 RWTexture2D<float4> output;
 
 [numthreads(16, 16, 1)]
@@ -39,7 +40,12 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         output[pixelIndex] = debugTex[pixelIndex];
     }
-    if (ubo.debugView == 6) // Variance
+    if (ubo.debugView == 6) // AO
+    {
+        float3 color = inputAO[pixelIndex].r;
+        output[pixelIndex] = float4(color, 0.0);
+    }
+    if (ubo.debugView == 7) // Variance
     {
         float3 color = inputVariance[pixelIndex].r;
         output[pixelIndex] = float4(color, 0.0);

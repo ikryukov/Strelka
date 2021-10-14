@@ -15,11 +15,14 @@
 #    define uint glm::uint
 #endif
 
-struct RtShadowParam
+struct AOParam
 {
     int2 dimension;
     uint frameNumber;
     uint samples;
+    float rayLen;
+    float pad0;
+    int2 pad1;
 };
 
 #ifdef __cplusplus

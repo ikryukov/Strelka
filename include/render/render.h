@@ -14,8 +14,10 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "accumulation.h"
+#include "aopass.h"
 #include "bvh.h"
 #include "common.h"
+#include "composition.h"
 #include "debugview.h"
 #include "depthpass.h"
 #include "gbuffer.h"
@@ -136,12 +138,16 @@ private:
 
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadow;
+    AOPass* mAO;
     Accumulation* mAccumulation;
+    Accumulation* mAccumulationAO;
     Tonemap* mTonemap;
+    Composition* mComposition;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
     BilateralFilter* mBilateralFilter;
     Tonemapparam mToneParams;
+    Compositionparam mCompositionParam;
     Debugviewparam mDebugParams;
 
     struct ViewData
@@ -151,12 +157,15 @@ private:
         GBuffer* gbuffer;
         Image* prevDepth;
         Image* textureTonemapImage;
+        Image* textureCompositionImage;
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
+        Image* mAOImage;
         Image* mLtcOutputImage;
         Image* mBilateralOutputImage;
         Image* mBilateralVarianceOutputImage;
         Image* mAccumulationImages[2] = { nullptr, nullptr };
+        Image* mAccumulationAOImages[2] = { nullptr, nullptr };
         ResourceManager* mResManager = nullptr;
         ~ViewData()
         {
@@ -173,6 +182,10 @@ private:
             {
                 mResManager->destroyImage(textureTonemapImage);
             }
+            if (textureCompositionImage)
+            {
+                mResManager->destroyImage(textureCompositionImage);
+            }
             if (textureDebugViewImage)
             {
                 mResManager->destroyImage(textureDebugViewImage);
@@ -180,6 +193,10 @@ private:
             if (mRtShadowImage)
             {
                 mResManager->destroyImage(mRtShadowImage);
+            }
+            if (mAOImage)
+            {
+                mResManager->destroyImage(mAOImage);
             }
             if (mLtcOutputImage)
             {
@@ -199,12 +216,20 @@ private:
                 {
                     mResManager->destroyImage(mAccumulationImages[i]);
                 }
+                if (mAccumulationAOImages[i])
+                {
+                    mResManager->destroyImage(mAccumulationAOImages[i]);
+                }
             }
         }
     };
 
     ViewData* mView = nullptr;
 
+    Ui::RenderConfig mRenderConfig{};
+    Ui::SceneConfig mSceneConfig{};
+    Ui::RenderStats mRenderStats{};
+    DebugView::DebugImageViews mDebugImageViews{};
 
     struct SceneRenderData
     {
@@ -283,9 +308,9 @@ private:
     }
 
     size_t mFrameNumber = 0;
+    int32_t mSamples = 1;
 
-    // fps counter
-    double msPerFrame = 33.33;
+    double msPerFrame = 33.33; // fps counter
 
     bool framebufferResized = false;
 

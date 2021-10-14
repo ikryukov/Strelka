@@ -464,8 +464,9 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
 
+void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig)
 
-void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, 
+void Ui::updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime,
 bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius, int& maxR, bool& enableFilter)
 {
     ImGuiIO& io = ImGui::GetIO();
@@ -474,7 +475,7 @@ bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius,
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "Variance" };
+    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO", "Variance" };
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();
@@ -485,7 +486,7 @@ bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius,
     ImGuizmo::BeginFrame();
     const std::vector<Instance>& instances = scene.getInstances();
 
-    Camera& cam = scene.getCamera(selectedCamera);
+    Camera& cam = scene.getCamera(sceneConfig.selectedCamera);
     glm::float3 camPos = cam.getPosition();
 
     ImGui::Begin("Menu:"); // begin window
@@ -539,7 +540,7 @@ bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius,
     {
         if (ImGuiFileDialog::Instance()->IsOk())
         {
-            newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
+            sceneConfig.newModelPath = ImGuiFileDialog::Instance()->GetFilePathName();
             showPropertiesId = -1; // new scene, updated properties
             lightId = -1;
             openInspector = true;
@@ -575,7 +576,7 @@ bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius,
                 }
                 else
                 {
-                    displayLightSettings(lightId, scene, selectedCamera);
+                    displayLightSettings(lightId, scene, sceneConfig.selectedCamera);
                 }
             }
             ImGui::EndChild();
@@ -637,7 +638,7 @@ bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius,
     }
     if (!scene.mAnimations.empty())
     {
-        bool valueChanged = ImGui::SliderFloat("Animation time", &animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
+        bool valueChanged = ImGui::SliderFloat("Animation time", &renderConfig.animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
         ImGuiDir dir = scene.mAnimState == Scene::AnimationState::ePlay ? ImGuiDir_Right : ImGuiDir_Down;
         bool isClicked = ImGui::ArrowButton("Play", ImGuiDir_Right);
         if (isClicked)
@@ -650,12 +651,12 @@ bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius,
         }
     }
     // simple settings
-    ImGui::Text("MsPF = %f", msPerFrame);
-    ImGui::Text("FPS = %f", 1000.0 / msPerFrame);
+    ImGui::Text("MsPF = %f", renderStats.msPerFrame);
+    ImGui::Text("FPS = %f", 1000.0 / renderStats.msPerFrame);
 
     const std::vector<nevk::Camera>& cameras = scene.getCameras();
-    assert(selectedCamera < cameras.size());
-    const char* currentCameraName = cameras[selectedCamera].name.c_str();
+    assert(sceneConfig.selectedCamera < cameras.size());
+    const char* currentCameraName = cameras[sceneConfig.selectedCamera].name.c_str();
 
     if (ImGui::BeginCombo("Camera", currentCameraName))
     {
@@ -665,7 +666,7 @@ bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius,
             if (ImGui::Selectable(cameras[i].name.c_str(), isSelected))
             {
                 currentCameraName = cameras[i].name.c_str();
-                selectedCamera = i;
+                sceneConfig.selectedCamera = i;
             }
             if (isSelected)
             {
@@ -692,10 +693,17 @@ bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius,
         }
         ImGui::EndCombo();
     }
-    ImGui::Checkbox("Accumulation", &enableAcc);
-    if (enableAcc)
+    ImGui::Checkbox("Enable AO", &renderConfig.enableAO);
+    if (renderConfig.enableAO)
     {
-        ImGui::SliderFloat("Alpha", &accAlpha, 0.01, 0.5);
+        ImGui::Checkbox("AO Accumulation", &renderConfig.enableAOAcc);
+        ImGui::SliderFloat("Ray length", &renderConfig.rayLen, 0.01, 100);
+        ImGui::SliderInt("Samples per pixel", &renderConfig.samples, 1, 100);
+    }
+    ImGui::Checkbox("Shadow Accumulation", &renderConfig.enableAcc);
+    if (renderConfig.enableAcc)
+    {
+        ImGui::SliderFloat("Alpha", &renderConfig.accAlpha, 0.01, 0.5);
     }
 
     //     transparency settings

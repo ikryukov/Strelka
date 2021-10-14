@@ -93,6 +93,9 @@ void Render::initVulkan()
     mTonemap = new Tonemap(mSharedCtx);
     mTonemap->initialize();
 
+    mComposition = new Composition(mSharedCtx);
+    mComposition->initialize();
+
     mLtcPass = new LtcPass(mSharedCtx);
     mLtcPass->initialize();
 
@@ -102,8 +105,14 @@ void Render::initVulkan()
     mRtShadow = new RtShadowPass(mSharedCtx);
     mRtShadow->initialize();
 
+    mAO = new AOPass(mSharedCtx);
+    mAO->initialize();
+
     mAccumulation = new Accumulation(mSharedCtx);
     mAccumulation->initialize();
+
+    mAccumulationAO = new Accumulation(mSharedCtx);
+    mAccumulationAO->initialize();
 
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
@@ -339,11 +348,14 @@ void Render::cleanup()
     delete mView;
 
     delete mTonemap;
+    delete mComposition;
     delete mDebugView;
     delete mLtcPass;
     delete mBilateralFilter;
     delete mRtShadow;
+    delete mAO;
     delete mAccumulation;
+    delete mAccumulationAO;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -707,6 +719,13 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
     mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
+    view->textureCompositionImage = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                             VK_IMAGE_TILING_OPTIMAL,
+                                                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Composition result");
+    mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureCompositionImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+
     view->mLtcOutputImage = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                      VK_IMAGE_TILING_OPTIMAL,
                                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -723,6 +742,10 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                     VK_IMAGE_TILING_OPTIMAL,
                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+    view->mAOImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                              VK_IMAGE_TILING_OPTIMAL,
+                                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "AO Output");
     for (int i = 0; i < 2; ++i)
     {
         const std::string imageName = "Accumulation Image: " + std::to_string(i);
@@ -730,6 +753,10 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                                 VK_IMAGE_TILING_OPTIMAL,
                                                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        view->mAccumulationAOImages[i] = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                                  VK_IMAGE_TILING_OPTIMAL,
+                                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
     }
     return view;
 }
@@ -1206,11 +1233,26 @@ void Render::setDescriptors()
         mRtShadow->setResources(desc);
     }
     {
+        AOPassDesc desc{};
+        desc.result = mView->mAOImage;
+        desc.gbuffer = mView->gbuffer;
+        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+        desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
+        mAO->setResources(desc);
+    }
+    {
         mAccumulation->setInputTexture(mView->mRtShadowImage);
         mAccumulation->setMotionTexture(mView->gbuffer->motion);
         mAccumulation->setPrevDepthTexture(mView->prevDepth);
         mAccumulation->setWposTexture(mView->gbuffer->wPos);
         mAccumulation->setCurrDepthTexture(mView->gbuffer->depth);
+    }
+    {
+        mAccumulationAO->setInputTexture(mView->mAOImage);
+        mAccumulationAO->setMotionTexture(mView->gbuffer->motion);
+        mAccumulationAO->setPrevDepthTexture(mView->prevDepth);
+        mAccumulationAO->setWposTexture(mView->gbuffer->wPos);
+        mAccumulationAO->setCurrDepthTexture(mView->gbuffer->depth);
     }
     {
         LtcResourceDesc desc{};
@@ -1224,6 +1266,14 @@ void Render::setDescriptors()
         mLtcPass->setResources(desc);
     }
     {
+        mDebugImageViews.shadow = mResManager->getView(mView->mRtShadowImage);
+        mDebugImageViews.LTC = mResManager->getView(mView->mLtcOutputImage);
+        mDebugImageViews.normal = mResManager->getView(mView->gbuffer->normal);
+        mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
+        mDebugImageViews.AO = mResManager->getView(mView->mAOImage);
+        mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
+    }
+    {
         BilateralResourceDesc desc{};
         desc.gbuffer = mView->gbuffer;
         desc.result = mView->mBilateralOutputImage;
@@ -1233,15 +1283,18 @@ void Render::setDescriptors()
     }
     {
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage),
-                                    mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
-                                    mResManager->getView(mView->gbuffer->debug),  mResManager->getView(mView->mBilateralVarianceOutputImage));
+        mDebugView->setInputTexture(mDebugImageViews); // add variance
         mDebugView->setOutputTexture(mResManager->getView(mView->textureDebugViewImage));
     }
     {
         mTonemap->setParams(mToneParams);
-        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage));
+        mTonemap->setInputTexture(mResManager->getView(mView->textureCompositionImage));
         mTonemap->setOutputTexture(mResManager->getView(mView->textureTonemapImage));
+    }
+    {
+        mComposition->setParams(mCompositionParam);
+        mComposition->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage), mResManager->getView(mView->mAOImage));
+        mComposition->setOutputTexture(mResManager->getView(mView->textureCompositionImage));
     }
 }
 
@@ -1320,6 +1373,13 @@ void Render::drawFrame()
     static int releaseAfterFrames = 0;
     static bool needReload = false;
     static SceneRenderData* toRemoveSceneData = nullptr;
+    std::string newModelPath;
+
+    mRenderStats.msPerFrame = msPerFrame;
+    mSceneConfig.selectedCamera = mCurrentSceneRenderData->cameraIndex;
+    mSceneConfig.newModelPath = newModelPath;
+    mRenderConfig.animTime = mCurrentSceneRenderData->animationTime;
+    mRenderConfig.samples = mSamples;
     static float sigma = 2.9f;
     static float sigmaNormal = 1.5f;
     static int radius = 3;
@@ -1327,11 +1387,13 @@ void Render::drawFrame()
     static bool enableAcc = true;
     static bool enableFilter = true;
     static float accAlpha = 0.125f;
-    std::string newModelPath;
-    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime, 
+
+    mUi.updateUI(*scene, msPerFrame, newModelPath, mCurrentSceneRenderData->cameraIndex, mCurrentSceneRenderData->animationTime,
     enableAcc, accAlpha, sigma, sigmaNormal, radius, maxR, enableFilter);
 
-    if (!newModelPath.empty() && fs::exists(newModelPath) && newModelPath != MODEL_PATH)
+    mUi.updateUI(*scene, mRenderConfig, mRenderStats, mSceneConfig);
+
+    if (!mSceneConfig.newModelPath.empty() && fs::exists(mSceneConfig.newModelPath) && mSceneConfig.newModelPath != MODEL_PATH)
     {
         if (mScene != mDefaultScene) // if we reload non-default scene
         {
@@ -1341,7 +1403,7 @@ void Render::drawFrame()
             releaseAfterFrames = MAX_FRAMES_IN_FLIGHT;
         }
         mTexManager->saveTexturesInDelQueue();
-        loadScene(newModelPath);
+        loadScene(mSceneConfig.newModelPath);
     }
 
     scene = getScene();
@@ -1391,16 +1453,22 @@ void Render::drawFrame()
     RtShadowParam rtShadowParam{};
     rtShadowParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
+    rtShadowParam.samples = (uint32_t)mSamples;
     mRtShadow->setParams(rtShadowParam);
 
+    AOParam aoParam{};
+    aoParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    aoParam.frameNumber = (uint32_t)mFrameNumber;
+    aoParam.samples = (uint32_t)mSamples;
+    aoParam.rayLen = mRenderConfig.rayLen;
+    mAO->setParams(aoParam);
+
     AccumulationParam accParam{};
-    accParam.alpha = accAlpha;
+    accParam.alpha = mRenderConfig.accAlpha;
     accParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     //glm::double4x4 persp = cam.prevMatrices.perspective;
     //accParam.prevClipToView = glm::inverse(persp);
     accParam.prevClipToView = cam.prevMatrices.invPerspective;
-    accParam.prevViewToClip = cam.prevMatrices.perspective;
-    accParam.prevWorldToView = cam.prevMatrices.view;
     glm::double4x4 view = cam.prevMatrices.view;
     accParam.prevViewToWorld = glm::inverse(view);
     // debug
@@ -1409,6 +1477,7 @@ void Render::drawFrame()
     accParam.viewToWorld = glm::inverse(cam.matrices.view);
 
     mAccumulation->setParams(accParam);
+    mAccumulationAO->setParams(accParam);
 
     LtcParam ltcparams{};
     ltcparams.CameraPos = cam.getPosition();
@@ -1572,7 +1641,34 @@ void Render::drawFrame()
     recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     Image* finalRtImage = mView->mRtShadowImage;
-    if (enableAcc)
+
+    Image* finalAOImage = mView->mAOImage;
+    if (mRenderConfig.enableAO)
+    {
+        // AO barrier
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAO->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalAOImage = mView->mAOImage;
+    }
+    if (mRenderConfig.enableAO && mRenderConfig.enableAOAcc)
+    {
+        // Accumulation AO pass
+        Image* accHistAO = mView->mAccumulationAOImages[imageIndex % 2];
+        Image* accOutAO = mView->mAccumulationAOImages[(imageIndex + 1) % 2];
+        mAccumulationAO->setHistoryTexture(accHistAO);
+        mAccumulationAO->setOutputTexture(accOutAO);
+        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAccumulationAO->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalAOImage = accOutAO;
+    }
+
+    if (mRenderConfig.enableAcc)
     {
         // Accumulation pass
         Image* accHist = mView->mAccumulationImages[imageIndex % 2];
@@ -1586,6 +1682,7 @@ void Render::drawFrame()
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         finalRtImage = accOut;
     }
+
 
     if (enableFilter)
     {
@@ -1615,23 +1712,37 @@ void Render::drawFrame()
     Image* finalImage = nullptr;
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
+        mDebugImageViews.shadow = mResManager->getView(mView->mRtShadowImage);
+        mDebugImageViews.LTC = mResManager->getView(mView->mLtcOutputImage);
+        mDebugImageViews.normal = mResManager->getView(mView->gbuffer->normal);
+        mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
+        mDebugImageViews.AO = mResManager->getView(finalAOImage);
+        mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
+
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;
         mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage),
-                                    mResManager->getView(mView->gbuffer->normal), mResManager->getView(mView->gbuffer->motion),
-                                    mResManager->getView(mView->gbuffer->debug),  mResManager->getView(finalRtImage));
+        mDebugView->setInputTexture(mDebugImageViews); // add variance
         mDebugView->execute(cmd, width, height, imageIndex);
         finalImage = mView->textureDebugViewImage;
     }
     else
     {
+        // compose final image ltc + rtshadow + ao
+        mCompositionParam.dimension.x = width;
+        mCompositionParam.dimension.y = height;
+        mCompositionParam.enableAO = (int32_t)mRenderConfig.enableAO;
+        mComposition->setParams(mCompositionParam);
+        mComposition->execute(cmd, width, height, imageIndex);
+        mComposition->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage), mResManager->getView(finalAOImage));
+
+        // tonemap
         mToneParams.dimension.x = width;
         mToneParams.dimension.y = height;
         mTonemap->setParams(mToneParams);
         mTonemap->execute(cmd, width, height, imageIndex);
-        mTonemap->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage));
+        mTonemap->setInputTexture(mResManager->getView(mView->textureCompositionImage));
         finalImage = mView->textureTonemapImage;
     }
 

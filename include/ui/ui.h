@@ -27,9 +27,33 @@ public:
     ~Ui()
     {
     }
+
+    struct RenderConfig
+    {
+        bool enableAcc = true;
+        bool enableAO = true;
+        bool enableAOAcc = true;
+        float rayLen = 0.2f;
+        float accAlpha = 0.125f;
+        float animTime;
+        int32_t samples;
+    };
+
+    struct RenderStats
+    {
+        double msPerFrame = 33.33;
+    };
+
+    struct SceneConfig
+    {
+        uint32_t selectedCamera;
+        std::string newModelPath;
+    };
+
     bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
-    void updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime, 
+    void updateUI(Scene& scene, double msPerFrame, std::string& newModelPath, uint32_t& selectedCamera, float& animTime,
     bool& enableAcc, float& accAlpha, float& sigma, float& sigmaNormal, int& radius, int& maxR, bool& enableFilter);
+    void updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig);
     void render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void createVkRenderPass(VkFormat framebufferFormat);
