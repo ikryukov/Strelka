@@ -1192,10 +1192,10 @@ void Render::loadScene(const std::string& modelPath)
 
     mTexManager->createShadowSampler();
 
-    setDescriptors();
-
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
+
+    setDescriptors();
 }
 
 void Render::setDescriptors()
