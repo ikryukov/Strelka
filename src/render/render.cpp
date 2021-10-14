@@ -1507,7 +1507,17 @@ void Render::drawFrame()
     bilateralparams.maxR = mRenderConfig.maxR;
     bilateralparams.invProj = glm::inverse(cam.getPerspective());
     mBilateralFilter->setParams(bilateralparams);
-    mAOBilateralFilter->setParams(bilateralparams);
+
+    BilateralParam bilateralAOparams{};
+    bilateralAOparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    bilateralAOparams.sigma = mRenderConfig.sigmaAO;
+    bilateralAOparams.sigmaNormal = mRenderConfig.sigmaAONormal;
+    bilateralAOparams.radius = mRenderConfig.radiusAO;
+    bilateralAOparams.zfar = cam.zfar;
+    bilateralAOparams.znear = cam.znear;
+    bilateralAOparams.maxR = mRenderConfig.maxRAO;
+    bilateralAOparams.invProj = glm::inverse(cam.getPerspective());
+    mAOBilateralFilter->setParams(bilateralAOparams);
 
     if (needReload && releaseAfterFrames == 0)
     {
@@ -1760,7 +1770,7 @@ void Render::drawFrame()
         mDebugParams.dimension.y = height;
         mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mDebugImageViews); // add variance
+        mDebugView->setInputTexture(mDebugImageViews);
         mDebugView->execute(cmd, width, height, imageIndex);
         finalImage = mView->textureDebugViewImage;
     }

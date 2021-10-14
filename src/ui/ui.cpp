@@ -708,13 +708,21 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     // ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
 
     ImGui::Checkbox("Bilateral Filter", &renderConfig.enableFilter);
-    ImGui::Checkbox("AO Bilateral Filter", &renderConfig.enableAOFilter);
-    if (renderConfig.enableFilter || renderConfig.enableAOFilter)
+    if (renderConfig.enableFilter)
     {
         ImGui::DragFloat("sigma", &renderConfig.sigma, 0.1f, 0.1f);
         ImGui::DragFloat("sigma normal", &renderConfig.sigmaNormal, 0.1f, 0.1f);
         ImGui::DragInt("maxR", &renderConfig.maxR, 1, 1);
         ImGui::DragInt("radius", &renderConfig.radius, 1, 1);
+    }
+
+    ImGui::Checkbox("AO Bilateral Filter", &renderConfig.enableAOFilter);
+    if (renderConfig.enableAOFilter)
+    {
+        ImGui::DragFloat("AO sigma", &renderConfig.sigmaAO, 0.1f, 0.1f);
+        ImGui::DragFloat("AO sigma normal", &renderConfig.sigmaAONormal, 0.1f, 0.1f);
+        ImGui::DragInt("AO maxR", &renderConfig.maxRAO, 1, 1);
+        ImGui::DragInt("AO radius", &renderConfig.radiusAO, 1, 1);
     }
     ImGui::End(); // end window
 }

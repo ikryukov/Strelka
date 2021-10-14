@@ -43,6 +43,10 @@ public:
         float sigmaNormal = 1.5f;
         int radius = 3;
         int maxR = 5;
+        float sigmaAO = 2.9f;
+        float sigmaAONormal = 1.5f;
+        int radiusAO = 3;
+        int maxRAO = 5;
     };
 
     struct RenderStats
