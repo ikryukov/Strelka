@@ -231,7 +231,6 @@ private:
         Buffer* mInstanceBuffer = nullptr;
         Buffer* mLightsBuffer = nullptr;
         Buffer* mBvhNodeBuffer = nullptr;
-        Buffer* mBvhTriangleBuffer = nullptr;
 
         ResourceManager* mResManager = nullptr;
         explicit SceneRenderData(ResourceManager* resManager)
@@ -264,10 +263,6 @@ private:
             if (mBvhNodeBuffer)
             {
                 mResManager->destroyBuffer(mBvhNodeBuffer);
-            }
-            if (mBvhTriangleBuffer)
-            {
-                mResManager->destroyBuffer(mBvhTriangleBuffer);
             }
         }
     };

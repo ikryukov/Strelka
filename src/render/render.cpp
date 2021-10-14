@@ -870,7 +870,7 @@ void Render::createVertexBuffer(nevk::Scene& scene)
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneVertices.data(), (size_t)bufferSize);
-    mCurrentSceneRenderData->mVertexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "VB");
+    mCurrentSceneRenderData->mVertexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "VB");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
@@ -942,16 +942,19 @@ void Render::createBvhBuffer(nevk::Scene& scene)
             BVHInputPosition p0;
             p0.pos = v0;
             p0.instId = currInstId;
+            p0.primId = i;
             positions.push_back(p0);
 
             BVHInputPosition p1;
             p1.pos = v1;
             p1.instId = currInstId;
+            p1.primId = i;
             positions.push_back(p1);
 
             BVHInputPosition p2;
             p2.pos = v2;
             p2.instId = currInstId;
+            p2.primId = i;
             positions.push_back(p2);
         }
         ++currInstId;
@@ -971,19 +974,6 @@ void Render::createBvhBuffer(nevk::Scene& scene)
         mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), bufferSize);
         mResManager->destroyBuffer(stagingBuffer);
     }
-    {
-        VkDeviceSize bufferSize = sizeof(BVHTriangle) * sceneBvh.triangles.size();
-        if (bufferSize == 0)
-        {
-            return;
-        }
-        Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-        memcpy(stagingBufferMemory, sceneBvh.triangles.data(), (size_t)bufferSize);
-        mCurrentSceneRenderData->mBvhTriangleBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH triangle");
-        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhTriangleBuffer), bufferSize);
-        mResManager->destroyBuffer(stagingBuffer);
-    }
 }
 
 void Render::createIndexBuffer(nevk::Scene& scene)
@@ -999,7 +989,7 @@ void Render::createIndexBuffer(nevk::Scene& scene)
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneIndices.data(), (size_t)bufferSize);
-    mCurrentSceneRenderData->mIndexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "IB");
+    mCurrentSceneRenderData->mIndexBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "IB");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
@@ -1012,11 +1002,12 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
         glm::float4x4 model;
         glm::float4x4 normalMatrix;
         int32_t materialId;
-        int32_t pad0;
-        int32_t pad1;
+        int32_t indexOffset;
+        int32_t indexCount;
         int32_t pad2;
     };
 
+    const std::vector<Mesh>& meshes = scene.getMeshes();
     const std::vector<nevk::Instance>& sceneInstances = scene.getInstances();
     mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
     VkDeviceSize bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
@@ -1031,6 +1022,10 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
         instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
         instanceConsts[i].model = sceneInstances[i].transform;
         instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
+
+        const uint32_t currentMeshId = sceneInstances[i].mMeshId;
+        instanceConsts[i].indexOffset = meshes[currentMeshId].mIndex;
+        instanceConsts[i].indexCount = meshes[currentMeshId].mCount;
     }
 
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -1217,7 +1212,10 @@ void Render::setDescriptors()
         desc.lights = mCurrentSceneRenderData->mLightsBuffer;
         desc.gbuffer = mView->gbuffer;
         desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
+        desc.instanceConstants = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
+        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
+
         mRtShadow->setResources(desc);
     }
     {
@@ -1225,7 +1223,10 @@ void Render::setDescriptors()
         desc.result = mView->mAOImage;
         desc.gbuffer = mView->gbuffer;
         desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.bvhTriangles = mCurrentSceneRenderData->mBvhTriangleBuffer;
+        desc.instanceConstants = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
+        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
+
         mAO->setResources(desc);
     }
     {
@@ -1481,6 +1482,7 @@ void Render::drawFrame()
 
     // upload data
     {
+        const std::vector<Mesh>& meshes = scene->getMeshes();
         const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
         mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
         Buffer* stagingBuffer = mUploadBuffer[frameIndex];
@@ -1495,8 +1497,8 @@ void Render::drawFrame()
                 glm::float4x4 model;
                 glm::float4x4 normalMatrix;
                 int32_t materialId;
-                int32_t pad0;
-                int32_t pad1;
+                int32_t indexOffset;
+                int32_t indexCount;
                 int32_t pad2;
             };
             std::vector<InstanceConstants> instanceConsts;
@@ -1506,6 +1508,10 @@ void Render::drawFrame()
                 instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
                 instanceConsts[i].model = sceneInstances[i].transform;
                 instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
+
+                const uint32_t currentMeshId = sceneInstances[i].mMeshId;
+                instanceConsts[i].indexOffset = meshes[currentMeshId].mIndex;
+                instanceConsts[i].indexCount = meshes[currentMeshId].mCount;
             }
             size_t bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
             memcpy(stagingBufferMemory, instanceConsts.data(), bufferSize);
@@ -1644,7 +1650,7 @@ void Render::drawFrame()
     Image* finalImage = nullptr;
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
-        mDebugImageViews.shadow = mResManager->getView(mView->mRtShadowImage);
+        mDebugImageViews.shadow = mResManager->getView(finalRtImage);
         mDebugImageViews.LTC = mResManager->getView(mView->mLtcOutputImage);
         mDebugImageViews.normal = mResManager->getView(mView->gbuffer->normal);
         mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);

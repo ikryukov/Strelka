@@ -5,17 +5,32 @@
 #define INVALID_INDEX 0xFFFFFFFF
 #define PI 3.1415926535897
 
+struct Vertex
+{
+    float3 position;
+    uint32_t tangent;
+    uint32_t normal;
+    uint32_t uv;
+    float pad0;
+    float pad1;
+};
+
+struct InstanceConstants
+{
+    float4x4 model;
+    float4x4 normalMatrix;
+    int32_t materialId;
+    int32_t indexOffset;
+    int32_t indexCount;
+    int32_t pad2;
+};
+
 struct BVHNode
 {
-    float3 minBounds;
+    float3 minBounds; // for leaf x - primitive (triangle) id
     int instId;
     float3 maxBounds;
     int nodeOffset;
-};
-
-struct BVHTriangle
-{
-    float4 v0;
 };
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection
@@ -79,8 +94,43 @@ struct Hit
     uint instId;
 };
 
+struct BVHTriangle 
+{
+    float3 v0;
+    float3 e0;
+    float3 e1;
+};
 
-bool closestHit(Ray ray, inout Hit hit)
+struct Accel
+{
+    StructuredBuffer<BVHNode> bvhNodes;
+    StructuredBuffer<InstanceConstants> instanceConstants;
+    StructuredBuffer<Vertex> vb;
+    StructuredBuffer<uint> ib;
+};
+
+BVHTriangle getTriangle(uint instanceId, uint primitiveId, Accel accel)
+{
+    InstanceConstants instConst = accel.instanceConstants[instanceId];
+
+    uint i0 = accel.ib[instConst.indexOffset + primitiveId * 3 + 0];
+    uint i1 = accel.ib[instConst.indexOffset + primitiveId * 3 + 1];
+    uint i2 = accel.ib[instConst.indexOffset + primitiveId * 3 + 2];
+
+    // read and transform vertices, calculate edges
+    float3 v0 = mul(instConst.model, float4(accel.vb[i0].position, 1.0)).xyz;
+    float3 e0 = mul(instConst.model, float4(accel.vb[i1].position, 1.0)).xyz - v0;
+    float3 e1 = mul(instConst.model, float4(accel.vb[i2].position, 1.0)).xyz - v0;
+
+    BVHTriangle res;
+    res.v0 = v0;
+    res.e0 = e0;
+    res.e1 = e1;
+
+    return res;
+}
+
+bool closestHit(Accel accel, Ray ray, inout Hit hit)
 {
     const float3 invdir = 1.0 / ray.d.xyz;
 
@@ -90,19 +140,22 @@ bool closestHit(Ray ray, inout Hit hit)
     uint32_t nodeIndex = 0;
     while (nodeIndex != INVALID_INDEX)
     {
-        BVHNode node = bvhNodes[NonUniformResourceIndex(nodeIndex)];
-        uint32_t primitiveIndex = node.instId;
+        BVHNode node = accel.bvhNodes[NonUniformResourceIndex(nodeIndex)];
+        const uint32_t instanceIndex = node.instId;
         float boxT = 1e9f;
-        if (primitiveIndex != INVALID_INDEX) // leaf
+        if (instanceIndex != INVALID_INDEX) // leaf
         {
-            const float4 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0;
+            const uint32_t primitiveIndex = asuint(node.minBounds.x); // triangle index
+
+            BVHTriangle triangle = getTriangle(instanceIndex, primitiveIndex, accel);
+
             float2 bary;
-            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0.xyz, node.minBounds, node.maxBounds, hit.t, bary);
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, triangle.v0, triangle.e0, triangle.e1, hit.t, bary);
             if (isIntersected && (hit.t < ray.o.w) && (hit.t < minHit))
             {
                 minHit = hit.t;
                 hit.bary = bary;
-                hit.instId = asuint(v0.w);
+                hit.instId = instanceIndex;
                 isFound = true;
             }
         }
@@ -122,23 +175,26 @@ bool closestHit(Ray ray, inout Hit hit)
     return isFound;
 }
 
-bool anyHit(Ray ray, inout Hit hit)
+bool anyHit(Accel accel, Ray ray, inout Hit hit)
 {
     const float3 invdir = 1.0 / ray.d.xyz;
     uint32_t nodeIndex = 0;
     while (nodeIndex != INVALID_INDEX)
     {
-        BVHNode node = bvhNodes[NonUniformResourceIndex(nodeIndex)];
-        uint32_t primitiveIndex = node.instId;
+        BVHNode node = accel.bvhNodes[NonUniformResourceIndex(nodeIndex)];
+        uint32_t instanceIndex = node.instId;
         float boxT = 1e9f;
-        if (primitiveIndex != INVALID_INDEX) // leaf
+        if (instanceIndex != INVALID_INDEX) // leaf
         {
-            const float4 v0 = bvhTriangles[NonUniformResourceIndex(primitiveIndex)].v0; // xyz - coord w - instId
+            const uint32_t primitiveIndex = asuint(node.minBounds.x); // triangle index
+
+            BVHTriangle triangle = getTriangle(instanceIndex, primitiveIndex, accel);
+
             float2 bary;
-            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, v0.xyz, node.minBounds, node.maxBounds, hit.t, bary);
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, triangle.v0, triangle.e0, triangle.e1, hit.t, bary);
             if (isIntersected && (hit.t < ray.o.w)) // check max ray trace distance
             {
-                hit.instId = asuint(v0.w);
+                hit.instId = instanceIndex;
                 return true;
             }
         }
@@ -156,3 +212,4 @@ bool anyHit(Ray ray, inout Hit hit)
     }
     return false;
 }
+
