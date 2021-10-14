@@ -1662,6 +1662,9 @@ void Render::drawFrame()
     else
     {
         // compose final image ltc + rtshadow + ao
+        recordBarrier(cmd, mResManager->getVkImage(mView->textureCompositionImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
         mCompositionParam.dimension.x = width;
         mCompositionParam.dimension.y = height;
         mCompositionParam.enableAO = (int32_t)mRenderConfig.enableAO;
@@ -1670,6 +1673,8 @@ void Render::drawFrame()
         mComposition->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage), mResManager->getView(finalAOImage));
 
         // tonemap
+        recordBarrier(cmd, mResManager->getVkImage(mView->textureCompositionImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         mToneParams.dimension.x = width;
         mToneParams.dimension.y = height;
         mTonemap->setParams(mToneParams);
