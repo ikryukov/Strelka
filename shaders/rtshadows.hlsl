@@ -63,8 +63,7 @@ float calcShadow(uint2 pixelIndex)
     ray.o = float4(wpos + offset, distToLight - 1e-5);
     Hit hit;
     hit.t = 0.0;
-    // changed here for testing
-    if ((dot(N, L) > 0.0) && closestHit(accel, ray, hit))
+    if ((dot(N, L) > 0.0) && anyHit(accel, ray, hit))
     {
         return 0.1;
     }
