@@ -1656,17 +1656,16 @@ void Render::drawFrame()
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     // Raytracing
-    // barrier
-    recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mRtShadow->execute(cmd, width, height, imageIndex);
-
-    // barrier
-    recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    if (mRenderConfig.enableShadows)
+    {
+        recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mRtShadow->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    }
     Image* finalRtImage = mView->mRtShadowImage;
 
-    Image* finalAOImage = mView->mAOImage;
     if (mRenderConfig.enableAO)
     {
         // AO barrier
@@ -1675,8 +1674,8 @@ void Render::drawFrame()
         mAO->execute(cmd, width, height, imageIndex);
         recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        finalAOImage = mView->mAOImage;
     }
+    Image* finalAOImage = mView->mAOImage;
     if (mRenderConfig.enableAO && mRenderConfig.enableAOAcc)
     {
         // Accumulation AO pass
@@ -1716,7 +1715,7 @@ void Render::drawFrame()
         finalAOImage = mView->mAOBilateralOutputImage;
     }
 
-    if (mRenderConfig.enableAcc)
+    if (mRenderConfig.enableShadowsAcc)
     {
         // Accumulation pass
         Image* accHist = mView->mAccumulationImages[imageIndex % 2];
@@ -1781,6 +1780,7 @@ void Render::drawFrame()
         // compose final image ltc + rtshadow + ao
         mCompositionParam.dimension.x = width;
         mCompositionParam.dimension.y = height;
+        mCompositionParam.enableShadows = (int32_t)mRenderConfig.enableShadows;
         mCompositionParam.enableAO = (int32_t)mRenderConfig.enableAO;
         mComposition->setParams(mCompositionParam);
         mComposition->execute(cmd, width, height, imageIndex);
