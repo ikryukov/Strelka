@@ -58,7 +58,7 @@ set(SHADERMANAGER_SOURCES
 set(SHADERLIB_NAME shadermanager)
 add_library(${SHADERLIB_NAME} OBJECT ${SHADERMANAGER_SOURCES})
 target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
-target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/shadermanager)
+target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/shadermanager shaders/)
 target_include_directories(${SHADERLIB_NAME} PUBLIC external/slang/include)
 if (MSVC)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")

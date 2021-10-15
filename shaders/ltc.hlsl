@@ -24,8 +24,8 @@ StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<RectLight> lights;
 StructuredBuffer<Material> materials;
 
-Texture2D textures[8]; // bindless
-SamplerState samplers[2];
+Texture2D textures[BINDLESS_TEXTURE_COUNT]; // bindless
+SamplerState samplers[BINDLESS_SAMPLER_COUNT];
 
 Texture2D<float4> ltc1;
 Texture2D<float4> ltc2;

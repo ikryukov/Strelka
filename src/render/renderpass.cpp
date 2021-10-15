@@ -1,4 +1,5 @@
 #include "renderpass.h"
+#include "bindless.h"
 
 #include <array>
 #include <chrono>
@@ -13,11 +14,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 
-#ifdef __APPLE__
-const uint32_t BINDLESS_TEXTURE_COUNT = 16;
-#else
-const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
-#endif
 
 namespace nevk
 {

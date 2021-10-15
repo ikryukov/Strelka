@@ -1,4 +1,5 @@
 #include "gbufferpass.h"
+#include "bindless.h"
 
 #include <array>
 #include <chrono>
@@ -12,14 +13,6 @@
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
-
-#ifdef __APPLE__
-const uint32_t BINDLESS_TEXTURE_COUNT = 8;
-const uint32_t BINDLESS_SAMPLER_COUNT = 2;
-#else
-const uint32_t BINDLESS_TEXTURE_COUNT = 2048;
-const uint32_t BINDLESS_SAMPLER_COUNT = 36;
-#endif
 
 namespace nevk
 {
