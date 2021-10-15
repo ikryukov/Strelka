@@ -2,6 +2,7 @@
 #include "materials.h"
 #include "lights.h"
 #include "ltcparam.h"
+#include "bindless.h"
 
 struct InstanceConstants
 {
