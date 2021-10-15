@@ -2,6 +2,12 @@
 
 #include <cstdio>
 
+#ifdef __APPLE__
+const int compDir = 1;
+#else
+const int compDir = 0;
+#endif
+
 namespace nevk
 {
 
@@ -27,7 +33,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     spSetTargetProfile(slangRequest, targetIndex, profileID);
     SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
     spSetOptimizationLevel(slangRequest, optLevel);
-    spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(__APPLE__).c_str());
+    spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(compDir).c_str());
 
     int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
     spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, fileName);
