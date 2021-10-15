@@ -50,8 +50,11 @@ public:
     {
         glm::float3 pos;
         uint32_t tangent;
+
         uint32_t normal;
         uint32_t uv;
+        float pad0;
+        float pad1;
     };
 
     struct Node
