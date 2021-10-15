@@ -1480,6 +1480,8 @@ void Render::drawFrame()
     //glm::double4x4 persp = cam.prevMatrices.perspective;
     //accParam.prevClipToView = glm::inverse(persp);
     accParam.prevClipToView = cam.prevMatrices.invPerspective;
+    accParam.prevViewToClip = cam.prevMatrices.perspective;
+    accParam.prevWorldToView = cam.prevMatrices.view;
     glm::double4x4 view = cam.prevMatrices.view;
     accParam.prevViewToWorld = glm::inverse(view);
     // debug

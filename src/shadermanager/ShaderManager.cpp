@@ -27,9 +27,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     spSetTargetProfile(slangRequest, targetIndex, profileID);
     SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
     spSetOptimizationLevel(slangRequest, optLevel);
-    //spAddPreprocessorDefine(slangRequest, "BINDLESS_TEXTURE_COUNT", std::to_string(BINDLESS_TEXTURE_COUNT).c_str());
-    //spAddPreprocessorDefine(slangRequest, "BINDLESS_SAMPLER_COUNT", std::to_string(BINDLESS_SAMPLER_COUNT).c_str());
-    spAddPreprocessorDefine(slangRequest, "__APPLE__", "1");
+    spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(__APPLE__).c_str());
 
     int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
     spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, fileName);
