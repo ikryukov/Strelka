@@ -44,6 +44,22 @@
 #include <vector>
 
 #define NEVK_LOG_ERROR(fmt, ...) nevk::Render::logger->error(fmt, __VA_ARGS__)
+/*
+class Logger{
+public:
+    inline static std::shared_ptr<spdlog::logger> logger = spdlog::basic_logger_mt("NeVK2", "logs/renderLog.log");
+
+    static std::shared_ptr<spdlog::logger> getInstance(){
+        return logger;
+    }
+
+    static void NEVK_LOG(const char* fmt, ...){
+        va_list args;
+        logger->error(fmt,  args);
+    }
+};
+
+#define NEVK_LOG_ERROR(fmt, ...) Logger::NEVK_LOG(fmt, __VA_ARGS__) */
 
 const uint32_t SHADOW_MAP_WIDTH = 1024;
 const uint32_t SHADOW_MAP_HEIGHT = 1024;
