@@ -20,6 +20,7 @@ public:
         VkImageView motion;
         VkImageView debug;
         VkImageView AO;
+        VkImageView variance;
     };
 
     DebugView(const SharedContext& ctx);

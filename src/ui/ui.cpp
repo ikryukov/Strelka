@@ -472,7 +472,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO" };
+    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO", "Variance" };
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();
@@ -690,23 +690,54 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
         }
         ImGui::EndCombo();
     }
+
+    ImGui::Checkbox("Enable Shadows", &renderConfig.enableShadows);
+    if (renderConfig.enableShadows)
+    {
+        if (ImGui::TreeNode("Shadows"))
+        {
+            ImGui::Checkbox("Shadow Accumulation", &renderConfig.enableShadowsAcc);
+            if (renderConfig.enableShadowsAcc)
+            {
+                ImGui::SliderFloat("Alpha", &renderConfig.accAlpha, 0.01, 0.5);
+            }
+            ImGui::Checkbox("Bilateral Filter", &renderConfig.enableFilter);
+            if (renderConfig.enableFilter)
+            {
+                ImGui::DragFloat("Sigma", &renderConfig.sigma, 0.1f, 0.1f);
+                ImGui::DragFloat("Sigma normal", &renderConfig.sigmaNormal, 0.1f, 0.1f);
+                ImGui::DragInt("Max Radius", &renderConfig.maxR, 1, 1);
+                ImGui::DragInt("Radius", &renderConfig.radius, 1, 1);
+            }
+            ImGui::TreePop();
+        }
+    }
+
     ImGui::Checkbox("Enable AO", &renderConfig.enableAO);
+
     if (renderConfig.enableAO)
     {
-        ImGui::Checkbox("AO Accumulation", &renderConfig.enableAOAcc);
-        ImGui::SliderFloat("Ray length", &renderConfig.rayLen, 0.01, 100);
-        ImGui::SliderInt("Samples per pixel", &renderConfig.samples, 1, 100);
-    }
-    ImGui::Checkbox("Shadow Accumulation", &renderConfig.enableAcc);
-    if (renderConfig.enableAcc)
-    {
-        ImGui::SliderFloat("Alpha", &renderConfig.accAlpha, 0.01, 0.5);
-    }
+        if (ImGui::TreeNode("Ambient Occlusion"))
+        {
+            ImGui::Checkbox("AO Accumulation", &renderConfig.enableAOAcc);
+            if (renderConfig.enableAOAcc)
+            {
+                ImGui::SliderFloat("Alpha", &renderConfig.accAOAlpha, 0.01, 0.5);
+            }
+            ImGui::SliderFloat("Ray length", &renderConfig.rayLen, 0.01, 100);
+            ImGui::SliderInt("Samples per pixel", &renderConfig.samples, 1, 100);
 
-    //     transparency settings
-    // ImGui::Checkbox("Transparent Mode", &scene.transparentMode);
-    // ImGui::Checkbox("Opaque Mode", &scene.opaqueMode);
-
+            ImGui::Checkbox("AO Bilateral Filter", &renderConfig.enableAOFilter);
+            if (renderConfig.enableAOFilter)
+            {
+                ImGui::DragFloat("AO sigma", &renderConfig.sigmaAO, 0.1f, 0.1f);
+                ImGui::DragFloat("AO sigma normal", &renderConfig.sigmaAONormal, 0.1f, 0.1f);
+                ImGui::DragInt("AO max radius", &renderConfig.maxRAO, 1, 1);
+                ImGui::DragInt("AO radius", &renderConfig.radiusAO, 1, 1);
+            }
+            ImGui::TreePop();
+        }
+    }
     ImGui::End(); // end window
 }
 

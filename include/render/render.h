@@ -23,6 +23,7 @@
 #include "gbuffer.h"
 #include "gbufferpass.h"
 #include "ltcpass.h"
+#include "bilateralfilter.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
 #include "tonemap.h"
@@ -144,6 +145,8 @@ private:
     Composition* mComposition;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
+    BilateralFilter* mBilateralFilter;
+    BilateralFilter* mAOBilateralFilter;
     Tonemapparam mToneParams;
     Compositionparam mCompositionParam;
     Debugviewparam mDebugParams;
@@ -160,6 +163,10 @@ private:
         Image* mRtShadowImage;
         Image* mAOImage;
         Image* mLtcOutputImage;
+        Image* mBilateralOutputImage;
+        Image* mBilateralVarianceOutputImage;
+        Image* mAOBilateralOutputImage;
+        Image* mAOBilateralVarianceOutputImage;
         Image* mAccumulationImages[2] = { nullptr, nullptr };
         Image* mAccumulationAOImages[2] = { nullptr, nullptr };
         ResourceManager* mResManager = nullptr;
@@ -197,6 +204,22 @@ private:
             if (mLtcOutputImage)
             {
                 mResManager->destroyImage(mLtcOutputImage);
+            }
+            if (mBilateralOutputImage)
+            {
+                mResManager->destroyImage(mBilateralOutputImage);
+            }
+            if (mBilateralVarianceOutputImage)
+            {
+                mResManager->destroyImage(mBilateralVarianceOutputImage);
+            }
+            if (mAOBilateralOutputImage)
+            {
+                mResManager->destroyImage(mAOBilateralOutputImage);
+            }
+            if (mAOBilateralVarianceOutputImage)
+            {
+                mResManager->destroyImage(mAOBilateralVarianceOutputImage);
             }
             for (uint32_t i = 0; i < 2; ++i)
             {

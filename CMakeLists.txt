@@ -58,7 +58,7 @@ set(SHADERMANAGER_SOURCES
 set(SHADERLIB_NAME shadermanager)
 add_library(${SHADERLIB_NAME} OBJECT ${SHADERMANAGER_SOURCES})
 target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
-target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/shadermanager)
+target_include_directories(${SHADERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/shadermanager shaders/)
 target_include_directories(${SHADERLIB_NAME} PUBLIC external/slang/include)
 if (MSVC)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/slang.lib")
@@ -152,6 +152,7 @@ set(RENDER_SOURCES
         include/render/rtshadowpass.h
         include/render/aopass.h
         include/render/ltcpass.h
+        include/render/bilateralfilter.h
         include/render/tonemap.h
         include/render/composition.h
         include/render/accumulation.h
@@ -165,6 +166,7 @@ set(RENDER_SOURCES
         src/render/rtshadowpass.cpp
         src/render/aopass.cpp
         src/render/ltcpass.cpp
+        src/render/bilateralfilter.cpp
         src/render/ltc_data.h
         src/render/tonemap.cpp
         src/render/composition.cpp

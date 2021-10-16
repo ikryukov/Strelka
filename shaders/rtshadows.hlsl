@@ -35,7 +35,7 @@ float calcShadow(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
     if (gbWorldPos.w == 0.0)
-        return 0;
+        return 1.0; // no shadow
     float3 wpos = gbWPos[pixelIndex].xyz;
 
     float color = 0.0;
@@ -65,7 +65,7 @@ float calcShadow(uint2 pixelIndex)
     hit.t = 0.0;
     if ((dot(N, L) > 0.0) && anyHit(accel, ray, hit))
     {
-        return 0.1;
+        return 0.0;
     }
     return 1.0;
 }

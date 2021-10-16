@@ -4,7 +4,6 @@
 #include <slang.h>
 #include <string>
 #include <vector>
-
 #include <slang-com-ptr.h>
 
 namespace nevk

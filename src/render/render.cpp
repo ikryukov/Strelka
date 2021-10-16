@@ -99,6 +99,12 @@ void Render::initVulkan()
     mLtcPass = new LtcPass(mSharedCtx);
     mLtcPass->initialize();
 
+    mBilateralFilter = new BilateralFilter(mSharedCtx);
+    mBilateralFilter->initialize();
+
+    mAOBilateralFilter = new BilateralFilter(mSharedCtx);
+    mAOBilateralFilter->initialize();
+
     mRtShadow = new RtShadowPass(mSharedCtx);
     mRtShadow->initialize();
 
@@ -348,6 +354,8 @@ void Render::cleanup()
     delete mComposition;
     delete mDebugView;
     delete mLtcPass;
+    delete mBilateralFilter;
+    delete mAOBilateralFilter;
     delete mRtShadow;
     delete mAO;
     delete mAccumulation;
@@ -726,6 +734,22 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                      VK_IMAGE_TILING_OPTIMAL,
                                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
+    view->mBilateralOutputImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                           VK_IMAGE_TILING_OPTIMAL,
+                                                           VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Bilateral Output");
+    view->mBilateralVarianceOutputImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                                   VK_IMAGE_TILING_OPTIMAL,
+                                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Bilateral Variance Output");
+    view->mAOBilateralOutputImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                             VK_IMAGE_TILING_OPTIMAL,
+                                                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "AO Bilateral Output");
+    view->mAOBilateralVarianceOutputImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                                     VK_IMAGE_TILING_OPTIMAL,
+                                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "AO Bilateral Variance Output");
     view->mRtShadowImage = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
                                                     VK_IMAGE_TILING_OPTIMAL,
                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -1261,7 +1285,24 @@ void Render::setDescriptors()
         mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
         mDebugImageViews.AO = mResManager->getView(mView->mAOImage);
         mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
-
+    }
+    {
+        BilateralResourceDesc desc{};
+        desc.gbuffer = mView->gbuffer;
+        desc.result = mView->mBilateralOutputImage;
+        desc.variance = mView->mBilateralVarianceOutputImage;
+        desc.input = mView->mRtShadowImage;
+        mBilateralFilter->setResources(desc);
+    }
+    {
+        BilateralResourceDesc desc{};
+        desc.gbuffer = mView->gbuffer;
+        desc.result = mView->mAOBilateralOutputImage;
+        desc.variance = mView->mAOBilateralVarianceOutputImage;
+        desc.input = mView->mRtShadowImage;
+        mAOBilateralFilter->setResources(desc);
+    }
+    {
         mDebugView->setParams(mDebugParams);
         mDebugView->setInputTexture(mDebugImageViews);
         mDebugView->setOutputTexture(mResManager->getView(mView->textureDebugViewImage));
@@ -1362,6 +1403,7 @@ void Render::drawFrame()
     mRenderConfig.samples = mSamples;
 
     mUi.updateUI(*scene, mRenderConfig, mRenderStats, mSceneConfig);
+    mCurrentSceneRenderData->animationTime = mRenderConfig.animTime;
 
     if (!mSceneConfig.newModelPath.empty() && fs::exists(mSceneConfig.newModelPath) && mSceneConfig.newModelPath != MODEL_PATH)
     {
@@ -1439,6 +1481,8 @@ void Render::drawFrame()
     //glm::double4x4 persp = cam.prevMatrices.perspective;
     //accParam.prevClipToView = glm::inverse(persp);
     accParam.prevClipToView = cam.prevMatrices.invPerspective;
+    accParam.prevViewToClip = cam.prevMatrices.perspective;
+    accParam.prevWorldToView = cam.prevMatrices.view;
     glm::double4x4 view = cam.prevMatrices.view;
     accParam.prevViewToWorld = glm::inverse(view);
     // debug
@@ -1455,6 +1499,28 @@ void Render::drawFrame()
     ltcparams.frameNumber = (uint32_t)mFrameNumber;
     ltcparams.lightsCount = (uint32_t)scene->getLights().size();
     mLtcPass->setParams(ltcparams);
+
+    BilateralParam bilateralparams{};
+    bilateralparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    bilateralparams.sigma = mRenderConfig.sigma;
+    bilateralparams.sigmaNormal = mRenderConfig.sigmaNormal;
+    bilateralparams.radius = mRenderConfig.radius;
+    bilateralparams.zfar = cam.zfar;
+    bilateralparams.znear = cam.znear;
+    bilateralparams.maxR = mRenderConfig.maxR;
+    bilateralparams.invProj = glm::inverse(cam.getPerspective());
+    mBilateralFilter->setParams(bilateralparams);
+
+    BilateralParam bilateralAOparams{};
+    bilateralAOparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    bilateralAOparams.sigma = mRenderConfig.sigmaAO;
+    bilateralAOparams.sigmaNormal = mRenderConfig.sigmaAONormal;
+    bilateralAOparams.radius = mRenderConfig.radiusAO;
+    bilateralAOparams.zfar = cam.zfar;
+    bilateralAOparams.znear = cam.znear;
+    bilateralAOparams.maxR = mRenderConfig.maxRAO;
+    bilateralAOparams.invProj = glm::inverse(cam.getPerspective());
+    mAOBilateralFilter->setParams(bilateralAOparams);
 
     if (needReload && releaseAfterFrames == 0)
     {
@@ -1596,43 +1662,17 @@ void Render::drawFrame()
                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     // Raytracing
-    // barrier
-    recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mRtShadow->execute(cmd, width, height, imageIndex);
-
-    // barrier
-    recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    if (mRenderConfig.enableShadows)
+    {
+        recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mRtShadow->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(mView->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    }
     Image* finalRtImage = mView->mRtShadowImage;
 
-    Image* finalAOImage = mView->mAOImage;
-    if (mRenderConfig.enableAO)
-    {
-        // AO barrier
-        recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        mAO->execute(cmd, width, height, imageIndex);
-        recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        finalAOImage = mView->mAOImage;
-    }
-    if (mRenderConfig.enableAO && mRenderConfig.enableAOAcc)
-    {
-        // Accumulation AO pass
-        Image* accHistAO = mView->mAccumulationAOImages[imageIndex % 2];
-        Image* accOutAO = mView->mAccumulationAOImages[(imageIndex + 1) % 2];
-        mAccumulationAO->setHistoryTexture(accHistAO);
-        mAccumulationAO->setOutputTexture(accOutAO);
-        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        mAccumulationAO->execute(cmd, width, height, imageIndex);
-        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        finalAOImage = accOutAO;
-    }
-
-    if (mRenderConfig.enableAcc)
+    if (mRenderConfig.enableShadows && mRenderConfig.enableShadowsAcc)
     {
         // Accumulation pass
         Image* accHist = mView->mAccumulationImages[imageIndex % 2];
@@ -1647,6 +1687,80 @@ void Render::drawFrame()
         finalRtImage = accOut;
     }
 
+    if (mRenderConfig.enableShadows && mRenderConfig.enableFilter)
+    {
+        // Bilateral Filter
+        BilateralResourceDesc desc{};
+        desc.gbuffer = mView->gbuffer;
+        desc.result = mView->mBilateralOutputImage;
+        desc.variance = mView->mBilateralVarianceOutputImage;
+        desc.input = finalRtImage;
+        mBilateralFilter->setResources(desc);
+
+        recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        mBilateralFilter->execute(cmd, width, height, imageIndex);
+
+        recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        recordBarrier(cmd, mResManager->getVkImage(mView->mBilateralOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalRtImage = mView->mBilateralOutputImage;
+    }
+
+    if (mRenderConfig.enableAO)
+    {
+        // AO barrier
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAO->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    }
+    Image* finalAOImage = mView->mAOImage;
+    if (mRenderConfig.enableAO && mRenderConfig.enableAOAcc)
+    {
+        // Accumulation AO pass
+        Image* accHistAO = mView->mAccumulationAOImages[imageIndex % 2];
+        Image* accOutAO = mView->mAccumulationAOImages[(imageIndex + 1) % 2];
+        mAccumulationAO->setHistoryTexture(accHistAO);
+        mAccumulationAO->setOutputTexture(accOutAO);
+        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAccumulationAO->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalAOImage = accOutAO;
+    }
+    if (mRenderConfig.enableAO && mRenderConfig.enableAOFilter)
+    {
+        // Bilateral Filter AO
+        BilateralResourceDesc desc{};
+        desc.gbuffer = mView->gbuffer;
+        desc.result = mView->mAOBilateralOutputImage;
+        desc.variance = mView->mAOBilateralVarianceOutputImage;
+        desc.input = finalAOImage;
+        mAOBilateralFilter->setResources(desc);
+
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        mAOBilateralFilter->execute(cmd, width, height, imageIndex);
+
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        recordBarrier(cmd, mResManager->getVkImage(mView->mAOBilateralOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        finalAOImage = mView->mAOBilateralOutputImage;
+    }
+
     Image* finalImage = nullptr;
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
@@ -1656,6 +1770,7 @@ void Render::drawFrame()
         mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
         mDebugImageViews.AO = mResManager->getView(finalAOImage);
         mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
+        mDebugImageViews.variance = mResManager->getView(mView->mBilateralVarianceOutputImage);
 
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;
@@ -1673,6 +1788,7 @@ void Render::drawFrame()
 
         mCompositionParam.dimension.x = width;
         mCompositionParam.dimension.y = height;
+        mCompositionParam.enableShadows = (int32_t)mRenderConfig.enableShadows;
         mCompositionParam.enableAO = (int32_t)mRenderConfig.enableAO;
         mComposition->setParams(mCompositionParam);
         mComposition->execute(cmd, width, height, imageIndex);
