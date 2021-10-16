@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 #include <slang-com-ptr.h>
-#include "bindless.h"
 
 namespace nevk
 {
