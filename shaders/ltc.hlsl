@@ -2,6 +2,7 @@
 #include "materials.h"
 #include "lights.h"
 #include "ltcparam.h"
+#include "bindless.h"
 
 struct InstanceConstants
 {
@@ -24,8 +25,8 @@ StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<RectLight> lights;
 StructuredBuffer<Material> materials;
 
-Texture2D textures[64]; // bindless
-SamplerState samplers[15];
+Texture2D textures[BINDLESS_TEXTURE_COUNT]; // bindless
+SamplerState samplers[BINDLESS_SAMPLER_COUNT];
 
 Texture2D<float4> ltc1;
 Texture2D<float4> ltc2;

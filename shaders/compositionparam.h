@@ -18,7 +18,7 @@ struct Compositionparam
 {
     int2 dimension;
     int enableAO;
-    float pad1;
+    int enableShadows;
 };
 
 #ifdef __cplusplus

@@ -3,3 +3,4 @@ build/
 .vs
 .idea/s
 .DS_Store
+misc/

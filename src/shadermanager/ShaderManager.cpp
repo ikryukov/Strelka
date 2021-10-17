@@ -2,6 +2,12 @@
 
 #include <cstdio>
 
+#ifdef __APPLE__
+const int compDir = 1;
+#else
+const int compDir = 0;
+#endif
+
 namespace nevk
 {
 
@@ -21,13 +27,14 @@ ShaderManager::~ShaderManager()
 ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, const char* entryPointName, Stage stage)
 {
     SlangCompileRequest* slangRequest = spCreateCompileRequest(mSlangSession);
-
     // spSetDebugInfoLevel(slangRequest, SLANG_DEBUG_INFO_LEVEL_MAXIMAL);
     int targetIndex = spAddCodeGenTarget(slangRequest, SLANG_SPIRV);
     SlangProfileID profileID = spFindProfile(mSlangSession, "sm_6_3");
     spSetTargetProfile(slangRequest, targetIndex, profileID);
     SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
     spSetOptimizationLevel(slangRequest, optLevel);
+    spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(compDir).c_str());
+
     int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
     spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, fileName);
 
@@ -59,6 +66,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
 
     size_t dataSize = 0;
     void const* data = spGetEntryPointCode(slangRequest, entryPointIndex, &dataSize);
+
     if (!data)
         return ShaderDesc();
 
@@ -74,7 +82,6 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     desc.type = slangStage;
     desc.slangReflection = (slang::ShaderReflection*)spGetReflection(slangRequest);
     desc.slangRequest = slangRequest;
-
 
     //spDestroyCompileRequest(slangRequest);
     return desc;

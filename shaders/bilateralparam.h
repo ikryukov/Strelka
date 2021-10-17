@@ -9,30 +9,28 @@
 #    define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #    include <glm/glm.hpp>
 #    include <glm/gtx/compatibility.hpp>
-#    define float4x4 glm::float4x4
 #    define float4 glm::float4
 #    define float3 glm::float3
 #    define int2 glm::int2
-#    define uint glm::uint
+#    define float4x4 glm::float4x4
 #endif
 
-struct AccumulationParam
+struct BilateralParam
 {
-    float4x4 prevViewToWorld;
-    float4x4 prevClipToView;
-    float4x4 prevWorldToView;
-    float4x4 prevViewToClip;    
-    float4x4 viewToWorld;
-    float4x4 clipToView;
+    float4x4 invProj;
     int2 dimension;
-    uint frameNumber;
-    float alpha;
+    int radius;
+    int maxR;
+
+    float sigma;
+    float sigmaNormal;
+    float znear;
+    float zfar;
 };
 
 #ifdef __cplusplus
+#    undef float4x4
 #    undef float4
 #    undef float3
 #    undef int2
-#    undef float4x4
-#    undef uint
 #endif

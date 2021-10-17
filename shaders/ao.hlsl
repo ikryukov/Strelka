@@ -7,7 +7,10 @@ Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
 
 StructuredBuffer<BVHNode> bvhNodes;
-StructuredBuffer<BVHTriangle> bvhTriangles;
+
+StructuredBuffer<InstanceConstants> instanceConstants;
+StructuredBuffer<Vertex> vb;
+StructuredBuffer<uint> ib;
 
 RWTexture2D<float> output;
 
@@ -63,6 +66,13 @@ float calcAO(uint2 pixelIndex)
     float3 wpos = gbWPos[pixelIndex].xyz;
     float3 N = normalize(gbNormal[pixelIndex].xyz);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
+    
+    Accel accel;
+    accel.bvhNodes = bvhNodes;
+    accel.instanceConstants = instanceConstants;
+    accel.vb = vb;
+    accel.ib = ib;
+
     Ray ray;
     ray.o = float4(wpos + offset, ubo.rayLen);
     float3x3 TBN = GetTangentSpace(N);
@@ -78,7 +88,7 @@ float calcAO(uint2 pixelIndex)
 
         Hit hit;
         hit.t = 0.0;
-        if (anyHit(ray, hit))
+        if (anyHit(accel, ray, hit))
         {
             res += 0.0;
         }

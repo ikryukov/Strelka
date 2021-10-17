@@ -23,44 +23,29 @@ struct BVHNode
     int nodeOffset = (int)0xFFFFFFFF;
 };
 
-struct BVHTriangle
-{
-    glm::float4 v0;
-};
-
 struct BVH
 {
     std::vector<BVHNode> nodes;
-    std::vector<BVHTriangle> triangles;
 };
 
 struct BVHInputPosition
 {
     glm::float3 pos;
     uint32_t instId = 0xFFFFFFFF;
+    uint32_t primId = 0xFFFFFFFF;
 };
 
 class BvhBuilder
 {
 public:
-    enum class SplitMethod : uint32_t
-    {
-        eMiddleCentroids,
-        eMiddleBounds,
-        eEquals
-    };
-
     bool mUseEmbree = true;
 
     BvhBuilder();
     ~BvhBuilder();
 
-    BVH build(const std::vector<glm::float3>& positions);
     BVH build(const std::vector<BVHInputPosition>& positions);
 
 private:
-    SplitMethod mSplitMethod = SplitMethod::eMiddleCentroids;
-
     RTCDevice mDevice = nullptr;
 
     struct AABB
@@ -269,16 +254,12 @@ private:
 
     AABB computeBounds(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end);
     AABB computeCentroids(const std::vector<BvhNodeInternal>& nodes, uint32_t start, uint32_t end);
-    uint32_t recursiveBuild(std::vector<BvhNodeInternal>& nodes, uint32_t begin, uint32_t end);
     BVH repack(const std::vector<BvhNodeInternal>& nodes, const uint32_t totalTriangles);
 
     // embree
-    BVH buildEmbree(const std::vector<glm::float3>& positions);
     BVH buildEmbree(const std::vector<BVHInputPosition>& positions);
-    BVH repackEmbree(const Node* root, const std::vector<glm::float3>& positions, const uint32_t totalNodes, const uint32_t totalTriangles);
     BVH repackEmbree(const Node* root, const std::vector<BVHInputPosition>& positions, const uint32_t totalNodes, const uint32_t totalTriangles);
     void setDepthFirstVisitOrder(Node* current, uint32_t& order);
-    void repackEmbree(const Node* current, const std::vector<glm::float3>& positions, BVH& outBvh, uint32_t& positionInArray, uint32_t& positionInTrianglesArray, const uint32_t nextId);
     void repackEmbree(const Node* current, const std::vector<BVHInputPosition>& positions, BVH& outBvh, uint32_t& positionInArray, uint32_t& positionInTrianglesArray, const uint32_t nextId);
     static void splitPrimitive(const RTCBuildPrimitive* prim, unsigned int dim, float pos, RTCBounds* lprim, RTCBounds* rprim, void* userPtr);
 };

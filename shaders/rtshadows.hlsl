@@ -8,8 +8,11 @@ Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
 
 StructuredBuffer<BVHNode> bvhNodes;
-StructuredBuffer<BVHTriangle> bvhTriangles;
 StructuredBuffer<RectLight> lights;
+
+StructuredBuffer<InstanceConstants> instanceConstants;
+StructuredBuffer<Vertex> vb;
+StructuredBuffer<uint> ib;
 
 RWTexture2D<float> output;
 
@@ -32,7 +35,7 @@ float calcShadow(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
     if (gbWorldPos.w == 0.0)
-        return 0;
+        return 1.0; // no shadow
     float3 wpos = gbWPos[pixelIndex].xyz;
 
     float color = 0.0;
@@ -47,6 +50,12 @@ float calcShadow(uint2 pixelIndex)
     float3 L = normalize(pointOnLight - wpos);
     float3 N = normalize(gbNormal[pixelIndex].xyz);
 
+    Accel accel;
+    accel.bvhNodes = bvhNodes;
+    accel.instanceConstants = instanceConstants;
+    accel.vb = vb;
+    accel.ib = ib;
+
     Ray ray;
     ray.d = float4(L, 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
@@ -54,10 +63,9 @@ float calcShadow(uint2 pixelIndex)
     ray.o = float4(wpos + offset, distToLight - 1e-5);
     Hit hit;
     hit.t = 0.0;
-
-    if ((dot(N, L) > 0.0) && anyHit(ray, hit))
+    if ((dot(N, L) > 0.0) && anyHit(accel, ray, hit))
     {
-        return 0.1;
+        return 0.0;
     }
     return 1.0;
 }

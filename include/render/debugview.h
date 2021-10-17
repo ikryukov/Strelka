@@ -21,6 +21,7 @@ public:
         VkImageView debug;
         VkImageView AO;
         VkImageView reflection;
+        VkImageView variance;
     };
 
     DebugView(const SharedContext& ctx);

@@ -10,8 +10,11 @@ struct RtShadowPassDesc
 {
     GBuffer* gbuffer = nullptr;
     Buffer* bvhNodes = VK_NULL_HANDLE;
-    Buffer* bvhTriangles = VK_NULL_HANDLE;
     Buffer* lights = VK_NULL_HANDLE;
+    
+    Buffer* instanceConstants = VK_NULL_HANDLE;
+    Buffer* vb = VK_NULL_HANDLE;
+    Buffer* ib = VK_NULL_HANDLE;
 
     Image* result = VK_NULL_HANDLE;
 };
