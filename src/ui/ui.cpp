@@ -312,6 +312,14 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
     glm::float4x4 cameraView = cam.getView();
     glm::float4x4 cameraProjection = cam.getPerspective();
 
+    const glm::float4x4 convRHtoLH = {
+        { 1, 0, 0, 0 }, 
+        { 0, -1, 0, 0 }, 
+        { 0, 0, 1, 0 }, 
+        { 0, 0, 0, 1 }
+    };
+    cameraProjection = cameraProjection * convRHtoLH;
+
     ImGuizmo::DrawGrid(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), identityMatrix, 100.f);
 
     ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
@@ -333,6 +341,13 @@ void showGizmo(Camera& cam, float camDistance, float* matrix, ImGuizmo::OPERATIO
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
     glm::float4x4 cameraView = cam.getView();
     glm::float4x4 cameraProjection = cam.getPerspective();
+    const glm::float4x4 convRHtoLH = {
+        { 1, 0, 0, 0 },
+        { 0, -1, 0, 0 },
+        { 0, 0, 1, 0 },
+        { 0, 0, 0, 1 }
+    };
+    cameraProjection = cameraProjection * convRHtoLH;
     ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, mCurrentGizmoMode, matrix, NULL, nullptr, nullptr, nullptr);
 }
 
