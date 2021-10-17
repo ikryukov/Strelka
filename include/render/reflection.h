@@ -8,13 +8,14 @@ namespace nevk
 {
 struct ReflectionDesc
 {
-    GBuffer* gbuffer = nullptr;
+    GBuffer* gbuffer = VK_NULL_HANDLE;
     Buffer* bvhNodes = VK_NULL_HANDLE;
-    Buffer* bvhTriangles = VK_NULL_HANDLE;
+    Buffer* vb = VK_NULL_HANDLE;
+    Buffer* ib = VK_NULL_HANDLE;
     Buffer* lights = VK_NULL_HANDLE;
     Image* result = VK_NULL_HANDLE;
-    Buffer* materials;
-    Buffer* instanceConst;
+    Buffer* materials = VK_NULL_HANDLE;
+    Buffer* instanceConst = VK_NULL_HANDLE;
     std::vector<Image*> matTextures;
     std::vector<VkSampler> matSampler;
 };

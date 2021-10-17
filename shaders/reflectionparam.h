@@ -20,6 +20,8 @@ struct ReflectionParam
     int2 dimension;
     uint frameNumber;
     uint pad0;
+    float3 camPos;
+    uint  pad1;
 };
 
 #ifdef __cplusplus

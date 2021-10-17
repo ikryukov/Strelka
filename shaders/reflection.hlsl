@@ -1,8 +1,8 @@
 #include "lights.h"
-#include "reflectionparam.h"
-#include "raytracing.h"
 #include "materials.h"
 #include "pack.h"
+#include "raytracing.h"
+#include "reflectionparam.h"
 
 ConstantBuffer<ReflectionParam> ubo;
 
@@ -11,20 +11,11 @@ Texture2D<float4> gbNormal;
 Texture2D<float4> instId;
 
 StructuredBuffer<BVHNode> bvhNodes;
-StructuredBuffer<BVHTriangle> bvhTriangles;
+StructuredBuffer<Vertex> vb;
+StructuredBuffer<uint> ib;
 StructuredBuffer<RectLight> lights;
 
 RWTexture2D<float4> output;
-
-struct InstanceConstants
-{
-    float4x4 model;
-    float4x4 normalMatrix;
-    int32_t materialId;
-    int32_t ibId;
-    int32_t vbId;
-    int32_t pad0;
-};
 
 StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<Material> materials;
@@ -47,6 +38,26 @@ float3 UniformSampleRect(RectLight l, float2 u)
     return l.points[0].xyz + e1 * u.x + e2 * u.y;
 }
 
+float getRoughness(Material material, float2 matUV)
+{
+    float roughness = material.roughnessFactor;
+    if (material.texMetallicRoughness != -1)
+    {
+        roughness *= textures[NonUniformResourceIndex(material.texMetallicRoughness)].SampleLevel(samplers[NonUniformResourceIndex(material.sampMetallicRoughness)], matUV, 0).g;
+    }
+    return roughness;
+}
+
+float3 getBaseColor(Material material, float2 matUV)
+{
+    float3 dcol = material.baseColorFactor.rgb;
+    if (material.texBaseColor != -1)
+    {
+        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].SampleLevel(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV, 0).rgb;
+    }
+    return dcol;
+}
+
 float3 calcReflection(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
@@ -59,61 +70,68 @@ float3 calcReflection(uint2 pixelIndex)
     float2 rndUV = float2(rand(rngState), rand(rngState));
 
     RectLight curLight = lights[0];
-    float3 pointOnLight = UniformSampleRect(curLight, rndUV);
+    float3 pointOnCamera = ubo.camPos;
 
-    float3 L = normalize(pointOnLight - wpos);
+    float3 L = pointOnCamera + wpos;
     float3 N = normalize(gbNormal[pixelIndex].xyz);
 
     Ray ray;
-    ray.d = float4(L, 0.0);
+    ray.d = float4(reflect(N, L), 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-    float distToLight = distance(pointOnLight, wpos + offset);
-    ray.o = float4(wpos + offset, distToLight - 1e-5);
+    float distToCamera = distance(pointOnCamera, wpos + offset);
+    ray.o = float4(wpos + offset, distToCamera - 1e-5);
     Hit hit;
     hit.t = 0.0;
 
-    if ((dot(N, L) > 0.0) && closestHit(ray, hit))
+    Accel accel;
+    accel.bvhNodes = bvhNodes;
+    accel.instanceConstants = instanceConstants;
+    accel.vb = vb;
+    accel.ib = ib;
+    //float3 dcol = getBaseColor(material, uvCoord);
+
+    if ((dot(N, L) > 0.0) && closestHit(accel, ray, hit))
     {
         float2 bcoords = hit.bary;
-        InstanceConstants constants = instanceConstants[NonUniformResourceIndex(hit.instId)];
-        Material material = materials[hit.materialId];
+        InstanceConstants instConst = accel.instanceConstants[hit.instId];
+        Material material = materials[instConst.materialId];
 
-        /* todo:
-         * ? store uv & normals in triangles ? -> bvh ?
-         * ? vertex array ? to get uv & normals with instanceConst.vbId
-         * ???
-         */
-        float2 uv0 = float2( 0.383911, 0.079345 );
-        float2 uv1 = float2( 0.139917, 0.100708 );
-        float2 uv2 = float2( 0.410156, 0.0909424 );
-        float2 uvCoord = uv0 * (1 - bcoords.x - bcoords.y) + uv1 * bcoords.x + uv2 * bcoords.y;
+        uint i0 = accel.ib[instConst.indexOffset + hit.primId * 3 + 0];
+        uint i1 = accel.ib[instConst.indexOffset + hit.primId * 3 + 1];
+        uint i2 = accel.ib[instConst.indexOffset + hit.primId * 3 + 2];
 
-        float3 dcol = material.baseColorFactor.rgb;
-        if (material.texBaseColor != -1)
-        {
-            dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].SampleLevel(samplers[NonUniformResourceIndex(material.sampBaseId)], uvCoord, 0).rgb;
-        }
-        /*
-        int index0 = constants.vbId + IndexBuffer[constants.ibId + hit.triangleId + 0];
-        int index1 = constants.vbId + IndexBuffer[constants.ibId + hit.triangleId + 1];
-        int index2 = constants.vbId + IndexBuffer[constants.ibId + hit.triangleId + 2];
-
-        float3 n0 = Normals[index0].xyz;
-        float3 n1 = Normals[index1].xyz;
-        float3 n2 = Normals[index2].xyz;
+        float3 n0 = unpackNormal(accel.vb[i0].normal);
+        float3 n1 = unpackNormal(accel.vb[i1].normal);
+        float3 n2 = unpackNormal(accel.vb[i2].normal);
 
         float3 n = n0 * (1 - bcoords.x - bcoords.y) + n1 * bcoords.x + n2 * bcoords.y;
-        */
+
+        float2 uv0 = unpackUV(accel.vb[i0].uv);
+        float2 uv1 = unpackUV(accel.vb[i1].uv);
+        float2 uv2 = unpackUV(accel.vb[i2].uv);
+
+        float2 uvCoord = uv0 * (1 - bcoords.x - bcoords.y) + uv1 * bcoords.x + uv2 * bcoords.y;
+
+        float3 dcol = getBaseColor(material, uvCoord);
+        float roughness = getRoughness(material, uvCoord);
+
+        if (material.isLight == 1)
+        {
+            return dcol;
+        }
+
+        dcol = ((1 - roughness) * (2.5 * saturate(dot(n, ray.d.xyz)) + 0.25)) * dcol;
 
         return dcol;
     }
 
-    return { 0.f, 0.f, 0.f }; // todo return input[pixelIndex]
+    return ( 0.f, 0.f, 0.f );
 }
 
 [numthreads(16, 16, 1)]
-[shader("compute")]
-void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
+    [shader("compute")] void
+    computeMain(uint2 pixelIndex
+                : SV_DispatchThreadID)
 {
     if (pixelIndex.x >= ubo.dimension.x || pixelIndex.y >= ubo.dimension.y)
     {

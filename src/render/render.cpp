@@ -1490,6 +1490,7 @@ void Render::drawFrame()
     mRtShadow->setParams(rtShadowParam);
 
     ReflectionParam reflectionParam{};
+    reflectionParam.camPos = cam.getPosition();
     reflectionParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     reflectionParam.frameNumber = (uint32_t)mFrameNumber;
     mReflection->setParams(reflectionParam);

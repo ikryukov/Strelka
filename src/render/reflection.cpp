@@ -25,7 +25,8 @@ void Reflection::setResources(ReflectionDesc& desc)
     mShaderParams.setTexture("gbNormal", mSharedCtx.mResManager->getView(desc.gbuffer->normal));
     mShaderParams.setTexture("instId", mSharedCtx.mResManager->getView(desc.gbuffer->instId));
     mShaderParams.setBuffer("bvhNodes", mSharedCtx.mResManager->getVkBuffer(desc.bvhNodes));
-    mShaderParams.setBuffer("bvhTriangles", mSharedCtx.mResManager->getVkBuffer(desc.bvhTriangles));
+    mShaderParams.setBuffer("vb", mSharedCtx.mResManager->getVkBuffer(desc.vb));
+    mShaderParams.setBuffer("ib", mSharedCtx.mResManager->getVkBuffer(desc.ib));
     mShaderParams.setBuffer("lights", mSharedCtx.mResManager->getVkBuffer(desc.lights));
     mShaderParams.setBuffer("instanceConstants", mSharedCtx.mResManager->getVkBuffer(desc.instanceConst));
     mShaderParams.setBuffer("materials", mSharedCtx.mResManager->getVkBuffer(desc.materials));
