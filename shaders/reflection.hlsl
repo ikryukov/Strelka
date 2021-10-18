@@ -65,21 +65,16 @@ float3 calcReflection(uint2 pixelIndex)
         return 0;
     float3 wpos = gbWPos[pixelIndex].xyz;
 
-    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-
-    float2 rndUV = float2(rand(rngState), rand(rngState));
-
-    RectLight curLight = lights[0];
     float3 pointOnCamera = ubo.camPos;
 
-    float3 L = pointOnCamera + wpos;
+    float3 L = normalize(pointOnCamera - wpos);
     float3 N = normalize(gbNormal[pixelIndex].xyz);
 
     Ray ray;
-    ray.d = float4(reflect(N, L), 0.0);
+    ray.d = float4(normalize(-reflect(L, N) - wpos), 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-    float distToCamera = distance(pointOnCamera, wpos + offset);
-    ray.o = float4(wpos + offset, distToCamera - 1e-5);
+    float distToCamera = distance(pointOnCamera, wpos + offset); // ?
+    ray.o = float4(wpos + offset, 0.5); // todo: calc distance ?
     Hit hit;
     hit.t = 0.0;
 
@@ -88,7 +83,6 @@ float3 calcReflection(uint2 pixelIndex)
     accel.instanceConstants = instanceConstants;
     accel.vb = vb;
     accel.ib = ib;
-    //float3 dcol = getBaseColor(material, uvCoord);
 
     if ((dot(N, L) > 0.0) && closestHit(accel, ray, hit))
     {
@@ -115,23 +109,17 @@ float3 calcReflection(uint2 pixelIndex)
         float3 dcol = getBaseColor(material, uvCoord);
         float roughness = getRoughness(material, uvCoord);
 
-        if (material.isLight == 1)
-        {
-            return dcol;
-        }
-
         dcol = ((1 - roughness) * (2.5 * saturate(dot(n, ray.d.xyz)) + 0.25)) * dcol;
 
         return dcol;
     }
 
-    return ( 0.f, 0.f, 0.f );
+    return (0.f, 0.f, 0.f);
 }
 
 [numthreads(16, 16, 1)]
-    [shader("compute")] void
-    computeMain(uint2 pixelIndex
-                : SV_DispatchThreadID)
+[shader("compute")]
+void computeMain(uint2 pixelIndex: SV_DispatchThreadID)
 {
     if (pixelIndex.x >= ubo.dimension.x || pixelIndex.y >= ubo.dimension.y)
     {
