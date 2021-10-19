@@ -72,10 +72,10 @@ float3 calcReflection(uint2 pixelIndex)
     float3 N = normalize(gbNormal[pixelIndex].xyz);
 
     Ray ray;
-    ray.d = float4(normalize(wpos - reflect(V, N)), 0.0);
+    ray.d = float4(normalize(reflect(-V, N)), 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-    float distToCamera = distance(pointOnCamera, wpos + offset); // ?
-    ray.o = float4(wpos + offset, 100); // todo: calc distance ?
+    float distToCamera = distance(pointOnCamera, wpos + offset);
+    ray.o = float4(wpos + offset, 100);
     Hit hit;
     hit.t = 0.0;
 
@@ -89,7 +89,7 @@ float3 calcReflection(uint2 pixelIndex)
     float2 matUV = gbUV[pixelIndex].xy;
     InstanceConstants constantsBase = instanceConstants[NonUniformResourceIndex(instId)];
     Material materialBase = materials[NonUniformResourceIndex(constantsBase.materialId)];
-    float3 dcolBase = getBaseColor(materialBase, matUV);
+    //float3 dcolBase = getBaseColor(materialBase, matUV);
     float roughness = getRoughness(materialBase, matUV);
 
     if ((dot(N, V) > 0.0) && closestHit(accel, ray, hit))
