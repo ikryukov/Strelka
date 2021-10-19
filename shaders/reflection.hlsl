@@ -8,7 +8,8 @@ ConstantBuffer<ReflectionParam> ubo;
 
 Texture2D<float4> gbWPos;
 Texture2D<float4> gbNormal;
-Texture2D<float4> instId;
+Texture2D<int> gbInstId;
+Texture2D<float4> gbUV;
 
 StructuredBuffer<BVHNode> bvhNodes;
 StructuredBuffer<Vertex> vb;
@@ -67,14 +68,14 @@ float3 calcReflection(uint2 pixelIndex)
 
     float3 pointOnCamera = ubo.camPos;
 
-    float3 L = normalize(pointOnCamera - wpos);
+    float3 V = normalize(pointOnCamera - wpos);
     float3 N = normalize(gbNormal[pixelIndex].xyz);
 
     Ray ray;
-    ray.d = float4(normalize(-reflect(L, N) - wpos), 0.0);
+    ray.d = float4(normalize(wpos - reflect(V, N)), 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
     float distToCamera = distance(pointOnCamera, wpos + offset); // ?
-    ray.o = float4(wpos + offset, 0.5); // todo: calc distance ?
+    ray.o = float4(wpos + offset, 100); // todo: calc distance ?
     Hit hit;
     hit.t = 0.0;
 
@@ -84,7 +85,14 @@ float3 calcReflection(uint2 pixelIndex)
     accel.vb = vb;
     accel.ib = ib;
 
-    if ((dot(N, L) > 0.0) && closestHit(accel, ray, hit))
+    int instId = gbInstId[pixelIndex];
+    float2 matUV = gbUV[pixelIndex].xy;
+    InstanceConstants constantsBase = instanceConstants[NonUniformResourceIndex(instId)];
+    Material materialBase = materials[NonUniformResourceIndex(constantsBase.materialId)];
+    float3 dcolBase = getBaseColor(materialBase, matUV);
+    float roughness = getRoughness(materialBase, matUV);
+
+    if ((dot(N, V) > 0.0) && closestHit(accel, ray, hit))
     {
         float2 bcoords = hit.bary;
         InstanceConstants instConst = accel.instanceConstants[hit.instId];
@@ -107,14 +115,13 @@ float3 calcReflection(uint2 pixelIndex)
         float2 uvCoord = uv0 * (1 - bcoords.x - bcoords.y) + uv1 * bcoords.x + uv2 * bcoords.y;
 
         float3 dcol = getBaseColor(material, uvCoord);
-        float roughness = getRoughness(material, uvCoord);
 
         dcol = ((1 - roughness) * (2.5 * saturate(dot(n, ray.d.xyz)) + 0.25)) * dcol;
 
         return dcol;
     }
 
-    return (0.f, 0.f, 0.f);
+    return (0, 0, 0);
 }
 
 [numthreads(16, 16, 1)]
