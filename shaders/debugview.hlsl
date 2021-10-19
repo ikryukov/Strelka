@@ -58,7 +58,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     }
     if (ubo.debugView == 9) // reflection final
     {
-        float3 color = inputLTC[pixelIndex].rgb + inputReflection[pixelIndex].rgb + inputAO[pixelIndex].r + inputShadow[pixelIndex].r;
+        float3 color = (inputLTC[pixelIndex].rgb + inputReflection[pixelIndex].rgb) * inputAO[pixelIndex].r * inputShadow[pixelIndex].r;
         output[pixelIndex] = float4(color, 0.0);
     }
 }
