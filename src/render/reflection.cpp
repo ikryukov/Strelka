@@ -28,7 +28,6 @@ void Reflection::setResources(ReflectionDesc& desc)
     mShaderParams.setBuffer("bvhNodes", mSharedCtx.mResManager->getVkBuffer(desc.bvhNodes));
     mShaderParams.setBuffer("vb", mSharedCtx.mResManager->getVkBuffer(desc.vb));
     mShaderParams.setBuffer("ib", mSharedCtx.mResManager->getVkBuffer(desc.ib));
-    mShaderParams.setBuffer("lights", mSharedCtx.mResManager->getVkBuffer(desc.lights));
     mShaderParams.setBuffer("instanceConstants", mSharedCtx.mResManager->getVkBuffer(desc.instanceConst));
     mShaderParams.setBuffer("materials", mSharedCtx.mResManager->getVkBuffer(desc.materials));
     mShaderParams.setSamplers("samplers", desc.matSampler);

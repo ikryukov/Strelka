@@ -753,6 +753,9 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
             ImGui::TreePop();
         }
     }
+
+    ImGui::Checkbox("Enable Reflections", &renderConfig.enableReflections);
+
     ImGui::End(); // end window
 }
 

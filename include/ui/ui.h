@@ -36,6 +36,7 @@ public:
         bool enableFilter = false;
         bool enableAOFilter = false;
         bool enableShadows = false;
+        bool enableReflections = false;
         float rayLen = 0.2f;
         float accAlpha = 0.125f;
         float accAOAlpha = 0.125f;

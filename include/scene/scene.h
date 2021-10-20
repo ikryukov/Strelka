@@ -20,7 +20,6 @@ struct Mesh
 {
     uint32_t mIndex; // Index of 1st index in index buffer
     uint32_t mCount; // amount of indices in mesh
-    uint32_t mVertex; // Index in vb
 };
 
 struct Instance

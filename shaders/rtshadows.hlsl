@@ -16,7 +16,7 @@ StructuredBuffer<uint> ib;
 
 RWTexture2D<float> output;
 
-float3 UniformSampleTriangle(float2 u) 
+float3 UniformSampleTriangle(float2 u)
 {
     float su0 = sqrt(u.x);
     float b0 = 1.0 - su0;
@@ -80,3 +80,4 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     }
     output[pixelIndex] = calcShadow(pixelIndex);
 }
+

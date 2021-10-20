@@ -2,17 +2,7 @@
 #include "materials.h"
 #include "lights.h"
 #include "ltcparam.h"
-#include "bindless.h"
-
-struct InstanceConstants
-{
-    float4x4 model;
-    float4x4 normalMatrix;
-    int32_t materialId;
-    int32_t ibId;
-    int32_t vbId;
-    int32_t pad0;
-};
+#include "raytracing.h"
 
 ConstantBuffer<LtcParam> ubo;
 
@@ -25,7 +15,7 @@ StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<RectLight> lights;
 StructuredBuffer<Material> materials;
 
-Texture2D textures[BINDLESS_TEXTURE_COUNT]; // bindless
+Texture2D textures[BINDLESS_TEXTURE_COUNT];
 SamplerState samplers[BINDLESS_SAMPLER_COUNT];
 
 Texture2D<float4> ltc1;
@@ -114,26 +104,6 @@ float3 LTC_Evaluate(RectLight light, float3 N, float3 V, float3 P, float3x3 Minv
     return Lo_i;
 }
 
-float getRoughness(Material material, float2 matUV)
-{
-    float roughness = material.roughnessFactor;
-    if (material.texMetallicRoughness != -1)
-    {
-        roughness *= textures[NonUniformResourceIndex(material.texMetallicRoughness)].SampleLevel(samplers[NonUniformResourceIndex(material.sampMetallicRoughness)], matUV, 0).g;
-    }
-    return roughness;
-}
-
-float3 getBaseColor(Material material, float2 matUV)
-{
-    float3 dcol = material.baseColorFactor.rgb;
-    if (material.texBaseColor != -1)
-    {
-        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].SampleLevel(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV, 0).rgb;
-    }
-    return dcol;
-}
-
 float3 calc(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
@@ -148,14 +118,14 @@ float3 calc(uint2 pixelIndex)
     float3 V = normalize(ubo.CameraPos - wpos);
     float ndotv = saturate(dot(N, V));
     float2 matUV = gbUV[pixelIndex].xy;
-    float3 dcol = getBaseColor(material, matUV);
+    float3 dcol = getBaseColor(material, matUV, textures, samplers);
 
     if (material.isLight == 1)
     {
         return dcol;
     }
 
-    float roughness = getRoughness(material, matUV);
+    float roughness = getRoughness(material, matUV, textures, samplers);
 
     float2 uv = float2(roughness, sqrt(1.0 - ndotv));
     uv = uv * LUT_SCALE + LUT_BIAS;

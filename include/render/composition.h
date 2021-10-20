@@ -16,7 +16,7 @@ public:
     Composition(const SharedContext& ctx);
     ~Composition();
     void initialize();
-    void setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadows, VkImageView imageViewAO);
+    void setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadows, VkImageView imageViewAO, VkImageView imageViewReflections);
     void setOutputTexture(VkImageView imageView);
 };
 } // namespace nevk

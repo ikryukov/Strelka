@@ -4,6 +4,7 @@ ConstantBuffer<Compositionparam> ubo;
 Texture2D<float4> inputLTC;
 Texture2D<float4> inputShadows;
 Texture2D<float4> inputAO;
+Texture2D<float4> inputReflections;
 RWTexture2D<float4> output;
 
 [numthreads(16, 16, 1)]
@@ -16,6 +17,11 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     }
 
     float3 color = inputLTC[pixelIndex].rgb;
+
+    if (ubo.enableReflections)
+    {
+        color += inputReflections[pixelIndex].rgb;
+    }
     if (ubo.enableAO)
     {
        color *= inputAO[pixelIndex].r;

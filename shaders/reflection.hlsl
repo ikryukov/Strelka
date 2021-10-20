@@ -1,4 +1,3 @@
-#include "lights.h"
 #include "materials.h"
 #include "pack.h"
 #include "raytracing.h"
@@ -14,50 +13,13 @@ Texture2D<float4> gbUV;
 StructuredBuffer<BVHNode> bvhNodes;
 StructuredBuffer<Vertex> vb;
 StructuredBuffer<uint> ib;
-StructuredBuffer<RectLight> lights;
-
-RWTexture2D<float4> output;
-
 StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<Material> materials;
 
-Texture2D textures[64]; // bindless
-SamplerState samplers[15];
+Texture2D textures[BINDLESS_TEXTURE_COUNT];
+SamplerState samplers[BINDLESS_SAMPLER_COUNT];
 
-float3 UniformSampleTriangle(float2 u)
-{
-    float su0 = sqrt(u.x);
-    float b0 = 1.0 - su0;
-    float b1 = u.y * su0;
-    return float3(b0, b1, 1.0 - b0 - b1);
-}
-
-float3 UniformSampleRect(RectLight l, float2 u)
-{
-    float3 e1 = l.points[1].xyz - l.points[0].xyz;
-    float3 e2 = l.points[3].xyz - l.points[0].xyz;
-    return l.points[0].xyz + e1 * u.x + e2 * u.y;
-}
-
-float getRoughness(Material material, float2 matUV)
-{
-    float roughness = material.roughnessFactor;
-    if (material.texMetallicRoughness != -1)
-    {
-        roughness *= textures[NonUniformResourceIndex(material.texMetallicRoughness)].SampleLevel(samplers[NonUniformResourceIndex(material.sampMetallicRoughness)], matUV, 0).g;
-    }
-    return roughness;
-}
-
-float3 getBaseColor(Material material, float2 matUV)
-{
-    float3 dcol = material.baseColorFactor.rgb;
-    if (material.texBaseColor != -1)
-    {
-        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].SampleLevel(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV, 0).rgb;
-    }
-    return dcol;
-}
+RWTexture2D<float4> output;
 
 float3 calcReflection(uint2 pixelIndex)
 {
@@ -75,7 +37,7 @@ float3 calcReflection(uint2 pixelIndex)
     ray.d = float4(normalize(reflect(-V, N)), 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
     float distToCamera = distance(pointOnCamera, wpos + offset);
-    ray.o = float4(wpos + offset, 100);
+    ray.o = float4(wpos + offset, distToCamera);
     Hit hit;
     hit.t = 0.0;
 
@@ -89,8 +51,7 @@ float3 calcReflection(uint2 pixelIndex)
     float2 matUV = gbUV[pixelIndex].xy;
     InstanceConstants constantsBase = instanceConstants[NonUniformResourceIndex(instId)];
     Material materialBase = materials[NonUniformResourceIndex(constantsBase.materialId)];
-    //float3 dcolBase = getBaseColor(materialBase, matUV);
-    float roughness = getRoughness(materialBase, matUV);
+    float roughness = getRoughness(materialBase, matUV, textures, samplers);
 
     if ((dot(N, V) > 0.0) && closestHit(accel, ray, hit))
     {
@@ -114,7 +75,7 @@ float3 calcReflection(uint2 pixelIndex)
 
         float2 uvCoord = uv0 * (1 - bcoords.x - bcoords.y) + uv1 * bcoords.x + uv2 * bcoords.y;
 
-        float3 dcol = getBaseColor(material, uvCoord);
+        float3 dcol = getBaseColor(material, uvCoord, textures, samplers);
 
         dcol = ((1 - roughness) * (2.5 * saturate(dot(n, ray.d.xyz)) + 0.25)) * dcol;
 
