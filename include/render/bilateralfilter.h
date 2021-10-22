@@ -21,6 +21,6 @@ public:
     BilateralFilter(const SharedContext& ctx);
     ~BilateralFilter();
     void initialize();
-    void setResources(BilateralResourceDesc& desc);
+    void setResources(const BilateralResourceDesc& desc);
 };
 } // namespace nevk

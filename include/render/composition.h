@@ -15,8 +15,16 @@ class Composition : public CompositionBase
 public:
     Composition(const SharedContext& ctx);
     ~Composition();
+    struct CompositionImages
+    {
+        Image* LTC = VK_NULL_HANDLE;
+        Image* shadow = VK_NULL_HANDLE;
+        Image* AO = VK_NULL_HANDLE;
+        Image* reflections = VK_NULL_HANDLE;
+
+    };
     void initialize();
-    void setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadows, VkImageView imageViewAO, VkImageView imageViewReflections);
+    void setInputTexture(CompositionImages images);
     void setOutputTexture(VkImageView imageView);
 };
 } // namespace nevk

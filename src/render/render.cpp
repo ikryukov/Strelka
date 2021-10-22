@@ -1300,12 +1300,14 @@ void Render::setDescriptors()
         mLtcPass->setResources(desc);
     }
     {
-        mDebugImageViews.shadow = mResManager->getView(mView->mRtShadowImage);
-        mDebugImageViews.LTC = mResManager->getView(mView->mLtcOutputImage);
-        mDebugImageViews.normal = mResManager->getView(mView->gbuffer->normal);
-        mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
-        mDebugImageViews.AO = mResManager->getView(mView->mAOImage);
-        mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
+        mDebugImages.shadow = mView->mRtShadowImage;
+        mDebugImages.LTC = mView->mLtcOutputImage;
+        mDebugImages.normal = mView->gbuffer->normal;
+        mDebugImages.debug = mView->gbuffer->debug;
+        mDebugImages.AO = mView->mAOImage;
+        mDebugImages.motion = mView->gbuffer->motion;
+        mDebugImages.reflection = mView->mReflectionImage;
+        mDebugImages.variance = mView->mBilateralVarianceOutputImage;
     }
     {
         BilateralResourceDesc desc{};
@@ -1325,7 +1327,7 @@ void Render::setDescriptors()
     }
     {
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mDebugImageViews);
+        mDebugView->setInputTexture(mDebugImages);
         mDebugView->setOutputTexture(mResManager->getView(mView->textureDebugViewImage));
     }
     {
@@ -1334,8 +1336,13 @@ void Render::setDescriptors()
         mTonemap->setOutputTexture(mResManager->getView(mView->textureTonemapImage));
     }
     {
+        mCompositionImages.shadow = mView->mRtShadowImage;
+        mCompositionImages.LTC = mView->mLtcOutputImage;
+        mCompositionImages.AO = mView->mAOImage;
+        mCompositionImages.reflections = mView->mReflectionImage;
+
         mComposition->setParams(mCompositionParam);
-        mComposition->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(mView->mRtShadowImage), mResManager->getView(mView->mAOImage), mResManager->getView(mView->mReflectionImage));
+        mComposition->setInputTexture(mCompositionImages);
         mComposition->setOutputTexture(mResManager->getView(mView->textureCompositionImage));
     }
 }
@@ -1803,25 +1810,30 @@ void Render::drawFrame()
     Image* finalImage = nullptr;
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
-        mDebugImageViews.shadow = mResManager->getView(finalRtImage);
-        mDebugImageViews.LTC = mResManager->getView(mView->mLtcOutputImage);
-        mDebugImageViews.normal = mResManager->getView(mView->gbuffer->normal);
-        mDebugImageViews.debug = mResManager->getView(mView->gbuffer->debug);
-        mDebugImageViews.AO = mResManager->getView(finalAOImage);
-        mDebugImageViews.motion = mResManager->getView(mView->gbuffer->motion);
-        mDebugImageViews.variance = mResManager->getView(mView->mBilateralVarianceOutputImage);
-        mDebugImageViews.reflection = mResManager->getView(mView->mReflectionImage);
+        mDebugImages.shadow = finalRtImage;
+        mDebugImages.LTC = mView->mLtcOutputImage;
+        mDebugImages.normal = mView->gbuffer->normal;
+        mDebugImages.debug = mView->gbuffer->debug;
+        mDebugImages.AO = finalAOImage;
+        mDebugImages.motion = mView->gbuffer->motion;
+        mDebugImages.variance = mView->mBilateralVarianceOutputImage;
+        mDebugImages.reflection = mView->mReflectionImage;
 
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;
         mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mDebugImageViews);
+        mDebugView->setInputTexture(mDebugImages);
         mDebugView->execute(cmd, width, height, imageIndex);
         finalImage = mView->textureDebugViewImage;
     }
     else
     {
+        mCompositionImages.shadow = finalRtImage;
+        mCompositionImages.LTC = mView->mLtcOutputImage;
+        mCompositionImages.AO = finalAOImage;
+        mCompositionImages.reflections = mView->mReflectionImage;
+
         // compose final image ltc + reflections + rtshadow + ao
         recordBarrier(cmd, mResManager->getVkImage(mView->textureCompositionImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
@@ -1833,7 +1845,7 @@ void Render::drawFrame()
         mCompositionParam.enableReflections = (int32_t)mRenderConfig.enableReflections;
         mComposition->setParams(mCompositionParam);
         mComposition->execute(cmd, width, height, imageIndex);
-        mComposition->setInputTexture(mResManager->getView(mView->mLtcOutputImage), mResManager->getView(finalRtImage), mResManager->getView(finalAOImage), mResManager->getView(mView->mReflectionImage));
+        mComposition->setInputTexture(mCompositionImages);
 
         // Tonemap
         recordBarrier(cmd, mResManager->getVkImage(mView->textureCompositionImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,

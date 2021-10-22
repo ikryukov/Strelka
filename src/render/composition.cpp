@@ -13,12 +13,12 @@ void Composition::initialize()
 {
     CompositionBase::initialize("shaders/composition.hlsl");
 }
-void Composition::setInputTexture(VkImageView imageViewLTC, VkImageView imageViewShadows, VkImageView imageViewAO, VkImageView imageViewReflections)
+void Composition::setInputTexture(CompositionImages images)
 {
-    mShaderParams.setTexture("inputLTC", imageViewLTC);
-    mShaderParams.setTexture("inputShadows", imageViewShadows);
-    mShaderParams.setTexture("inputAO", imageViewAO);
-    mShaderParams.setTexture("inputReflections", imageViewReflections);
+    mShaderParams.setTexture("inputLTC", mSharedCtx.mResManager->getView(images.LTC));
+    mShaderParams.setTexture("inputShadows", mSharedCtx.mResManager->getView(images.shadow));
+    mShaderParams.setTexture("inputAO", mSharedCtx.mResManager->getView(images.AO));
+    mShaderParams.setTexture("inputReflections", mSharedCtx.mResManager->getView(images.reflections));
 }
 void Composition::setOutputTexture(VkImageView imageView)
 {

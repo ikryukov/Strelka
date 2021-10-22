@@ -2,6 +2,7 @@
 #include "pack.h"
 #include "raytracing.h"
 #include "reflectionparam.h"
+#include "helper.h"
 
 ConstantBuffer<ReflectionParam> ubo;
 
@@ -36,8 +37,7 @@ float3 calcReflection(uint2 pixelIndex)
     Ray ray;
     ray.d = float4(normalize(reflect(-V, N)), 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-    float distToCamera = distance(pointOnCamera, wpos + offset);
-    ray.o = float4(wpos + offset, distToCamera);
+    ray.o = float4(wpos + offset, 100);
     Hit hit;
     hit.t = 0.0;
 
@@ -52,8 +52,11 @@ float3 calcReflection(uint2 pixelIndex)
     InstanceConstants constantsBase = instanceConstants[NonUniformResourceIndex(instId)];
     Material materialBase = materials[NonUniformResourceIndex(constantsBase.materialId)];
     float roughness = getRoughness(materialBase, matUV, textures, samplers);
+    if (abs(roughness - 1.0) < 1e-5) {
+        return (0, 0, 0);
+    }
 
-    if ((dot(N, V) > 0.0) && closestHit(accel, ray, hit))
+    if (closestHit(accel, ray, hit))
     {
         float2 bcoords = hit.bary;
         InstanceConstants instConst = accel.instanceConstants[hit.instId];
@@ -67,13 +70,13 @@ float3 calcReflection(uint2 pixelIndex)
         float3 n1 = unpackNormal(accel.vb[i1].normal);
         float3 n2 = unpackNormal(accel.vb[i2].normal);
 
-        float3 n = n0 * (1 - bcoords.x - bcoords.y) + n1 * bcoords.x + n2 * bcoords.y;
+        float3 n = interpolateAttrib(n0, n1, n2, bcoords);
 
         float2 uv0 = unpackUV(accel.vb[i0].uv);
         float2 uv1 = unpackUV(accel.vb[i1].uv);
         float2 uv2 = unpackUV(accel.vb[i2].uv);
 
-        float2 uvCoord = uv0 * (1 - bcoords.x - bcoords.y) + uv1 * bcoords.x + uv2 * bcoords.y;
+        float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
 
         float3 dcol = getBaseColor(material, uvCoord, textures, samplers);
 

@@ -28,6 +28,7 @@
 #include "rtshadowpass.h"
 #include "reflection.h"
 #include "tonemap.h"
+#include "composition.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -247,7 +248,8 @@ private:
     Ui::RenderConfig mRenderConfig{};
     Ui::SceneConfig mSceneConfig{};
     Ui::RenderStats mRenderStats{};
-    DebugView::DebugImageViews mDebugImageViews{};
+    DebugView::DebugImages mDebugImages{};
+    Composition::CompositionImages mCompositionImages{};
 
     struct SceneRenderData
     {
