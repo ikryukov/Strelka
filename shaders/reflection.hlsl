@@ -80,7 +80,7 @@ float3 calcReflection(uint2 pixelIndex)
 
         float3 dcol = getBaseColor(material, uvCoord, textures, samplers);
 
-        dcol = ((1 - roughness) * (2.5 * saturate(dot(n, ray.d.xyz)) + 0.25)) * dcol;
+        dcol = (1 - roughness) * dcol;
 
         return dcol;
     }
