@@ -8,14 +8,14 @@ namespace nevk
 struct GBuffer
 {
     ResourceManager* mResManager = nullptr;
-    Image* wPos;
-    Image* depth;
-    Image* normal;
-    Image* tangent;
-    Image* uv;
-    Image* instId;
-    Image* motion;
-    Image* debug;
+    Image* wPos = VK_NULL_HANDLE;
+    Image* depth = VK_NULL_HANDLE;
+    Image* normal = VK_NULL_HANDLE;
+    Image* tangent = VK_NULL_HANDLE;
+    Image* uv = VK_NULL_HANDLE;
+    Image* instId = VK_NULL_HANDLE;
+    Image* motion = VK_NULL_HANDLE;
+    Image* debug = VK_NULL_HANDLE;
 
     // utils
     VkFormat depthFormat;

@@ -26,7 +26,9 @@
 #include "bilateralfilter.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
+#include "reflection.h"
 #include "tonemap.h"
+#include "composition.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -138,6 +140,7 @@ private:
 
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadow;
+    Reflection* mReflection;
     AOPass* mAO;
     Accumulation* mAccumulation;
     Accumulation* mAccumulationAO;
@@ -161,6 +164,7 @@ private:
         Image* textureCompositionImage;
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
+        Image* mReflectionImage;
         Image* mAOImage;
         Image* mLtcOutputImage;
         Image* mBilateralOutputImage;
@@ -192,6 +196,10 @@ private:
             if (textureDebugViewImage)
             {
                 mResManager->destroyImage(textureDebugViewImage);
+            }
+            if (mReflectionImage)
+            {
+                mResManager->destroyImage(mReflectionImage);
             }
             if (mRtShadowImage)
             {
@@ -240,7 +248,8 @@ private:
     Ui::RenderConfig mRenderConfig{};
     Ui::SceneConfig mSceneConfig{};
     Ui::RenderStats mRenderStats{};
-    DebugView::DebugImageViews mDebugImageViews{};
+    DebugView::DebugImages mDebugImages{};
+    Composition::CompositionImages mCompositionImages{};
 
     struct SceneRenderData
     {

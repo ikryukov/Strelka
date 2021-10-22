@@ -26,6 +26,6 @@ public:
     ~AOPass();
 
     void initialize();
-    void setResources(AOPassDesc& desc);
+    void setResources(const AOPassDesc& desc);
 };
 } // namespace nevk

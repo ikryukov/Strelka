@@ -17,7 +17,7 @@ void BilateralFilter::initialize()
     BilateralFilterBase::initialize("shaders/bilateralfilter.hlsl");
 }
 
-void BilateralFilter::setResources(BilateralResourceDesc& desc)
+void BilateralFilter::setResources(const BilateralResourceDesc& desc)
 {
     mShaderParams.setTexture("output", mSharedCtx.mResManager->getView(desc.result));
     mShaderParams.setTexture("varianceOutput", mSharedCtx.mResManager->getView(desc.variance));

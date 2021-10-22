@@ -57,7 +57,7 @@ void LtcPass::initialize()
     LtcPassBase::initialize("shaders/ltc.hlsl");
 }
 
-void LtcPass::setResources(LtcResourceDesc& desc)
+void LtcPass::setResources(const LtcResourceDesc& desc)
 {
     mShaderParams.setTexture("output", mSharedCtx.mResManager->getView(desc.result));
 
@@ -69,8 +69,10 @@ void LtcPass::setResources(LtcResourceDesc& desc)
     mShaderParams.setBuffer("lights", mSharedCtx.mResManager->getVkBuffer(desc.lights));
     mShaderParams.setBuffer("materials", mSharedCtx.mResManager->getVkBuffer(desc.materials));
 
-    mShaderParams.setSamplers("samplers", desc.matSampler);
-    mShaderParams.setTextures("textures", desc.matTextures);
+    mMatSamplers = desc.matSampler;
+    mMatTextures = desc.matTextures;
+    mShaderParams.setSamplers("samplers", mMatSamplers);
+    mShaderParams.setTextures("textures", mMatTextures);
 }
 
 } // namespace nevk

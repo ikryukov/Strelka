@@ -16,7 +16,7 @@ void RtShadowPass::initialize()
     RtShadowBase::initialize("shaders/rtshadows.hlsl");
 }
 
-void RtShadowPass::setResources(RtShadowPassDesc& desc)
+void RtShadowPass::setResources(const RtShadowPassDesc& desc)
 {
     mShaderParams.setTexture("output", mSharedCtx.mResManager->getView(desc.result));
 

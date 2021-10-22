@@ -27,6 +27,6 @@ public:
     ~RtShadowPass();
 
     void initialize();
-    void setResources(RtShadowPassDesc& desc);
+    void setResources(const RtShadowPassDesc& desc);
 };
 } // namespace nevk

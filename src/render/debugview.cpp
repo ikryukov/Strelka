@@ -13,15 +13,16 @@ void DebugView::initialize()
 {
     DebugViewBase::initialize("shaders/debugview.hlsl");
 }
-void DebugView::setInputTexture(DebugImageViews imageViews)
+void DebugView::setInputTexture(const DebugImages& images)
 {
-    mShaderParams.setTexture("inputLTC", imageViews.LTC);
-    mShaderParams.setTexture("inputShadow", imageViews.shadow);
-    mShaderParams.setTexture("inputNormals", imageViews.normal);
-    mShaderParams.setTexture("inputMotion", imageViews.motion);
-    mShaderParams.setTexture("debugTex", imageViews.debug);
-    mShaderParams.setTexture("inputAO", imageViews.AO);
-    mShaderParams.setTexture("inputVariance", imageViews.variance);
+    mShaderParams.setTexture("inputLTC", mSharedCtx.mResManager->getView(images.LTC));
+    mShaderParams.setTexture("inputShadow", mSharedCtx.mResManager->getView(images.shadow));
+    mShaderParams.setTexture("inputNormals", mSharedCtx.mResManager->getView(images.normal));
+    mShaderParams.setTexture("inputMotion", mSharedCtx.mResManager->getView(images.motion));
+    mShaderParams.setTexture("debugTex", mSharedCtx.mResManager->getView(images.debug));
+    mShaderParams.setTexture("inputAO", mSharedCtx.mResManager->getView(images.AO));
+    mShaderParams.setTexture("inputReflection", mSharedCtx.mResManager->getView(images.reflection));
+    mShaderParams.setTexture("inputVariance", mSharedCtx.mResManager->getView(images.variance));
 }
 void DebugView::setOutputTexture(VkImageView imageView)
 {

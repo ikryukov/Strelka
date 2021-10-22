@@ -8,6 +8,7 @@ Texture2D<float4> inputVariance;
 Texture2D<float2> inputMotion;
 Texture2D<float4> debugTex;
 Texture2D<float4> inputAO;
+Texture2D<float4> inputReflection;
 RWTexture2D<float4> output;
 
 [numthreads(16, 16, 1)]
@@ -48,6 +49,16 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     if (ubo.debugView == 7) // Variance
     {
         float3 color = inputVariance[pixelIndex].r;
+        output[pixelIndex] = float4(color, 0.0);
+    }
+    if (ubo.debugView == 8) // reflection
+    {
+        float3 color = inputReflection[pixelIndex].rgb;
+        output[pixelIndex] = float4(color, 0.0);
+    }
+    if (ubo.debugView == 9) // reflection w/ ltc color
+    {
+        float3 color = inputLTC[pixelIndex].rgb + inputReflection[pixelIndex].rgb;
         output[pixelIndex] = float4(color, 0.0);
     }
 }

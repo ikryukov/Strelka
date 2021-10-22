@@ -30,12 +30,13 @@ public:
 
     struct RenderConfig
     {
-        bool enableShadowsAcc = true;
-        bool enableAO = true;
-        bool enableAOAcc = true;
-        bool enableFilter = true;
-        bool enableAOFilter = true;
-        bool enableShadows = true;
+        bool enableShadowsAcc = false;
+        bool enableAO = false;
+        bool enableAOAcc = false;
+        bool enableFilter = false;
+        bool enableAOFilter = false;
+        bool enableShadows = false;
+        bool enableReflections = false;
         float rayLen = 0.2f;
         float accAlpha = 0.125f;
         float accAOAlpha = 0.125f;

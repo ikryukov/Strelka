@@ -150,6 +150,7 @@ set(RENDER_SOURCES
         include/render/shaderparameters.h
         include/render/computepass.h
         include/render/rtshadowpass.h
+        include/render/reflection.h
         include/render/aopass.h
         include/render/ltcpass.h
         include/render/bilateralfilter.h
@@ -164,6 +165,7 @@ set(RENDER_SOURCES
         src/render/gbufferpass.cpp
         src/render/bvh.cpp
         src/render/rtshadowpass.cpp
+        src/render/reflection.cpp
         src/render/aopass.cpp
         src/render/ltcpass.cpp
         src/render/bilateralfilter.cpp

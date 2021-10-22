@@ -95,7 +95,7 @@ struct Hit
     uint primId;
 };
 
-struct BVHTriangle 
+struct BVHTriangle
 {
     float3 v0;
     float3 e0;
@@ -215,4 +215,3 @@ bool anyHit(Accel accel, Ray ray, inout Hit hit)
     }
     return false;
 }
-

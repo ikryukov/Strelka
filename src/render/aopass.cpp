@@ -16,7 +16,7 @@ void AOPass::initialize()
     AOBase::initialize("shaders/ao.hlsl");
 }
 
-void AOPass::setResources(AOPassDesc& desc)
+void AOPass::setResources(const AOPassDesc& desc)
 {
     mShaderParams.setTexture("output", mSharedCtx.mResManager->getView(desc.result));
 

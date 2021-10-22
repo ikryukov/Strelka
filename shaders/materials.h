@@ -39,3 +39,28 @@ struct Material
         return illum != 2;
     }
 };
+
+#ifndef __cplusplus
+#include "bindless.h"
+
+float getRoughness(Material material, float2 matUV, Texture2D textures[BINDLESS_TEXTURE_COUNT], SamplerState samplers[BINDLESS_SAMPLER_COUNT])
+{
+    float roughness = material.roughnessFactor;
+    if (material.texMetallicRoughness != -1)
+    {
+        roughness *= textures[NonUniformResourceIndex(material.texMetallicRoughness)].SampleLevel(samplers[NonUniformResourceIndex(material.sampMetallicRoughness)], matUV, 0).g;
+    }
+    return roughness;
+}
+
+float3 getBaseColor(Material material, float2 matUV, Texture2D textures[BINDLESS_TEXTURE_COUNT], SamplerState samplers[BINDLESS_SAMPLER_COUNT])
+{
+    float3 dcol = material.baseColorFactor.rgb;
+    if (material.texBaseColor != -1)
+    {
+        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].SampleLevel(samplers[NonUniformResourceIndex(material.sampBaseId)], matUV, 0).rgb;
+    }
+    return dcol;
+}
+
+#endif
