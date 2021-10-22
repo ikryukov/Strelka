@@ -28,9 +28,12 @@ private:
     VkSampler mLtcSampler = VK_NULL_HANDLE;
 
 public:
+    std::vector<VkSampler> mMatSamplers;
+    std::vector<Image*> mMatTextures;
+
     LtcPass(const SharedContext& ctx);
     ~LtcPass();
     void initialize();
-    void setResources(LtcResourceDesc& desc);
+    void setResources(const LtcResourceDesc& desc);
 };
 } // namespace nevk

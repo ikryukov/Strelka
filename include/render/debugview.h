@@ -27,7 +27,7 @@ public:
     DebugView(const SharedContext& ctx);
     ~DebugView();
     void initialize();
-    void setInputTexture(DebugImages images);
+    void setInputTexture(const DebugImages& images);
     void setOutputTexture(VkImageView imageView);
 };
 } // namespace nevk

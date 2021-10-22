@@ -13,7 +13,7 @@ void DebugView::initialize()
 {
     DebugViewBase::initialize("shaders/debugview.hlsl");
 }
-void DebugView::setInputTexture(DebugImages images)
+void DebugView::setInputTexture(const DebugImages& images)
 {
     mShaderParams.setTexture("inputLTC", mSharedCtx.mResManager->getView(images.LTC));
     mShaderParams.setTexture("inputShadow", mSharedCtx.mResManager->getView(images.shadow));

@@ -24,7 +24,7 @@ public:
 
     };
     void initialize();
-    void setInputTexture(CompositionImages images);
+    void setInputTexture(const CompositionImages& images);
     void setOutputTexture(VkImageView imageView);
 };
 } // namespace nevk

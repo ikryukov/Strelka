@@ -13,7 +13,7 @@ void Composition::initialize()
 {
     CompositionBase::initialize("shaders/composition.hlsl");
 }
-void Composition::setInputTexture(CompositionImages images)
+void Composition::setInputTexture(const CompositionImages& images)
 {
     mShaderParams.setTexture("inputLTC", mSharedCtx.mResManager->getView(images.LTC));
     mShaderParams.setTexture("inputShadows", mSharedCtx.mResManager->getView(images.shadow));

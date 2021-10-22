@@ -23,10 +23,12 @@ using ReflectionBase = ComputePass<ReflectionParam>;
 class Reflection : public ReflectionBase
 {
 public:
+    std::vector<VkSampler> mMatSamplers;
+    std::vector<Image*> mMatTextures;
+
     Reflection(const SharedContext& ctx);
     ~Reflection();
-
     void initialize();
-    void setResources(ReflectionDesc& desc);
+    void setResources(const ReflectionDesc& desc);
 };
 } // namespace nevk

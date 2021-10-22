@@ -17,7 +17,7 @@ void Reflection::initialize()
     ReflectionBase::initialize("shaders/reflection.hlsl");
 }
 
-void Reflection::setResources(ReflectionDesc& desc)
+void Reflection::setResources(const ReflectionDesc& desc)
 {
     mShaderParams.setTexture("output", mSharedCtx.mResManager->getView(desc.result));
 
@@ -30,8 +30,11 @@ void Reflection::setResources(ReflectionDesc& desc)
     mShaderParams.setBuffer("ib", mSharedCtx.mResManager->getVkBuffer(desc.ib));
     mShaderParams.setBuffer("instanceConstants", mSharedCtx.mResManager->getVkBuffer(desc.instanceConst));
     mShaderParams.setBuffer("materials", mSharedCtx.mResManager->getVkBuffer(desc.materials));
-    mShaderParams.setSamplers("samplers", desc.matSampler);
-    mShaderParams.setTextures("textures", desc.matTextures);
+
+    mMatSamplers = desc.matSampler;
+    mMatTextures = desc.matTextures;
+    mShaderParams.setSamplers("samplers", mMatSamplers);
+    mShaderParams.setTextures("textures", mMatTextures);
 }
 
 } // namespace nevk
