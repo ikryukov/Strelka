@@ -1379,7 +1379,6 @@ void Render::setDescriptors()
         mCompositionImages.LTC = mView->mLtcOutputImage;
         mCompositionImages.AO = mView->mAOImage;
         mCompositionImages.reflections = mView->mReflectionImage;
-        mCompositionImages.pathTracer = mView->mPathTracerImage;
 
         mComposition->setParams(mCompositionParam);
         mComposition->setInputTexture(mCompositionImages);
@@ -1910,34 +1909,40 @@ void Render::drawFrame()
     }
     else
     {
-        mCompositionImages.shadow = finalRtImage;
-        mCompositionImages.LTC = mView->mLtcOutputImage;
-        mCompositionImages.AO = finalAOImage;
-        mCompositionImages.reflections = mView->mReflectionImage;
-        mCompositionImages.pathTracer = finalPathTracerImage;
+        Image* tmpImage = nullptr;
+        if (mRenderConfig.enablePathTracer) {
+            tmpImage = finalPathTracerImage;
+        }
+        else
+        {
+            mCompositionImages.shadow = finalRtImage;
+            mCompositionImages.LTC = mView->mLtcOutputImage;
+            mCompositionImages.AO = finalAOImage;
+            mCompositionImages.reflections = mView->mReflectionImage;
 
-        // compose final image ltc + reflections + rtshadow + ao
-        recordBarrier(cmd, mResManager->getVkImage(mView->textureCompositionImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            // compose final image ltc + reflections + rtshadow + ao
+            recordBarrier(cmd, mResManager->getVkImage(mView->textureCompositionImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        mCompositionParam.dimension.x = width;
-        mCompositionParam.dimension.y = height;
-        mCompositionParam.enableShadows = (int32_t)mRenderConfig.enableShadows;
-        mCompositionParam.enableAO = (int32_t)mRenderConfig.enableAO;
-        mCompositionParam.enablePathTracer = (int32_t)mRenderConfig.enablePathTracer;
-        mCompositionParam.enableReflections = (int32_t)mRenderConfig.enableReflections;
-        mComposition->setParams(mCompositionParam);
-        mComposition->execute(cmd, width, height, imageIndex);
-        mComposition->setInputTexture(mCompositionImages);
+            mCompositionParam.dimension.x = width;
+            mCompositionParam.dimension.y = height;
+            mCompositionParam.enableShadows = (int32_t)mRenderConfig.enableShadows;
+            mCompositionParam.enableAO = (int32_t)mRenderConfig.enableAO;
+            mCompositionParam.enableReflections = (int32_t)mRenderConfig.enableReflections;
+            mComposition->setParams(mCompositionParam);
+            mComposition->execute(cmd, width, height, imageIndex);
+            mComposition->setInputTexture(mCompositionImages);
+            recordBarrier(cmd, mResManager->getVkImage(mView->textureCompositionImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            tmpImage = mView->textureCompositionImage;
+        }
 
         // Tonemap
-        recordBarrier(cmd, mResManager->getVkImage(mView->textureCompositionImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         mToneParams.dimension.x = width;
         mToneParams.dimension.y = height;
         mTonemap->setParams(mToneParams);
         mTonemap->execute(cmd, width, height, imageIndex);
-        mTonemap->setInputTexture(mResManager->getView(mView->textureCompositionImage));
+        mTonemap->setInputTexture(mResManager->getView(tmpImage));
         finalImage = mView->textureTonemapImage;
     }
 

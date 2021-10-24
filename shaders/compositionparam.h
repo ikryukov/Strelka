@@ -20,7 +20,7 @@ struct Compositionparam
     int enableAO;
     int enableShadows;
     int enableReflections;
-    int enablePathTracer;
+    int pad0;
     int2 pad1;
 };
 
