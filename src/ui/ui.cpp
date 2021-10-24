@@ -709,7 +709,13 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     ImGui::Checkbox("Enable Path Tracer", &renderConfig.enablePathTracer);
     if (renderConfig.enablePathTracer)
     {
-        ImGui::SliderInt("Max Depth", &renderConfig.maxDepth, 1, 100);
+        if (ImGui::TreeNode("Path Tracer"))
+        {
+            ImGui::SliderInt("Max Depth", &renderConfig.maxDepth, 1, 100);
+            ImGui::Checkbox("Enable Path Tracer Acc", &renderConfig.enablePathTracerAcc);
+
+            ImGui::TreePop();
+        }
     }
     ImGui::Checkbox("Enable Shadows", &renderConfig.enableShadows);
     if (renderConfig.enableShadows)

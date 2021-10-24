@@ -117,11 +117,14 @@ void Render::initVulkan()
     mAO = new AOPass(mSharedCtx);
     mAO->initialize();
 
-    mAccumulation = new Accumulation(mSharedCtx);
-    mAccumulation->initialize();
+    mAccumulationShadows = new Accumulation(mSharedCtx);
+    mAccumulationShadows->initialize();
 
     mAccumulationAO = new Accumulation(mSharedCtx);
     mAccumulationAO->initialize();
+
+    mAccumulationPathTracer = new Accumulation(mSharedCtx);
+    mAccumulationPathTracer->initialize();
 
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
@@ -366,8 +369,9 @@ void Render::cleanup()
     delete mPathTracer;
     delete mReflection;
     delete mAO;
-    delete mAccumulation;
+    delete mAccumulationShadows;
     delete mAccumulationAO;
+    delete mAccumulationPathTracer;
 
     delete mDefaultSceneRenderData;
     if (mCurrentSceneRenderData != mDefaultSceneRenderData)
@@ -782,6 +786,10 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
         view->mAccumulationAOImages[i] = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
+                                                                  VK_IMAGE_TILING_OPTIMAL,
+                                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        view->mAccumulationPathTracerImages[i] = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                                   VK_IMAGE_TILING_OPTIMAL,
                                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
@@ -1297,11 +1305,11 @@ void Render::setDescriptors()
         mAO->setResources(desc);
     }
     {
-        mAccumulation->setInputTexture(mView->mRtShadowImage);
-        mAccumulation->setMotionTexture(mView->gbuffer->motion);
-        mAccumulation->setPrevDepthTexture(mView->prevDepth);
-        mAccumulation->setWposTexture(mView->gbuffer->wPos);
-        mAccumulation->setCurrDepthTexture(mView->gbuffer->depth);
+        mAccumulationShadows->setInputTexture(mView->mRtShadowImage);
+        mAccumulationShadows->setMotionTexture(mView->gbuffer->motion);
+        mAccumulationShadows->setPrevDepthTexture(mView->prevDepth);
+        mAccumulationShadows->setWposTexture(mView->gbuffer->wPos);
+        mAccumulationShadows->setCurrDepthTexture(mView->gbuffer->depth);
     }
     {
         mAccumulationAO->setInputTexture(mView->mAOImage);
@@ -1309,6 +1317,13 @@ void Render::setDescriptors()
         mAccumulationAO->setPrevDepthTexture(mView->prevDepth);
         mAccumulationAO->setWposTexture(mView->gbuffer->wPos);
         mAccumulationAO->setCurrDepthTexture(mView->gbuffer->depth);
+    }
+    {
+        mAccumulationPathTracer->setInputTexture(mView->mPathTracerImage);
+        mAccumulationPathTracer->setMotionTexture(mView->gbuffer->motion);
+        mAccumulationPathTracer->setPrevDepthTexture(mView->prevDepth);
+        mAccumulationPathTracer->setWposTexture(mView->gbuffer->wPos);
+        mAccumulationPathTracer->setCurrDepthTexture(mView->gbuffer->depth);
     }
     {
         LtcResourceDesc desc{};
@@ -1550,8 +1565,9 @@ void Render::drawFrame()
     accParam.clipToView = cam.matrices.invPerspective;
     accParam.viewToWorld = glm::inverse(cam.matrices.view);
 
-    mAccumulation->setParams(accParam);
+    mAccumulationShadows->setParams(accParam);
     mAccumulationAO->setParams(accParam);
+    mAccumulationPathTracer->setParams(accParam);
 
     LtcParam ltcparams{};
     ltcparams.CameraPos = cam.getPosition();
@@ -1737,6 +1753,23 @@ void Render::drawFrame()
         recordBarrier(cmd, mResManager->getVkImage(mView->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     }
+    Image* finalPathTracerImage = mView->mPathTracerImage;
+    if (mRenderConfig.enablePathTracer && mRenderConfig.enablePathTracerAcc)
+    {
+        // Accumulation pass
+        Image* accHist = mView->mAccumulationPathTracerImages[imageIndex % 2];
+        Image* accOut = mView->mAccumulationPathTracerImages[(imageIndex + 1) % 2];
+        mAccumulationPathTracer->setHistoryTexture(accHist);
+        mAccumulationPathTracer->setOutputTexture(accOut);
+
+        recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAccumulationPathTracer->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        finalPathTracerImage = accOut;
+    }
 
     // Shadows
     if (mRenderConfig.enableShadows)
@@ -1755,12 +1788,12 @@ void Render::drawFrame()
         // Accumulation pass
         Image* accHist = mView->mAccumulationImages[imageIndex % 2];
         Image* accOut = mView->mAccumulationImages[(imageIndex + 1) % 2];
-        mAccumulation->setHistoryTexture(accHist);
-        mAccumulation->setOutputTexture(accOut);
+        mAccumulationShadows->setHistoryTexture(accHist);
+        mAccumulationShadows->setOutputTexture(accOut);
 
         recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        mAccumulation->execute(cmd, width, height, imageIndex);
+        mAccumulationShadows->execute(cmd, width, height, imageIndex);
         recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
@@ -1857,7 +1890,7 @@ void Render::drawFrame()
         mDebugImages.motion = mView->gbuffer->motion;
         mDebugImages.variance = mView->mBilateralVarianceOutputImage;
         mDebugImages.reflection = mView->mReflectionImage;
-        mDebugImages.pathTracer = mView->mPathTracerImage;
+        mDebugImages.pathTracer = finalPathTracerImage;
 
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;

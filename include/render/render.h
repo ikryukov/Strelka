@@ -144,8 +144,9 @@ private:
     PathTracer* mPathTracer;
     Reflection* mReflection;
     AOPass* mAO;
-    Accumulation* mAccumulation;
+    Accumulation* mAccumulationShadows;
     Accumulation* mAccumulationAO;
+    Accumulation* mAccumulationPathTracer;
     Tonemap* mTonemap;
     Composition* mComposition;
     DebugView* mDebugView;
@@ -176,6 +177,7 @@ private:
         Image* mAOBilateralVarianceOutputImage;
         Image* mAccumulationImages[2] = { nullptr, nullptr };
         Image* mAccumulationAOImages[2] = { nullptr, nullptr };
+        Image* mAccumulationPathTracerImages[2] = { nullptr, nullptr };
         ResourceManager* mResManager = nullptr;
         ~ViewData()
         {
@@ -245,6 +247,10 @@ private:
                 if (mAccumulationAOImages[i])
                 {
                     mResManager->destroyImage(mAccumulationAOImages[i]);
+                }
+                if (mAccumulationPathTracerImages[i])
+                {
+                    mResManager->destroyImage(mAccumulationPathTracerImages[i]);
                 }
             }
         }

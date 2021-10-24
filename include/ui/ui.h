@@ -33,6 +33,7 @@ public:
         bool enableShadowsAcc = false;
         bool enableAO = false;
         bool enableAOAcc = false;
+        bool enablePathTracerAcc = false;
         bool enableFilter = false;
         bool enableAOFilter = false;
         bool enableShadows = false;

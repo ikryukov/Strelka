@@ -3,11 +3,11 @@
 ConstantBuffer<AccumulationParam> ubo;
 Texture2D<float4> gbWpos;
 Texture2D<float2> motionTex;
-Texture2D<float> currTex;
-Texture2D<float> prevTex;
+Texture2D<float4> currTex;
+Texture2D<float4> prevTex;
 Texture2D<float> prevDepthTex;
 Texture2D<float> currDepthTex;
-RWTexture2D<float> output;
+RWTexture2D<float4> output;
 
 float3 reconstructWorldPos(uint2 pixelIndex, float2 motion, uint2 dimension, Texture2D<float> depthTex, float4x4 clipToView, float4x4 viewToWorld)
 {
@@ -31,13 +31,13 @@ float3 reconstructWorldPos(uint2 pixelIndex, float2 motion, uint2 dimension, Tex
     return wpos.xyz;
 }
 
-float acc(uint2 pixelIndex)
+float3 acc(uint2 pixelIndex)
 {
-    const float current = currTex[pixelIndex];
+    const float3 current = currTex[pixelIndex].rgb;
     float3 currWpos = gbWpos[pixelIndex].xyz;
     float2 motion = motionTex[pixelIndex].xy;
     float3 prevWpos = reconstructWorldPos(pixelIndex, motion, ubo.dimension, prevDepthTex, ubo.prevClipToView, ubo.prevViewToWorld);
-    float res = current;
+    float3 res = current;
     if (length(prevWpos - currWpos) < 0.01)
     {
         // same pixel, reuse sample from history
@@ -45,15 +45,15 @@ float acc(uint2 pixelIndex)
         const float2 ndc = 2.0 * (pixelPos - ubo.dimension / 2.0) / ubo.dimension - motion;
         // ndc -> screen
         uint2 prevPixel = (ubo.dimension / 2.0) * ndc + ubo.dimension / 2.0;
-        float prev = prevTex[prevPixel];
+        float3 prev = prevTex[prevPixel].rgb;
         res = lerp(prev, current, ubo.alpha);
     }
     return res;
 }
 
-float acc1(uint2 pixelIndex)
+float3 acc1(uint2 pixelIndex)
 {
-    const float current = currTex[pixelIndex];
+    const float3 current = currTex[pixelIndex].rgb;
     if (gbWpos[pixelIndex].w == 0.0)
     {
         return current;
@@ -63,14 +63,14 @@ float acc1(uint2 pixelIndex)
     float3 ndc = clip.xyz / clip.w;
     int2 prevPixel = (ubo.dimension / 2.0) * ndc.xy + ubo.dimension / 2.0;
     
-    float res = current;
+    float3 res = current;
     if (all(prevPixel >= 0) && all(prevPixel < ubo.dimension))
     {
         const float prevZ = prevDepthTex[prevPixel].r * -1.0 + 1.0;
         if (abs(prevZ - ndc.z) < 0.0001)
         {
             // same pixel, reuse sample from history
-            float prev = prevTex[prevPixel];
+            float3 prev = prevTex[prevPixel].rgb;
             res = lerp(prev, current, ubo.alpha);
         }
     }
@@ -85,5 +85,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-    output[pixelIndex] = acc1(pixelIndex);
+    output[pixelIndex] = float4(acc1(pixelIndex), 0.0);
 }
