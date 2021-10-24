@@ -1784,18 +1784,6 @@ void Render::drawFrame()
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         finalPathTracerImage = accOut;
-
-        /*
-        // Tonemap
-        recordBarrier(cmd, mResManager->getVkImage(finalPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        //              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        mToneParams.dimension.x = width;
-        mToneParams.dimension.y = height;
-        mTonemapPathTracer->setParams(mToneParams);
-        mTonemapPathTracer->execute(cmd, width, height, imageIndex);
-        mTonemapPathTracer->setInputTexture(mResManager->getView(finalPathTracerImage));
-        finalPathTracerImage = mView->textureTonemapPTImage;
-         */
     }
 
     // Shadows
@@ -1926,6 +1914,18 @@ void Render::drawFrame()
         mDebugView->setInputTexture(mDebugImages);
         mDebugView->execute(cmd, width, height, imageIndex);
         finalImage = mView->textureDebugViewImage;
+    }
+    else if (mRenderConfig.enablePathTracer)
+    {
+        // Tonemap
+        recordBarrier(cmd, mResManager->getVkImage(finalPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                     VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mToneParams.dimension.x = width;
+        mToneParams.dimension.y = height;
+        mTonemapPathTracer->setParams(mToneParams);
+        mTonemapPathTracer->execute(cmd, width, height, imageIndex);
+        mTonemapPathTracer->setInputTexture(mResManager->getView(finalPathTracerImage));
+        finalImage = mView->textureTonemapPTImage;
     }
     else
     {
