@@ -1261,12 +1261,14 @@ void Render::setDescriptors()
     {
         PathTracerDesc desc{};
         desc.result = mView->mPathTracerImage;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
         desc.gbuffer = mView->gbuffer;
         desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.instanceConstants = mCurrentSceneRenderData->mInstanceBuffer;
         desc.vb = mCurrentSceneRenderData->mVertexBuffer;
         desc.ib = mCurrentSceneRenderData->mIndexBuffer;
+        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+        desc.matSampler = mTexManager->texSamplers;
+        desc.matTextures = mTexManager->textureImages;
 
         mPathTracer->setResources(desc);
     }
@@ -1328,6 +1330,7 @@ void Render::setDescriptors()
         mDebugImages.motion = mView->gbuffer->motion;
         mDebugImages.reflection = mView->mReflectionImage;
         mDebugImages.variance = mView->mBilateralVarianceOutputImage;
+        mDebugImages.pathTracer = mView->mPathTracerImage;
     }
     {
         BilateralResourceDesc desc{};
@@ -1516,6 +1519,7 @@ void Render::drawFrame()
     PathTracerParam pathTracerParam{};
     pathTracerParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
     pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
+    pathTracerParam.maxDepth = mRenderConfig.maxDepth;
     mPathTracer->setParams(pathTracerParam);
 
     ReflectionParam reflectionParam{};
@@ -1725,11 +1729,14 @@ void Render::drawFrame()
     }
 
     // Path Tracer
-    recordBarrier(cmd, mResManager->getVkImage(mView->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-    mPathTracer->execute(cmd, width, height, imageIndex);
-    recordBarrier(cmd, mResManager->getVkImage(mView->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    if (mRenderConfig.enablePathTracer)
+    {
+        recordBarrier(cmd, mResManager->getVkImage(mView->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mPathTracer->execute(cmd, width, height, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(mView->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    }
 
     // Shadows
     if (mRenderConfig.enableShadows)
@@ -1850,6 +1857,7 @@ void Render::drawFrame()
         mDebugImages.motion = mView->gbuffer->motion;
         mDebugImages.variance = mView->mBilateralVarianceOutputImage;
         mDebugImages.reflection = mView->mReflectionImage;
+        mDebugImages.pathTracer = mView->mPathTracerImage;
 
         mDebugParams.dimension.x = width;
         mDebugParams.dimension.y = height;

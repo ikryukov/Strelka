@@ -36,6 +36,7 @@ public:
         bool enableFilter = false;
         bool enableAOFilter = false;
         bool enableShadows = false;
+        bool enablePathTracer = false;
         bool enableReflections = false;
         float rayLen = 0.2f;
         float accAlpha = 0.125f;
@@ -50,6 +51,7 @@ public:
         float sigmaAONormal = 1.5f;
         int radiusAO = 3;
         int maxRAO = 5;
+        int maxDepth = 1;
     };
 
     struct RenderStats

@@ -9,6 +9,7 @@ Texture2D<float2> inputMotion;
 Texture2D<float4> debugTex;
 Texture2D<float4> inputAO;
 Texture2D<float4> inputReflection;
+Texture2D<float4> inputPathTracer;
 RWTexture2D<float4> output;
 
 [numthreads(16, 16, 1)]
@@ -59,6 +60,11 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     if (ubo.debugView == 9) // reflection w/ ltc color
     {
         float3 color = inputLTC[pixelIndex].rgb + inputReflection[pixelIndex].rgb;
+        output[pixelIndex] = float4(color, 0.0);
+    }
+    if (ubo.debugView == 10) // path tracer
+    {
+        float3 color = inputPathTracer[pixelIndex].rgb;
         output[pixelIndex] = float4(color, 0.0);
     }
 }
