@@ -21,6 +21,7 @@ public:
         Image* shadow = VK_NULL_HANDLE;
         Image* AO = VK_NULL_HANDLE;
         Image* reflections = VK_NULL_HANDLE;
+        Image* pathTracer = VK_NULL_HANDLE;
 
     };
     void initialize();

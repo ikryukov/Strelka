@@ -119,9 +119,6 @@ float3 pathTrace(uint2 pixelIndex)
             }
 
             finalColor += dcol;
-
-
-
             depth += 1;
         }
         else

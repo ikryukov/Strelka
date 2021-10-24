@@ -19,6 +19,7 @@ void Composition::setInputTexture(const CompositionImages& images)
     mShaderParams.setTexture("inputShadows", mSharedCtx.mResManager->getView(images.shadow));
     mShaderParams.setTexture("inputAO", mSharedCtx.mResManager->getView(images.AO));
     mShaderParams.setTexture("inputReflections", mSharedCtx.mResManager->getView(images.reflections));
+    mShaderParams.setTexture("inputPathTracer", mSharedCtx.mResManager->getView(images.pathTracer));
 }
 void Composition::setOutputTexture(VkImageView imageView)
 {

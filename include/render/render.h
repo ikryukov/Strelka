@@ -15,6 +15,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "accumulation.h"
 #include "aopass.h"
+#include "bilateralfilter.h"
 #include "bvh.h"
 #include "common.h"
 #include "composition.h"
@@ -23,13 +24,11 @@
 #include "gbuffer.h"
 #include "gbufferpass.h"
 #include "ltcpass.h"
-#include "bilateralfilter.h"
-#include "renderpass.h"
-#include "rtshadowpass.h"
 #include "pathtracer.h"
 #include "reflection.h"
+#include "renderpass.h"
+#include "rtshadowpass.h"
 #include "tonemap.h"
-#include "composition.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -148,7 +147,6 @@ private:
     Accumulation* mAccumulationAO;
     Accumulation* mAccumulationPathTracer;
     Tonemap* mTonemap;
-    Tonemap* mTonemapPathTracer;
     Composition* mComposition;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
@@ -165,7 +163,6 @@ private:
         GBuffer* gbuffer;
         Image* prevDepth;
         Image* textureTonemapImage;
-        Image* textureTonemapPTImage;
         Image* textureCompositionImage;
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
@@ -195,10 +192,6 @@ private:
             if (textureTonemapImage)
             {
                 mResManager->destroyImage(textureTonemapImage);
-            }
-            if (textureTonemapPTImage)
-            {
-                mResManager->destroyImage(textureTonemapPTImage);
             }
             if (textureCompositionImage)
             {

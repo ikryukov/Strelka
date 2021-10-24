@@ -20,8 +20,8 @@ struct Compositionparam
     int enableAO;
     int enableShadows;
     int enableReflections;
-    int2 pad0;
-    int pad1;
+    int enablePathTracer;
+    int2 pad1;
 };
 
 #ifdef __cplusplus
