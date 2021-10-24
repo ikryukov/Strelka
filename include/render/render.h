@@ -26,6 +26,7 @@
 #include "bilateralfilter.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
+#include "pathtracer.h"
 #include "reflection.h"
 #include "tonemap.h"
 #include "composition.h"
@@ -140,6 +141,7 @@ private:
 
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadow;
+    PathTracer* mPathTracer;
     Reflection* mReflection;
     AOPass* mAO;
     Accumulation* mAccumulation;
@@ -164,6 +166,7 @@ private:
         Image* textureCompositionImage;
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
+        Image* mPathTracerImage;
         Image* mReflectionImage;
         Image* mAOImage;
         Image* mLtcOutputImage;
@@ -204,6 +207,10 @@ private:
             if (mRtShadowImage)
             {
                 mResManager->destroyImage(mRtShadowImage);
+            }
+            if (mPathTracerImage)
+            {
+                mResManager->destroyImage(mPathTracerImage);
             }
             if (mAOImage)
             {

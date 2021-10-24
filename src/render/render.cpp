@@ -108,6 +108,9 @@ void Render::initVulkan()
     mRtShadow = new RtShadowPass(mSharedCtx);
     mRtShadow->initialize();
 
+    mPathTracer = new PathTracer(mSharedCtx);
+    mPathTracer->initialize();
+
     mReflection = new Reflection(mSharedCtx);
     mReflection->initialize();
 
@@ -360,6 +363,7 @@ void Render::cleanup()
     delete mBilateralFilter;
     delete mAOBilateralFilter;
     delete mRtShadow;
+    delete mPathTracer;
     delete mReflection;
     delete mAO;
     delete mAccumulation;
@@ -758,6 +762,10 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                     VK_IMAGE_TILING_OPTIMAL,
                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
+    view->mPathTracerImage = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                     VK_IMAGE_TILING_OPTIMAL,
+                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
     view->mReflectionImage = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                       VK_IMAGE_TILING_OPTIMAL,
                                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -1251,6 +1259,18 @@ void Render::setDescriptors()
         mRtShadow->setResources(desc);
     }
     {
+        PathTracerDesc desc{};
+        desc.result = mView->mPathTracerImage;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.gbuffer = mView->gbuffer;
+        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+        desc.instanceConstants = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
+        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
+
+        mPathTracer->setResources(desc);
+    }
+    {
         ReflectionDesc desc{};
         desc.result = mView->mReflectionImage;
         desc.gbuffer = mView->gbuffer;
@@ -1493,6 +1513,11 @@ void Render::drawFrame()
     rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
     mRtShadow->setParams(rtShadowParam);
 
+    PathTracerParam pathTracerParam{};
+    pathTracerParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
+    mPathTracer->setParams(pathTracerParam);
+
     ReflectionParam reflectionParam{};
     reflectionParam.camPos = cam.getPosition();
     reflectionParam.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
@@ -1698,6 +1723,13 @@ void Render::drawFrame()
         recordBarrier(cmd, mResManager->getVkImage(mView->mReflectionImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     }
+
+    // Path Tracer
+    recordBarrier(cmd, mResManager->getVkImage(mView->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mPathTracer->execute(cmd, width, height, imageIndex);
+    recordBarrier(cmd, mResManager->getVkImage(mView->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     // Shadows
     if (mRenderConfig.enableShadows)
