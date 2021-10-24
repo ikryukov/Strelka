@@ -93,6 +93,9 @@ void Render::initVulkan()
     mTonemap = new Tonemap(mSharedCtx);
     mTonemap->initialize();
 
+    mTonemapPathTracer = new Tonemap(mSharedCtx);
+    mTonemapPathTracer->initialize();
+
     mComposition = new Composition(mSharedCtx);
     mComposition->initialize();
 
@@ -360,6 +363,7 @@ void Render::cleanup()
     delete mView;
 
     delete mTonemap;
+    delete mTonemapPathTracer;
     delete mComposition;
     delete mDebugView;
     delete mLtcPass;
@@ -734,7 +738,12 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                          VK_IMAGE_TILING_OPTIMAL,
                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
+    view->textureTonemapPTImage = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
+                                                         VK_IMAGE_TILING_OPTIMAL,
+                                                         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap PT result");
     mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureTonemapImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureTonemapPTImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     view->textureCompositionImage = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
                                                              VK_IMAGE_TILING_OPTIMAL,
@@ -1274,6 +1283,7 @@ void Render::setDescriptors()
         desc.vb = mCurrentSceneRenderData->mVertexBuffer;
         desc.ib = mCurrentSceneRenderData->mIndexBuffer;
         desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
         desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
         desc.matSampler = mTexManager->texSamplers;
         desc.matTextures = mTexManager->textureImages;
@@ -1372,6 +1382,11 @@ void Render::setDescriptors()
         mTonemap->setParams(mToneParams);
         mTonemap->setInputTexture(mResManager->getView(mView->textureCompositionImage));
         mTonemap->setOutputTexture(mResManager->getView(mView->textureTonemapImage));
+    }
+    {
+        mTonemapPathTracer->setParams(mToneParams);
+        mTonemapPathTracer->setInputTexture(mResManager->getView(mView->mPathTracerImage));
+        mTonemapPathTracer->setOutputTexture(mResManager->getView(mView->textureTonemapPTImage));
     }
     {
         mCompositionImages.shadow = mView->mRtShadowImage;
@@ -1769,6 +1784,18 @@ void Render::drawFrame()
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         finalPathTracerImage = accOut;
+
+        /*
+        // Tonemap
+        recordBarrier(cmd, mResManager->getVkImage(finalPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        //              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mToneParams.dimension.x = width;
+        mToneParams.dimension.y = height;
+        mTonemapPathTracer->setParams(mToneParams);
+        mTonemapPathTracer->execute(cmd, width, height, imageIndex);
+        mTonemapPathTracer->setInputTexture(mResManager->getView(finalPathTracerImage));
+        finalPathTracerImage = mView->textureTonemapPTImage;
+         */
     }
 
     // Shadows

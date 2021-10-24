@@ -148,6 +148,7 @@ private:
     Accumulation* mAccumulationAO;
     Accumulation* mAccumulationPathTracer;
     Tonemap* mTonemap;
+    Tonemap* mTonemapPathTracer;
     Composition* mComposition;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
@@ -164,6 +165,7 @@ private:
         GBuffer* gbuffer;
         Image* prevDepth;
         Image* textureTonemapImage;
+        Image* textureTonemapPTImage;
         Image* textureCompositionImage;
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
@@ -193,6 +195,10 @@ private:
             if (textureTonemapImage)
             {
                 mResManager->destroyImage(textureTonemapImage);
+            }
+            if (textureTonemapPTImage)
+            {
+                mResManager->destroyImage(textureTonemapPTImage);
             }
             if (textureCompositionImage)
             {

@@ -10,6 +10,7 @@ struct PathTracerDesc
 {
     GBuffer* gbuffer = VK_NULL_HANDLE;
     Buffer* bvhNodes = VK_NULL_HANDLE;
+    Buffer* lights = VK_NULL_HANDLE;
     Buffer* vb = VK_NULL_HANDLE;
     Buffer* ib = VK_NULL_HANDLE;
     Image* result = VK_NULL_HANDLE;

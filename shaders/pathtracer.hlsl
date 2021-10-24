@@ -1,6 +1,8 @@
 #include "helper.h"
 #include "materials.h"
 #include "pack.h"
+#include "lights.h"
+#include "helper.h"
 #include "raytracing.h"
 #include "pathtracerparam.h"
 
@@ -16,6 +18,7 @@ StructuredBuffer<Vertex> vb;
 StructuredBuffer<uint> ib;
 StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<Material> materials;
+StructuredBuffer<RectLight> lights;
 
 Texture2D textures[BINDLESS_TEXTURE_COUNT];
 SamplerState samplers[BINDLESS_SAMPLER_COUNT];
@@ -29,16 +32,18 @@ float3 calcReflection(uint2 pixelIndex)
         return 0;
     float3 wpos = gbWPos[pixelIndex].xyz;
 
-    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-
-    float3 rndDir = float3(rand(rngState), rand(rngState), rand(rngState));
-
     float3 origin = wpos; // gbuffer ?
 
     float3 N = normalize(gbNormal[pixelIndex].xyz);
+    float3x3 TBN = GetTangentSpace(N);
+    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
+    float u1 = rand(rngState);
+    float u2 = rand(rngState);
+    float3 tangentSpaceDir = SampleHemisphere(u1, u2, 1.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
+    float3 dir = mul(TBN, tangentSpaceDir);
 
     Ray ray;
-    ray.d = float4(rndDir, 0.0);
+    ray.d = float4(dir, 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
     ray.o = float4(origin + offset, 100);
     Hit hit;
@@ -79,12 +84,21 @@ float3 calcReflection(uint2 pixelIndex)
 
             float3 dcol = getBaseColor(material, uvCoord, textures, samplers);
 
+            if (material.isLight)
+            {
+                return finalColor + dcol;
+            }
+
             finalColor += dcol;
 
             // set new dir
             ray.o = ray.d;
-            rndDir = float3(rand(rngState), rand(rngState), rand(rngState));
-            ray.d = float4(rndDir, 0.0);
+            TBN = GetTangentSpace(n);
+            u1 = rand(rngState);
+            u2 = rand(rngState);
+            tangentSpaceDir = SampleHemisphere(u1, u2, 1.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
+            dir = mul(TBN, tangentSpaceDir);
+            ray.d = float4(dir, 0.0);
 
             depth += 1;
         }

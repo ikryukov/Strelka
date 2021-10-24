@@ -29,6 +29,7 @@ void PathTracer::setResources(const PathTracerDesc& desc)
     mShaderParams.setBuffer("ib", mSharedCtx.mResManager->getVkBuffer(desc.ib));
     mShaderParams.setBuffer("instanceConstants", mSharedCtx.mResManager->getVkBuffer(desc.instanceConst));
     mShaderParams.setBuffer("materials", mSharedCtx.mResManager->getVkBuffer(desc.materials));
+    mShaderParams.setBuffer("lights", mSharedCtx.mResManager->getVkBuffer(desc.lights));
 
     mMatSamplers = desc.matSampler;
     mMatTextures = desc.matTextures;
