@@ -32,15 +32,35 @@ float3 UniformSampleRect(RectLight l, float2 u)
     return l.points[0].xyz + e1 * u.x + e2 * u.y;
 }
 
+float3 calcLightNormal(RectLight l)
+{
+    float3 e1 = l.points[1].xyz - l.points[0].xyz;
+    float3 e2 = l.points[3].xyz - l.points[0].xyz;
+    return normalize(cross(e1, e2));
+}
+
+float calcLightArea(RectLight l)
+{
+    float3 e1 = l.points[1].xyz - l.points[0].xyz;
+    float3 e2 = l.points[2].xyz - l.points[1].xyz;
+    return length(e1) * length(e2);    
+}
+
 float3 pathTrace(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
     // early out - miss on camera ray
     if (gbWorldPos.w == 0.0)
         return 0;
-    float3 wpos = gbWPos[pixelIndex].xyz;
 
-    float3 origin = wpos; // gbuffer ?
+    InstanceConstants instConst = instanceConstants[gbInstId[pixelIndex]];
+    Material material = materials[instConst.materialId];
+    float2 matUV = gbUV[pixelIndex];
+    if (material.isLight)
+    {
+        return getBaseColor(material, matUV, textures, samplers);
+    }
+    float3 wpos = gbWPos[pixelIndex].xyz;
 
     float3 N = normalize(gbNormal[pixelIndex].xyz);
     float3x3 TBN = GetTangentSpace(N);
@@ -53,7 +73,7 @@ float3 pathTrace(uint2 pixelIndex)
     Ray ray;
     ray.d = float4(dir, 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-    ray.o = float4(origin + offset, 100);
+    ray.o = float4(wpos + offset, 100);
     Hit hit;
     hit.t = 0.0;
 
@@ -67,24 +87,28 @@ float3 pathTrace(uint2 pixelIndex)
     RectLight currLight = lights[0]; // TODO: sample lights
     const float3 pointOnLight = UniformSampleRect(currLight, float2(rand(rngState), rand(rngState)));
     float3 L = normalize(pointOnLight - ray.o.xyz);
-
+    float distToLight = distance(pointOnLight, ray.o.xyz);
+    float3 lightNormal = calcLightNormal(currLight);
+    float lightArea = calcLightArea(currLight);
+    float lightPDF = distToLight * distToLight / (-dot(L, lightNormal) * lightArea);
     Ray shadowRay;
     shadowRay.d = float4(L, 0.0);
-    shadowRay.o = float4(ray.o.xyz, distance(pointOnLight, ray.o.xyz));
+    shadowRay.o = float4(ray.o.xyz, distToLight);
 
     Hit shadowHit;
     shadowHit.t = 0.0;
-    float shadow = anyHit(accel, shadowRay, shadowHit) ? 0.0 : 1.0;
+    float shadow = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
-    float2 matUV = gbUV[pixelIndex];
-    InstanceConstants instConst = accel.instanceConstants[gbInstId[pixelIndex]];
-    Material material = materials[instConst.materialId];
-    float3 finalColor = shadow * dot(N, L) * getBaseColor(material, matUV, textures, samplers);
+    float materialBSDF = 1.0f / PI;
+    float3 diffuse = getBaseColor(material, matUV, textures, samplers);
+    float3 throughput = shadow * currLight.color.rgb * diffuse * materialBSDF * dot(N, L) / lightPDF;
 
-    int depth = 0;
+    int depth = 1;
     int maxDepth = ubo.maxDepth;
-    const float pdf = 1 / 2 * PI;
+    const float pdf = 1.0f / 2.0f * PI;
 
+    float3 finalColor = throughput;
+    
     while (depth < maxDepth)
     {
             // generate new ray
@@ -122,28 +146,33 @@ float3 pathTrace(uint2 pixelIndex)
 
                 if (material.isLight)
                 {
-                    return finalColor;
+                    finalColor += throughput * getBaseColor(material, uvCoord, textures, samplers);
+                    //break;
+                    depth = maxDepth;
                 }
+                else
+                {
+                    L = normalize(pointOnLight - ray.o.xyz);
 
-                L = normalize(pointOnLight - ray.o.xyz);
+                    shadowRay.d = float4(L, 0.0);
+                    shadowRay.o = float4(ray.o.xyz, distance(pointOnLight, ray.o.xyz));
 
-                shadowRay.d = float4(L, 0.0);
-                shadowRay.o = float4(ray.o.xyz, distance(pointOnLight, ray.o.xyz));
-
-                shadowHit.t = 0.0;
-                shadow = anyHit(accel, shadowRay, shadowHit) ? 0.0 : 1.0;
+                    shadowHit.t = 0.0;
+                    shadow = anyHit(accel, shadowRay, shadowHit) ? 0.0 : 1.0;
 
 
-                finalColor += dcol * dot(N, L); // * shadow / pdf;
+                    throughput += dcol * dot(N, L); // * shadow / pdf;
 
-                ray.o.xyz = ray.o.xyz + hit.t * ray.d.xyz; // new ray origin for next ray
-                depth += 1;
+                    ray.o.xyz = ray.o.xyz + hit.t * ray.d.xyz; // new ray origin for next ray
+                    depth += 1;
+                }
             }
             else
             {
-                // ray left the scene
-                finalColor *= float3(0.f);
-                depth = maxDepth; // kind of return
+                // miss - add background color and exit
+                finalColor += throughput * float3(0.f);
+                //break;
+                depth = maxDepth;
             }
         depth += 1;
     }

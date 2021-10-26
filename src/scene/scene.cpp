@@ -209,7 +209,7 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
 
     Material light;
     light.isLight = 1;
-    light.baseColorFactor = glm::float4(desc.color, 1.0f);
+    light.baseColorFactor = glm::float4(desc.color, 1.0f) * desc.intensity;
     light.texBaseColor = -1;
     light.texMetallicRoughness = -1;
     light.roughnessFactor = 0.01;
