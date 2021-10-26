@@ -25,21 +25,21 @@ SamplerState samplers[BINDLESS_SAMPLER_COUNT];
 
 RWTexture2D<float4> output;
 
-float3 UniformSampleRect(RectLight l, float2 u)
+float3 UniformSampleRect(in RectLight l, float2 u)
 {
     float3 e1 = l.points[1].xyz - l.points[0].xyz;
     float3 e2 = l.points[3].xyz - l.points[0].xyz;
     return l.points[0].xyz + e1 * u.x + e2 * u.y;
 }
 
-float3 calcLightNormal(RectLight l)
+float3 calcLightNormal(in RectLight l)
 {
     float3 e1 = l.points[1].xyz - l.points[0].xyz;
     float3 e2 = l.points[3].xyz - l.points[0].xyz;
     return normalize(cross(e1, e2));
 }
 
-float calcLightArea(RectLight l)
+float calcLightArea(in RectLight l)
 {
     float3 e1 = l.points[1].xyz - l.points[0].xyz;
     float3 e2 = l.points[2].xyz - l.points[1].xyz;

@@ -110,7 +110,7 @@ struct Accel
     StructuredBuffer<uint> ib;
 };
 
-BVHTriangle getTriangle(uint instanceId, uint primitiveId, Accel accel)
+BVHTriangle getTriangle(uint instanceId, uint primitiveId, in Accel accel)
 {
     InstanceConstants instConst = accel.instanceConstants[instanceId];
 
@@ -131,7 +131,7 @@ BVHTriangle getTriangle(uint instanceId, uint primitiveId, Accel accel)
     return res;
 }
 
-bool closestHit(Accel accel, Ray ray, inout Hit hit)
+bool closestHit(in Accel accel, in Ray ray, inout Hit hit)
 {
     const float3 invdir = 1.0 / ray.d.xyz;
 
@@ -177,7 +177,7 @@ bool closestHit(Accel accel, Ray ray, inout Hit hit)
     return isFound;
 }
 
-bool anyHit(Accel accel, Ray ray, inout Hit hit)
+bool anyHit(in Accel accel, in Ray ray, inout Hit hit)
 {
     const float3 invdir = 1.0 / ray.d.xyz;
     uint32_t nodeIndex = 0;
