@@ -65,13 +65,8 @@ float3 pathTrace(uint2 pixelIndex)
     float3 N = normalize(gbNormal[pixelIndex].xyz);
     float3x3 TBN = GetTangentSpace(N);
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-    float u1 = rand(rngState);
-    float u2 = rand(rngState);
-    float3 tangentSpaceDir = SampleHemisphere(u1, u2, 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
-    float3 dir = mul(TBN, tangentSpaceDir);
 
     Ray ray;
-    ray.d = float4(dir, 0.0);
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
     ray.o = float4(wpos + offset, 100);
     Hit hit;
@@ -109,12 +104,9 @@ float3 pathTrace(uint2 pixelIndex)
     
     // generate new ray
     TBN = GetTangentSpace(N); // N - hit normal
-    u1 = rand(rngState);
-    u2 = rand(rngState);
-    tangentSpaceDir = SampleHemisphere(u1, u2, 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
-    dir = mul(TBN, tangentSpaceDir);
+    float3 tangentSpaceDir = SampleHemisphere(rand(rngState), rand(rngState), 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
+    float3 dir = mul(TBN, tangentSpaceDir);
     
-    ray.o = float4(ray.o.xyz + ray.d.xyz * hit.t, 1e9);
     ray.d = float4(dir, 0.0);
 
     float3 throughput = materialBsdf * dot(N, ray.d.xyz) / materialBsdfPdf;
@@ -183,8 +175,8 @@ float3 pathTrace(uint2 pixelIndex)
 
                     // generate new ray
                     TBN = GetTangentSpace(N); // N - hit normal
-                    tangentSpaceDir = SampleHemisphere(rand(rngState), rand(rngState), 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
-                    dir = mul(TBN, tangentSpaceDir);
+                    float3 tangentSpaceDir = SampleHemisphere(rand(rngState), rand(rngState), 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
+                    float3 dir = mul(TBN, tangentSpaceDir);
 
                     ray.o = float4(ray.o.xyz + ray.d.xyz * hit.t, 1e9); // new ray origin for next ray
                     ray.d = float4(dir, 0.0);
