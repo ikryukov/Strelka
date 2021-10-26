@@ -713,6 +713,10 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
         {
             ImGui::SliderInt("Max Depth", &renderConfig.maxDepth, 1, 100);
             ImGui::Checkbox("Enable Path Tracer Acc", &renderConfig.enablePathTracerAcc);
+            if (renderConfig.enablePathTracerAcc)
+            {
+                ImGui::SliderFloat("PT Alpha", &renderConfig.accPTAlpha, 0.01, 0.5);
+            }
 
             ImGui::TreePop();
         }

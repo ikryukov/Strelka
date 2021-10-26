@@ -33,15 +33,16 @@ public:
         bool enableShadowsAcc = false;
         bool enableAO = false;
         bool enableAOAcc = false;
-        bool enablePathTracerAcc = false;
+        bool enablePathTracerAcc = true;
         bool enableFilter = false;
         bool enableAOFilter = false;
         bool enableShadows = false;
-        bool enablePathTracer = false;
+        bool enablePathTracer = true;
         bool enableReflections = false;
         float rayLen = 0.2f;
         float accAlpha = 0.125f;
         float accAOAlpha = 0.125f;
+        float accPTAlpha = 0.125f;
         float animTime = 0.f;
         int32_t samples;
         float sigma = 2.9f;

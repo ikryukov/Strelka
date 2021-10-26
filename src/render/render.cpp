@@ -1566,9 +1566,14 @@ void Render::drawFrame()
     accParam.clipToView = cam.matrices.invPerspective;
     accParam.viewToWorld = glm::inverse(cam.matrices.view);
 
+    AccumulationParam accParamAO = accParam;
+    accParamAO.alpha = mRenderConfig.accAOAlpha;
+    AccumulationParam accParamPT = accParam;
+    accParamPT.alpha = mRenderConfig.accPTAlpha;
+
     mAccumulationShadows->setParams(accParam);
-    mAccumulationAO->setParams(accParam);
-    mAccumulationPathTracer->setParams(accParam);
+    mAccumulationAO->setParams(accParamAO);
+    mAccumulationPathTracer->setParams(accParamPT);
 
     LtcParam ltcparams{};
     ltcparams.CameraPos = cam.getPosition();
