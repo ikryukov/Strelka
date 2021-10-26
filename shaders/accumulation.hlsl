@@ -67,7 +67,7 @@ float3 acc1(uint2 pixelIndex)
     if (all(prevPixel >= 0) && all(prevPixel < ubo.dimension))
     {
         const float prevZ = prevDepthTex[prevPixel].r * -1.0 + 1.0;
-        if (abs(prevZ - ndc.z) < 0.0001)
+        if (abs(prevZ - ndc.z) < 0.001)
         {
             // same pixel, reuse sample from history
             float3 prev = prevTex[prevPixel].rgb;
@@ -85,5 +85,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-    output[pixelIndex] = float4(acc1(pixelIndex), 0.0);
+    output[pixelIndex] = float4(acc(pixelIndex), 0.0);
 }
