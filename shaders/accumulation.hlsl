@@ -77,6 +77,30 @@ float3 acc1(uint2 pixelIndex)
     return res;
 }
 
+float3 accPt(uint2 pixelIndex)
+{
+    const float3 current = currTex[pixelIndex].rgb;
+    float3 currWpos = gbWpos[pixelIndex].xyz;
+    float2 motion = motionTex[pixelIndex].xy;
+    float3 prevWpos = reconstructWorldPos(pixelIndex, motion, ubo.dimension, prevDepthTex, ubo.prevClipToView, ubo.prevViewToWorld);
+    float3 res = current;
+    if (length(prevWpos - currWpos) < 0.01)
+    {
+        // same pixel, reuse sample from history
+        float2 pixelPos = float2(pixelIndex) + 0.5;
+        const float2 ndc = 2.0 * (pixelPos - ubo.dimension / 2.0) / ubo.dimension - motion;
+        // ndc -> screen
+        uint2 prevPixel = (ubo.dimension / 2.0) * ndc + ubo.dimension / 2.0;
+        float3 prev = prevTex[prevPixel].rgb;
+        
+        float wHistory = float(ubo.iteration) / float(ubo.iteration + 1);
+        float wNew = 1.0 / float(ubo.iteration + 1);
+
+        res = prev * wHistory + current * wNew;
+    }
+    return res;
+}
+
 [numthreads(16, 16, 1)]
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
@@ -85,5 +109,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         return;
     }
-    output[pixelIndex] = float4(acc(pixelIndex), 0.0);
+    output[pixelIndex] = float4(accPt(pixelIndex), 0.0);
 }

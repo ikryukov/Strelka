@@ -1488,6 +1488,12 @@ void Render::drawFrame()
     // save curr to prev
     cam.prevMatrices = cam.matrices;
 
+    bool needResetPt = false;
+    if (cam.moving())
+    {
+        needResetPt = true;
+    }
+
     if (scene->mAnimState == Scene::AnimationState::ePlay || scene->mAnimState == Scene::AnimationState::eScroll)
     {
         if (scene->mAnimState == Scene::AnimationState::ePlay)
@@ -1497,10 +1503,12 @@ void Render::drawFrame()
             {
                 mCurrentSceneRenderData->animationTime = scene->mAnimations[0].start; // ring
             }
+            needResetPt = true;
         }
         else
         {
             scene->mAnimState = Scene::AnimationState::eStop;
+            needResetPt = false;
         }
 
         scene->updateAnimation(mCurrentSceneRenderData->animationTime);
@@ -1570,6 +1578,17 @@ void Render::drawFrame()
     accParamAO.alpha = mRenderConfig.accAOAlpha;
     AccumulationParam accParamPT = accParam;
     accParamPT.alpha = mRenderConfig.accPTAlpha;
+
+    if (needResetPt)
+    {
+        accParamPT.iteration = 0;
+        mView->mPtIteration = 0;
+    }
+    else
+    {
+        ++mView->mPtIteration;
+        accParamPT.iteration = mView->mPtIteration;
+    }    
 
     mAccumulationShadows->setParams(accParam);
     mAccumulationAO->setParams(accParamAO);

@@ -178,6 +178,7 @@ private:
         Image* mAccumulationAOImages[2] = { nullptr, nullptr };
         Image* mAccumulationPathTracerImages[2] = { nullptr, nullptr };
         ResourceManager* mResManager = nullptr;
+        uint32_t mPtIteration = 0;
         ~ViewData()
         {
             assert(mResManager);
