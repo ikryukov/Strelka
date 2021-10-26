@@ -67,7 +67,7 @@ float3 pathTrace(uint2 pixelIndex)
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
     float u1 = rand(rngState);
     float u2 = rand(rngState);
-    float3 tangentSpaceDir = SampleHemisphere(u1, u2, 1.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
+    float3 tangentSpaceDir = SampleHemisphere(u1, u2, 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
     float3 dir = mul(TBN, tangentSpaceDir);
 
     Ray ray;
@@ -99,26 +99,28 @@ float3 pathTrace(uint2 pixelIndex)
     shadowHit.t = 0.0;
     float shadow = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
-    float materialBSDF = 1.0f / PI;
     float3 diffuse = getBaseColor(material, matUV, textures, samplers);
-    float3 throughput = shadow * currLight.color.rgb * diffuse * materialBSDF * dot(N, L) / lightPDF;
-
+    float3 materialBsdf = 1.0f / PI * diffuse;
+    float materialBsdfPdf = 1.0f / (2.0f * PI);
+    float3 finalColor =  shadow * currLight.color.rgb * materialBsdf * dot(N, L) / lightPDF;
+    
     int depth = 1;
     int maxDepth = ubo.maxDepth;
-    const float pdf = 1.0f / 2.0f * PI;
+    
+    // generate new ray
+    TBN = GetTangentSpace(N); // N - hit normal
+    u1 = rand(rngState);
+    u2 = rand(rngState);
+    tangentSpaceDir = SampleHemisphere(u1, u2, 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
+    dir = mul(TBN, tangentSpaceDir);
+    
+    ray.o = float4(ray.o.xyz + ray.d.xyz * hit.t, 1e9);
+    ray.d = float4(dir, 0.0);
 
-    float3 finalColor = throughput;
+    float3 throughput = materialBsdf * dot(N, ray.d.xyz) / materialBsdfPdf;
     
     while (depth < maxDepth)
     {
-            // generate new ray
-            TBN = GetTangentSpace(N); // N - hit normal
-            u1 = rand(rngState);
-            u2 = rand(rngState);
-            tangentSpaceDir = SampleHemisphere(u1, u2, 1.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
-            dir = mul(TBN, tangentSpaceDir);
-            ray.d = float4(dir, 0.0);
-
             if (closestHit(accel, ray, hit))
             {
                 instConst = accel.instanceConstants[hit.instId];
@@ -142,17 +144,30 @@ float3 pathTrace(uint2 pixelIndex)
 
                 float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
 
-                float3 dcol = getBaseColor(material, uvCoord, textures, samplers);
+                float3 diffuse = getBaseColor(material, uvCoord, textures, samplers);
 
                 if (material.isLight)
                 {
-                    finalColor += throughput * getBaseColor(material, uvCoord, textures, samplers);
+                    finalColor += throughput * diffuse;
                     //break;
                     depth = maxDepth;
                 }
                 else
                 {
-                    L = normalize(pointOnLight - ray.o.xyz);
+                    RectLight currLight = lights[0]; // TODO: sample lights
+                    const float3 pointOnLight = UniformSampleRect(currLight, float2(rand(rngState), rand(rngState)));
+                    float3 L = normalize(pointOnLight - ray.o.xyz);
+                    float distToLight = distance(pointOnLight, ray.o.xyz);
+                    float3 lightNormal = calcLightNormal(currLight);
+                    float lightArea = calcLightArea(currLight);
+                    float lightPDF = distToLight * distToLight / (-dot(L, lightNormal) * lightArea);
+                    Ray shadowRay;
+                    shadowRay.d = float4(L, 0.0);
+                    shadowRay.o = float4(ray.o.xyz, distToLight);
+
+                    Hit shadowHit;
+                    shadowHit.t = 0.0;
+                    float shadow = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
                     shadowRay.d = float4(L, 0.0);
                     shadowRay.o = float4(ray.o.xyz, distance(pointOnLight, ray.o.xyz));
@@ -160,11 +175,21 @@ float3 pathTrace(uint2 pixelIndex)
                     shadowHit.t = 0.0;
                     shadow = anyHit(accel, shadowRay, shadowHit) ? 0.0 : 1.0;
 
+                    float3 materialBsdf = 1.0f / PI * diffuse;
+                    float materialBsdfPdf = 1.0f / (2.0f * PI);
+                    float3 directLight =  shadow * currLight.color.rgb * materialBsdf * dot(N, L) / lightPDF;
 
-                    throughput += dcol * dot(N, L); // * shadow / pdf;
+                    finalColor += throughput * directLight;
 
-                    ray.o.xyz = ray.o.xyz + hit.t * ray.d.xyz; // new ray origin for next ray
-                    depth += 1;
+                    // generate new ray
+                    TBN = GetTangentSpace(N); // N - hit normal
+                    tangentSpaceDir = SampleHemisphere(rand(rngState), rand(rngState), 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
+                    dir = mul(TBN, tangentSpaceDir);
+
+                    ray.o = float4(ray.o.xyz + ray.d.xyz * hit.t, 1e9); // new ray origin for next ray
+                    ray.d = float4(dir, 0.0);
+
+                    throughput *= materialBsdf * dot(N, ray.d.xyz) / materialBsdfPdf;
                 }
             }
             else
@@ -174,7 +199,7 @@ float3 pathTrace(uint2 pixelIndex)
                 //break;
                 depth = maxDepth;
             }
-        depth += 1;
+            depth += 1;
     }
 
     return finalColor;
