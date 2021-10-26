@@ -122,12 +122,12 @@ float3 pathTrace(uint2 pixelIndex)
                 uint i1 = accel.ib[instConst.indexOffset + hit.primId * 3 + 1];
                 uint i2 = accel.ib[instConst.indexOffset + hit.primId * 3 + 2];
 
-                float3 n0 = unpackNormal(accel.vb[i0].normal);
-                float3 n1 = unpackNormal(accel.vb[i1].normal);
-                float3 n2 = unpackNormal(accel.vb[i2].normal);
+                float3 n0 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i0].normal));
+                float3 n1 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i1].normal));
+                float3 n2 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i2].normal));
 
                 float2 bcoords = hit.bary;
-                float3 n = interpolateAttrib(n0, n1, n2, bcoords);
+                float3 n = normalize(interpolateAttrib(n0, n1, n2, bcoords));
                 N = n; // hit normal
 
                 float2 uv0 = unpackUV(accel.vb[i0].uv);
