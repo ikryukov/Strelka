@@ -68,7 +68,7 @@ float3 pathTrace(uint2 pixelIndex)
 
     Ray ray;
     const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
-    ray.o = float4(wpos + offset, 100);
+    ray.o = float4(wpos + offset, 1e9);
     Hit hit;
     hit.t = 0.0;
 
@@ -88,7 +88,7 @@ float3 pathTrace(uint2 pixelIndex)
     float lightPDF = distToLight * distToLight / (-dot(L, lightNormal) * lightArea);
     Ray shadowRay;
     shadowRay.d = float4(L, 0.0);
-    shadowRay.o = float4(ray.o.xyz, distToLight);
+    shadowRay.o = float4(ray.o.xyz, distToLight - 1e-5);
 
     Hit shadowHit;
     shadowHit.t = 0.0;
@@ -97,7 +97,7 @@ float3 pathTrace(uint2 pixelIndex)
     float3 diffuse = getBaseColor(material, matUV, textures, samplers);
     float3 materialBsdf = 1.0f / PI * diffuse;
     float materialBsdfPdf = 1.0f / (2.0f * PI);
-    float3 finalColor =  shadow * currLight.color.rgb * materialBsdf * dot(N, L) / lightPDF;
+    float3 finalColor =  shadow * currLight.color.rgb * materialBsdf * saturate(dot(N, L)) / lightPDF;
     
     int depth = 1;
     int maxDepth = ubo.maxDepth;
@@ -155,21 +155,15 @@ float3 pathTrace(uint2 pixelIndex)
                     float lightPDF = distToLight * distToLight / (-dot(L, lightNormal) * lightArea);
                     Ray shadowRay;
                     shadowRay.d = float4(L, 0.0);
-                    shadowRay.o = float4(ray.o.xyz, distToLight);
+                    shadowRay.o = float4(ray.o.xyz, distToLight - 1e-5);
 
                     Hit shadowHit;
                     shadowHit.t = 0.0;
                     float shadow = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
-                    shadowRay.d = float4(L, 0.0);
-                    shadowRay.o = float4(ray.o.xyz, distance(pointOnLight, ray.o.xyz));
-
-                    shadowHit.t = 0.0;
-                    shadow = anyHit(accel, shadowRay, shadowHit) ? 0.0 : 1.0;
-
                     float3 materialBsdf = 1.0f / PI * diffuse;
                     float materialBsdfPdf = 1.0f / (2.0f * PI);
-                    float3 directLight =  shadow * currLight.color.rgb * materialBsdf * dot(N, L) / lightPDF;
+                    float3 directLight =  shadow * currLight.color.rgb * materialBsdf * saturate(dot(N, L)) / lightPDF;
 
                     finalColor += throughput * directLight;
 
@@ -177,8 +171,8 @@ float3 pathTrace(uint2 pixelIndex)
                     TBN = GetTangentSpace(N); // N - hit normal
                     float3 tangentSpaceDir = SampleHemisphere(rand(rngState), rand(rngState), 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
                     float3 dir = mul(TBN, tangentSpaceDir);
-
-                    ray.o = float4(ray.o.xyz + ray.d.xyz * hit.t, 1e9); // new ray origin for next ray
+                    const float3 offset = N * 1e-5; // need to add small offset to fix self-collision
+                    ray.o = float4(ray.o.xyz + ray.d.xyz * hit.t + offset, 1e9); // new ray origin for next ray
                     ray.d = float4(dir, 0.0);
 
                     throughput *= materialBsdf * dot(N, ray.d.xyz) / materialBsdfPdf;
