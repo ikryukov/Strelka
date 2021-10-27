@@ -1574,10 +1574,9 @@ void Render::drawFrame()
     accParam.clipToView = cam.matrices.invPerspective;
     accParam.viewToWorld = glm::inverse(cam.matrices.view);
 
+    AccumulationParam accParamPT = accParam;
     AccumulationParam accParamAO = accParam;
     accParamAO.alpha = mRenderConfig.accAOAlpha;
-    AccumulationParam accParamPT = accParam;
-    accParamPT.alpha = mRenderConfig.accPTAlpha;
 
     if (needResetPt)
     {
@@ -1588,7 +1587,7 @@ void Render::drawFrame()
     {
         ++mView->mPtIteration;
         accParamPT.iteration = mView->mPtIteration;
-    }    
+    }
 
     mAccumulationShadows->setParams(accParam);
     mAccumulationAO->setParams(accParamAO);
@@ -1934,7 +1933,8 @@ void Render::drawFrame()
     else
     {
         Image* tmpImage = nullptr;
-        if (mRenderConfig.enablePathTracer) {
+        if (mRenderConfig.enablePathTracer)
+        {
             tmpImage = finalPathTracerImage;
         }
         else
