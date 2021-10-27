@@ -767,6 +767,16 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
 
     ImGui::Checkbox("Enable Reflections", &renderConfig.enableReflections);
 
+    ImGui::Checkbox("Enable Upscale", &renderConfig.enableUpscale);
+    if (renderConfig.enableUpscale)
+    {
+        renderConfig.upscaleFactor = 0.5;
+    }
+    else
+    {
+        renderConfig.upscaleFactor = 1;
+    }
+
     ImGui::End(); // end window
 }
 

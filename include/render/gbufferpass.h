@@ -76,7 +76,7 @@ private:
     std::vector<VkDescriptorSet> mDescriptorSets;
 
     GBuffer* mGbuffer;
-    std::vector<VkFramebuffer> mFrameBuffers;
+    VkFramebuffer mFrameBuffers[MAX_FRAMES_IN_FLIGHT];
 
     static VkVertexInputBindingDescription getBindingDescription()
     {
@@ -137,7 +137,7 @@ public:
 
     VkPipeline createGraphicsPipeline(VkShaderModule& vertShaderModule, VkShaderModule& fragShaderModule, VkPipelineLayout pipelineLayout, uint32_t width, uint32_t height);
 
-    void createFrameBuffers(GBuffer& gbuffer);
+    void createFrameBuffers(GBuffer& gbuffer, uint32_t index);
 
     void setShadowImageView(VkImageView shadowImageView);
     void setTextureImageView(const std::vector<VkImageView>& textureImageView);
@@ -165,7 +165,7 @@ public:
         mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, mGbuffer->width, mGbuffer->height);
     }
 
-    void onResize(GBuffer* gbuffer);
+    void onResize(GBuffer* gbuffer, uint32_t index);
 
     void onDestroy();
 

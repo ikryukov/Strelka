@@ -33,6 +33,8 @@ public:
         bool enableShadowsAcc = false;
         bool enableAO = false;
         bool enableAOAcc = false;
+        bool enableUpscale = true;
+        float upscaleFactor = 0.5; // 1 -- w/o upscaling, 0.5 -- render in half size
         bool enablePathTracerAcc = true;
         bool enableFilter = false;
         bool enableAOFilter = false;

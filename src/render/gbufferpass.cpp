@@ -1,4 +1,5 @@
 #include "gbufferpass.h"
+
 #include "bindless.h"
 
 #include <array>
@@ -171,36 +172,33 @@ VkPipeline GbufferPass::createGraphicsPipeline(VkShaderModule& vertShaderModule,
     return res;
 }
 
-void GbufferPass::createFrameBuffers(GBuffer& gbuffer)
+void GbufferPass::createFrameBuffers(GBuffer& gbuffer, uint32_t index)
 {
-    mFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+    //mFrameBuffers.resize(MAX_FRAMES_IN_FLIGHT);
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+    std::array<VkImageView, 8> attachments = {
+        mResManager->getView(gbuffer.wPos),
+        mResManager->getView(gbuffer.normal),
+        mResManager->getView(gbuffer.tangent),
+        mResManager->getView(gbuffer.uv),
+        mResManager->getView(gbuffer.instId),
+        mResManager->getView(gbuffer.motion),
+        mResManager->getView(gbuffer.debug),
+        mResManager->getView(gbuffer.depth)
+    };
+
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = mRenderPass;
+    framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+    framebufferInfo.pAttachments = attachments.data();
+    framebufferInfo.width = gbuffer.width;
+    framebufferInfo.height = gbuffer.height;
+    framebufferInfo.layers = 1;
+
+    if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFrameBuffers[index]) != VK_SUCCESS)
     {
-        std::array<VkImageView, 8> attachments = {
-            mResManager->getView(gbuffer.wPos),
-            mResManager->getView(gbuffer.normal),
-            mResManager->getView(gbuffer.tangent),
-            mResManager->getView(gbuffer.uv),
-            mResManager->getView(gbuffer.instId),
-            mResManager->getView(gbuffer.motion),
-            mResManager->getView(gbuffer.debug),
-            mResManager->getView(gbuffer.depth)
-        };
-
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = mRenderPass;
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = gbuffer.width;
-        framebufferInfo.height = gbuffer.height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(mDevice, &framebufferInfo, nullptr, &mFrameBuffers[i]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create framebuffer!");
-        }
+        throw std::runtime_error("failed to create framebuffer!");
     }
 }
 
@@ -453,7 +451,8 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = mRenderPass;
-    renderPassInfo.framebuffer = mFrameBuffers[imageIndex % MAX_FRAMES_IN_FLIGHT];
+    renderPassInfo.framebuffer = mFrameBuffers[imageIndex];
+
     renderPassInfo.renderArea.offset = { 0, 0 };
     renderPassInfo.renderArea.extent = { width, height };
 
@@ -564,21 +563,19 @@ void GbufferPass::onDestroy()
     vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
 }
 
-void GbufferPass::onResize(GBuffer* gbuffer)
+void GbufferPass::onResize(GBuffer* gbuffer, uint32_t index)
 {
     assert(gbuffer);
     mGbuffer = gbuffer;
-    for (auto& framebuffer : mFrameBuffers)
-    {
-        vkDestroyFramebuffer(mDevice, framebuffer, nullptr);
-    }
+
+    vkDestroyFramebuffer(mDevice, mFrameBuffers[index], nullptr);
 
     vkDestroyPipeline(mDevice, mPipeline, nullptr);
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
     createRenderPass();
     mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, mGbuffer->width, mGbuffer->height);
-    createFrameBuffers(*mGbuffer);
+    createFrameBuffers(*mGbuffer, index);
 }
 
 void GbufferPass::setTextureImageView(const std::vector<VkImageView>& textureImageView)
