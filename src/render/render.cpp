@@ -723,6 +723,7 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
     view->gbuffer = createGbuffer(width, height);
     view->prevDepth = mResManager->createImage(width, height, view->gbuffer->depthFormat, VK_IMAGE_TILING_OPTIMAL,
                                                VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Prev depth");
+    mTexManager->transitionImageLayout(mResManager->getVkImage(view->prevDepth), view->gbuffer->depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     view->textureDebugViewImage = mResManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
                                                            VK_IMAGE_TILING_OPTIMAL,
@@ -785,14 +786,17 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height)
                                                                 VK_IMAGE_TILING_OPTIMAL,
                                                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        mTexManager->transitionImageLayout(mResManager->getVkImage(view->mAccumulationImages[i]), VK_FORMAT_R16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         view->mAccumulationAOImages[i] = mResManager->createImage(width, height, VK_FORMAT_R16_SFLOAT,
                                                                   VK_IMAGE_TILING_OPTIMAL,
                                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        mTexManager->transitionImageLayout(mResManager->getVkImage(view->mAccumulationAOImages[i]), VK_FORMAT_R16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         view->mAccumulationPathTracerImages[i] = mResManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                                           VK_IMAGE_TILING_OPTIMAL,
                                                                           VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        mTexManager->transitionImageLayout(mResManager->getVkImage(view->mAccumulationPathTracerImages[i]), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
     return view;
 }
