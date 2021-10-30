@@ -74,7 +74,7 @@ float3 estimateDirectLighting(inout uint rngState, in Accel accel, in RectLight 
         Ray shadowRay;
         shadowRay.d = float4(L, 0.0);
         const float3 offset = hit.N * 1e-6; // need to add small offset to fix self-collision
-        shadowRay.o = float4(hit.p + offset, distToLight - 1e-6);
+        shadowRay.o = float4(hit.p + offset, distToLight - 1e-5);
 
         Hit shadowHit;
         shadowHit.t = 0.0;
