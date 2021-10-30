@@ -29,7 +29,7 @@ float3 SampleHemisphere(uint2 pixelIndex, float3 normal)
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
 
     float cosTheta = rand(rngState);
-    float sinTheta = sqrt(max(0.0f, 1.0f - cosTheta * cosTheta));
+    float sinTheta = sqrt(saturate(1.0f - cosTheta * cosTheta));
     float phi = 2 * PI * rand(rngState);
     float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
 
@@ -39,8 +39,17 @@ float3 SampleHemisphere(uint2 pixelIndex, float3 normal)
 float3 SampleHemisphere(float u1, float u2, float alpha)
 {
     float cosTheta = pow(u1, 1.0f / (alpha + 1.0f));
-    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+    float sinTheta = sqrt(saturate(1.0f - cosTheta * cosTheta));
     float phi = 2 * PI * u2;
+    float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
+    return tangentSpaceDir;
+}
+
+float3 SampleHemisphereCosine(in float2 uv)
+{
+    float cosTheta = sqrt(saturate(uv.x));
+    float sinTheta = sqrt(saturate(1.0f - cosTheta * cosTheta));
+    float phi = 2 * PI * uv.y;
     float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
     return tangentSpaceDir;
 }

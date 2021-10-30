@@ -27,7 +27,10 @@ RWTexture2D<float4> output;
 
 struct SampledMaterial
 {
-    float3 bsdf;
+    float3 diffuse;
+    float3 wInp;
+    float3 wOut;
+    float bsdf;
     float pdf;
 };
 
@@ -80,7 +83,7 @@ float3 estimateDirectLighting(inout uint rngState, in Accel accel, in RectLight 
         shadowHit.t = 0.0;
         float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
-        return visibility * Li * material.bsdf * saturate(dot(hit.N, L)) / lightPDF;
+        return visibility * Li * material.diffuse * material.bsdf * saturate(dot(hit.N, L)) / lightPDF;
     }
 
     return float3(0.0);
@@ -90,6 +93,26 @@ float3 sampleLights(inout uint rngState, in Accel accel, in SurfacePoint hit, in
 {
     RectLight currLight = lights[0]; // TODO: sample lights
     return estimateDirectLighting(rngState, accel, currLight, hit, material);
+}
+
+SampledMaterial sampleMaterial(in Material material, float2 uv, float3 N, float3 wi, float3 wo)
+{
+    SampledMaterial sm;
+    sm.diffuse = getBaseColor(material, uv, textures, samplers);
+    sm.bsdf = 1.0f / PI;
+    //sm.pdf = 1.0f / (2.0f * PI); // 1/2pi - uniform, cos(phi)/pi - cosine
+    sm.pdf = 1.0f / PI * saturate(dot(N, wo));
+    sm.wInp = wi;
+    sm.wOut = wo;
+    return sm;
+}
+
+SampledMaterial sampleMaterial(in Material material, float2 uv, float3 N, float3 wi, float2 noiseSample)
+{
+    float3x3 TBN = GetTangentSpace(N);
+    float3 wOut = SampleHemisphereCosine(noiseSample);
+    wOut = mul(TBN, wOut);
+    return sampleMaterial(material, uv, N, wi, wOut);
 }
 
 float3 pathTrace(uint2 pixelIndex)
@@ -122,10 +145,9 @@ float3 pathTrace(uint2 pixelIndex)
     sp.N = N;
     sp.p = wpos;
 
-    SampledMaterial sm;
-    float3 diffuse = getBaseColor(material, matUV, textures, samplers);
-    sm.bsdf = 1.0f / PI * diffuse;
-    sm.pdf = 1.0f / (2.0f * PI);
+    float2 rndSample = float2(rand(rngState), rand(rngState));
+
+    SampledMaterial sm = sampleMaterial(material, matUV, N, float3(1.0), rndSample);
 
     float3 finalColor = sampleLights(rngState, accel, sp, sm);
     
@@ -136,15 +158,12 @@ float3 pathTrace(uint2 pixelIndex)
     Ray ray;
     const float3 offset = N * 1e-6; // need to add small offset to fix self-collision
     ray.o = float4(sp.p + offset, 1e9);
+    ray.d = float4(sm.wOut, 0.0);
+
     Hit hit;
     hit.t = 0.0;
-    float3x3 TBN = GetTangentSpace(N);
-    float3 tangentSpaceDir = SampleHemisphere(rand(rngState), rand(rngState), 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
-    float3 dir = mul(TBN, tangentSpaceDir);
-    
-    ray.d = float4(dir, 0.0);
 
-    float3 throughput = sm.bsdf * dot(sp.N, ray.d.xyz) / sm.pdf;
+    float3 throughput = sm.diffuse * sm.bsdf * dot(sp.N, ray.d.xyz) / sm.pdf;
     
     while (depth < maxDepth)
     {
@@ -170,12 +189,13 @@ float3 pathTrace(uint2 pixelIndex)
             float2 uv2 = unpackUV(accel.vb[i2].uv);
 
             float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
+            rndSample = float2(rand(rngState), rand(rngState));
 
-            float3 diffuse = getBaseColor(material, uvCoord, textures, samplers);
+            sm = sampleMaterial(material, uvCoord, N, ray.d.xyz, rndSample);
 
             if (material.isLight)
             {
-                finalColor += throughput * diffuse;
+                finalColor += throughput * sm.diffuse;
                 //break;
                 depth = maxDepth;
             }
@@ -184,20 +204,14 @@ float3 pathTrace(uint2 pixelIndex)
                 sp.p = ray.o.xyz + ray.d.xyz * hit.t;
                 sp.N = N;
 
-                sm.bsdf = 1.0f / PI * diffuse;
-                sm.pdf = 1.0f / (2.0f * PI);
-
                 finalColor += throughput * sampleLights(rngState, accel, sp, sm);
 
                 // generate new ray
-                TBN = GetTangentSpace(N); // N - hit normal
-                float3 tangentSpaceDir = SampleHemisphere(rand(rngState), rand(rngState), 0.0); // 0 - uniform sampling, 1 - cos. sampling, higher for phong
-                float3 dir = mul(TBN, tangentSpaceDir);
                 const float3 offset = N * 1e-6; // need to add small offset to fix self-collision
                 ray.o = float4(sp.p + offset, 1e9); // new ray origin for next ray
-                ray.d = float4(dir, 0.0);
+                ray.d = float4(sm.wOut, 0.0);
 
-                throughput *= sm.bsdf * dot(N, ray.d.xyz) / sm.pdf;
+                throughput *= sm.diffuse * sm.bsdf * dot(N, ray.d.xyz) / sm.pdf;
 
                 // Russian Roulette
                 if (depth > 3)
