@@ -176,6 +176,18 @@ float3 pathTrace(uint2 pixelIndex)
                     ray.d = float4(dir, 0.0);
 
                     throughput *= materialBsdf * dot(N, ray.d.xyz) / materialBsdfPdf;
+
+                    // Russian Roulette
+                    if (depth > 3)
+                    {
+                        float p = max(throughput.r, max(throughput.g, throughput.b));
+                        if (rand(rngState) > p)
+                        {
+                            // break
+                            depth = maxDepth;
+                        }
+                        throughput *= 1.0 / p;
+                    }
                 }
             }
             else
