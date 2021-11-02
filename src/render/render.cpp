@@ -1606,6 +1606,8 @@ void Render::drawFrame()
 
     BilateralParam bilateralparams{};
     bilateralparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    bilateralparams.dipatchGridDim = (bilateralparams.dimension + glm::int2(15, 15)) / glm::int2(16, 16);
+    bilateralparams.useSwizzleTid = (int)mRenderConfig.useSwizzleTid;
     bilateralparams.sigma = mRenderConfig.sigma;
     bilateralparams.sigmaNormal = mRenderConfig.sigmaNormal;
     bilateralparams.radius = mRenderConfig.radius;
@@ -1617,6 +1619,8 @@ void Render::drawFrame()
 
     BilateralParam bilateralAOparams{};
     bilateralAOparams.dimension = glm::int2(swapChainExtent.width, swapChainExtent.height);
+    bilateralAOparams.dipatchGridDim = (bilateralparams.dimension + glm::int2(15, 15)) / glm::int2(16, 16);
+    bilateralAOparams.useSwizzleTid = (int)mRenderConfig.useSwizzleTid;
     bilateralAOparams.sigma = mRenderConfig.sigmaAO;
     bilateralAOparams.sigmaNormal = mRenderConfig.sigmaAONormal;
     bilateralAOparams.radius = mRenderConfig.radiusAO;

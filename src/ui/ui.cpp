@@ -717,6 +717,9 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
             ImGui::TreePop();
         }
     }
+    // Common for bilateral filters
+    ImGui::Checkbox("Use swizzle threads in filters", &renderConfig.useSwizzleTid);
+    
     ImGui::Checkbox("Enable Shadows", &renderConfig.enableShadows);
     if (renderConfig.enableShadows)
     {

@@ -52,6 +52,7 @@ public:
         float sigmaAONormal = 1.5f;
         int radiusAO = 3;
         int maxRAO = 5;
+        bool useSwizzleTid = 0;
         int maxDepth = 1;
     };
 

@@ -28,7 +28,7 @@ struct InstanceConstants
 struct BVHNode
 {
     float3 minBounds; // for leaf x - primitive (triangle) id
-    int instId;
+    int instId; // instance id
     float3 maxBounds;
     int nodeOffset;
 };
