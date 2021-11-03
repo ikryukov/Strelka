@@ -64,7 +64,7 @@ PS_INPUT vertexMain(VertexInput vi)
     // assume that we don't use non-uniform scales
     // TODO:
     out.normal = mul((float3x3)constants.normalMatrix, unpackNormal(vi.normal));
-    out.tangent = unpackTangent(vi.tangent);
+    out.tangent = mul((float3x3)constants.normalMatrix, unpackTangent(vi.tangent));
     out.wPos = wpos.xyz;
     return out;
 }

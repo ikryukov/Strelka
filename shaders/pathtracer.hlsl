@@ -212,9 +212,9 @@ float3 pathTrace(uint2 pixelIndex)
 
             if (material.texNormalId != INVALID_INDEX)
             {
-                float3 t0 = mul((float3x3) instConst.normalMatrix, unpackTangent(accel.vb[i0].tangent));
-                float3 t1 = mul((float3x3) instConst.normalMatrix, unpackTangent(accel.vb[i1].tangent));
-                float3 t2 = mul((float3x3) instConst.normalMatrix, unpackTangent(accel.vb[i2].tangent));
+                float3 t0 = unpackTangent(accel.vb[i0].tangent);
+                float3 t1 = unpackTangent(accel.vb[i1].tangent);
+                float3 t2 = unpackTangent(accel.vb[i2].tangent);
 
                 float3 t = normalize(interpolateAttrib(t0, t1, t2, bcoords));
 
