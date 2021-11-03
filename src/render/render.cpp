@@ -1590,37 +1590,6 @@ void Render::drawFrame()
     }
 
     setDescriptors(imageIndex);
-    /*ViewData* currView = mView[imageIndex];
-    {
-        PathTracerDesc desc{};
-        desc.result = currView->mPathTracerImage;
-        desc.gbuffer = currView->gbuffer;
-        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
-        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
-        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-        desc.matSampler = mTexManager->texSamplers;
-        desc.matTextures = mTexManager->textureImages;
-        mPathTracer->setResources(desc);
-    }
-    {
-        mDebugImages.shadow = currView->mRtShadowImage;
-        mDebugImages.LTC = currView->mLtcOutputImage;
-        mDebugImages.normal = currView->gbuffer->normal;
-        mDebugImages.debug = currView->gbuffer->debug;
-        mDebugImages.AO = currView->mAOImage;
-        mDebugImages.motion = currView->gbuffer->motion;
-        mDebugImages.reflection = currView->mReflectionImage;
-        mDebugImages.variance = currView->mBilateralVarianceOutputImage;
-        mDebugImages.pathTracer = currView->mPathTracerImage;
-        mDebugView->setOutputTexture(mResManager->getView(currView->textureDebugViewImage));
-        mTonemap->setInputTexture(mResManager->getView(currView->textureCompositionImage));
-        mTonemap->setOutputTexture(mResManager->getView(currView->textureTonemapImage));
-        mUpscalePass->setInputTexture(mResManager->getView(currView->mPathTracerImage));
-        mUpscalePass->setOutputTexture(mResManager->getView(currView->textureUpscaleImage));
-    }*/
 
     uint32_t renderWidth = mView[imageIndex]->renderWidth;
     uint32_t renderHeight = mView[imageIndex]->renderHeight;
