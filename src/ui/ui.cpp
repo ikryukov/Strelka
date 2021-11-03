@@ -487,7 +487,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO", "Variance", "Reflection", "Ref Final", "Path Tracer" };
+    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO", "Variance", "Reflection", "Ref Final", "Path Tracer", "PT Normals"};
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();

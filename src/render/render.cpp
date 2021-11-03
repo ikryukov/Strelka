@@ -1314,7 +1314,6 @@ void Render::setDescriptors(uint32_t imageIndex)
         desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
         desc.matSampler = mTexManager->texSamplers;
         desc.matTextures = mTexManager->textureImages;
-
         mPathTracer->setResources(desc);
     }
     {
@@ -1610,6 +1609,7 @@ void Render::drawFrame()
     pathTracerParam.dimension = glm::int2(renderWidth, renderHeight);
     pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
     pathTracerParam.maxDepth = mRenderConfig.maxDepth;
+    pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
     mPathTracer->setParams(pathTracerParam);
 
     ReflectionParam reflectionParam{};
@@ -1997,8 +1997,8 @@ void Render::drawFrame()
         mDebugImages.reflection = mView[imageIndex]->mReflectionImage;
         mDebugImages.pathTracer = finalPathTracerImage;
 
-        mDebugParams.dimension.x = finalWidth;
-        mDebugParams.dimension.y = finalHeight;
+        mDebugParams.dimension.x = renderWidth;
+        mDebugParams.dimension.y = renderHeight;
         mDebugParams.debugView = (uint32_t)mScene->mDebugViewSettings;
         mDebugView->setParams(mDebugParams);
         mDebugView->setInputTexture(mDebugImages);

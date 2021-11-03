@@ -20,6 +20,9 @@ struct PathTracerParam
     int2 dimension;
     uint frameNumber;
     uint maxDepth;
+    uint debug;
+    int2 pad0;
+    int pad1;
 };
 
 #ifdef __cplusplus
