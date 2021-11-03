@@ -115,6 +115,22 @@ SampledMaterial sampleMaterial(in Material material, float2 uv, float3 N, float3
     return sampleMaterial(material, uv, N, wi, wOut);
 }
 
+float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId, uint32_t sampId)
+{
+    float3 Normal = normalize(normal);
+    float3 Tangent = -normalize(tangent);
+    Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
+    float3 Bitangent = cross(Normal, Tangent);
+
+    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(samplers[sampId], uv).xyz;
+    BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
+
+    float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
+    float3 NewNormal = normalize(mul(TBN, BumpMapNormal));
+
+    return NewNormal;
+}
+
 float3 pathTrace(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
@@ -182,15 +198,27 @@ float3 pathTrace(uint2 pixelIndex)
 
             float2 bcoords = hit.bary;
             float3 n = normalize(interpolateAttrib(n0, n1, n2, bcoords));
-            N = n; // hit normal
 
             float2 uv0 = unpackUV(accel.vb[i0].uv);
             float2 uv1 = unpackUV(accel.vb[i1].uv);
             float2 uv2 = unpackUV(accel.vb[i2].uv);
 
             float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
-            rndSample = float2(rand(rngState), rand(rngState));
 
+            if (material.texNormalId != INVALID_INDEX)
+            {
+                float3 t0 = unpackTangent(accel.vb[i0].tangent);
+                float3 t1 = unpackTangent(accel.vb[i1].tangent);
+                float3 t2 = unpackTangent(accel.vb[i2].tangent);
+
+                float3 t = normalize(interpolateAttrib(t0, t1, t2, bcoords));
+
+                n = CalcBumpedNormal(n, t, uvCoord,  material.texNormalId, material.sampNormalId);
+            }
+
+            N = n; // hit normal
+
+            rndSample = float2(rand(rngState), rand(rngState));
             sm = sampleMaterial(material, uvCoord, N, ray.d.xyz, rndSample);
 
             if (material.isLight)
