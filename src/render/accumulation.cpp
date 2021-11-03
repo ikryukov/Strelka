@@ -13,9 +13,15 @@ void Accumulation::initialize()
 {
     AccumulationBase::initialize("shaders/accumulation.hlsl");
 }
-void Accumulation::setInputTexture(Image* input)
+void Accumulation::setInputTexture1(Image* input)
 {
-    mShaderParams.setTexture("currTex", mSharedCtx.mResManager->getView(input));
+    mShaderParams.setTexture("currTex1", mSharedCtx.mResManager->getView(input));
+    mShaderParams.setTexture("currTex4", VK_NULL_HANDLE);
+}
+void Accumulation::setInputTexture4(Image* input)
+{
+    mShaderParams.setTexture("currTex4", mSharedCtx.mResManager->getView(input));
+    mShaderParams.setTexture("currTex1", VK_NULL_HANDLE);
 }
 void Accumulation::setWposTexture(Image* input)
 {
@@ -33,12 +39,24 @@ void Accumulation::setCurrDepthTexture(Image* input)
 {
     mShaderParams.setTexture("currDepthTex", mSharedCtx.mResManager->getView(input));
 }
-void Accumulation::setHistoryTexture(Image* history)
+void Accumulation::setHistoryTexture1(Image* history)
 {
-    mShaderParams.setTexture("prevTex", mSharedCtx.mResManager->getView(history));
+    mShaderParams.setTexture("prevTex1", mSharedCtx.mResManager->getView(history));
+    mShaderParams.setTexture("prevTex4", VK_NULL_HANDLE);
 }
-void Accumulation::setOutputTexture(Image* output)
+void Accumulation::setHistoryTexture4(Image* history)
 {
-    mShaderParams.setTexture("output", mSharedCtx.mResManager->getView(output));
+    mShaderParams.setTexture("prevTex4", mSharedCtx.mResManager->getView(history));
+    mShaderParams.setTexture("prevTex1", VK_NULL_HANDLE);
+}
+void Accumulation::setOutputTexture1(Image* output)
+{
+    mShaderParams.setTexture("output1", mSharedCtx.mResManager->getView(output));
+    mShaderParams.setTexture("output4", VK_NULL_HANDLE);
+}
+void Accumulation::setOutputTexture4(Image* output)
+{
+    mShaderParams.setTexture("output4", mSharedCtx.mResManager->getView(output));
+    mShaderParams.setTexture("output1", VK_NULL_HANDLE);
 }
 } // namespace nevk

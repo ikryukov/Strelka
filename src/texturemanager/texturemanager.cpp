@@ -212,7 +212,7 @@ void nevk::TextureManager::transitionImageLayout(VkImage image, VkFormat format,
         barrier.subresourceRange.aspectMask = (format == VK_FORMAT_D32_SFLOAT) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 
         sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;    
+        destinationStage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
     }
     else
     {

@@ -153,6 +153,7 @@ set(RENDER_SOURCES
         include/render/pathtracer.h
         include/render/reflection.h
         include/render/aopass.h
+        include/render/upscalepass.h
         include/render/ltcpass.h
         include/render/bilateralfilter.h
         include/render/tonemap.h
@@ -165,6 +166,7 @@ set(RENDER_SOURCES
         src/render/renderpass.cpp
         src/render/gbufferpass.cpp
         src/render/bvh.cpp
+        src/render/upscalepass.cpp
         src/render/rtshadowpass.cpp
         src/render/pathtracer.cpp
         src/render/reflection.cpp

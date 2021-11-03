@@ -14,12 +14,15 @@ public:
     Accumulation(const SharedContext& ctx);
     ~Accumulation();
     void initialize();
-    void setInputTexture(Image* input);
+    void setInputTexture1(Image* input);
+    void setInputTexture4(Image* input);
     void setWposTexture(Image* input);
     void setMotionTexture(Image* motion);
     void setPrevDepthTexture(Image* input);
     void setCurrDepthTexture(Image* input);
-    void setHistoryTexture(Image* history);
-    void setOutputTexture(Image* output);
+    void setHistoryTexture1(Image* history);
+    void setOutputTexture1(Image* output);
+    void setHistoryTexture4(Image* history);
+    void setOutputTexture4(Image* output);
 };
 } // namespace nevk
