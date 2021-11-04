@@ -158,7 +158,8 @@ float3 pathTrace(uint2 pixelIndex)
 
     if (ubo.debug == 1)
     {
-        return N;
+        float3 debugN = (N + 1) / 2;
+        return debugN;
     }
 
     // calc camera ray

@@ -2073,6 +2073,8 @@ void Render::drawFrame()
                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mUpscalePassParam.dimension.x = finalWidth;
             mUpscalePassParam.dimension.y = finalHeight;
+            mUpscalePassParam.invDimension.x =  1.0 / finalWidth;
+            mUpscalePassParam.invDimension.y = 1.0 / finalHeight;
             mUpscalePass->setParams(mUpscalePassParam);
             mUpscalePass->setInputTexture(mResManager->getView(finalImage));
             mUpscalePass->execute(cmd, finalWidth, finalHeight, imageIndex);

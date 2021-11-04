@@ -15,7 +15,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    float2 uv = (pixelIndex + 0.5) / ubo.dimension;
+    float2 uv = (pixelIndex + 0.5) * ubo.invDimension;
     float3 color = input.SampleLevel(upscaleSampler, uv, 0).rgb;
     output[pixelIndex] = float4(color, 1.0f);
 }

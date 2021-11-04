@@ -11,18 +11,19 @@
 #    include <glm/gtx/compatibility.hpp>
 #    define float4 glm::float4
 #    define float3 glm::float3
+#    define float2 glm::float2
 #    define int2 glm::int2
 #endif
 
 struct Upscalepassparam
 {
     int2 dimension;
-    float pad0;
-    float pad1;
+    float2 invDimension;
 };
 
 #ifdef __cplusplus
 #    undef float4
 #    undef float3
+#    undef float2
 #    undef int2
 #endif
