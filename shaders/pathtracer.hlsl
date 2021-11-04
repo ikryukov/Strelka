@@ -91,7 +91,9 @@ float3 estimateDirectLighting(inout uint rngState, in Accel accel, in RectLight 
 
 float3 sampleLights(inout uint rngState, in Accel accel, in SurfacePoint hit, in SampledMaterial material)
 {
-    RectLight currLight = lights[0]; // TODO: sample lights
+    uint lightId = (uint) (ubo.numLights * rand(rngState));
+    float lightSelectionPdf = 1.0f / (ubo.numLights + 1e-6);
+    RectLight currLight = lights[lightId];
     return estimateDirectLighting(rngState, accel, currLight, hit, material);
 }
 

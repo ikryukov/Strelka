@@ -1611,6 +1611,7 @@ void Render::drawFrame()
     pathTracerParam.maxDepth = mRenderConfig.maxDepth;
     pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
     pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
+    pathTracerParam.numLights = (uint32_t) scene->getLights().size();
     mPathTracer->setParams(pathTracerParam);
 
     ReflectionParam reflectionParam{};
