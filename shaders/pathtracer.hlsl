@@ -101,7 +101,7 @@ SampledMaterial sampleMaterial(in Material material, float2 uv, float3 N, float3
     sm.diffuse = getBaseColor(material, uv, textures, samplers);
     sm.bsdf = 1.0f / PI;
     //sm.pdf = 1.0f / (2.0f * PI); // 1/2pi - uniform, cos(phi)/pi - cosine
-    sm.pdf = 1.0f / PI * saturate(dot(N, wo));
+    sm.pdf = 1.0f / PI * (saturate(dot(N, wo)) + 1e-6);
     sm.wInp = wi;
     sm.wOut = wo;
     return sm;
