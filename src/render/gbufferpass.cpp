@@ -456,10 +456,10 @@ void GbufferPass::record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer i
     renderPassInfo.renderArea.extent = { width, height };
 
     std::array<VkClearValue, 8> clearValues{};
-    clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
-    clearValues[3].color = { { 0.0f, 0.0f, 0.0f, 0.0f } };
+    clearValues[0].color = { { 0.0f, 0.0f, 0.0f, 0.0f } }; // wpos
+    clearValues[1].color = { { 0.0f, 0.0f, 0.0f, 0.0f } }; // normal
+    clearValues[2].color = { { 0.0f, 0.0f, 0.0f, 0.0f } }; // tangent
+    clearValues[3].color = { { 0.0f, 0.0f, 0.0f, 0.0f } }; // uv
     clearValues[4].color = { { -1, 0, 0, 0 } }; // inst IDs
     clearValues[5].color = { { 0.0f, 0.0f, 0.0f, 0.0f } }; // motion
     clearValues[6].color = { { 0.0f, 0.0f, 0.0f, 0.0f } }; // debug

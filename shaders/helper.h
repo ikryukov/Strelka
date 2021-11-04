@@ -2,6 +2,7 @@
 
 #define INVALID_INDEX 0xFFFFFFFF
 #define PI 3.1415926535897
+#define INVERSE_PI (1.0 / PI)
 
 float3 interpolateAttrib(float3 attr1, float3 attr2, float3 attr3, float2 bary)
 {
@@ -50,8 +51,7 @@ float3 SampleHemisphereCosine(in float2 uv)
     float cosTheta = sqrt(saturate(uv.x));
     float sinTheta = sqrt(saturate(1.0f - cosTheta * cosTheta));
     float phi = 2 * PI * uv.y;
-    float3 tangentSpaceDir = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
-    return tangentSpaceDir;
+    return float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta + 1e-6);
 }
 
 // Returns a random direction on the hemisphere around z = 1
@@ -64,4 +64,12 @@ float3 SampleDirectionHemisphere(float u1, float u2)
     float x = r * cos(phi);
     float y = r * sin(phi);
     return float3(x, y, z);
+}
+
+float3 SampleGGXDistribution(float2 uv, float alpha)
+{
+    float cosTheta = sqrt((1.0f - uv.x) / (uv.x * (alpha * alpha - 1.0f) + 1.0f));
+    float sinTheta = sqrt(saturate(1.0f - cosTheta * cosTheta));
+    float phi = 2 * PI * uv.y;
+    return float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta + 1e-6);
 }
