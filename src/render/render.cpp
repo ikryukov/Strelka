@@ -1648,14 +1648,13 @@ void Render::drawFrame()
     accParamPT.isPt = 1;
     if (needResetPt)
     {
-        accParamPT.iteration = 0;
         mView[imageIndex]->mPtIteration = 0;
     }
     else
     {
         ++mView[imageIndex]->mPtIteration;
-        accParamPT.iteration = mView[imageIndex]->mPtIteration;
     }
+    accParamPT.iteration = mView[imageIndex]->mPtIteration;
 
     mAccumulationShadows->setParams(accParam);
     mAccumulationAO->setParams(accParamAO);
@@ -2079,7 +2078,7 @@ void Render::drawFrame()
             mUpscalePass->setInputTexture(mResManager->getView(finalImage));
             mUpscalePass->execute(cmd, finalWidth, finalHeight, imageIndex);
             recordBarrier(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+                          VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             finalImage = mView[imageIndex]->textureUpscaleImage;
         }
     }
