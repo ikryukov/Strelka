@@ -771,13 +771,15 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     ImGui::Checkbox("Enable Reflections", &renderConfig.enableReflections);
 
     ImGui::Checkbox("Enable Upscale", &renderConfig.enableUpscale);
-    if (renderConfig.enableUpscale)
+
+    bool isClicked = ImGui::Button("Recreate BVH");
+    if (isClicked)
     {
-        renderConfig.upscaleFactor = 0.5;
+        renderConfig.recreateBVH = true;
     }
     else
     {
-        renderConfig.upscaleFactor = 1;
+        renderConfig.recreateBVH = false;
     }
 
     ImGui::End(); // end window

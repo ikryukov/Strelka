@@ -1496,8 +1496,11 @@ void Render::drawFrame()
 
     nevk::Scene* scene = getScene();
 
-    static int releaseAfterFrames = 0;
-    static bool needReload = false;
+    static bool needReloadBVH = false;
+    static uint32_t releaseBVHAfterFrames = 0;
+    static Buffer* toRemoveBVH = nullptr;
+    static uint32_t releaseSceneAfterFrames = 0;
+    static bool needReloadScene = false;
     static SceneRenderData* toRemoveSceneData = nullptr;
     std::string newModelPath;
 
@@ -1510,14 +1513,23 @@ void Render::drawFrame()
     mUi.updateUI(*scene, mRenderConfig, mRenderStats, mSceneConfig);
     mCurrentSceneRenderData->animationTime = mRenderConfig.animTime;
 
+    if (mRenderConfig.recreateBVH)
+    {
+        toRemoveBVH = mCurrentSceneRenderData->mBvhNodeBuffer;
+        needReloadBVH = true;
+        releaseBVHAfterFrames = MAX_FRAMES_IN_FLIGHT;
+
+        createBvhBuffer(*mScene); // need to update descriptors after it
+    }
+
     if (!mSceneConfig.newModelPath.empty() && fs::exists(mSceneConfig.newModelPath) && mSceneConfig.newModelPath != MODEL_PATH)
     {
         if (mScene != mDefaultScene) // if we reload non-default scene
         {
             // save scene data to remove
             toRemoveSceneData = mCurrentSceneRenderData;
-            needReload = true;
-            releaseAfterFrames = MAX_FRAMES_IN_FLIGHT;
+            needReloadScene = true;
+            releaseSceneAfterFrames = MAX_FRAMES_IN_FLIGHT;
         }
         mTexManager->saveTexturesInDelQueue();
         loadScene(mSceneConfig.newModelPath);
@@ -1694,15 +1706,25 @@ void Render::drawFrame()
     bilateralAOparams.invProj = glm::inverse(cam.getPerspective());
     mAOBilateralFilter->setParams(bilateralAOparams);
 
-    if (needReload && releaseAfterFrames == 0)
+    if (needReloadScene && releaseSceneAfterFrames == 0)
     {
         mTexManager->delTexturesFromQueue();
         delete toRemoveSceneData;
-        needReload = false;
+        needReloadScene = false;
     }
-    if (needReload)
+    if (needReloadScene)
     {
-        --releaseAfterFrames;
+        --releaseSceneAfterFrames;
+    }
+
+    if (needReloadBVH && releaseBVHAfterFrames == 0)
+    {
+        mResManager->destroyBuffer(toRemoveBVH);
+        needReloadBVH = false;
+    }
+    if (needReloadBVH)
+    {
+        --releaseBVHAfterFrames;
     }
 
     glfwSetWindowTitle(mWindow, (std::string("NeVK") + " [" + std::to_string(msPerFrame) + " ms]").c_str());

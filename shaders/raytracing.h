@@ -48,15 +48,15 @@ bool RayTriangleIntersect(
     float det = dot(e0, pvec);
 
     // Backface culling
-    if (det < 1e-6)
-    {
-        return false;
-    }
+    ///if (det < 1e-6)
+    //{
+    //    return false;
+    //}
 
-    // if (abs(det) < 1e-6)
-    // {
-    //     return false;
-    // }
+     if (abs(det) < 1e-6)
+     {
+         return false;
+     }
 
     float invDet = 1.0 / det;
 
