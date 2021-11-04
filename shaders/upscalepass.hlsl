@@ -10,7 +10,7 @@ SamplerState upscaleSampler;
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 {
-    if (pixelIndex.x >= ubo.dimension.x || pixelIndex.y >= ubo.dimension.y)
+    if (any(pixelIndex >= ubo.dimension))
     {
         return;
     }
