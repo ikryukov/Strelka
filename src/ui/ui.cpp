@@ -533,9 +533,13 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
             {
                 if (ImGui::MenuItem("Light"))
                 {
-                    std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
-                    Scene::RectLightDesc& currLightDesc = lightDescs[lightId];
-                    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
+                    Scene::RectLightDesc desc{};
+                    desc.color = glm::float4(1.0f);
+                    desc.height = 1.0f;
+                    desc.width = 1.0f;
+                    desc.intensity = 1.0f;
+                    desc.orientation = glm::float3(0.0f);
+                    desc.position = glm::float3(0.0f);
                     lightId = scene.createLight(desc);
                 }
             }
@@ -575,7 +579,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
             }
             if (showPropertiesId != -1 || lightId != -1)
             {
-                if (!isLight)
+                if (!isLight && showPropertiesId != -1) // Dasha look here
                 {
                     ImGuizmo::SetID(showPropertiesId);
                     float camDist = glm::distance(camPos, instances[showPropertiesId].massCenter);
