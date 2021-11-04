@@ -399,7 +399,7 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
     for (const tinygltf::Material& material : model.materials)
     {
         Material currMaterial{};
-
+        currMaterial.specular = glm::float4(1.0f);
         currMaterial.diffuse = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
                                            material.pbrMetallicRoughness.baseColorFactor[1],
                                            material.pbrMetallicRoughness.baseColorFactor[2],

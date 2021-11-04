@@ -27,11 +27,11 @@ RWTexture2D<float4> output;
 
 struct SampledMaterial
 {
-    float3 diffuse;
     float3 wInp;
     float3 wOut;
-    float bsdf;
+    float3 bsdf;
     float pdf;
+    float3 weight; // calculate bsdf / pdf with cancelations
 };
 
 struct SurfacePoint
@@ -83,7 +83,7 @@ float3 estimateDirectLighting(inout uint rngState, in Accel accel, in RectLight 
         shadowHit.t = 0.0;
         float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
-        return visibility * Li * material.diffuse * material.bsdf * saturate(dot(hit.N, L)) / lightPDF;
+        return visibility * Li * material.bsdf * saturate(dot(hit.N, L)) / lightPDF;
     }
 
     return float3(0.0);
@@ -95,24 +95,139 @@ float3 sampleLights(inout uint rngState, in Accel accel, in SurfacePoint hit, in
     return estimateDirectLighting(rngState, accel, currLight, hit, material);
 }
 
-SampledMaterial sampleMaterial(in Material material, float2 uv, float3 N, float3 wi, float3 wo)
+// http://cwyman.org/code/dxrTutors/tutors/Tutor14/tutorial14.md.html
+// float ggxNormalDistribution(float NdotH, float roughness)
+// {
+//     float a2 = roughness * roughness;
+//     float d = ((NdotH * a2 - NdotH) * NdotH + 1);
+//     return a2 / (d * d * PI);
+// }
+
+float3 schlickFresnel(float3 f0, float lDotH)
+{
+    return f0 + (float3(1.0f, 1.0f, 1.0f) - f0) * pow(1.0f - lDotH, 5.0f);
+}
+
+float schlickMaskingTerm(float NdotL, float NdotV, float roughness)
+{
+    // Karis notes they use alpha / 2 (or roughness^2 / 2)
+    float k = roughness*roughness / 2;
+
+    // Compute G(v) and G(l).  These equations directly from Schlick 1994
+    //     (Though note, Schlick's notation is cryptic and confusing.)
+    float g_v = NdotV / (NdotV*(1 - k) + k);
+    float g_l = NdotL / (NdotL*(1 - k) + k);
+    return g_v * g_l;
+}
+
+
+// https://github.com/sergeyreznik/metal-ray-tracer/blob/part-4/source/Shaders/raytracing.h
+float ggxNormalDistribution(float alphaSquared, float3 n, float3 m)
+{
+    float cosTheta = dot(n, m);
+    float cosThetaSquared = cosTheta * cosTheta;
+    float denom = cosThetaSquared * (alphaSquared - 1.0f) + 1.0f;
+    return float(cosTheta > 0.0f) ? (alphaSquared / (PI * denom * denom)) : 0.0f;
+}
+
+float ggxVisibility(float alphaSquared, float3 w, float3 n, float3 m)
+{
+    float NdotW = dot(n, w);
+    float MdotW = dot(m, w);
+    if (MdotW * NdotW <= 0.0f)
+        return 0.0f;
+
+    float cosThetaSquared = NdotW * NdotW;
+    float tanThetaSquared = (1.0f - cosThetaSquared) / cosThetaSquared;
+    if (tanThetaSquared == 0.0f)
+        return 1.0f;
+
+    return 2.0f / (1.0f + sqrt(1.0f + alphaSquared * tanThetaSquared));
+}
+
+float ggxVisibilityTerm(float alphaSquared, float3 wI, float3 wO, float3 n, float3 m)
+{
+    return ggxVisibility(alphaSquared, wI, n, m) * ggxVisibility(alphaSquared, wO, n, m);
+}
+
+float fresnelDielectric(float3 i, float3 m, float eta)
+{
+    float result = 1.0f;
+    float cosThetaI = abs(dot(i, m));
+    float sinThetaOSquared = (eta * eta) * (1.0f - cosThetaI * cosThetaI);
+    if (sinThetaOSquared <= 1.0)
+    {
+        float cosThetaO = sqrt(saturate(1.0f - sinThetaOSquared));
+        float Rs = (cosThetaI - eta * cosThetaO) / (cosThetaI + eta * cosThetaO);
+        float Rp = (eta * cosThetaI - cosThetaO) / (eta * cosThetaI + cosThetaO);
+        result = 0.5f * (Rs * Rs + Rp * Rp);
+    }
+    return result;
+}
+
+float fresnelDielectric(float3 i, float3 m, float etaI, float etaO)
+{
+    return fresnelDielectric(i, m, etaI / etaO);
+}
+
+SampledMaterial sampleMaterial(in Material material, float2 uv, float3 nO, float3 wI, float3 wO)
 {
     SampledMaterial sm;
-    sm.diffuse = getBaseColor(material, uv, textures, samplers);
-    sm.bsdf = 1.0f / PI;
-    //sm.pdf = 1.0f / (2.0f * PI); // 1/2pi - uniform, cos(phi)/pi - cosine
-    sm.pdf = 1.0f / PI * (saturate(dot(N, wo)) + 1e-6);
-    sm.wInp = wi;
-    sm.wOut = wo;
+    //sm.diffuse = getBaseColor(material, uv, textures, samplers);
+    // // Lambert
+    // sm.bsdf = 1.0f / PI;
+    // //sm.pdf = 1.0f / (2.0f * PI); // 1/2pi - uniform, cos(phi)/pi - cosine
+    // sm.pdf = 1.0f / PI * (saturate(dot(N, wo)) + 1e-6);
+    // sm.weight = 1.0f; // cancelations for cosine sampling
+
+    // plastic material
+    float3 m = normalize(wO - wI);
+    float NdotI = -dot(nO, wI);
+    float NdotM = dot(nO, m);
+    float MdotO = dot(m, wO);
+    float NdotO = dot(nO, wO);
+    {
+        float a = material.roughnessFactor * material.roughnessFactor;
+        float F = fresnelDielectric(wI, m, material.extIOR, material.intIOR);
+        float D = ggxNormalDistribution(a, nO, m);
+        float G = ggxVisibilityTerm(a, wI, wO, nO, m);
+        float J = 1.0f / (4.0 * MdotO);
+        float3 diffuse = getBaseColor(material, uv, textures, samplers);
+        float3 specular = material.specular.rgb;
+
+        sm.bsdf = diffuse * INVERSE_PI * NdotO * (1.0f - F) + specular * (F * D * G / (4.0 * NdotI));
+        sm.pdf = INVERSE_PI * NdotO * (1.0f - F) + D * NdotM * J * F + 1e-6;
+        sm.weight = sm.bsdf / sm.pdf;
+    }
+
+    sm.wInp = wI;
+    sm.wOut = wO;
+
     return sm;
 }
 
-SampledMaterial sampleMaterial(in Material material, float2 uv, float3 N, float3 wi, float2 noiseSample)
+SampledMaterial sampleMaterial(in Material material, float2 uv, float3 N, float3 wI, float4 noiseSample)
 {
+    //float3x3 TBN = GetTangentSpace(N);
+    //float3 wOut = SampleHemisphereCosine(noiseSample);
+    float3 m = SampleGGXDistribution(noiseSample.xy, material.roughnessFactor * material.roughnessFactor);
     float3x3 TBN = GetTangentSpace(N);
-    float3 wOut = SampleHemisphereCosine(noiseSample);
-    wOut = mul(TBN, wOut);
-    return sampleMaterial(material, uv, N, wi, wOut);
+    m = mul(TBN, m);
+    
+    float3 wOut;
+    float F = fresnelDielectric(wI, m, material.extIOR, material.intIOR);
+    if (noiseSample.z > F)
+    {
+        wOut = SampleHemisphereCosine(noiseSample.xy);
+        wOut = mul(TBN, wOut);
+    }
+    else
+    {
+        wOut = reflect(wI, m);
+    }
+
+
+    return sampleMaterial(material, uv, N, wI, wOut);
 }
 
 float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId, uint32_t sampId)
@@ -167,7 +282,7 @@ float3 pathTrace(uint2 pixelIndex)
     sp.N = N;
     sp.p = wpos;
 
-    float2 rndSample = float2(rand(rngState), rand(rngState));
+    float4 rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
 
     SampledMaterial sm = sampleMaterial(material, matUV, N, float3(1.0), rndSample);
 
@@ -185,7 +300,7 @@ float3 pathTrace(uint2 pixelIndex)
     Hit hit;
     hit.t = 0.0;
 
-    float3 throughput = sm.diffuse * sm.bsdf * dot(sp.N, ray.d.xyz) / sm.pdf;
+    float3 throughput = sm.weight;
     
     while (depth < maxDepth)
     {
@@ -224,12 +339,12 @@ float3 pathTrace(uint2 pixelIndex)
 
             N = n; // hit normal
 
-            rndSample = float2(rand(rngState), rand(rngState));
+            rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
             sm = sampleMaterial(material, uvCoord, N, ray.d.xyz, rndSample);
 
             if (material.isLight)
             {
-                finalColor += throughput * sm.diffuse;
+                finalColor += throughput * getBaseColor(material, matUV, textures, samplers);;
                 //break;
                 depth = maxDepth;
             }
@@ -245,7 +360,7 @@ float3 pathTrace(uint2 pixelIndex)
                 ray.o = float4(sp.p + offset, 1e9); // new ray origin for next ray
                 ray.d = float4(sm.wOut, 0.0);
 
-                throughput *= sm.diffuse * sm.bsdf * dot(N, ray.d.xyz) / sm.pdf;
+                throughput *= sm.weight;
 
                 // Russian Roulette
                 if (depth > 3)

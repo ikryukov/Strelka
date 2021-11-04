@@ -8,6 +8,7 @@
 struct Material
 {
     float4 diffuse; // Kd
+    float4 specular;
     float4 baseColorFactor;
 
     uint32_t illum; // illum 2 -- модель освещения
@@ -30,8 +31,8 @@ struct Material
 
     int32_t sampNormalId = -1;
     int32_t isLight = 0;
-    float pad0;
-    float pad1;
+    float extIOR = 1.0f;
+    float intIOR = 1.5f;
 
     bool isTransparent()
     {
