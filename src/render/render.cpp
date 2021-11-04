@@ -13,7 +13,7 @@
 #include "Tracy.hpp"
 
 namespace fs = std::filesystem;
-const uint32_t MAX_LIGHT_COUNT = 15;
+const uint32_t MAX_LIGHT_COUNT = 100;
 
 [[maybe_unused]] static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
@@ -961,7 +961,7 @@ void Render::createMaterialBuffer(nevk::Scene& scene)
 {
     std::vector<Material>& sceneMaterials = scene.getMaterials();
 
-    VkDeviceSize bufferSize = sizeof(Material) * sceneMaterials.size();
+    VkDeviceSize bufferSize = sizeof(Material) * (sceneMaterials.size() + MAX_LIGHT_COUNT); // Reserve extra for lights material
     if (bufferSize == 0)
     {
         return;
@@ -1092,7 +1092,7 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
     const std::vector<Mesh>& meshes = scene.getMeshes();
     const std::vector<nevk::Instance>& sceneInstances = scene.getInstances();
     mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
-    VkDeviceSize bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
+    VkDeviceSize bufferSize = sizeof(InstanceConstants) * (sceneInstances.size() + MAX_LIGHT_COUNT); // Reserve some extra space for lights
     if (bufferSize == 0)
     {
         return;
@@ -1622,6 +1622,7 @@ void Render::drawFrame()
     pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
     pathTracerParam.maxDepth = mRenderConfig.maxDepth;
     pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
+    pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
     mPathTracer->setParams(pathTracerParam);
 
     ReflectionParam reflectionParam{};
@@ -1799,6 +1800,23 @@ void Render::drawFrame()
             stagingBufferOffset += bufferSize;
             needBarrier = true;
         }
+
+        const std::vector<Material>& materials = scene->getMaterials();
+        if (!materials.empty())
+        {
+            size_t bufferSize = sizeof(Material) * MAX_LIGHT_COUNT;
+            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), materials.data(), bufferSize);
+
+            VkBufferCopy copyRegion{};
+            copyRegion.size = bufferSize;
+            copyRegion.dstOffset = 0;
+            copyRegion.srcOffset = stagingBufferOffset;
+            vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer), 1, &copyRegion);
+
+            stagingBufferOffset += bufferSize;
+            needBarrier = true;
+        }
+
 
         if (needBarrier)
         {

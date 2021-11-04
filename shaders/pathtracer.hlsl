@@ -273,7 +273,7 @@ float3 pathTrace(uint2 pixelIndex)
 
     if (ubo.debug == 1)
     {
-        float3 debugN = (N + 1) / 2;
+        float3 debugN = (N + 1.0) * 0.5;
         return debugN;
     }
 
@@ -284,7 +284,8 @@ float3 pathTrace(uint2 pixelIndex)
 
     float4 rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
 
-    SampledMaterial sm = sampleMaterial(material, matUV, N, float3(1.0), rndSample);
+    float3 V = normalize(wpos - ubo.camPos.xyz);
+    SampledMaterial sm = sampleMaterial(material, matUV, N, V, rndSample);
 
     float3 finalColor = sampleLights(rngState, accel, sp, sm);
     
