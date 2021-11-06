@@ -24,9 +24,9 @@ struct PathTracerParam
     float4 camPos;
 
     uint debug;
+    uint numLights;
     int pad0;
     int pad1;
-    int pad2;
 };
 
 #ifdef __cplusplus

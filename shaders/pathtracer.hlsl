@@ -91,7 +91,9 @@ float3 estimateDirectLighting(inout uint rngState, in Accel accel, in RectLight 
 
 float3 sampleLights(inout uint rngState, in Accel accel, in SurfacePoint hit, in SampledMaterial material)
 {
-    RectLight currLight = lights[0]; // TODO: sample lights
+    uint lightId = (uint) (ubo.numLights * rand(rngState));
+    float lightSelectionPdf = 1.0f / (ubo.numLights + 1e-6);
+    RectLight currLight = lights[lightId];
     return estimateDirectLighting(rngState, accel, currLight, hit, material);
 }
 
@@ -173,32 +175,32 @@ float fresnelDielectric(float3 i, float3 m, float etaI, float etaO)
 SampledMaterial sampleMaterial(in Material material, float2 uv, float3 nO, float3 wI, float3 wO)
 {
     SampledMaterial sm;
-    //sm.diffuse = getBaseColor(material, uv, textures, samplers);
-    // // Lambert
-    // sm.bsdf = 1.0f / PI;
-    // //sm.pdf = 1.0f / (2.0f * PI); // 1/2pi - uniform, cos(phi)/pi - cosine
-    // sm.pdf = 1.0f / PI * (saturate(dot(N, wo)) + 1e-6);
-    // sm.weight = 1.0f; // cancelations for cosine sampling
+    float3 diffuse = getBaseColor(material, uv, textures, samplers);
+    // Lambert
+    sm.bsdf = diffuse * INVERSE_PI;
+    //sm.pdf = 1.0f / (2.0f * PI); // 1/2pi - uniform, cos(phi)/pi - cosine
+    sm.pdf = 1.0f / PI * (saturate(dot(nO, wO)) + 1e-6);
+    sm.weight = diffuse; // cancelations for cosine sampling
 
     // plastic material
-    float3 m = normalize(wO - wI);
-    float NdotI = -dot(nO, wI);
-    float NdotM = dot(nO, m);
-    float MdotO = dot(m, wO);
-    float NdotO = dot(nO, wO);
-    {
-        float a = material.roughnessFactor * material.roughnessFactor;
-        float F = fresnelDielectric(wI, m, material.extIOR, material.intIOR);
-        float D = ggxNormalDistribution(a, nO, m);
-        float G = ggxVisibilityTerm(a, wI, wO, nO, m);
-        float J = 1.0f / (4.0 * MdotO);
-        float3 diffuse = getBaseColor(material, uv, textures, samplers);
-        float3 specular = material.specular.rgb;
+    // float3 m = normalize(wO - wI);
+    // float NdotI = -dot(nO, wI);
+    // float NdotM = dot(nO, m);
+    // float MdotO = dot(m, wO);
+    // float NdotO = dot(nO, wO);
+    // {
+    //     float a = material.roughnessFactor * material.roughnessFactor;
+    //     float F = fresnelDielectric(wI, m, material.extIOR, material.intIOR);
+    //     float D = ggxNormalDistribution(a, nO, m);
+    //     float G = ggxVisibilityTerm(a, wI, wO, nO, m);
+    //     float J = 1.0f / (4.0 * MdotO);
+    //     float3 diffuse = getBaseColor(material, uv, textures, samplers);
+    //     float3 specular = material.specular.rgb;
 
-        sm.bsdf = diffuse * INVERSE_PI * NdotO * (1.0f - F) + specular * (F * D * G / (4.0 * NdotI));
-        sm.pdf = INVERSE_PI * NdotO * (1.0f - F) + D * NdotM * J * F + 1e-6;
-        sm.weight = sm.bsdf / sm.pdf;
-    }
+    //     sm.bsdf = diffuse * INVERSE_PI * NdotO * (1.0f - F) + specular * (F * D * G / (4.0 * NdotI));
+    //     sm.pdf = INVERSE_PI * NdotO * (1.0f - F) + D * NdotM * J * F + 1e-6;
+    //     sm.weight = sm.bsdf / sm.pdf;
+    // }
 
     sm.wInp = wI;
     sm.wOut = wO;
@@ -209,22 +211,22 @@ SampledMaterial sampleMaterial(in Material material, float2 uv, float3 nO, float
 SampledMaterial sampleMaterial(in Material material, float2 uv, float3 N, float3 wI, float4 noiseSample)
 {
     //float3x3 TBN = GetTangentSpace(N);
-    //float3 wOut = SampleHemisphereCosine(noiseSample);
-    float3 m = SampleGGXDistribution(noiseSample.xy, material.roughnessFactor * material.roughnessFactor);
+    float3 wOut = SampleHemisphereCosine(noiseSample.xy);
+    // float3 m = SampleGGXDistribution(noiseSample.xy, material.roughnessFactor * material.roughnessFactor);
     float3x3 TBN = GetTangentSpace(N);
-    m = mul(TBN, m);
+    wOut = mul(TBN, wOut);
     
-    float3 wOut;
-    float F = fresnelDielectric(wI, m, material.extIOR, material.intIOR);
-    if (noiseSample.z > F)
-    {
-        wOut = SampleHemisphereCosine(noiseSample.xy);
-        wOut = mul(TBN, wOut);
-    }
-    else
-    {
-        wOut = reflect(wI, m);
-    }
+    // float3 wOut;
+    // float F = fresnelDielectric(wI, m, material.extIOR, material.intIOR);
+    // if (noiseSample.z > F)
+    // {
+    //     wOut = SampleHemisphereCosine(noiseSample.xy);
+    //     wOut = mul(TBN, wOut);
+    // }
+    // else
+    // {
+    //     wOut = reflect(wI, m);
+    // }
 
 
     return sampleMaterial(material, uv, N, wI, wOut);
