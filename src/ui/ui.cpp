@@ -775,6 +775,14 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     ImGui::Checkbox("Enable Reflections", &renderConfig.enableReflections);
 
     ImGui::Checkbox("Enable Upscale", &renderConfig.enableUpscale);
+    if (renderConfig.enableUpscale)
+    {
+        renderConfig.upscaleFactor = 0.5f;
+    }
+    else
+    {
+        renderConfig.upscaleFactor = 1.0f;
+    }
 
     bool isClicked = ImGui::Button("Recreate BVH");
     if (isClicked)
