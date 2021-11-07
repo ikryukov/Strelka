@@ -22,6 +22,7 @@ public:
         Image* AO = VK_NULL_HANDLE;
         Image* reflection = VK_NULL_HANDLE;
         Image* variance = VK_NULL_HANDLE;
+        Image* pathTracer = VK_NULL_HANDLE;
     };
 
     DebugView(const SharedContext& ctx);

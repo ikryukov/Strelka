@@ -26,7 +26,11 @@ struct AccumulationParam
     float4x4 clipToView;
     int2 dimension;
     uint frameNumber;
+    uint iteration;
     float alpha;
+    float isPt;
+    float pad1;
+    float pad2;
 };
 
 #ifdef __cplusplus

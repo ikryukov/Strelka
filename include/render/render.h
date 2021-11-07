@@ -15,6 +15,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "accumulation.h"
 #include "aopass.h"
+#include "bilateralfilter.h"
 #include "bvh.h"
 #include "common.h"
 #include "composition.h"
@@ -23,12 +24,12 @@
 #include "gbuffer.h"
 #include "gbufferpass.h"
 #include "ltcpass.h"
-#include "bilateralfilter.h"
+#include "pathtracer.h"
+#include "reflection.h"
 #include "renderpass.h"
 #include "rtshadowpass.h"
-#include "reflection.h"
 #include "tonemap.h"
-#include "composition.h"
+#include "upscalepass.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
@@ -140,30 +141,40 @@ private:
 
     SharedContext mSharedCtx;
     RtShadowPass* mRtShadow;
+    PathTracer* mPathTracer;
     Reflection* mReflection;
     AOPass* mAO;
-    Accumulation* mAccumulation;
+    Accumulation* mAccumulationShadows;
     Accumulation* mAccumulationAO;
+    Accumulation* mAccumulationPathTracer;
     Tonemap* mTonemap;
+    UpscalePass* mUpscalePass;
     Composition* mComposition;
     DebugView* mDebugView;
     LtcPass* mLtcPass;
     BilateralFilter* mBilateralFilter;
     BilateralFilter* mAOBilateralFilter;
     Tonemapparam mToneParams;
+    Upscalepassparam mUpscalePassParam;
     Compositionparam mCompositionParam;
     Debugviewparam mDebugParams;
 
     struct ViewData
     {
-        uint32_t width;
-        uint32_t height;
+        // could be scaled
+        uint32_t renderWidth; // = swapChainExtent.width * mRenderConfig.upscaleFactor;
+        uint32_t renderHeight; // = swapChainExtent.height * mRenderConfig.upscaleFactor;
+        // swapchain size
+        uint32_t finalWidth; // = swapChainExtent.width;
+        uint32_t finalHeight; // = swapChainExtent.height;
         GBuffer* gbuffer;
         Image* prevDepth;
         Image* textureTonemapImage;
+        Image* textureUpscaleImage;
         Image* textureCompositionImage;
         Image* textureDebugViewImage;
         Image* mRtShadowImage;
+        Image* mPathTracerImage;
         Image* mReflectionImage;
         Image* mAOImage;
         Image* mLtcOutputImage;
@@ -171,9 +182,11 @@ private:
         Image* mBilateralVarianceOutputImage;
         Image* mAOBilateralOutputImage;
         Image* mAOBilateralVarianceOutputImage;
-        Image* mAccumulationImages[2] = { nullptr, nullptr };
-        Image* mAccumulationAOImages[2] = { nullptr, nullptr };
+        Image* mAccumulationImages = nullptr;
+        Image* mAccumulationAOImages = nullptr;
+        Image* mAccumulationPathTracerImage = nullptr;
         ResourceManager* mResManager = nullptr;
+        uint32_t mPtIteration = 0;
         ~ViewData()
         {
             assert(mResManager);
@@ -188,6 +201,10 @@ private:
             if (textureTonemapImage)
             {
                 mResManager->destroyImage(textureTonemapImage);
+            }
+            if (textureUpscaleImage)
+            {
+                mResManager->destroyImage(textureUpscaleImage);
             }
             if (textureCompositionImage)
             {
@@ -204,6 +221,10 @@ private:
             if (mRtShadowImage)
             {
                 mResManager->destroyImage(mRtShadowImage);
+            }
+            if (mPathTracerImage)
+            {
+                mResManager->destroyImage(mPathTracerImage);
             }
             if (mAOImage)
             {
@@ -229,22 +250,23 @@ private:
             {
                 mResManager->destroyImage(mAOBilateralVarianceOutputImage);
             }
-            for (uint32_t i = 0; i < 2; ++i)
+            if (mAccumulationImages)
             {
-                if (mAccumulationImages[i])
-                {
-                    mResManager->destroyImage(mAccumulationImages[i]);
-                }
-                if (mAccumulationAOImages[i])
-                {
-                    mResManager->destroyImage(mAccumulationAOImages[i]);
-                }
+                mResManager->destroyImage(mAccumulationImages);
+            }
+            if (mAccumulationAOImages)
+            {
+                mResManager->destroyImage(mAccumulationAOImages);
+            }
+            if (mAccumulationPathTracerImage)
+            {
+                mResManager->destroyImage(mAccumulationPathTracerImage);
             }
         }
     };
 
-    ViewData* mView = nullptr;
-
+    ViewData* mPrevView = nullptr;
+    std::array<ViewData*, MAX_FRAMES_IN_FLIGHT> mView;
     Ui::RenderConfig mRenderConfig{};
     Ui::SceneConfig mSceneConfig{};
     Ui::RenderStats mRenderStats{};
@@ -322,12 +344,14 @@ private:
         return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
     }
 
+    std::array<bool, MAX_FRAMES_IN_FLIGHT> needImageViewUpdate = { false, false, false };
+
     size_t mFrameNumber = 0;
     int32_t mSamples = 1;
-
     double msPerFrame = 33.33; // fps counter
 
     bool framebufferResized = false;
+    bool prevState = true;
 
     nevk::Ui mUi;
     nevk::ShaderManager mShaderManager;
@@ -338,7 +362,7 @@ private:
 
     void createDefaultScene();
 
-    void setDescriptors();
+    void setDescriptors(uint32_t imageIndex);
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 

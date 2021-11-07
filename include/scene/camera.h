@@ -36,6 +36,7 @@ public:
     float movementSpeed = 5.0f;
 
     bool updated = false;
+    bool isDirty = true;
 
     struct MouseButtons
     {

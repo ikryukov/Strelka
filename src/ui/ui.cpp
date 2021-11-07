@@ -487,7 +487,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO", "Variance", "Reflection", "Ref Final" };
+    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO", "Variance", "Reflection", "Ref Final", "Path Tracer", "PT Normals"};
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();
@@ -533,9 +533,13 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
             {
                 if (ImGui::MenuItem("Light"))
                 {
-                    std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
-                    Scene::RectLightDesc& currLightDesc = lightDescs[lightId];
-                    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
+                    Scene::RectLightDesc desc{};
+                    desc.color = glm::float4(1.0f);
+                    desc.height = 1.0f;
+                    desc.width = 1.0f;
+                    desc.intensity = 1.0f;
+                    desc.orientation = glm::float3(0.0f);
+                    desc.position = glm::float3(0.0f);
                     lightId = scene.createLight(desc);
                 }
             }
@@ -575,7 +579,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
             }
             if (showPropertiesId != -1 || lightId != -1)
             {
-                if (!isLight)
+                if (!isLight && showPropertiesId != -1) // Dasha look here
                 {
                     ImGuizmo::SetID(showPropertiesId);
                     float camDist = glm::distance(camPos, instances[showPropertiesId].massCenter);
@@ -706,6 +710,20 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
         ImGui::EndCombo();
     }
 
+    ImGui::Checkbox("Enable Path Tracer", &renderConfig.enablePathTracer);
+    if (renderConfig.enablePathTracer)
+    {
+        if (ImGui::TreeNode("Path Tracer"))
+        {
+            ImGui::SliderInt("Max Depth", &renderConfig.maxDepth, 1, 100);
+            ImGui::Checkbox("Enable Path Tracer Acc", &renderConfig.enablePathTracerAcc);
+
+            ImGui::TreePop();
+        }
+    }
+    // Common for bilateral filters
+    ImGui::Checkbox("Use swizzle threads in filters", &renderConfig.useSwizzleTid);
+    
     ImGui::Checkbox("Enable Shadows", &renderConfig.enableShadows);
     if (renderConfig.enableShadows)
     {
@@ -755,6 +773,26 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     }
 
     ImGui::Checkbox("Enable Reflections", &renderConfig.enableReflections);
+
+    ImGui::Checkbox("Enable Upscale", &renderConfig.enableUpscale);
+    if (renderConfig.enableUpscale)
+    {
+        renderConfig.upscaleFactor = 0.5f;
+    }
+    else
+    {
+        renderConfig.upscaleFactor = 1.0f;
+    }
+
+    bool isClicked = ImGui::Button("Recreate BVH");
+    if (isClicked)
+    {
+        renderConfig.recreateBVH = true;
+    }
+    else
+    {
+        renderConfig.recreateBVH = false;
+    }
 
     ImGui::End(); // end window
 }

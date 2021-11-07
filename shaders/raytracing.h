@@ -28,7 +28,7 @@ struct InstanceConstants
 struct BVHNode
 {
     float3 minBounds; // for leaf x - primitive (triangle) id
-    int instId;
+    int instId; // instance id
     float3 maxBounds;
     int nodeOffset;
 };
@@ -48,15 +48,15 @@ bool RayTriangleIntersect(
     float det = dot(e0, pvec);
 
     // Backface culling
-    if (det < 1e-6)
-    {
-        return false;
-    }
+    ///if (det < 1e-6)
+    //{
+    //    return false;
+    //}
 
-    // if (abs(det) < 1e-6)
-    // {
-    //     return false;
-    // }
+     if (abs(det) < 1e-6)
+     {
+         return false;
+     }
 
     float invDet = 1.0 / det;
 
@@ -110,7 +110,7 @@ struct Accel
     StructuredBuffer<uint> ib;
 };
 
-BVHTriangle getTriangle(uint instanceId, uint primitiveId, Accel accel)
+BVHTriangle getTriangle(uint instanceId, uint primitiveId, in Accel accel)
 {
     InstanceConstants instConst = accel.instanceConstants[instanceId];
 
@@ -131,7 +131,7 @@ BVHTriangle getTriangle(uint instanceId, uint primitiveId, Accel accel)
     return res;
 }
 
-bool closestHit(Accel accel, Ray ray, inout Hit hit)
+bool closestHit(in Accel accel, in Ray ray, inout Hit hit)
 {
     const float3 invdir = 1.0 / ray.d.xyz;
 
@@ -177,7 +177,7 @@ bool closestHit(Accel accel, Ray ray, inout Hit hit)
     return isFound;
 }
 
-bool anyHit(Accel accel, Ray ray, inout Hit hit)
+bool anyHit(in Accel accel, in Ray ray, inout Hit hit)
 {
     const float3 invdir = 1.0 / ray.d.xyz;
     uint32_t nodeIndex = 0;

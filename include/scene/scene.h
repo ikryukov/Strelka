@@ -139,7 +139,8 @@ public:
         eShadows = 2,
         eLTC = 3,
         eMotion = 4,
-        eCustomDebug = 5
+        eCustomDebug = 5,
+        ePTDebug = 11
     };
 
     DebugView mDebugViewSettings = DebugView::eNone;

@@ -23,6 +23,7 @@ void DebugView::setInputTexture(const DebugImages& images)
     mShaderParams.setTexture("inputAO", mSharedCtx.mResManager->getView(images.AO));
     mShaderParams.setTexture("inputReflection", mSharedCtx.mResManager->getView(images.reflection));
     mShaderParams.setTexture("inputVariance", mSharedCtx.mResManager->getView(images.variance));
+    mShaderParams.setTexture("inputPathTracer", mSharedCtx.mResManager->getView(images.pathTracer));
 }
 void DebugView::setOutputTexture(VkImageView imageView)
 {

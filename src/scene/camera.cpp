@@ -9,7 +9,6 @@ namespace nevk
 
 void Camera::updateViewMatrix()
 {
-    //glm::mat4 rotM = mat4_cast(mOrientation);
     const glm::float4x4 rotM{ mOrientation };
     glm::float4x4 transM = glm::translate(glm::float4x4(1.0f), -position);
     if (type == CameraType::firstperson)
@@ -40,7 +39,7 @@ glm::float3 Camera::getRight()
 
 bool Camera::moving()
 {
-    return keys.left || keys.right || keys.up || keys.down || keys.forward || keys.back;
+    return keys.left || keys.right || keys.up || keys.down || keys.forward || keys.back || mouseButtons.right || mouseButtons.left || mouseButtons.middle;
 }
 
 float Camera::getNearClip()
@@ -78,12 +77,12 @@ glm::float4x4 perspective(float fov, float aspect_ratio, float n, float f, glm::
         y,
         0.0f,
         0.0f,
-        
+
         0.0f,
         0.0f,
         A,
         B,
-        
+
         0.0f,
         0.0f,
         -1.0f,

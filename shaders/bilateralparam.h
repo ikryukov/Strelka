@@ -19,8 +19,11 @@ struct BilateralParam
 {
     float4x4 invProj;
     int2 dimension;
+    int2 dipatchGridDim;
     int radius;
     int maxR;
+    int useSwizzleTid;
+    int pad1;
 
     float sigma;
     float sigmaNormal;

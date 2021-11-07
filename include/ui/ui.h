@@ -33,10 +33,15 @@ public:
         bool enableShadowsAcc = false;
         bool enableAO = false;
         bool enableAOAcc = false;
+        bool enableUpscale = true;
+        float upscaleFactor = enableUpscale ? 0.5f : 1.0f; // 1 -- w/o upscaling, 0.5 -- render in half size
+        bool enablePathTracerAcc = true;
         bool enableFilter = false;
         bool enableAOFilter = false;
         bool enableShadows = false;
+        bool enablePathTracer = true;
         bool enableReflections = false;
+        bool recreateBVH = false;
         float rayLen = 0.2f;
         float accAlpha = 0.125f;
         float accAOAlpha = 0.125f;
@@ -50,6 +55,8 @@ public:
         float sigmaAONormal = 1.5f;
         int radiusAO = 3;
         int maxRAO = 5;
+        bool useSwizzleTid = 0;
+        int maxDepth = 1;
     };
 
     struct RenderStats

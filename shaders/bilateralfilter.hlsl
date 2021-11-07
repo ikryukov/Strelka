@@ -1,5 +1,7 @@
 #include "bilateralparam.h"
 
+#include "ThreadGroupTilingX.h"
+
 ConstantBuffer<BilateralParam> ubo;
 
 Texture2D<float4> gbWPos;
@@ -137,8 +139,9 @@ float simpleBilateral(uint2 pixelIndex)
 
 [numthreads(16, 16, 1)]
 [shader("compute")]
-void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
+void computeMain(uint2 groupThreadId : SV_GroupThreadID, uint2 groupId : SV_GroupID, uint2 threadIndex : SV_DispatchThreadID)
 {
+    const uint2 pixelIndex = (ubo.useSwizzleTid == 1) ? ThreadGroupTilingX(ubo.dipatchGridDim, uint2(16, 16), 16, groupThreadId, groupId) : threadIndex;
     if (pixelIndex.x >= ubo.dimension.x || pixelIndex.y >= ubo.dimension.y)
     {
         return;
@@ -159,5 +162,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-     output[pixelIndex] = simpleBilateral(pixelIndex);
+    output[pixelIndex] = simpleBilateral(pixelIndex);
 }
