@@ -50,6 +50,8 @@ endif ()
 find_package(embree 3 REQUIRED)
 message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
 
+find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
+
 # Shader Manager
 set(SHADERMANAGER_SOURCES
         include/shadermanager/shadermanager.h
@@ -258,6 +260,39 @@ add_executable(${PROJECT_NAME} app/main.cpp)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB})  # Link the executable to library (if it uses it).
 target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
+# Hydra plugin
+set(HD_PLUGIN_SOURCES
+    include/hdNeVK/RenderPlugin.h
+    src/hdNeVK/RenderBuffer.h
+    src/hdNeVK/RenderDelegate.h
+    src/hdNeVK/RenderPass.h
+    src/hdNeVK/RenderBuffer.cpp
+    src/hdNeVK/RenderDelegate.cpp
+    src/hdNeVK/RenderPass.cpp
+    src/hdNeVK/RenderPlugin.cpp
+)
+set(HD_PLUGIN_NAME hdNeVK)
+add_library(${HD_PLUGIN_NAME} SHARED ${HD_PLUGIN_SOURCES})
+set_target_properties(
+  ${HD_PLUGIN_NAME}
+  PROPERTIES
+    LINKER_LANGUAGE CXX
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    INSTALL_RPATH_USE_LINK_PATH ON
+    # The other libs in the plugin dir have no "lib" prefix, so let's match this
+    PREFIX ""
+)
+target_link_libraries(
+  ${HD_PLUGIN_NAME}
+  PRIVATE
+    usdImaging
+    hdMtlx
+    ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB}
+  PUBLIC
+    hd
+)
 
 # Set working directory
 if (MSVC)
