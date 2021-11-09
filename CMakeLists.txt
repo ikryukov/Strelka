@@ -47,7 +47,7 @@ endif ()
 endif ()
 
 # Embree
-find_package(embree 3 REQUIRED)
+find_package(embree 3.13.2 REQUIRED)
 message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
 
 # Shader Manager
@@ -66,6 +66,19 @@ elseif (APPLE)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib")
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib")
 endif ()
+
+# Material Manager
+set(MATERIALMANAGER_SOURCES
+        include/materialmanager/materialmanager.h
+        src/materialmanager/materialmanager.cpp
+        )
+set(MATERIALLIB_NAME materialmanager)
+add_library(${MATERIALLIB_NAME} OBJECT ${MATERIALMANAGER_SOURCES})
+target_include_directories(${MATERIALLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ ${PROJECT_SOURCE_DIR}/include/materialmanager)
+target_include_directories(${MATERIALLIB_NAME} PUBLIC  shaders/ )
+target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${SHADERLIB_NAME})
+# MDL ( $MDL_SDK_ROOT refer to the installation root of the MDL SDK.)
+target_include_directories(${MATERIALLIB_NAME} PUBLIC external/mdl-sdk/include) # $ENV{MDL_SDK_ROOT}
 
 # Scene
 set(SCENE_SOURCES
@@ -245,7 +258,7 @@ target_include_directories(${UILIB_NAME} PUBLIC external/imguiFD)
 
 target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${RESMNGR_NAME})
-target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME} ${MATERIALLIB_NAME} )
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${UILIB_NAME})
@@ -255,7 +268,7 @@ target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB} ${MATERIALLIB_NAME} )  # Link the executable to library (if it uses it).
 target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 
