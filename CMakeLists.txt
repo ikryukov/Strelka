@@ -262,14 +262,26 @@ target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # 
 
 # Hydra plugin
 set(HD_PLUGIN_SOURCES
-    include/hdNeVK/RenderPlugin.h
+    include/hdNeVK/RendererPlugin.h
+    src/hdNeVK/RendererPlugin.cpp
     src/hdNeVK/RenderBuffer.h
     src/hdNeVK/RenderDelegate.h
     src/hdNeVK/RenderPass.h
     src/hdNeVK/RenderBuffer.cpp
     src/hdNeVK/RenderDelegate.cpp
     src/hdNeVK/RenderPass.cpp
-    src/hdNeVK/RenderPlugin.cpp
+    src/hdNeVK/Instancer.h
+    src/hdNeVK/Instancer.cpp
+    src/hdNeVK/Material.h
+    src/hdNeVK/Material.cpp
+    src/hdNeVK/Camera.h
+    src/hdNeVK/Camera.cpp
+    src/hdNeVK/Mesh.h
+    src/hdNeVK/Mesh.cpp
+    src/hdNeVK/Tokens.h
+    src/hdNeVK/Tokens.cpp
+    src/hdNeVK/MaterialNetworkTranslator.h
+    src/hdNeVK/MaterialNetworkTranslator.cpp    
 )
 set(HD_PLUGIN_NAME hdNeVK)
 add_library(${HD_PLUGIN_NAME} SHARED ${HD_PLUGIN_SOURCES})
@@ -284,11 +296,35 @@ set_target_properties(
     # The other libs in the plugin dir have no "lib" prefix, so let's match this
     PREFIX ""
 )
+
+if(WIN32)
+  add_compile_definitions(NOMINMAX)
+  add_compile_definitions(_USE_MATH_DEFINES)
+  add_compile_definitions(_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH)
+endif()
+
+target_compile_definitions(
+  ${HD_PLUGIN_NAME}
+  PUBLIC
+    # Required for PLUG_THIS_PLUGIN macro
+    MFB_PACKAGE_NAME=${HD_PLUGIN_NAME}
+  PRIVATE
+    # Workaround for https://github.com/PixarAnimationStudios/USD/issues/1471#issuecomment-799813477
+    "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
+)
+
+# Workaround for https://github.com/PixarAnimationStudios/USD/issues/1279
+if (MSVC_VERSION GREATER_EQUAL 1920)
+    target_compile_options(${HD_PLUGIN_NAME} PRIVATE "/Zc:inline-")
+endif()
+
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/hdNeVK)
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/)
 target_link_libraries(
   ${HD_PLUGIN_NAME}
   PRIVATE
-    usdImaging
-    hdMtlx
+    optimized usdImaging
+    optimized hdMtlx
     ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB}
   PUBLIC
     hd
