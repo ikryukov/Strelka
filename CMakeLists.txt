@@ -262,26 +262,26 @@ target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # 
 
 # Hydra plugin
 set(HD_PLUGIN_SOURCES
-    include/hdNeVK/RendererPlugin.h
-    src/hdNeVK/RendererPlugin.cpp
-    src/hdNeVK/RenderBuffer.h
-    src/hdNeVK/RenderDelegate.h
-    src/hdNeVK/RenderPass.h
-    src/hdNeVK/RenderBuffer.cpp
-    src/hdNeVK/RenderDelegate.cpp
-    src/hdNeVK/RenderPass.cpp
-    src/hdNeVK/Instancer.h
-    src/hdNeVK/Instancer.cpp
-    src/hdNeVK/Material.h
-    src/hdNeVK/Material.cpp
-    src/hdNeVK/Camera.h
-    src/hdNeVK/Camera.cpp
-    src/hdNeVK/Mesh.h
-    src/hdNeVK/Mesh.cpp
-    src/hdNeVK/Tokens.h
-    src/hdNeVK/Tokens.cpp
-    src/hdNeVK/MaterialNetworkTranslator.h
-    src/hdNeVK/MaterialNetworkTranslator.cpp    
+    include/HdNeVK/RendererPlugin.h
+    src/HdNeVK/RendererPlugin.cpp
+    src/HdNeVK/RenderBuffer.h
+    src/HdNeVK/RenderDelegate.h
+    src/HdNeVK/RenderPass.h
+    src/HdNeVK/RenderBuffer.cpp
+    src/HdNeVK/RenderDelegate.cpp
+    src/HdNeVK/RenderPass.cpp
+    src/HdNeVK/Instancer.h
+    src/HdNeVK/Instancer.cpp
+    src/HdNeVK/Material.h
+    src/HdNeVK/Material.cpp
+    src/HdNeVK/Camera.h
+    src/HdNeVK/Camera.cpp
+    src/HdNeVK/Mesh.h
+    src/HdNeVK/Mesh.cpp
+    src/HdNeVK/Tokens.h
+    src/HdNeVK/Tokens.cpp
+    src/HdNeVK/MaterialNetworkTranslator.h
+    src/HdNeVK/MaterialNetworkTranslator.cpp    
 )
 set(HD_PLUGIN_NAME HdNeVK)
 add_library(${HD_PLUGIN_NAME} SHARED ${HD_PLUGIN_SOURCES})
