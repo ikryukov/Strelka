@@ -1,36 +1,38 @@
 #include "materialmanager.h"
 #include "shadermanager/ShaderManager.h"
 
+#include "mtlxMdlCodeGen.h"
+#include "mdlNeurayLoader.h"
+#include "mdlRuntime.h"
+#include "mdlMaterialCompiler.h"
+#include "mdlHlslCodeGen.h"
+
 #include <doctest.h>
 
 using namespace nevk;
 
-TEST_CASE("material manager test")
+/*
+TEST_CASE("Init Neuray Loader Test")
 {
-    nevk::MaterialManager* matmngr = new nevk::MaterialManager();
-    CHECK(matmngr != nullptr);
-}
+    nevk::MdlNeurayLoader* neurayLoader = new nevk::MdlNeurayLoader();
+    CHECK(neurayLoader != nullptr);
 
-TEST_CASE("init MDL test")
-{
-    nevk::MaterialManager* matmngr = new nevk::MaterialManager();
-    CHECK(matmngr != nullptr);
-
-    std::string path = "/Users/jswark/Desktop/school/NeVKmain/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
-    bool res = matmngr->initMDL(path.c_str());
+    std::string path = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
+    bool res = neurayLoader->init(path.c_str());
     CHECK(res != 0);
 }
 
+
 TEST_CASE("load material test")
 {
-    nevk::MaterialManager* matmngr = new nevk::MaterialManager();
-    CHECK(matmngr != nullptr);
+    nevk::MdlNeurayLoader* neurayLoader = new nevk::MdlNeurayLoader();
+        CHECK(neurayLoader != nullptr);
 
-    std::string pathso = "/Users/jswark/Desktop/school/NeVKmain/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
-    bool res1 = matmngr->initMDL(pathso.c_str());
-    CHECK(res1 != 0);
+    std::string path = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
+    bool res = neurayLoader->init(path.c_str());
+        CHECK(res != 0);
 
-    std::string pathmdl = "/Users/jswark/Desktop/school/NeVKmain/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path
+    std::string pathmdl = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path
     bool res2 = matmngr->initMaterial(pathmdl.c_str());
     CHECK(res2 != 0);
 }
@@ -87,6 +89,8 @@ TEST_CASE("hlsl code gen test")
 
     //std::cout << hlslCode << std::endl;
 }
+ */
+/*
 TEST_CASE("mtlx to mdl code gen test")
 {
     nevk::MaterialManager* matmngr = new nevk::MaterialManager();
@@ -101,7 +105,7 @@ TEST_CASE("mtlx to mdl code gen test")
 
     std::cout << mdlSrc;
 
-    std::string pathso = "/Users/jswark/Desktop/school/NeVKmain/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
+    std::string pathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
     bool res1 = matmngr->initMDL(pathso.c_str());
     CHECK(res1 != 0);
 
@@ -119,6 +123,45 @@ TEST_CASE("mtlx to mdl code gen test")
 
     bool res5 = matmngr->translate(hlslCode);
     CHECK(res5 != 0);
+
+    std::cout << hlslCode;
+}
+*/
+
+TEST_CASE("mtlx to mdl code gen test")
+{
+    std::string mtlxLibPath = "/Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/libraries/";
+    nevk::MtlxMdlCodeGen* mtlxCodeGen = new nevk::MtlxMdlCodeGen(mtlxLibPath.c_str());
+        CHECK(mtlxCodeGen != nullptr);
+
+    std::string mtlxMaterialPath = "/Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/resources/Materials/TestSuite/pbrlib/surfaceshader/sheen.mtlx";
+    std::string mdlSrc;
+    std::string ident;
+    mtlxCodeGen->translate(mtlxMaterialPath.c_str(), mdlSrc, ident);
+    std::cout << mdlSrc;
+
+    std::string pathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
+    nevk::MdlRuntime* runtime = new nevk::MdlRuntime();
+    std::string pathmdl = "/Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/mdl/"; // todo: fix path
+    bool res = runtime->init(pathso.c_str(), pathmdl.c_str());
+        CHECK(res != 0);
+
+    nevk::MdlMaterialCompiler* matCompiler = new nevk::MdlMaterialCompiler(*runtime);
+
+    mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
+    bool res1 = matCompiler->compileMaterial(mdlSrc, ident, compiledMaterial);
+
+    nevk::MdlHlslCodeGen* codeGen = new MdlHlslCodeGen();
+
+    std::string hlslCode;
+    int id = 0;
+    bool res2 = codeGen->init(*runtime);
+        CHECK(res2 != 0);
+
+    std::vector<const mi::neuraylib::ICompiled_material*> materials;
+    materials.push_back(compiledMaterial.get()); // 1 material
+    bool res3 = codeGen->translate(materials, hlslCode);
+        CHECK(res3 != 0);
 
     std::cout << hlslCode;
 }

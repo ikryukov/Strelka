@@ -75,15 +75,17 @@ find_package(MaterialX REQUIRED)
 
 # Material Manager
 set(MATERIALMANAGER_SOURCES
-        include/materialmanager/materialmanager.h
+       # include/materialmanager/materialmanager.h
         include/materialmanager/mdlNeurayLoader.h
         include/materialmanager/mdlRuntime.h
         include/materialmanager/mdlHlslCodeGen.h
         include/materialmanager/mtlxMdlCodeGen.h
         include/materialmanager/mdlLogger.h
+        include/materialmanager/mdlMaterialCompiler.h
 
-        src/materialmanager/materialmanager.cpp
+       # src/materialmanager/materialmanager.cpp
         src/materialmanager/mdlNeurayLoader.cpp
+        src/materialmanager/mdlMaterialCompiler.cpp
         src/materialmanager/mdlRuntime.cpp
         src/materialmanager/mdlHlslCodeGen.cpp
         src/materialmanager/mtlxMdlCodeGen.cpp
