@@ -4,6 +4,10 @@
 
 #include <mi/mdl_sdk.h>
 
+#include <MaterialXCore/Document.h>
+#include <MaterialXFormat/File.h>
+#include <MaterialXGenShader/ShaderGenerator.h>
+
 namespace nevk
 {
 
@@ -46,5 +50,12 @@ public:
     mi::neuraylib::ILink_unit* linkedUnit;
     mi::base::Handle<mi::neuraylib::IMdl_backend> m_backend;
     mi::base::Handle<mi::neuraylib::IMdl_execution_context> m_context;
+
+    // mtlx to mdl
+    bool translate(const char* mtlxSrc, std::string& mdlSrc, std::string& subIdentifier);
+    void initMtlx(const char* mtlxlibPath);
+    MaterialX::FileSearchPath m_mtlxlibPath;
+    MaterialX::DocumentPtr m_stdLib;
+    MaterialX::ShaderGeneratorPtr m_shaderGen;
 };
 } // namespace nevk

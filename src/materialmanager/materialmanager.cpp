@@ -2,8 +2,128 @@
 
 #include <dlfcn.h>
 
+#include <MaterialXCore/Definition.h>
+#include <MaterialXCore/Document.h>
+#include <MaterialXCore/Library.h>
+#include <MaterialXCore/Material.h>
+#include <MaterialXFormat/File.h>
+#include <MaterialXFormat/Util.h>
+#include <MaterialXGenShader/DefaultColorManagementSystem.h>
+#include <MaterialXGenShader/GenContext.h>
+#include <MaterialXGenShader/GenOptions.h>
+#include <MaterialXGenShader/Library.h>
+#include <MaterialXGenShader/Shader.h>
+#include <MaterialXGenShader/Util.h>
+#include <MaterialXGenMdl/MdlShaderGenerator.h>
+
+namespace mx = MaterialX;
+
 namespace nevk
 {
+void MaterialManager::initMtlx(const char* mtlxlibPath)
+{
+    m_mtlxlibPath.append(mtlxlibPath);
+
+    // Init shadergen.
+    m_shaderGen = mx::MdlShaderGenerator::create();
+    std::string target = m_shaderGen->getTarget();
+
+    // MaterialX libs.
+    m_stdLib = mx::createDocument();
+    mx::FilePathVec libFolders;
+    mx::loadLibraries(libFolders, m_mtlxlibPath, m_stdLib);
+
+    // Color management.
+    mx::DefaultColorManagementSystemPtr colorSystem = mx::DefaultColorManagementSystem::create(target);
+    colorSystem->loadLibrary(m_stdLib);
+    m_shaderGen->setColorManagementSystem(colorSystem);
+
+    // Unit management.
+    mx::UnitSystemPtr unitSystem = mx::UnitSystem::create(target);
+    unitSystem->loadLibrary(m_stdLib);
+
+    mx::UnitConverterRegistryPtr unitRegistry = mx::UnitConverterRegistry::create();
+    mx::UnitTypeDefPtr distanceTypeDef = m_stdLib->getUnitTypeDef("distance");
+    unitRegistry->addUnitConverter(distanceTypeDef, mx::LinearUnitConverter::create(distanceTypeDef));
+    mx::UnitTypeDefPtr angleTypeDef = m_stdLib->getUnitTypeDef("angle");
+    unitRegistry->addUnitConverter(angleTypeDef, mx::LinearUnitConverter::create(angleTypeDef));
+
+    unitSystem->setUnitConverterRegistry(unitRegistry);
+    m_shaderGen->setUnitSystem(unitSystem);
+}
+
+mx::TypedElementPtr _FindSurfaceShaderElement(const mx::DocumentPtr& doc)
+{
+    // Find renderable element.
+    std::vector<mx::TypedElementPtr> renderableElements;
+    mx::findRenderableElements(doc, renderableElements);
+
+    if (renderableElements.size() != 1)
+    {
+        return nullptr;
+    }
+
+    // Extract surface shader node.
+    mx::TypedElementPtr renderableElement = renderableElements.at(0);
+    mx::NodePtr node = renderableElement->asA<mx::Node>();
+
+    if (node && node->getType() == mx::MATERIAL_TYPE_STRING)
+    {
+        std::vector<mx::NodePtr> shaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING); // unordered set in gatling ?
+        if (!shaderNodes.empty())
+        {
+            renderableElement = *shaderNodes.begin();
+        }
+    }
+
+    mx::ElementPtr surfaceElement = doc->getDescendant(renderableElement->getNamePath());
+    if (!surfaceElement)
+    {
+        return nullptr;
+    }
+
+    return surfaceElement->asA<mx::TypedElement>();
+}
+
+bool MaterialManager::translate(const char* mtlxSrc, std::string& mdlSrc, std::string& subIdentifier)
+{
+    // Don't cache the context because it is thread-local.
+    mx::GenContext context(m_shaderGen);
+    context.registerSourceCodeSearchPath(m_mtlxlibPath);
+
+    mx::GenOptions& contextOptions = context.getOptions();
+    contextOptions.targetDistanceUnit = "meter";
+
+    mx::ShaderPtr shader = nullptr;
+    try
+    {
+        mx::DocumentPtr doc = mx::createDocument();
+        doc->importLibrary(m_stdLib);
+        mx::readFromXmlFile(doc, mtlxSrc);
+
+        mx::TypedElementPtr element = _FindSurfaceShaderElement(doc);
+        if (!element)
+        {
+            return false;
+        }
+
+        subIdentifier = element->getName();
+        shader = m_shaderGen->generate(subIdentifier, element, context);
+    }
+    catch (const std::exception& ex)
+    {
+        fprintf(stderr, "Exception generating MDL code: %s\n", ex.what());
+    }
+
+    if (!shader)
+    {
+        return false;
+    }
+
+    mx::ShaderStage pixelStage = shader->getStage(mx::Stage::PIXEL);
+    mdlSrc = pixelStage.getSourceCode();
+    return true;
+}
 
 const char* SCATTERING_FUNC_NAME = "mdl_bsdf_scattering";
 const char* EMISSION_FUNC_NAME = "mdl_edf_emission";
@@ -101,9 +221,12 @@ bool MaterialManager::translate(std::string& hlslSrc) // todo add materials arra
     {
         return false;
     }
-
+// mtlx to mdl ?
     if (targetCode->get_texture_count() > 0)
     {
+        std::cout << targetCode->get_texture_count() << std::endl;
+        std::cout << targetCode->get_texture(1) << std::endl;
+        std::cout << targetCode->get_texture_url(1)<< std::endl;
         std::cerr << "Textures not supported, aborting\n"
                   << std::endl;
         return false;
@@ -151,9 +274,9 @@ std::atomic_uint32_t s_idCounter(0); // unused
 std::string _makeModuleName(const std::string& identifier)
 {
     uint32_t uniqueId = ++s_idCounter;
-    //return std::string(MODULE_PREFIX) + std::to_string(uniqueId) + "_" + identifier;
-    std::string moduleName = "::gun_metal"; // name of file ?
-    return moduleName;
+    return std::string(MODULE_PREFIX) + std::to_string(uniqueId) + "_" + identifier;
+    //std::string moduleName = "::gun_metal"; // name of file ?
+    //return "::SR_velvet";
 }
 
 bool MaterialManager::compileMaterial(const std::string& src, const std::string& identifier)
@@ -170,7 +293,8 @@ bool MaterialManager::compileMaterial(const std::string& src, const std::string&
 
 bool MaterialManager::createModule(mi::neuraylib::IMdl_execution_context* context, const char* moduleName, const char* mdlSrc)
 {
-    mi::Sint32 result = m_impExpApi->load_module(m_transaction.get(), moduleName, context); // Note that this method expects the module name, not the name of the file containing the module.
+     mi::Sint32 result = m_impExpApi->load_module_from_string(m_transaction.get(), moduleName, mdlSrc, context); // Note that this method expects the module name, not the name of the file containing the module.
+    // mi::Sint32 result = m_impExpApi->load_module(m_transaction.get(), moduleName, context); // Note that this method expects the module name, not the name of the file containing the module.
     return result == 0 || result == 1;
 }
 
