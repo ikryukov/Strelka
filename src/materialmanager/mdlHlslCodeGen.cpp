@@ -2,8 +2,8 @@
 
 #include <mi/mdl_sdk.h>
 
-#include <sstream>
 #include <cassert>
+#include <sstream>
 
 namespace nevk
 {
@@ -22,7 +22,8 @@ void _generateInitSwitch(std::stringstream& ss,
     ss << "\t{\n";
     for (uint32_t i = 0; i < caseCount; i++)
     {
-        ss << "\t\tcase " << i << ": " << funcName << "_" << i << "_init" << "(sIn); return;\n";
+        ss << "\t\tcase " << i << ": " << funcName << "_" << i << "_init"
+           << "(sIn); return;\n";
     }
     ss << "\t}\n";
     ss << "}\n";
@@ -56,7 +57,7 @@ void _generateInOutSwitch(std::stringstream& ss,
     ss << "\t{\n";
     for (uint32_t i = 0; i < caseCount; i++)
     {
-        ss << "\t\tcase " << i << ": "  << funcName << "_" << i << "_" << opName << "(sInOut, sIn); return;\n";
+        ss << "\t\tcase " << i << ": " << funcName << "_" << i << "_" << opName << "(sInOut, sIn); return;\n";
     }
     ss << "\t}\n";
     ss << "}\n";
@@ -152,11 +153,10 @@ bool MdlHlslCodeGen::appendMaterialToLinkUnit(uint32_t idx,
         compiledMaterial,
         genFunctions.data(),
         genFunctions.size(),
-        m_context.get()
-    );
+        m_context.get());
 
     m_logger->flushContextMessages(m_context.get());
 
     return result == 0;
 }
-}
+} // namespace nevk

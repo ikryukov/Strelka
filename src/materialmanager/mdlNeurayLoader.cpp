@@ -9,6 +9,7 @@
 #endif
 
 #include <string>
+#include "iostream"
 
 namespace nevk
 {
@@ -41,6 +42,16 @@ bool MdlNeurayLoader::init(const char* resourcePath)
     {
         return false;
     }
+
+    mi::base::Handle<mi::neuraylib::INeuray> neuray(getNeuray());
+    mi::base::Handle<mi::neuraylib::IPlugin_configuration> configPl(neuray->get_api_component<mi::neuraylib::IPlugin_configuration>());
+    std::string path = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib/nv_freeimage.so"; // plugin for texture support
+    if (configPl->load_plugin_library(path.c_str())) // This function can only be called before the MDL SDK has been started.
+    {
+       std::cout << "Plugin file path not found, translation not possible" << std::endl;
+        return false;
+    }
+
     return m_neuray->start() == 0;
 }
 

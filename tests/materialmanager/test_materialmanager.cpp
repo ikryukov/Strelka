@@ -134,7 +134,7 @@ TEST_CASE("mtlx to mdl code gen test")
     nevk::MtlxMdlCodeGen* mtlxCodeGen = new nevk::MtlxMdlCodeGen(mtlxLibPath.c_str());
         CHECK(mtlxCodeGen != nullptr);
 
-    std::string mtlxMaterialPath = "/Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/resources/Materials/TestSuite/pbrlib/surfaceshader/sheen.mtlx";
+    std::string mtlxMaterialPath = "/Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/resources/Materials/Examples/UsdPreviewSurface/usd_preview_surface_glass.mtlx";
     std::string mdlSrc;
     std::string ident;
     mtlxCodeGen->translate(mtlxMaterialPath.c_str(), mdlSrc, ident);
