@@ -1,4 +1,4 @@
-#include "MtlxMdlCodeGen.h"
+#include "mtlxMdlCodeGen.h"
 
 #include <MaterialXCore/Definition.h>
 #include <MaterialXCore/Document.h>
@@ -13,6 +13,8 @@
 #include <MaterialXGenShader/Shader.h>
 #include <MaterialXGenShader/Util.h>
 #include <MaterialXGenMdl/MdlShaderGenerator.h>
+
+#include <unordered_set>
 
 namespace mx = MaterialX;
 
@@ -66,7 +68,7 @@ mx::TypedElementPtr _FindSurfaceShaderElement(mx::DocumentPtr doc)
 
     if (node && node->getType() == mx::MATERIAL_TYPE_STRING)
     {
-        std::unordered_set<mx::NodePtr> shaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING);
+        std::vector<mx::NodePtr> shaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING); // originally std::unordered_set
         if (!shaderNodes.empty())
         {
             renderableElement = *shaderNodes.begin();

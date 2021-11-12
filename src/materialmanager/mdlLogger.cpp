@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 
-namespace sg
+namespace nevk
 {
 const char* _miMessageSeverityToCStr(mi::base::Message_severity severity)
 {

@@ -5,7 +5,7 @@
 #include <sstream>
 #include <cassert>
 
-namespace sg
+namespace nevk
 {
 const char* SCATTERING_FUNC_NAME = "mdl_bsdf_scattering";
 const char* EMISSION_FUNC_NAME = "mdl_edf_emission";
