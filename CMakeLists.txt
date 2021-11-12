@@ -283,7 +283,7 @@ set(HD_PLUGIN_SOURCES
     src/hdNeVK/MaterialNetworkTranslator.h
     src/hdNeVK/MaterialNetworkTranslator.cpp    
 )
-set(HD_PLUGIN_NAME hdNeVK)
+set(HD_PLUGIN_NAME HdNeVK)
 add_library(${HD_PLUGIN_NAME} SHARED ${HD_PLUGIN_SOURCES})
 set_target_properties(
   ${HD_PLUGIN_NAME}
@@ -317,17 +317,55 @@ target_compile_definitions(
 if (MSVC_VERSION GREATER_EQUAL 1920)
     target_compile_options(${HD_PLUGIN_NAME} PRIVATE "/Zc:inline-")
 endif()
+set(Boost_USE_STATIC_LIBS OFF) 
+set(BUILD_SHARED_LIBS ON)
+find_package(Boost COMPONENTS python REQUIRED)
 
 target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/hdNeVK)
 target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/)
 target_link_libraries(
   ${HD_PLUGIN_NAME}
   PRIVATE
+    optimized ${Boost_LIBRARIES}
     optimized usdImaging
     optimized hdMtlx
     ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB}
   PUBLIC
     hd
+)
+
+set(PLUGINFO_PATH "${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json")
+
+file(READ ${PROJECT_SOURCE_DIR}/src/hdNeVK/plugInfo.json.in PLUGINFO)
+file(
+  GENERATE
+  OUTPUT
+    "${PLUGINFO_PATH}"
+  CONTENT
+    ${PLUGINFO}
+)
+
+install(
+  FILES
+    "${PLUGINFO_PATH}"
+  DESTINATION
+    "${CMAKE_INSTALL_PREFIX}/HdNeVK/resources"
+  COMPONENT
+    ${HD_PLUGIN_NAME}
+)
+
+install(
+  TARGETS
+    ${HD_PLUGIN_NAME}
+  LIBRARY
+    DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    COMPONENT ${HD_PLUGIN_NAME}
+  RUNTIME
+    DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    COMPONENT ${HD_PLUGIN_NAME}
+  ARCHIVE
+    DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    COMPONENT ${HD_PLUGIN_NAME}
 )
 
 # Set working directory
