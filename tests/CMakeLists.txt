@@ -21,12 +21,9 @@ find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
 add_executable(${TEST_MAIN} ${TESTFILES})
 target_link_libraries(${TEST_MAIN} PRIVATE ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} 
         ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB} ${MATERIALLIB_NAME} doctest 
-        optimized hdMtlx
         optimized MaterialXCore
         optimized MaterialXFormat
         optimized MaterialXGenMdl
-        PUBLIC
-        optimized hd
         )
 target_include_directories(${TEST_MAIN} PRIVATE ../include/)
 

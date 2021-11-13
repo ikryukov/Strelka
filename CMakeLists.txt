@@ -96,9 +96,7 @@ target_include_directories(${MATERIALLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/incl
 target_include_directories(${MATERIALLIB_NAME} PUBLIC  shaders/)
 target_link_libraries(
     ${MATERIALLIB_NAME}
-    PUBLIC
-        hd
-        optimized hdMtlx
+    PRIVATE
         optimized MaterialXCore
         optimized MaterialXFormat
         optimized MaterialXGenMdl
