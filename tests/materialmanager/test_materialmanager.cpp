@@ -1,4 +1,4 @@
-#include "materialmanager.h"
+//#include "materialmanager.h"
 #include "mdlHlslCodeGen.h"
 #include "mdlMaterialCompiler.h"
 #include "mdlNeurayLoader.h"
@@ -8,8 +8,10 @@
 
 #include <doctest.h>
 #include <fstream>
+#include <filesystem>
 
 using namespace nevk;
+namespace fs = std::filesystem;
 
 /*
 TEST_CASE("Init Neuray Loader Test")
@@ -177,6 +179,10 @@ TEST_CASE("mtlx to mdl code gen test")
 
 TEST_CASE("mtlx to mdl code gen test")
 {
+    fs::path cwd = fs::current_path();
+
+
+
     std::string mdlFile = "material.mdl";
     std::ofstream mdlMaterial(mdlFile.c_str());
 

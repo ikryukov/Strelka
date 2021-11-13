@@ -67,8 +67,9 @@ elseif (APPLE)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib")
 endif ()
 
-set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
-set(USD_ROOT /Users/jswark/school/USD_Build) #todo: use from usd
+#set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
+#set(USD_ROOT /Users/jswark/school/USD_Build) #todo: use from usd
+find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
 find_package(MaterialX REQUIRED)
 
 # Material Manager
@@ -93,11 +94,16 @@ set(MATERIALLIB_NAME materialmanager)
 add_library(${MATERIALLIB_NAME} OBJECT ${MATERIALMANAGER_SOURCES})
 target_include_directories(${MATERIALLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ ${PROJECT_SOURCE_DIR}/include/materialmanager)
 target_include_directories(${MATERIALLIB_NAME} PUBLIC  shaders/)
-target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${SHADERLIB_NAME})
-target_link_libraries(${MATERIALLIB_NAME} PRIVATE #hdMtlx )
-        MaterialXCore
-        MaterialXFormat
-        MaterialXGenMdl)
+target_link_libraries(
+    ${MATERIALLIB_NAME}
+    PUBLIC
+        hd
+        optimized hdMtlx
+        optimized MaterialXCore
+        optimized MaterialXFormat
+        optimized MaterialXGenMdl
+        ${SHADERLIB_NAME}
+    )
 # MDL ( $MDL_SDK_ROOT refer to the installation root of the MDL SDK.)
 target_include_directories(${MATERIALLIB_NAME} PUBLIC external/mdl-sdk/include) # $ENV{MDL_SDK_ROOT}
 

@@ -16,12 +16,18 @@ set(TEST_RUNNER_PARAMS "")
 
 set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake) #todo: use from usd
 find_package(MaterialX REQUIRED)
+find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
 
 add_executable(${TEST_MAIN} ${TESTFILES})
 target_link_libraries(${TEST_MAIN} PRIVATE ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} 
-        ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB} ${MATERIALLIB_NAME} doctest MaterialXCore
-        MaterialXFormat
-        MaterialXGenMdl)
+        ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB} ${MATERIALLIB_NAME} doctest 
+        optimized hdMtlx
+        optimized MaterialXCore
+        optimized MaterialXFormat
+        optimized MaterialXGenMdl
+        PUBLIC
+        optimized hd
+        )
 target_include_directories(${TEST_MAIN} PRIVATE ../include/)
 
 # Set working directory
