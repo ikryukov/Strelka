@@ -194,6 +194,9 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
                                    const TfTokenVector& renderTags)
 {
     TF_UNUSED(renderTags);
+    
+    HD_TRACE_FUNCTION();
+    HF_MALLOC_TAG_FUNCTION();
 
     m_isConverged = false;
 
