@@ -5,6 +5,7 @@
 #include "mdlRuntime.h"
 #include "mtlxMdlCodeGen.h"
 #include "shadermanager/ShaderManager.h"
+#include <render/render.h>
 
 #include <doctest.h>
 #include <fstream>
@@ -205,7 +206,13 @@ TEST_CASE("mtlx to mdl code gen test")
 
     std::string hlslCode;
     int id = 0;
-    bool res2 = codeGen->init(*runtime);
+    Render r;
+    r.HEIGHT = 600;
+    r.WIDTH = 800;
+    r.initWindow();
+    r.initVulkan();
+    nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
+    bool res2 = codeGen->init(*runtime, *mTexManager);
         CHECK(res2 != 0);
 
     std::vector<const mi::neuraylib::ICompiled_material*> materials;

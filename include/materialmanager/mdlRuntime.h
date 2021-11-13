@@ -31,8 +31,9 @@ public:
     mi::base::Handle<mi::neuraylib::IMdl_impexp_api> getImpExpApi();
     mi::base::Handle<mi::neuraylib::IMdl_backend_api> getBackendApi();
 
-private:
     std::unique_ptr<MdlNeurayLoader> m_loader;
+private:
+    //std::unique_ptr<MdlNeurayLoader> m_loader;
 
     mi::base::Handle<MdlLogger> m_logger;
     mi::base::Handle<mi::neuraylib::IDatabase> m_database;
