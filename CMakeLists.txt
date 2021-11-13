@@ -69,7 +69,7 @@ endif ()
 
 #set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
 #set(USD_ROOT /Users/jswark/school/USD_Build) #todo: use from usd
-find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
+#find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
 find_package(MaterialX REQUIRED)
 
 # Material Manager
@@ -93,7 +93,7 @@ set(MATERIALMANAGER_SOURCES
 set(MATERIALLIB_NAME materialmanager)
 add_library(${MATERIALLIB_NAME} OBJECT ${MATERIALMANAGER_SOURCES})
 target_include_directories(${MATERIALLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ ${PROJECT_SOURCE_DIR}/include/materialmanager)
-target_include_directories(${MATERIALLIB_NAME} PUBLIC  shaders/)
+target_include_directories(${MATERIALLIB_NAME} PUBLIC shaders/)
 target_link_libraries(
     ${MATERIALLIB_NAME}
     PRIVATE
