@@ -196,7 +196,7 @@ TEST_CASE("mtlx to mdl code gen test")
     std::string resourcePath = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/resources"; // todo: fix path
 
     bool res = runtime->init(resourcePath.c_str(), pathso.c_str(), pathmdl.c_str());
-        CHECK(res != 0);
+        CHECK(res);
 
     nevk::MdlMaterialCompiler* matCompiler = new nevk::MdlMaterialCompiler(*runtime);
 
@@ -212,12 +212,12 @@ TEST_CASE("mtlx to mdl code gen test")
     std::string hlslCode;
     int id = 0;
     bool res2 = codeGen->init(*runtime);
-        CHECK(res2 != 0);
+        CHECK(res2);
 
     std::vector<const mi::neuraylib::ICompiled_material*> materials;
     materials.push_back(compiledMaterial.get()); // 1 material
     bool res3 = codeGen->translate(materials, hlslCode);
-        CHECK(res3 != 0);
+        CHECK(res3);
 
     hlslMaterial << hlslCode;
 }
