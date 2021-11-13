@@ -1,5 +1,4 @@
 #pragma once
-#include "texturemanager/texturemanager.h"
 #include "mdlLogger.h"
 #include "mdlRuntime.h"
 
@@ -8,13 +7,15 @@
 #include <MaterialXGenShader/ShaderGenerator.h>
 #include <mi/mdl_sdk.h>
 
+#include "texturemanager/texturemanager.h"
+
 namespace nevk
 {
 class MdlHlslCodeGen
 {
 public:
-    MdlHlslCodeGen(){};
-    bool init(MdlRuntime& runtime, nevk::TextureManager& _textureManager);
+    MdlHlslCodeGen(nevk::TextureManager* texManager) : mTexManager(texManager){};
+    bool init(MdlRuntime& runtime);
 
     bool translate(const std::vector<const mi::neuraylib::ICompiled_material*>& materials,
                    std::string& hlslSrc);
@@ -32,7 +33,7 @@ private:
         mi::Size texture_index,
         uint32_t texture_obj);
 
-    nevk::TextureManager textureManager;
+    nevk::TextureManager* mTexManager = nullptr;
     std::unique_ptr<MdlNeurayLoader> m_loader;
 
     mi::base::Handle<MdlLogger> m_logger;

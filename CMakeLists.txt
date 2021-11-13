@@ -248,6 +248,8 @@ target_include_directories(${RENDERLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 target_include_directories(${MODELLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 target_link_libraries(${MODELLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
+target_include_directories(${MATERIALLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)

@@ -202,8 +202,6 @@ TEST_CASE("mtlx to mdl code gen test")
     //
     bool res1 = matCompiler->compileMaterial(mdlSrc, ident, compiledMaterial);
 
-    nevk::MdlHlslCodeGen* codeGen = new MdlHlslCodeGen();
-
     std::string hlslCode;
     int id = 0;
     Render r;
@@ -212,13 +210,19 @@ TEST_CASE("mtlx to mdl code gen test")
     r.initWindow();
     r.initVulkan();
     nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
-    bool res2 = codeGen->init(*runtime, *mTexManager);
+    nevk::MdlHlslCodeGen* codeGen = new MdlHlslCodeGen(mTexManager);
+
+    bool res2 = codeGen->init(*runtime);
         CHECK(res2 != 0);
 
     std::vector<const mi::neuraylib::ICompiled_material*> materials;
     materials.push_back(compiledMaterial.get()); // 1 material
     bool res3 = codeGen->translate(materials, hlslCode);
         CHECK(res3 != 0);
+
+    CHECK(mTexManager->textures.size() == 3);
+    CHECK(mTexManager->textures[0].texWidth == 512);
+    CHECK(mTexManager->textures[0].texHeight == 512);
 
     hlslMaterial << hlslCode;
 }

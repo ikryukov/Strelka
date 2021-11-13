@@ -63,7 +63,7 @@ void _generateInOutSwitch(std::stringstream& ss,
     ss << "}\n";
 }
 
-bool MdlHlslCodeGen::init(MdlRuntime& runtime, nevk::TextureManager& _textureManager)
+bool MdlHlslCodeGen::init(MdlRuntime& runtime)
 {
     mi::base::Handle<mi::neuraylib::IMdl_backend_api> backendApi(runtime.getBackendApi());
     m_backend = mi::base::Handle<mi::neuraylib::IMdl_backend>(backendApi->get_backend(mi::neuraylib::IMdl_backend_api::MB_HLSL));
@@ -76,7 +76,6 @@ bool MdlHlslCodeGen::init(MdlRuntime& runtime, nevk::TextureManager& _textureMan
     m_logger = mi::base::Handle<MdlLogger>(runtime.getLogger());
 
     m_loader = std::move(runtime.m_loader);
-    textureManager = _textureManager;
     mi::base::Handle<mi::neuraylib::IMdl_factory> factory(runtime.getFactory());
     m_context = mi::base::Handle<mi::neuraylib::IMdl_execution_context>(factory->create_execution_context());
 
@@ -136,11 +135,7 @@ bool MdlHlslCodeGen::prepare_texture(
     if (texture_shape == mi::neuraylib::ITarget_code::Texture_shape_2d) {
         mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
         mi::Float32 const *data = static_cast<mi::Float32 const *>(tile->get_data());
-        mi::Size width = 0;
-        mi::Size height = 0;
-        mi::Size depth = 0;
-        code->get_texture_df_data(texture_index, width, height, depth);
-        textureManager.createTextureImage(data, width, height);
+        mTexManager->loadTextureGltf(data, tex_width, tex_height, std::to_string(texture_index));
 
         /*glBindTexture(GL_TEXTURE_2D, texture_obj);
         glTexImage2D(
@@ -192,6 +187,7 @@ bool MdlHlslCodeGen::translate(const std::vector<const mi::neuraylib::ICompiled_
         for (int i = 1; i < targetCode->get_texture_count(); ++i)
         {
             m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, targetCode->get_texture_url(i));
+            prepare_texture(m_transaction, image_api, targetCode, i, 1);
         }
         m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, "Textures not supported, aborting\n");
         //return false;
