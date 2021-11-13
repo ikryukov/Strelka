@@ -28,4 +28,5 @@ struct LtcParam
 #    undef float4
 #    undef float3
 #    undef int2
+#    undef uint
 #endif

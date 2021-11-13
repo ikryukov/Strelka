@@ -68,7 +68,7 @@ elseif (APPLE)
 endif ()
 
 set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
-set(USD_ROOT /Users/jswark/school/USD_Build) #todo: use from usd
+set(USD_ROOT /Users/jswark/school/USD_Build)
 find_package(MaterialX REQUIRED)
 
 # Material Manager
@@ -80,7 +80,7 @@ set(MATERIALMANAGER_SOURCES
        include/materialmanager/mtlxMdlCodeGen.h
        include/materialmanager/mdlLogger.h
        include/materialmanager/mdlMaterialCompiler.h
-#
+
        #src/materialmanager/materialmanager.cpp
        src/materialmanager/mdlNeurayLoader.cpp
        src/materialmanager/mdlMaterialCompiler.cpp

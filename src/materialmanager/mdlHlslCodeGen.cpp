@@ -1,5 +1,7 @@
 #include "mdlHlslCodeGen.h"
 
+#include "materials.h"
+
 #include <mi/mdl_sdk.h>
 
 #include <cassert>
@@ -87,11 +89,10 @@ bool MdlHlslCodeGen::init(MdlRuntime& runtime)
 // Prepare the texture identified by the texture_index for use by the texture access functions
 // on the GPU.
 bool MdlHlslCodeGen::prepare_texture(
-    mi::base::Handle<mi::neuraylib::ITransaction>       transaction,
-    mi::base::Handle<mi::neuraylib::IImage_api>         image_api,
-    mi::base::Handle<const mi::neuraylib::ITarget_code> code,
-    mi::Size                                            texture_index,
-    uint32_t                                             texture_obj)
+    const mi::base::Handle<mi::neuraylib::ITransaction>& transaction,
+    const mi::base::Handle<mi::neuraylib::IImage_api>& image_api,
+    const mi::base::Handle<const mi::neuraylib::ITarget_code>& code,
+    mi::Size texture_index)
 {
     // Get access to the texture data by the texture database name from the target code.
     mi::base::Handle<const mi::neuraylib::ITexture> texture(
@@ -102,14 +103,16 @@ bool MdlHlslCodeGen::prepare_texture(
     mi::Uint32 tex_width = canvas->get_resolution_x();
     mi::Uint32 tex_height = canvas->get_resolution_y();
     mi::Uint32 tex_layers = canvas->get_layers_size();
-    char const *image_type = image->get_type();
+    char const* image_type = image->get_type();
 
-    if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1) {
+    if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1)
+    {
         m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
         return false;
     }
 
-    if (tex_layers != 1) {
+    if (tex_layers != 1)
+    {
         m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support layered images!");
         return false;
     }
@@ -117,14 +120,17 @@ bool MdlHlslCodeGen::prepare_texture(
     // For simplicity, the texture access functions are only implemented for float4 and gamma
     // is pre-applied here (all images are converted to linear space).
     // Convert to linear color space if necessary
-    if (texture->get_effective_gamma() != 1.0f) {
+    if (texture->get_effective_gamma() != 1.0f)
+    {
         // Copy/convert to float4 canvas and adjust gamma from "effective gamma" to 1.
         mi::base::Handle<mi::neuraylib::ICanvas> gamma_canvas(
             image_api->convert(canvas.get(), "Color"));
         gamma_canvas->set_gamma(texture->get_effective_gamma());
         image_api->adjust_gamma(gamma_canvas.get(), 1.0f);
         canvas = gamma_canvas;
-    } else if (strcmp(image_type, "Color") != 0 && strcmp(image_type, "Float32<4>") != 0) {
+    }
+    else if (strcmp(image_type, "Color") != 0 && strcmp(image_type, "Float32<4>") != 0)
+    {
         // Convert to expected format
         canvas = image_api->convert(canvas.get(), "Color");
     }
@@ -132,30 +138,49 @@ bool MdlHlslCodeGen::prepare_texture(
     // This example supports only 2D textures
     mi::neuraylib::ITarget_code::Texture_shape texture_shape =
         code->get_texture_shape(texture_index);
-    if (texture_shape == mi::neuraylib::ITarget_code::Texture_shape_2d) {
+    int resIndex = 0;
+    if (texture_shape == mi::neuraylib::ITarget_code::Texture_shape_2d)
+    {
         mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
-        mi::Float32 const *data = static_cast<mi::Float32 const *>(tile->get_data());
-        mTexManager->loadTextureGltf(data, tex_width, tex_height, std::to_string(texture_index));
-
-        /*glBindTexture(GL_TEXTURE_2D, texture_obj);
-        glTexImage2D(
-            GL_TEXTURE_2D, 0, GL_RGBA, tex_width, tex_height, 0,  GL_RGBA, GL_FLOAT, data);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);*/
+        mi::Float32 const* data = static_cast<mi::Float32 const*>(tile->get_data());
+        uint id = mTexManager->loadTextureGltf(data, tex_width, tex_height, std::to_string(texture_index));
+        info.push_back({id, 0, 0, 0});
     }
-
 
     return true;
 }
-bool MdlHlslCodeGen::translate(const std::vector<const mi::neuraylib::ICompiled_material*>& materials,
-                               std::string& hlslSrc)
+
+bool MdlHlslCodeGen::loadTextures(mi::base::Handle<const mi::neuraylib::ITarget_code>& targetCode)
+{
+    // Acquire image API needed to prepare the textures
+    mi::base::Handle<mi::neuraylib::INeuray> neuray(m_loader->getNeuray());
+    mi::base::Handle<mi::neuraylib::IImage_api> image_api(neuray->get_api_component<mi::neuraylib::IImage_api>());
+
+    if (targetCode->get_texture_count() > 0)
+    {
+        for (int i = 1; i < targetCode->get_texture_count(); ++i)
+        {
+            m_logger->message(mi::base::MESSAGE_SEVERITY_INFO, targetCode->get_texture_url(i));
+            prepare_texture(m_transaction, image_api, targetCode, i);
+        }
+    }
+    else
+    {
+        return false;
+    }
+
+    return true;
+}
+
+mi::base::Handle<const mi::neuraylib::ITarget_code> MdlHlslCodeGen::translate(const std::vector<const mi::neuraylib::ICompiled_material*>& materials,
+                                                                              std::string& hlslSrc)
 {
     mi::base::Handle<mi::neuraylib::ILink_unit> linkUnit(m_backend->create_link_unit(m_transaction.get(), m_context.get()));
     m_logger->flushContextMessages(m_context.get());
 
     if (!linkUnit)
     {
-        return false;
+        throw "Failed to create link unit";
     }
 
     uint32_t materialCount = materials.size();
@@ -166,7 +191,7 @@ bool MdlHlslCodeGen::translate(const std::vector<const mi::neuraylib::ICompiled_
 
         if (!appendMaterialToLinkUnit(i, material, linkUnit.get()))
         {
-            return false;
+            throw "Failed to append material to the link unit";
         }
     }
 
@@ -175,22 +200,7 @@ bool MdlHlslCodeGen::translate(const std::vector<const mi::neuraylib::ICompiled_
 
     if (!targetCode)
     {
-        return false;
-    }
-
-    // Acquire image API needed to prepare the textures
-    mi::base::Handle<mi::neuraylib::INeuray> neuray(m_loader->getNeuray());
-    mi::base::Handle<mi::neuraylib::IImage_api> image_api(
-        neuray->get_api_component<mi::neuraylib::IImage_api>());
-    if (targetCode->get_texture_count() > 0)
-    {
-        for (int i = 1; i < targetCode->get_texture_count(); ++i)
-        {
-            m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, targetCode->get_texture_url(i));
-            prepare_texture(m_transaction, image_api, targetCode, i, 1);
-        }
-        m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, "Textures not supported, aborting\n");
-        //return false;
+        throw "No target code";
     }
 
     std::stringstream ss;
@@ -205,7 +215,8 @@ bool MdlHlslCodeGen::translate(const std::vector<const mi::neuraylib::ICompiled_
     _generateEdfIntensitySwitch(ss, materialCount);
 
     hlslSrc = ss.str();
-    return true;
+
+    return targetCode;
 }
 
 bool MdlHlslCodeGen::appendMaterialToLinkUnit(uint32_t idx,

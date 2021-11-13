@@ -29,4 +29,5 @@ struct AOParam
 #    undef float4
 #    undef float3
 #    undef int2
+#    undef uint
 #endif
