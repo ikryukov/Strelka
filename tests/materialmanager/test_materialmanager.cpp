@@ -1,13 +1,13 @@
 #include "materialmanager.h"
-#include "shadermanager/ShaderManager.h"
-
-#include "mtlxMdlCodeGen.h"
+#include "mdlHlslCodeGen.h"
+#include "mdlMaterialCompiler.h"
 #include "mdlNeurayLoader.h"
 #include "mdlRuntime.h"
-#include "mdlMaterialCompiler.h"
-#include "mdlHlslCodeGen.h"
+#include "mtlxMdlCodeGen.h"
+#include "shadermanager/ShaderManager.h"
 
 #include <doctest.h>
+#include <fstream>
 
 using namespace nevk;
 
@@ -55,22 +55,24 @@ TEST_CASE("compile material test")
     bool res3 = matmngr->compileMaterial(pathmdl1, identifier);
     CHECK(res3 != 0);
 }
-
+*/
+/*
 TEST_CASE("hlsl code gen test")
 {
     nevk::MaterialManager* matmngr = new nevk::MaterialManager();
     CHECK(matmngr != nullptr);
 
-    std::string pathso = "/Users/jswark/Desktop/school/NeVKmain/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
+    std::string pathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
     bool res1 = matmngr->initMDL(pathso.c_str());
     CHECK(res1 != 0);
 
-    std::string pathmdl = "/Users/jswark/Desktop/school/NeVKmain/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path
-    bool res2 = matmngr->initMaterial(pathmdl.c_str());
+    std::string pathmdl = "/Users/jswark/school/USD_Build/mdl/"; // todo: fix path
+    std::string resourcePath = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/resources"; // todo: fix path
+    bool res2 = matmngr->initMaterial(pathmdl.c_str(), resourcePath.c_str());
     CHECK(res2 != 0);
 
-    std::string pathmdl1 = "gun_metal"; // todo: fix path
-    std::string identifier = "gun_metal"; // material identifier (in file export material gun_metal)
+    std::string pathmdl1 = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path
+    std::string identifier = "carbon_composite"; // material identifier (in file export material gun_metal)
     bool res3 = matmngr->compileMaterial(pathmdl1, identifier);
     CHECK(res3 != 0);
 
@@ -89,7 +91,7 @@ TEST_CASE("hlsl code gen test")
 
     //std::cout << hlslCode << std::endl;
 }
- */
+*/
 /*
 TEST_CASE("mtlx to mdl code gen test")
 {
@@ -127,22 +129,28 @@ TEST_CASE("mtlx to mdl code gen test")
     std::cout << hlslCode;
 }
 */
-
+/*
 TEST_CASE("mtlx to mdl code gen test")
 {
-    std::string mtlxLibPath = "/Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/libraries/";
+    std::string mdlFile = "material.mdl";
+    std::ofstream mdlMaterial(mdlFile.c_str());
+
+    std::string hlslFile = "material.hlsl";
+    std::ofstream hlslMaterial(mdlFile.c_str());
+
+    std::string mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
     nevk::MtlxMdlCodeGen* mtlxCodeGen = new nevk::MtlxMdlCodeGen(mtlxLibPath.c_str());
         CHECK(mtlxCodeGen != nullptr);
 
-    std::string mtlxMaterialPath = "/Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/resources/Materials/Examples/UsdPreviewSurface/usd_preview_surface_glass.mtlx";
+    std::string mtlxMaterialPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_brass_tiled.mtlx";
     std::string mdlSrc;
     std::string ident;
     mtlxCodeGen->translate(mtlxMaterialPath.c_str(), mdlSrc, ident);
-    std::cout << mdlSrc;
+    mdlMaterial << mdlSrc;
 
     std::string pathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
     nevk::MdlRuntime* runtime = new nevk::MdlRuntime();
-    std::string pathmdl = "/Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/mdl/"; // todo: fix path
+    std::string pathmdl = "/Users/jswark/school/USD_Build/mdl/"; // todo: fix path
     bool res = runtime->init(pathso.c_str(), pathmdl.c_str());
         CHECK(res != 0);
 
@@ -163,5 +171,47 @@ TEST_CASE("mtlx to mdl code gen test")
     bool res3 = codeGen->translate(materials, hlslCode);
         CHECK(res3 != 0);
 
-    std::cout << hlslCode;
+    hlslMaterial << hlslCode;
+}*/
+
+
+TEST_CASE("mtlx to mdl code gen test")
+{
+    std::string mdlFile = "material.mdl";
+    std::ofstream mdlMaterial(mdlFile.c_str());
+
+    std::string hlslFile = "material.hlsl";
+    std::ofstream hlslMaterial(hlslFile.c_str());
+
+    std::string pathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
+    nevk::MdlRuntime* runtime = new nevk::MdlRuntime();
+    //std::string pathmdl = "/Users/jswark/school/USD_Build/mdl/"; // todo: fix path
+    std::string pathmdl = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path
+    std::string resourcePath = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/resources"; // todo: fix path
+
+    bool res = runtime->init(resourcePath.c_str(), pathso.c_str(), pathmdl.c_str());
+        CHECK(res != 0);
+
+    nevk::MdlMaterialCompiler* matCompiler = new nevk::MdlMaterialCompiler(*runtime);
+
+    mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
+    // mdl -> hlsl
+    std::string mdlSrc = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path
+    std::string ident =  "carbon_composite";
+    //
+    bool res1 = matCompiler->compileMaterial(mdlSrc, ident, compiledMaterial);
+
+    nevk::MdlHlslCodeGen* codeGen = new MdlHlslCodeGen();
+
+    std::string hlslCode;
+    int id = 0;
+    bool res2 = codeGen->init(*runtime);
+        CHECK(res2 != 0);
+
+    std::vector<const mi::neuraylib::ICompiled_material*> materials;
+    materials.push_back(compiledMaterial.get()); // 1 material
+    bool res3 = codeGen->translate(materials, hlslCode);
+        CHECK(res3 != 0);
+
+    hlslMaterial << hlslCode;
 }

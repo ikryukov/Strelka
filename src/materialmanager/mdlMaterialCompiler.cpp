@@ -13,7 +13,8 @@ std::atomic_uint32_t s_idCounter(0);
 std::string _makeModuleName(const std::string& identifier)
 {
     uint32_t uniqueId = ++s_idCounter;
-    return std::string(MODULE_PREFIX) + std::to_string(uniqueId) + "_" + identifier;
+    return "::"+identifier; //if mdl->hlsl
+    //return std::string(MODULE_PREFIX) + std::to_string(uniqueId) + "_" + identifier;
 }
 
 MdlMaterialCompiler::MdlMaterialCompiler(MdlRuntime& runtime)
@@ -45,7 +46,8 @@ bool MdlMaterialCompiler::createModule(mi::neuraylib::IMdl_execution_context* co
                                        const char* moduleName,
                                        const char* mdlSrc)
 {
-    mi::Sint32 result = m_impExpApi->load_module_from_string(m_transaction.get(), moduleName, mdlSrc, context);
+    mi::Sint32 result = m_impExpApi->load_module(m_transaction.get(), moduleName, context); // if mdl -> hlsl
+    // mi::Sint32 result = m_impExpApi->load_module_from_string(m_transaction.get(), moduleName, mdlSrc, context); if mtlx -> hlsl
     return result == 0 || result == 1;
 }
 

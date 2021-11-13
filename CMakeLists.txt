@@ -67,29 +67,27 @@ elseif (APPLE)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib")
 endif ()
 
-set(MaterialX_DIR /Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/cmake) #todo: use from usd
-#set(USD_DIR /Users/jswark/school/USD_Build) #todo: use from usd
+set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
 set(USD_ROOT /Users/jswark/school/USD_Build) #todo: use from usd
-#find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
 find_package(MaterialX REQUIRED)
 
 # Material Manager
 set(MATERIALMANAGER_SOURCES
        # include/materialmanager/materialmanager.h
-        include/materialmanager/mdlNeurayLoader.h
-        include/materialmanager/mdlRuntime.h
-        include/materialmanager/mdlHlslCodeGen.h
-        include/materialmanager/mtlxMdlCodeGen.h
-        include/materialmanager/mdlLogger.h
-        include/materialmanager/mdlMaterialCompiler.h
-
-       # src/materialmanager/materialmanager.cpp
-        src/materialmanager/mdlNeurayLoader.cpp
-        src/materialmanager/mdlMaterialCompiler.cpp
-        src/materialmanager/mdlRuntime.cpp
-        src/materialmanager/mdlHlslCodeGen.cpp
-        src/materialmanager/mtlxMdlCodeGen.cpp
-        src/materialmanager/mdlLogger.cpp
+       include/materialmanager/mdlNeurayLoader.h
+       include/materialmanager/mdlRuntime.h
+       include/materialmanager/mdlHlslCodeGen.h
+       include/materialmanager/mtlxMdlCodeGen.h
+       include/materialmanager/mdlLogger.h
+       include/materialmanager/mdlMaterialCompiler.h
+#
+       #src/materialmanager/materialmanager.cpp
+       src/materialmanager/mdlNeurayLoader.cpp
+       src/materialmanager/mdlMaterialCompiler.cpp
+       src/materialmanager/mdlRuntime.cpp
+       src/materialmanager/mdlHlslCodeGen.cpp
+       src/materialmanager/mtlxMdlCodeGen.cpp
+       src/materialmanager/mdlLogger.cpp
         )
 set(MATERIALLIB_NAME materialmanager)
 add_library(${MATERIALLIB_NAME} OBJECT ${MATERIALMANAGER_SOURCES})

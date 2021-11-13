@@ -69,7 +69,7 @@ mx::TypedElementPtr _FindSurfaceShaderElement(const mx::DocumentPtr& doc)
 
     if (node && node->getType() == mx::MATERIAL_TYPE_STRING)
     {
-        std::vector<mx::NodePtr> shaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING); // unordered set in gatling ?
+        std::unordered_set<mx::NodePtr> shaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING); // unordered set in gatling ?
         if (!shaderNodes.empty())
         {
             renderableElement = *shaderNodes.begin();
@@ -274,7 +274,8 @@ std::atomic_uint32_t s_idCounter(0); // unused
 std::string _makeModuleName(const std::string& identifier)
 {
     uint32_t uniqueId = ++s_idCounter;
-    return std::string(MODULE_PREFIX) + std::to_string(uniqueId) + "_" + identifier;
+    return "::carbon_composite";
+    //return std::string(MODULE_PREFIX) + std::to_string(uniqueId) + "_" + identifier;
     //std::string moduleName = "::gun_metal"; // name of file ?
     //return "::SR_velvet";
 }
@@ -293,8 +294,8 @@ bool MaterialManager::compileMaterial(const std::string& src, const std::string&
 
 bool MaterialManager::createModule(mi::neuraylib::IMdl_execution_context* context, const char* moduleName, const char* mdlSrc)
 {
-     mi::Sint32 result = m_impExpApi->load_module_from_string(m_transaction.get(), moduleName, mdlSrc, context); // Note that this method expects the module name, not the name of the file containing the module.
-    // mi::Sint32 result = m_impExpApi->load_module(m_transaction.get(), moduleName, context); // Note that this method expects the module name, not the name of the file containing the module.
+     // mi::Sint32 result = m_impExpApi->load_module(m_transaction.get(), moduleName, context); // Note that this method expects the module name, not the name of the file containing the module.
+    mi::Sint32 result = m_impExpApi->load_module(m_transaction.get(), moduleName, context); // Note that this method expects the module name, not the name of the file containing the module.
     return result == 0 || result == 1;
 }
 
@@ -349,6 +350,26 @@ bool MaterialManager::initMaterial(const char* mtlxmdlPath)
         std::cerr << "MaterialX MDL file path not found, translation not possible" << std::endl;
         return false;
     }
+    std::string pathMat = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/";
+    if (config->add_mdl_path(pathMat.c_str())) // configure the MDL module search path
+    {
+        std::cerr << "MaterialX MDL file path not found, translation not possible" << std::endl;
+        return false;
+    }
+
+    std::string pathToCoreDef = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/doc";
+    if (config->add_mdl_path(pathToCoreDef.c_str())) // configure the MDL module search path
+    {
+        std::cerr << "MaterialX MDL file path not found, translation not possible" << std::endl;
+        return false;
+    }
+
+    for (mi::Size i = 0, n = config->get_mdl_paths_length(); i < n; i++)
+    {
+        mi::base::Handle<const mi::IString> path(config->get_mdl_path(i));
+        std::cout << path->get_c_str() << std:: endl;
+    }
+
 
     m_database = mi::base::Handle<mi::neuraylib::IDatabase>(m_neuray->get_api_component<mi::neuraylib::IDatabase>());
     mi::base::Handle<mi::neuraylib::IScope> scope(m_database->get_global_scope());

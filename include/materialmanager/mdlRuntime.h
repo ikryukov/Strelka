@@ -21,7 +21,7 @@ public:
     ~MdlRuntime();
 
 public:
-    bool init(const char* resourcePath,
+    bool init(const char* resourcePath, const char* neurayPath,
               const char* mtlxmdlPath);
 
     mi::base::Handle<MdlLogger> getLogger();

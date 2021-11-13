@@ -16,11 +16,11 @@ MdlRuntime::~MdlRuntime()
     }
 }
 
-bool MdlRuntime::init(const char* resourcePath,
+bool MdlRuntime::init(const char* resourcePath, const char* neurayPath,
                       const char* mtlxmdlPath)
 {
     m_loader = std::make_unique<MdlNeurayLoader>();
-    if (!m_loader->init(resourcePath))
+    if (!m_loader->init(neurayPath))
     {
         return false;
     }
@@ -34,6 +34,19 @@ bool MdlRuntime::init(const char* resourcePath,
     if (config->add_mdl_path(mtlxmdlPath))
     {
         m_logger->message(mi::base::MESSAGE_SEVERITY_FATAL, "MaterialX MDL file path not found, translation not possible");
+        return false;
+    }
+
+    std::string pathToCore = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl";
+    if (config->add_mdl_path(pathToCore.c_str()))
+    {
+        m_logger->message(mi::base::MESSAGE_SEVERITY_FATAL, "Core path not found, translation not possible");
+        return false;
+    }
+
+    if (config->add_resource_path(resourcePath))
+    {
+        m_logger->message(mi::base::MESSAGE_SEVERITY_FATAL, "Resource path not found, translation not possible");
         return false;
     }
 

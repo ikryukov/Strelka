@@ -116,8 +116,11 @@ bool MdlHlslCodeGen::translate(const std::vector<const mi::neuraylib::ICompiled_
 
     if (targetCode->get_texture_count() > 0)
     {
+        for (int i = 1; i < targetCode->get_texture_count(); ++i){
+            m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, targetCode->get_texture_url(i));
+        }
         m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, "Textures not supported, aborting\n");
-        return false;
+        //return false;
     }
 
     std::stringstream ss;

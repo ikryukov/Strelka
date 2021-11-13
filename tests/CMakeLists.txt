@@ -14,7 +14,7 @@ set(TESTFILES
 set(TEST_MAIN unit_tests)
 set(TEST_RUNNER_PARAMS "")
 
-set(MaterialX_DIR /Users/jswark/Downloads/MaterialX_MacOS_Xcode_11_Python37/cmake) #todo: use from usd
+set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake) #todo: use from usd
 find_package(MaterialX REQUIRED)
 
 add_executable(${TEST_MAIN} ${TESTFILES})

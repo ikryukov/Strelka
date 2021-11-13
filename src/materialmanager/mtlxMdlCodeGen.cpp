@@ -68,7 +68,7 @@ mx::TypedElementPtr _FindSurfaceShaderElement(mx::DocumentPtr doc)
 
     if (node && node->getType() == mx::MATERIAL_TYPE_STRING)
     {
-        std::vector<mx::NodePtr> shaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING); // originally std::unordered_set
+        std::unordered_set<mx::NodePtr> shaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING); // originally std::unordered_set
         if (!shaderNodes.empty())
         {
             renderableElement = *shaderNodes.begin();
