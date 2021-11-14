@@ -67,40 +67,15 @@ TEST_CASE("mtlx to mdl code gen test")
     std::string hlslFile = "material.hlsl";
     std::ofstream hlslMaterial(hlslFile.c_str());
 
-    std::string pathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
-    std::string pathmdl = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path
-    std::string resourcePath = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/resources"; // todo: fix path
-
-    nevk::MdlRuntime* runtime = new nevk::MdlRuntime();
-    bool res = runtime->init(resourcePath.c_str(), pathso.c_str(), pathmdl.c_str());
-    CHECK(res != 0);
-
-    nevk::MdlMaterialCompiler* matCompiler = new nevk::MdlMaterialCompiler(*runtime);
-
-    mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
-    // mdl -> hlsl
-    std::string mdlSrc = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path
-    std::string ident = "carbon_composite";
-    //
-    bool res1 = matCompiler->compileMaterial(mdlSrc, ident, compiledMaterial);
-
-    std::string hlslCode;
-    int id = 0;
     Render r;
     r.HEIGHT = 600;
     r.WIDTH = 800;
     r.initWindow();
     r.initVulkan();
     nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
-    nevk::MdlHlslCodeGen* codeGen = new MdlHlslCodeGen(mTexManager);
 
-    bool res2 = codeGen->init(*runtime);
-    CHECK(res2 != 0);
+    MaterialManager* matMngr = new MaterialManager(mTexManager);
 
-    std::vector<const mi::neuraylib::ICompiled_material*> materials;
-    materials.push_back(compiledMaterial.get()); // 1 material
-    mi::base::Handle<const mi::neuraylib::ITarget_code> hlsl = codeGen->translate(materials, hlslCode);
-    codeGen->loadTextures(hlsl);
     CHECK(mTexManager->textures.size() == 3);
     CHECK(mTexManager->textures[0].texWidth == 512);
     CHECK(mTexManager->textures[0].texHeight == 512);
@@ -109,5 +84,5 @@ TEST_CASE("mtlx to mdl code gen test")
     uint32_t pixelShaderId = sm->loadShader("../../shaders/test/test_shader.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
     CHECK(pixelShaderId != -1);
     CHECK(sm->loadShader("../../shaders/test/test_shader.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex) != -1);
-    hlslMaterial << hlslCode;
+    hlslMaterial << matMngr->hlslCode;
 }
