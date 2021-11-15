@@ -45,6 +45,7 @@ public:
     ~ShaderManager();
 
     uint32_t loadShader(const char* fileName, const char* entryPointName, Stage stage);
+    uint32_t loadShaderFromString(const char* source, const char* entryPointName, Stage stage);
     void reloadAllShaders();
     bool getShaderCode(uint32_t id, const char*& code, uint32_t& size);
 
@@ -67,5 +68,6 @@ private:
     std::vector<ShaderDesc> mShaderDescs;
 
     ShaderDesc compileShader(const char* fileName, const char* entryPointName, Stage stage);
+    ShaderDesc compileShaderFromString(const char* source, const char* entryPointName, Stage stage);
 };
 } // namespace nevk
