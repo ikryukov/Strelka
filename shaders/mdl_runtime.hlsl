@@ -1,6 +1,6 @@
 // https://github.com/NVIDIA/MDL-SDK/blob/master/examples/mdl_sdk/dxr/content/mdl_renderer_runtime.hlsl
 
-#include "../materials.h"
+#include "materials.h"
 // per target data
 ByteAddressBuffer mdl_ro_data_segment;
 // per material data

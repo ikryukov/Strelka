@@ -73,7 +73,7 @@ find_package(MaterialX REQUIRED)
 
 # Material Manager
 set(MATERIALMANAGER_SOURCES
-       # include/materialmanager/materialmanager.h
+       include/materialmanager/materialmanager.h
        include/materialmanager/mdlNeurayLoader.h
        include/materialmanager/mdlRuntime.h
        include/materialmanager/mdlHlslCodeGen.h
@@ -81,7 +81,7 @@ set(MATERIALMANAGER_SOURCES
        include/materialmanager/mdlLogger.h
        include/materialmanager/mdlMaterialCompiler.h
 
-       #src/materialmanager/materialmanager.cpp
+       src/materialmanager/materialmanager.cpp
        src/materialmanager/mdlNeurayLoader.cpp
        src/materialmanager/mdlMaterialCompiler.cpp
        src/materialmanager/mdlRuntime.cpp
@@ -92,7 +92,7 @@ set(MATERIALMANAGER_SOURCES
 set(MATERIALLIB_NAME materialmanager)
 add_library(${MATERIALLIB_NAME} OBJECT ${MATERIALMANAGER_SOURCES})
 target_include_directories(${MATERIALLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ ${PROJECT_SOURCE_DIR}/include/materialmanager)
-target_include_directories(${MATERIALLIB_NAME} PUBLIC  shaders/)
+target_include_directories(${MATERIALLIB_NAME} PUBLIC  shaders/ external/glm)
 target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${MATERIALLIB_NAME} PRIVATE #hdMtlx )
         MaterialXCore

@@ -12,6 +12,8 @@
 #include <MaterialXGenShader/ShaderGenerator.h>
 #include <mi/mdl_sdk.h>
 
+#include <iostream>
+
 namespace nevk
 {
 
@@ -39,8 +41,11 @@ public:
 
         codeGen = new MdlHlslCodeGen(mTexManager);
         codeGen->init(*runtime);
-        targetHlsl = codeGen->translate(materials, hlslCode);
+        targetHlsl = codeGen->translate(materials, hlslCode, mInternalsInfo);
         codeGen->loadTextures(targetHlsl);
+
+        loadArgBlocks();
+        loadROData();
 
         createSampler();
     };
@@ -50,6 +55,8 @@ public:
     ~MaterialManager(){};
 
 private:
+    std::vector<nevk::MdlHlslCodeGen::InternalMaterialInfo> mInternalsInfo;
+
     nevk::MdlHlslCodeGen* codeGen = nullptr;
     nevk::MdlMaterialCompiler* matCompiler = nullptr;
     nevk::MdlRuntime* runtime = nullptr;
@@ -59,8 +66,10 @@ private:
 
     std::string pathmdl;
     std::string resourcePath;
-    void configurePaths(bool isMtlx){
-        if (isMtlx){
+    void configurePaths(bool isMtlx)
+    {
+        if (isMtlx)
+        {
             pathmdl = "/Users/jswark/school/USD_Build/mdl/";
             resourcePath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface"; // for mtlx
         }
@@ -84,6 +93,83 @@ private:
     mi::base::Handle<const mi::neuraylib::ITarget_code> targetHlsl;
 
     VkSampler mMaterialSampler;
+
+    inline size_t round_to_power_of_two(size_t value, size_t power_of_two_factor)
+    {
+        return (value + (power_of_two_factor - 1)) & ~(power_of_two_factor - 1);
+    }
+
+    std::vector<uint8_t> loadArgBlocks()
+    {
+       /* for (int i = 0; i < materials.size(); i++)
+        {
+            mi::Size argLayoutIndex = mInternalsInfo[i].argument_block_index;
+            if (argLayoutIndex != static_cast<mi::Size>(-1) &&
+                argLayoutIndex < targetHlsl->get_argument_layout_count())
+            {
+                // argument block for class compilation parameter data
+                mi::base::Handle<const mi::neuraylib::ITarget_argument_block> arg_block;
+                {
+                    // get the layout
+                    mi::base::Handle<const mi::neuraylib::ITarget_value_layout> arg_layout(
+                        targetHlsl->get_argument_block_layout(argLayoutIndex));
+
+                    // for the first instances of the materials, the argument block already exists
+                    // for further blocks new ones have to be created. To avoid special treatment,
+                    // an new block is created for every material
+                    mi::base::Handle<mi::neuraylib::ITarget_resource_callback> callback(
+                        targetHlsl->create_resource_callback(this));
+
+                    arg_block = targetHlsl->create_argument_block(
+                        argLayoutIndex,
+                        materials[i],
+                        callback.get());
+
+                    if (!arg_block)
+                    {
+                        std::cerr << ("Failed to create material argument block: ") << std::endl;
+                        return false;
+                    }
+                }
+                // create a buffer to provide those parameters to the shader
+                size_t buffer_size = round_to_power_of_two(arg_block->get_size(), 4);
+                argBlockData = std::vector<uint8_t>(buffer_size, 0);
+                memcpy(argBlockData.data(), arg_block->get_data(), arg_block->get_size());
+            }
+        }*/
+
+        argBlockData.resize(4);
+        return argBlockData;
+    };
+
+    std::vector<uint8_t> loadROData(){
+        size_t ro_data_seg_index = 0; // assuming one material per target code only
+        if (targetHlsl->get_ro_data_segment_count() > 0)
+        {
+            const char* data = targetHlsl->get_ro_data_segment_data(ro_data_seg_index);
+            size_t dataSize = targetHlsl->get_ro_data_segment_size(ro_data_seg_index);
+            const char* name = targetHlsl->get_ro_data_segment_name(ro_data_seg_index);
+
+            std::cerr << name << std::endl;
+
+            roData.resize(dataSize);
+            if (dataSize != 0)
+            {
+                memcpy(roData.data(), data, dataSize);
+            }
+        }
+
+        if (roData.empty())
+        {
+            roData.resize(4);
+        }
+
+        return roData;
+    };
+
+    std::vector<uint8_t> argBlockData;
+    std::vector<uint8_t> roData;
+
 
     bool createSampler()
     {

@@ -138,13 +138,15 @@ bool MdlHlslCodeGen::prepare_texture(
     // This example supports only 2D textures
     mi::neuraylib::ITarget_code::Texture_shape texture_shape =
         code->get_texture_shape(texture_index);
-    int resIndex = 0;
     if (texture_shape == mi::neuraylib::ITarget_code::Texture_shape_2d)
     {
         mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
         mi::Float32 const* data = static_cast<mi::Float32 const*>(tile->get_data());
-        uint id = mTexManager->loadTextureGltf(data, tex_width, tex_height, std::to_string(texture_index));
-        info.push_back({id, 0, 0, 0});
+        uint id = mTexManager->loadTextureGltf(data, tex_width, tex_height, std::to_string(texture_index)); // todo: load texture mdl pixel size format(string, mdl_format) name, convert imagetype to vk format
+
+        Mdl_resource_info info;
+        info.gpu_resource_array_start = id;
+        mInfo.push_back(info);
     }
 
     return true;
@@ -173,7 +175,8 @@ bool MdlHlslCodeGen::loadTextures(mi::base::Handle<const mi::neuraylib::ITarget_
 }
 
 mi::base::Handle<const mi::neuraylib::ITarget_code> MdlHlslCodeGen::translate(const std::vector<const mi::neuraylib::ICompiled_material*>& materials,
-                                                                              std::string& hlslSrc)
+                                                                              std::string& hlslSrc,
+                                                                              std::vector<InternalMaterialInfo>& internalsInfo)
 {
     mi::base::Handle<mi::neuraylib::ILink_unit> linkUnit(m_backend->create_link_unit(m_transaction.get(), m_context.get()));
     m_logger->flushContextMessages(m_context.get());
@@ -184,15 +187,20 @@ mi::base::Handle<const mi::neuraylib::ITarget_code> MdlHlslCodeGen::translate(co
     }
 
     uint32_t materialCount = materials.size();
+    internalsInfo.resize(materialCount);
+    mi::Size argBlockIndex;
+
     for (uint32_t i = 0; i < materialCount; i++)
     {
         const mi::neuraylib::ICompiled_material* material = materials.at(i);
         assert(material);
 
-        if (!appendMaterialToLinkUnit(i, material, linkUnit.get()))
+        if (!appendMaterialToLinkUnit(i, material, linkUnit.get(), argBlockIndex))
         {
             throw "Failed to append material to the link unit";
         }
+
+        internalsInfo[i].argument_block_index = argBlockIndex;
     }
 
     mi::base::Handle<const mi::neuraylib::ITarget_code> targetCode(m_backend->translate_link_unit(linkUnit.get(), m_context.get()));
@@ -204,10 +212,16 @@ mi::base::Handle<const mi::neuraylib::ITarget_code> MdlHlslCodeGen::translate(co
     }
 
     std::stringstream ss;
+    ss << "#include \"mdl_types.hlsl\"\n"
+          "#include \"mdl_runtime.hlsl\"\n";
+
     ss << targetCode->get_code();
 
     _generateInOutSwitch(ss, SCATTERING_FUNC_NAME, "sample", "Bsdf_sample_data", materialCount);
     _generateInitSwitch(ss, SCATTERING_FUNC_NAME, materialCount);
+    _generateInOutSwitch(ss, SCATTERING_FUNC_NAME, "pdf", "Bsdf_pdf_data", materialCount);
+
+    _generateInOutSwitch(ss, SCATTERING_FUNC_NAME, "evaluate", "Bsdf_evaluate_data", materialCount);
 
     _generateInOutSwitch(ss, EMISSION_FUNC_NAME, "evaluate", "Edf_evaluate_data", materialCount);
     _generateInitSwitch(ss, EMISSION_FUNC_NAME, materialCount);
@@ -221,7 +235,8 @@ mi::base::Handle<const mi::neuraylib::ITarget_code> MdlHlslCodeGen::translate(co
 
 bool MdlHlslCodeGen::appendMaterialToLinkUnit(uint32_t idx,
                                               const mi::neuraylib::ICompiled_material* compiledMaterial,
-                                              mi::neuraylib::ILink_unit* linkUnit)
+                                              mi::neuraylib::ILink_unit* linkUnit,
+                                              mi::Size& argBlockIndex)
 {
     std::string idxStr = std::to_string(idx);
     auto scatteringFuncName = std::string(SCATTERING_FUNC_NAME) + "_" + idxStr;
@@ -240,6 +255,11 @@ bool MdlHlslCodeGen::appendMaterialToLinkUnit(uint32_t idx,
         m_context.get());
 
     m_logger->flushContextMessages(m_context.get());
+
+    if (result == 0)
+    {
+        argBlockIndex = genFunctions[0].argument_block_index;
+    }
 
     return result == 0;
 }

@@ -64,7 +64,7 @@ TEST_CASE("mtlx to mdl code gen test")
     std::string mdlFile = "material.mdl";
     std::ofstream mdlMaterial(mdlFile.c_str());
 
-    std::string hlslFile = "material.hlsl";
+    std::string hlslFile = "../../shaders/newPT.hlsl";
     std::ofstream hlslMaterial(hlslFile.c_str());
 
     Render r;
@@ -80,10 +80,16 @@ TEST_CASE("mtlx to mdl code gen test")
     CHECK(mTexManager->textures[0].texWidth == 512);
     CHECK(mTexManager->textures[0].texHeight == 512);
 
-    nevk::ShaderManager* sm = new nevk::ShaderManager();
-    uint32_t pixelShaderId = sm->loadShader("../../shaders/test/test_shader.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
-    CHECK(pixelShaderId != -1);
-    CHECK(sm->loadShader("../../shaders/test/test_shader.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex) != -1);
+    std::ifstream pt("../../shaders/pathtracer.hlsl");
+    std::stringstream ptcode;
+    ptcode << pt.rdbuf();
 
-    hlslMaterial << matMngr->hlslCode;
+    nevk::ShaderManager* sm = new nevk::ShaderManager();
+    std::string newPTfile = matMngr->hlslCode + "\n" + ptcode.str();
+    uint32_t shaderIdString = sm->loadShaderFromString(newPTfile.c_str(), "computeMain", nevk::ShaderManager::Stage::eCompute);
+    CHECK(shaderIdString != -1);
+
+    hlslMaterial << newPTfile;
+    uint32_t shaderIdFile = sm->loadShader("../../shaders/newPT.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
+    CHECK(shaderIdFile != -1);
 }

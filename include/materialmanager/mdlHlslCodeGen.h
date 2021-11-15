@@ -18,15 +18,21 @@ public:
     explicit MdlHlslCodeGen(nevk::TextureManager* texManager) : mTexManager(texManager){};
     bool init(MdlRuntime& runtime);
 
+    struct InternalMaterialInfo
+    {
+        mi::Size argument_block_index;
+    };
+
     mi::base::Handle<const mi::neuraylib::ITarget_code> translate(const std::vector<const mi::neuraylib::ICompiled_material*>& materials,
-                   std::string& hlslSrc);
+                   std::string& hlslSrc, std::vector<InternalMaterialInfo>& internalsInfo);
 
     bool loadTextures(mi::base::Handle<const mi::neuraylib::ITarget_code>& targetCode);
+
 
 private:
     bool appendMaterialToLinkUnit(uint32_t idx,
                                   const mi::neuraylib::ICompiled_material* compiledMaterial,
-                                  mi::neuraylib::ILink_unit* linkUnit);
+                                  mi::neuraylib::ILink_unit* linkUnit, mi::Size& argBlockIndex);
     bool prepare_texture(
         const mi::base::Handle<mi::neuraylib::ITransaction>& transaction,
         const mi::base::Handle<mi::neuraylib::IImage_api>& image_api,
@@ -34,7 +40,7 @@ private:
         mi::Size texture_index);
 
     nevk::TextureManager* mTexManager = nullptr;
-    std::vector<Mdl_resource_info> info;
+    std::vector<Mdl_resource_info> mInfo;
     std::unique_ptr<MdlNeurayLoader> m_loader;
 
     mi::base::Handle<MdlLogger> m_logger;
