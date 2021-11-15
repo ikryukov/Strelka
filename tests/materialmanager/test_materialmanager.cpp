@@ -84,5 +84,6 @@ TEST_CASE("mtlx to mdl code gen test")
     uint32_t pixelShaderId = sm->loadShader("../../shaders/test/test_shader.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
     CHECK(pixelShaderId != -1);
     CHECK(sm->loadShader("../../shaders/test/test_shader.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex) != -1);
+
     hlslMaterial << matMngr->hlslCode;
 }

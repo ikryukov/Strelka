@@ -1,6 +1,10 @@
 #include "materialmanager.h"
 
-#include <dlfcn.h>
+#ifdef MI_PLATFORM_WINDOWS
+    #include <mi/base/miwindows.h>
+#else
+    #include <dlfcn.h>
+#endif
 
 #include <MaterialXCore/Definition.h>
 #include <MaterialXCore/Document.h>
