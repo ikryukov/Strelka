@@ -10,8 +10,11 @@
 
 #include <doctest.h>
 #include <fstream>
+#include <iostream>
+#include <filesystem>
 
 using namespace nevk;
+namespace fs = std::filesystem;
 
 /*
 TEST_CASE("mtlx to mdl code gen test")
@@ -61,6 +64,10 @@ TEST_CASE("mtlx to mdl code gen test")
 
 TEST_CASE("mtlx to mdl code gen test")
 {
+    using namespace std;
+    const fs::path cwd = fs::current_path();
+    cout << cwd.c_str() << endl;
+    
     std::string mdlFile = "material.mdl";
     std::ofstream mdlMaterial(mdlFile.c_str());
 
