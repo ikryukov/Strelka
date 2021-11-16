@@ -15,6 +15,7 @@ protected:
     ResourceManager* mResManager = nullptr;
     std::array<T, MAX_FRAMES_IN_FLIGHT> mConstants = {};
     Buffer* mConstantBuffer = nullptr;
+    uint32_t mCbBinding = 0;
 
     VkDescriptorSetLayout mDescriptorSetLayout = VK_NULL_HANDLE;
     std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> mDescriptorSets;
@@ -78,7 +79,7 @@ protected:
             VkWriteDescriptorSet descWrite{};
             descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descWrite.dstSet = dstDescSet;
-            descWrite.dstBinding = 0; // TODO: do we need to support others binding for cbuffers?
+            descWrite.dstBinding = mCbBinding; // TODO: do we need to support others binding for cbuffers?
             descWrite.dstArrayElement = 0;
             descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descWrite.descriptorCount = 1; // TODO:
@@ -94,6 +95,7 @@ protected:
     {
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         bindings.reserve(mResourcesDescs.size());
+        uint32_t bindingIdx = 0;
         for (const auto& desc : mResourcesDescs)
         {
             VkDescriptorType descType = VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -101,6 +103,7 @@ protected:
             {
             case ShaderManager::ResourceType::eConstantBuffer: {
                 descType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                mCbBinding = bindingIdx;
                 break;
             }
             case ShaderManager::ResourceType::eTexture2D: {
@@ -112,6 +115,10 @@ protected:
                 break;
             }
             case ShaderManager::ResourceType::eStructuredBuffer: {
+                descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                break;
+            }
+            case ShaderManager::ResourceType::eByteAddressBuffer: {
                 descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 break;
             }
@@ -129,6 +136,7 @@ protected:
             layoutBinding.descriptorType = descType;
             layoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT; // TODO: fix for graphics
             bindings.push_back(layoutBinding);
+            ++bindingIdx;
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};

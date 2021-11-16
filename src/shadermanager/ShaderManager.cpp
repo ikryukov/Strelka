@@ -312,6 +312,10 @@ ShaderManager::ResourceType getType(const char* resourceType)
     {
         return ShaderManager::ResourceType::eSampler;
     }
+    else if (strcmp(resourceType, "ByteAddressBuffer") == 0)
+    {
+        return ShaderManager::ResourceType::eByteAddressBuffer;
+    }
     else
     {
         return ShaderManager::ResourceType::eUnknown;

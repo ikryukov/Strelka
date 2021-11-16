@@ -18,10 +18,10 @@ public:
         eUnknown,
         eConstantBuffer,
         eStructuredBuffer,
+        eByteAddressBuffer,
         eTexture2D,
         eRWTexture2D,
         eSampler
-
     };
 
     struct ResourceDesc
