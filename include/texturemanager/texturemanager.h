@@ -77,6 +77,7 @@ public:
     std::vector<VkSampler> delShadowSampler;
 
     int loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name);
+    int loadTextureMdl(const void* pixels, const uint32_t width, const uint32_t height, const char* format, const std::string& name);
     int findTexture(const std::string& name);
 
     void createTextureSampler(TextureSamplerDesc& texSamplerData);

@@ -19,6 +19,38 @@ int nevk::TextureManager::loadTextureGltf(const void* pixels, const uint32_t wid
     return mNameToID.find(name)->second;
 }
 
+VkFormat getVkFormat(const char* format)
+{
+    if ((strcmp(format, "Color") == 0) || (strcmp(format, "Float<4>") == 0))
+    {
+        return VK_FORMAT_R8G8B8A8_SRGB;
+    }
+    else if ((strcmp(format, "Color3") == 0) || (strcmp(format, "Float<3>") == 0))
+    {
+        return VK_FORMAT_R8G8B8_SRGB;
+    }
+    else
+    {
+        return VK_FORMAT_R8G8B8A8_SRGB;
+    }
+}
+
+int nevk::TextureManager::loadTextureMdl(const void* pixels, const uint32_t width, const uint32_t height,  const char* format, const std::string& name)
+{
+    VkFormat vkFormat = getVkFormat(format);
+    if (mNameToID.count(name) == 0)
+    {
+        mNameToID[name] = textures.size();
+        Texture tex = createTextureImage(pixels, vkFormat, width, height);
+        textures.push_back(tex);
+        textureImages.push_back(tex.textureImage);
+
+        createTextureImageView(tex);
+    }
+
+    return mNameToID.find(name)->second;
+}
+
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std::string& texture_path)
 {
     int texWidth, texHeight, texChannels;

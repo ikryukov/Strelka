@@ -34,7 +34,7 @@ bool MdlRuntime::init(const char* resourcePath, const char* neurayPath,
 
     for (const std::string & mdlModulesPath : mdlModulesPaths) {
         if (config->add_mdl_path(mdlModulesPath.c_str()) != 0 || config->add_resource_path(mdlModulesPath.c_str()) != 0) {
-            m_logger->message(mi::base::MESSAGE_SEVERITY_FATAL, "MaterialX MDL file path not found, translation not possible");
+            m_logger->message(mi::base::MESSAGE_SEVERITY_FATAL, "MDL file path not found, translation not possible");
             return false;
         }
     }
