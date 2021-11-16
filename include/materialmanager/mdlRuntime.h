@@ -11,6 +11,7 @@
 #include <mi/neuraylib/imdl_factory.h>
 
 #include <memory>
+#include <vector>
 
 namespace nevk
 {
