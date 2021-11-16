@@ -3,6 +3,7 @@
 #include <doctest.h>
 
 #include <fstream>
+#include <iostream>
 
 using namespace nevk;
 
@@ -24,16 +25,18 @@ TEST_CASE("shader manager compile from memory")
 {
     nevk::ShaderManager* sm = new nevk::ShaderManager();
     std::ifstream fin("../../shaders/test/test_shader.hlsl");
-    size_t size = fin.tellg();
-    fin.seekg(0, std::ios::beg);
-
-    std::string code = "";
-    code.resize(size);
-
-    fin.read(code.data(), size);
-
-    uint32_t pixelShaderId = sm->loadShaderFromString(code.c_str(), "fragmentMain", nevk::ShaderManager::Stage::ePixel);
-    CHECK(pixelShaderId != -1);
+    CHECK(fin);
+    if (fin)
+    {
+        fin.seekg(0, std::ios::end);
+        size_t size = fin.tellg();
+        fin.seekg(0, std::ios::beg);
+        std::string code = "";
+        code.resize(size);
+        fin.read(code.data(), size);
+        uint32_t pixelShaderId = sm->loadShaderFromString(code.c_str(), "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+        CHECK(pixelShaderId != -1);
+    }
 }
 
 TEST_CASE("shader manager compute")
