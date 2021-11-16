@@ -33,12 +33,12 @@ private:
                                   mi::neuraylib::ILink_unit* linkUnit, mi::Size& argBlockIndex);
 
     nevk::TextureManager* mTexManager = nullptr;
-    std::unique_ptr<MdlNeurayLoader> m_loader;
+    std::unique_ptr<MdlNeurayLoader> mLoader;
 
-    mi::base::Handle<MdlLogger> m_logger;
-    mi::base::Handle<mi::neuraylib::IMdl_backend> m_backend;
-    mi::base::Handle<mi::neuraylib::IDatabase> m_database;
-    mi::base::Handle<mi::neuraylib::ITransaction> m_transaction;
-    mi::base::Handle<mi::neuraylib::IMdl_execution_context> m_context;
+    mi::base::Handle<MdlLogger> mLogger;
+    mi::base::Handle<mi::neuraylib::IMdl_backend> mBackend;
+    mi::base::Handle<mi::neuraylib::IDatabase> mDatabase;
+    mi::base::Handle<mi::neuraylib::ITransaction> mTransaction;
+    mi::base::Handle<mi::neuraylib::IMdl_execution_context> mContext;
 };
 } // namespace nevk

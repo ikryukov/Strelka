@@ -23,7 +23,7 @@ private:
     void unloadDso();
 
 private:
-    void* m_dsoHandle;
-    mi::base::Handle<mi::neuraylib::INeuray> m_neuray;
+    void* mDsoHandle;
+    mi::base::Handle<mi::neuraylib::INeuray> mNeuray;
 };
 }

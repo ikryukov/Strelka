@@ -68,21 +68,21 @@ void _generateInOutSwitch(std::stringstream& ss,
 bool MdlHlslCodeGen::init(MdlRuntime& runtime)
 {
     mi::base::Handle<mi::neuraylib::IMdl_backend_api> backendApi(runtime.getBackendApi());
-    m_backend = mi::base::Handle<mi::neuraylib::IMdl_backend>(backendApi->get_backend(mi::neuraylib::IMdl_backend_api::MB_HLSL));
-    if (!m_backend.is_valid_interface())
+    mBackend = mi::base::Handle<mi::neuraylib::IMdl_backend>(backendApi->get_backend(mi::neuraylib::IMdl_backend_api::MB_HLSL));
+    if (!mBackend.is_valid_interface())
     {
-        m_logger->message(mi::base::MESSAGE_SEVERITY_FATAL, "HLSL backend not supported by MDL runtime");
+        mLogger->message(mi::base::MESSAGE_SEVERITY_FATAL, "HLSL backend not supported by MDL runtime");
         return false;
     }
 
-    m_logger = mi::base::Handle<MdlLogger>(runtime.getLogger());
+    mLogger = mi::base::Handle<MdlLogger>(runtime.getLogger());
 
-    m_loader = std::move(runtime.m_loader);
+    mLoader = std::move(runtime.mLoader);
     mi::base::Handle<mi::neuraylib::IMdl_factory> factory(runtime.getFactory());
-    m_context = mi::base::Handle<mi::neuraylib::IMdl_execution_context>(factory->create_execution_context());
+    mContext = mi::base::Handle<mi::neuraylib::IMdl_execution_context>(factory->create_execution_context());
 
-    m_database = mi::base::Handle<mi::neuraylib::IDatabase>(runtime.getDatabase());
-    m_transaction = mi::base::Handle<mi::neuraylib::ITransaction>(runtime.getTransaction());
+    mDatabase = mi::base::Handle<mi::neuraylib::IDatabase>(runtime.getDatabase());
+    mTransaction = mi::base::Handle<mi::neuraylib::ITransaction>(runtime.getTransaction());
     return true;
 }
 
@@ -90,8 +90,8 @@ mi::base::Handle<const mi::neuraylib::ITarget_code> MdlHlslCodeGen::translate(co
                                                                               std::string& hlslSrc,
                                                                               std::vector<InternalMaterialInfo>& internalsInfo)
 {
-    mi::base::Handle<mi::neuraylib::ILink_unit> linkUnit(m_backend->create_link_unit(m_transaction.get(), m_context.get()));
-    m_logger->flushContextMessages(m_context.get());
+    mi::base::Handle<mi::neuraylib::ILink_unit> linkUnit(mBackend->create_link_unit(mTransaction.get(), mContext.get()));
+    mLogger->flushContextMessages(mContext.get());
 
     if (!linkUnit)
     {
@@ -115,8 +115,8 @@ mi::base::Handle<const mi::neuraylib::ITarget_code> MdlHlslCodeGen::translate(co
         internalsInfo[i].argument_block_index = argBlockIndex;
     }
 
-    mi::base::Handle<const mi::neuraylib::ITarget_code> targetCode(m_backend->translate_link_unit(linkUnit.get(), m_context.get()));
-    m_logger->flushContextMessages(m_context.get());
+    mi::base::Handle<const mi::neuraylib::ITarget_code> targetCode(mBackend->translate_link_unit(linkUnit.get(), mContext.get()));
+    mLogger->flushContextMessages(mContext.get());
 
     if (!targetCode)
     {
@@ -164,9 +164,9 @@ bool MdlHlslCodeGen::appendMaterialToLinkUnit(uint32_t idx,
         compiledMaterial,
         genFunctions.data(),
         genFunctions.size(),
-        m_context.get());
+        mContext.get());
 
-    m_logger->flushContextMessages(m_context.get());
+    mLogger->flushContextMessages(mContext.get());
 
     if (result == 0)
     {

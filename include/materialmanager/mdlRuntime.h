@@ -33,13 +33,13 @@ public:
     mi::base::Handle<mi::neuraylib::IMdl_backend_api> getBackendApi();
     mi::base::Handle<mi::neuraylib::INeuray> getNeuray();
 
-    std::unique_ptr<MdlNeurayLoader> m_loader;
+    std::unique_ptr<MdlNeurayLoader> mLoader;
 private:
-    mi::base::Handle<MdlLogger> m_logger;
-    mi::base::Handle<mi::neuraylib::IDatabase> m_database;
-    mi::base::Handle<mi::neuraylib::ITransaction> m_transaction;
-    mi::base::Handle<mi::neuraylib::IMdl_factory> m_factory;
-    mi::base::Handle<mi::neuraylib::IMdl_backend_api> m_backendApi;
-    mi::base::Handle<mi::neuraylib::IMdl_impexp_api> m_impExpApi;
+    mi::base::Handle<MdlLogger> mLogger;
+    mi::base::Handle<mi::neuraylib::IDatabase> mDatabase;
+    mi::base::Handle<mi::neuraylib::ITransaction> mTransaction;
+    mi::base::Handle<mi::neuraylib::IMdl_factory> mFactory;
+    mi::base::Handle<mi::neuraylib::IMdl_backend_api> mBackendApi;
+    mi::base::Handle<mi::neuraylib::IMdl_impexp_api> mImpExpApi;
 };
 }

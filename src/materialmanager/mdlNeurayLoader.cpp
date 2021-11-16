@@ -14,19 +14,19 @@
 namespace nevk
 {
 MdlNeurayLoader::MdlNeurayLoader()
-    : m_dsoHandle(nullptr)
-    , m_neuray(nullptr)
+    : mDsoHandle(nullptr)
+    , mNeuray(nullptr)
 {
 }
 
 MdlNeurayLoader::~MdlNeurayLoader()
 {
-    if (m_neuray)
+    if (mNeuray)
     {
-        m_neuray->shutdown();
-        m_neuray.reset();
+        mNeuray->shutdown();
+        mNeuray.reset();
     }
-    if (m_dsoHandle)
+    if (mDsoHandle)
     {
         unloadDso();
     }
@@ -47,12 +47,12 @@ bool MdlNeurayLoader::init(const char* resourcePath, const char* imagePluginPath
         return false;
     }
 
-    return m_neuray->start() == 0;
+    return mNeuray->start() == 0;
 }
 
 mi::base::Handle<mi::neuraylib::INeuray> MdlNeurayLoader::getNeuray() const
 {
-    return m_neuray;
+    return mNeuray;
 }
 
 bool MdlNeurayLoader::loadPlugin(const char* imagePluginPath)
@@ -102,14 +102,14 @@ bool MdlNeurayLoader::loadDso(const char* resourcePath)
     }
 #endif
 
-    m_dsoHandle = handle;
+    mDsoHandle = handle;
     return true;
 }
 
 bool MdlNeurayLoader::loadNeuray()
 {
 #ifdef MI_PLATFORM_WINDOWS
-    void* symbol = GetProcAddress(reinterpret_cast<HMODULE>(m_dsoHandle), "mi_factory");
+    void* symbol = GetProcAddress(reinterpret_cast<HMODULE>(mDsoHandle), "mi_factory");
     if (!symbol)
     {
       LPTSTR buffer = NULL;
@@ -129,7 +129,7 @@ bool MdlNeurayLoader::loadNeuray()
       return false;
     }
 #else
-    void* symbol = dlsym(m_dsoHandle, "mi_factory");
+    void* symbol = dlsym(mDsoHandle, "mi_factory");
     if (!symbol)
     {
         fprintf(stderr, "%s\n", dlerror());
@@ -137,8 +137,8 @@ bool MdlNeurayLoader::loadNeuray()
     }
 #endif
 
-    m_neuray = mi::base::Handle<mi::neuraylib::INeuray>(mi::neuraylib::mi_factory<mi::neuraylib::INeuray>(symbol));
-    if (m_neuray.is_valid_interface())
+    mNeuray = mi::base::Handle<mi::neuraylib::INeuray>(mi::neuraylib::mi_factory<mi::neuraylib::INeuray>(symbol));
+    if (mNeuray.is_valid_interface())
     {
         return true;
     }
@@ -159,7 +159,7 @@ bool MdlNeurayLoader::loadNeuray()
 void MdlNeurayLoader::unloadDso()
 {
 #ifdef MI_PLATFORM_WINDOWS
-    if (FreeLibrary(reinterpret_cast<HMODULE>(m_dsoHandle)))
+    if (FreeLibrary(reinterpret_cast<HMODULE>(mDsoHandle)))
     {
       return;
     }
@@ -178,7 +178,7 @@ void MdlNeurayLoader::unloadDso()
       LocalFree(buffer);
     }
 #else
-    if (dlclose(m_dsoHandle) != 0)
+    if (dlclose(mDsoHandle) != 0)
     {
         printf( "%s\n", dlerror());
     }

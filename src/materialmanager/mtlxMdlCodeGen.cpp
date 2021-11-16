@@ -21,34 +21,34 @@ namespace mx = MaterialX;
 namespace nevk
 {
 MtlxMdlCodeGen::MtlxMdlCodeGen(const char* mtlxlibPath)
-    : m_mtlxlibPath(mtlxlibPath)
+    : mMtlxlibPath(mtlxlibPath)
 {
     // Init shadergen.
-    m_shaderGen = mx::MdlShaderGenerator::create();
-    std::string target = m_shaderGen->getTarget();
+    mShaderGen = mx::MdlShaderGenerator::create();
+    std::string target = mShaderGen->getTarget();
 
     // MaterialX libs.
-    m_stdLib = mx::createDocument();
+    mStdLib = mx::createDocument();
     mx::FilePathVec libFolders;
-    mx::loadLibraries(libFolders, m_mtlxlibPath, m_stdLib);
+    mx::loadLibraries(libFolders, mMtlxlibPath, mStdLib);
 
     // Color management.
     mx::DefaultColorManagementSystemPtr colorSystem = mx::DefaultColorManagementSystem::create(target);
-    colorSystem->loadLibrary(m_stdLib);
-    m_shaderGen->setColorManagementSystem(colorSystem);
+    colorSystem->loadLibrary(mStdLib);
+    mShaderGen->setColorManagementSystem(colorSystem);
 
     // Unit management.
     mx::UnitSystemPtr unitSystem = mx::UnitSystem::create(target);
-    unitSystem->loadLibrary(m_stdLib);
+    unitSystem->loadLibrary(mStdLib);
 
     mx::UnitConverterRegistryPtr unitRegistry = mx::UnitConverterRegistry::create();
-    mx::UnitTypeDefPtr distanceTypeDef = m_stdLib->getUnitTypeDef("distance");
+    mx::UnitTypeDefPtr distanceTypeDef = mStdLib->getUnitTypeDef("distance");
     unitRegistry->addUnitConverter(distanceTypeDef, mx::LinearUnitConverter::create(distanceTypeDef));
-    mx::UnitTypeDefPtr angleTypeDef = m_stdLib->getUnitTypeDef("angle");
+    mx::UnitTypeDefPtr angleTypeDef = mStdLib->getUnitTypeDef("angle");
     unitRegistry->addUnitConverter(angleTypeDef, mx::LinearUnitConverter::create(angleTypeDef));
 
     unitSystem->setUnitConverterRegistry(unitRegistry);
-    m_shaderGen->setUnitSystem(unitSystem);
+    mShaderGen->setUnitSystem(unitSystem);
 }
 
 mx::TypedElementPtr _FindSurfaceShaderElement(mx::DocumentPtr doc)
@@ -87,8 +87,8 @@ mx::TypedElementPtr _FindSurfaceShaderElement(mx::DocumentPtr doc)
 bool MtlxMdlCodeGen::translate(const char* mtlxSrc, std::string& mdlSrc, std::string& subIdentifier)
 {
     // Don't cache the context because it is thread-local.
-    mx::GenContext context(m_shaderGen);
-    context.registerSourceCodeSearchPath(m_mtlxlibPath);
+    mx::GenContext context(mShaderGen);
+    context.registerSourceCodeSearchPath(mMtlxlibPath);
 
     mx::GenOptions& contextOptions = context.getOptions();
     contextOptions.targetDistanceUnit = "meter";
@@ -97,7 +97,7 @@ bool MtlxMdlCodeGen::translate(const char* mtlxSrc, std::string& mdlSrc, std::st
     try
     {
         mx::DocumentPtr doc = mx::createDocument();
-        doc->importLibrary(m_stdLib);
+        doc->importLibrary(mStdLib);
         mx::readFromXmlFile(doc, mtlxSrc); // originally from string
 
         mx::TypedElementPtr element = _FindSurfaceShaderElement(doc);
@@ -107,7 +107,7 @@ bool MtlxMdlCodeGen::translate(const char* mtlxSrc, std::string& mdlSrc, std::st
         }
 
         subIdentifier = element->getName();
-        shader = m_shaderGen->generate(subIdentifier, element, context);
+        shader = mShaderGen->generate(subIdentifier, element, context);
     }
     catch (const std::exception& ex)
     {

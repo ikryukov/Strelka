@@ -18,8 +18,8 @@ public:
     bool translate(const char* mtlxSrc, std::string& mdlSrc, std::string& subIdentifier);
 
 private:
-    const MaterialX::FileSearchPath m_mtlxlibPath;
-    MaterialX::DocumentPtr m_stdLib;
-    MaterialX::ShaderGeneratorPtr m_shaderGen;
+    const MaterialX::FileSearchPath mMtlxlibPath;
+    MaterialX::DocumentPtr mStdLib;
+    MaterialX::ShaderGeneratorPtr mShaderGen;
 };
 }

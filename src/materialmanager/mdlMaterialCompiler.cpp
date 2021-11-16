@@ -19,25 +19,25 @@ std::string _makeModuleName(const std::string& identifier)
 
 MdlMaterialCompiler::MdlMaterialCompiler(MdlRuntime& runtime)
 {
-    m_logger = mi::base::Handle<MdlLogger>(runtime.getLogger());
-    m_database = mi::base::Handle<mi::neuraylib::IDatabase>(runtime.getDatabase());
-    m_transaction = mi::base::Handle<mi::neuraylib::ITransaction>(runtime.getTransaction());
-    m_factory = mi::base::Handle<mi::neuraylib::IMdl_factory>(runtime.getFactory());
-    m_impExpApi = mi::base::Handle<mi::neuraylib::IMdl_impexp_api>(runtime.getImpExpApi());
+    mLogger = mi::base::Handle<MdlLogger>(runtime.getLogger());
+    mDatabase = mi::base::Handle<mi::neuraylib::IDatabase>(runtime.getDatabase());
+    mTransaction = mi::base::Handle<mi::neuraylib::ITransaction>(runtime.getTransaction());
+    mFactory = mi::base::Handle<mi::neuraylib::IMdl_factory>(runtime.getFactory());
+    mImpExpApi = mi::base::Handle<mi::neuraylib::IMdl_impexp_api>(runtime.getImpExpApi());
 }
 
 bool MdlMaterialCompiler::compileMaterial(const std::string& src,
                                           const std::string& identifier,
                                           mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial)
 {
-    mi::base::Handle<mi::neuraylib::IMdl_execution_context> context(m_factory->create_execution_context());
+    mi::base::Handle<mi::neuraylib::IMdl_execution_context> context(mFactory->create_execution_context());
 
     std::string moduleName = _makeModuleName(identifier);
 
     bool result = createModule(context.get(), moduleName.c_str(), src.c_str()) &&
         createCompiledMaterial(context.get(), moduleName.c_str(), identifier, compiledMaterial);
 
-    m_logger->flushContextMessages(context.get());
+    mLogger->flushContextMessages(context.get());
 
     return result;
 }
@@ -46,7 +46,7 @@ bool MdlMaterialCompiler::createModule(mi::neuraylib::IMdl_execution_context* co
                                        const char* moduleName,
                                        const char* mdlSrc)
 {
-    mi::Sint32 result = m_impExpApi->load_module(m_transaction.get(), moduleName, context); // if mdl -> hlsl
+    mi::Sint32 result = mImpExpApi->load_module(mTransaction.get(), moduleName, context); // if mdl -> hlsl
     // mi::Sint32 result = m_impExpApi->load_module_from_string(m_transaction.get(), moduleName, mdlSrc, context); //if mtlx -> hlsl
     return result == 0 || result == 1;
 }
@@ -56,8 +56,8 @@ bool MdlMaterialCompiler::createCompiledMaterial(mi::neuraylib::IMdl_execution_c
                                                  const std::string& identifier,
                                                  mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial)
 {
-    mi::base::Handle<const mi::IString> moduleDbName(m_factory->get_db_module_name(moduleName));
-    mi::base::Handle<const mi::neuraylib::IModule> module(m_transaction->access<mi::neuraylib::IModule>(moduleDbName->get_c_str()));
+    mi::base::Handle<const mi::IString> moduleDbName(mFactory->get_db_module_name(moduleName));
+    mi::base::Handle<const mi::neuraylib::IModule> module(mTransaction->access<mi::neuraylib::IModule>(moduleDbName->get_c_str()));
     assert(module);
 
     std::string materialDbName = std::string(moduleDbName->get_c_str()) + "::" + identifier;
@@ -65,18 +65,18 @@ bool MdlMaterialCompiler::createCompiledMaterial(mi::neuraylib::IMdl_execution_c
     if (funcs->get_length() == 0)
     {
         std::string errorMsg = std::string("Material with identifier ") + identifier + " not found in MDL module\n";
-        m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, errorMsg.c_str());
+        mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, errorMsg.c_str());
         return false;
     }
     if (funcs->get_length() > 1)
     {
         std::string errorMsg = std::string("Ambigious material identifier ") + identifier + " for MDL module\n";
-        m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, errorMsg.c_str());
+        mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, errorMsg.c_str());
         return false;
     }
 
     mi::base::Handle<const mi::IString> exactMaterialDbName(funcs->get_element<mi::IString>(0));
-    mi::base::Handle<const mi::neuraylib::IMaterial_definition> matDefinition(m_transaction->access<mi::neuraylib::IMaterial_definition>(exactMaterialDbName->get_c_str()));
+    mi::base::Handle<const mi::neuraylib::IMaterial_definition> matDefinition(mTransaction->access<mi::neuraylib::IMaterial_definition>(exactMaterialDbName->get_c_str()));
     if (!matDefinition)
     {
         return false;

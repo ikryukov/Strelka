@@ -55,34 +55,34 @@ std::vector<uint8_t> MaterialManager::loadArgBlocks()
          }
      }*/
 
-    argBlockData.resize(4);
-    return argBlockData;
+    mArgBlockData.resize(4);
+    return mArgBlockData;
 };
 
 std::vector<uint8_t> MaterialManager::loadROData()
 {
     size_t ro_data_seg_index = 0; // assuming one material per target code only
-    if (targetHlsl->get_ro_data_segment_count() > 0)
+    if (mTargetHlsl->get_ro_data_segment_count() > 0)
     {
-        const char* data = targetHlsl->get_ro_data_segment_data(ro_data_seg_index);
-        size_t dataSize = targetHlsl->get_ro_data_segment_size(ro_data_seg_index);
-        const char* name = targetHlsl->get_ro_data_segment_name(ro_data_seg_index);
+        const char* data = mTargetHlsl->get_ro_data_segment_data(ro_data_seg_index);
+        size_t dataSize = mTargetHlsl->get_ro_data_segment_size(ro_data_seg_index);
+        const char* name = mTargetHlsl->get_ro_data_segment_name(ro_data_seg_index);
 
         std::cerr << name << std::endl;
 
-        roData.resize(dataSize);
+        mRoData.resize(dataSize);
         if (dataSize != 0)
         {
-            memcpy(roData.data(), data, dataSize);
+            memcpy(mRoData.data(), data, dataSize);
         }
     }
 
-    if (roData.empty())
+    if (mRoData.empty())
     {
-        roData.resize(4);
+        mRoData.resize(4);
     }
 
-    return roData;
+    return mRoData;
 }
 
 bool MaterialManager::createSampler()
@@ -133,13 +133,13 @@ bool MaterialManager::prepare_texture(
 
     if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1)
     {
-        m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
+        mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
         return false;
     }
 
     if (tex_layers != 1)
     {
-        m_logger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support layered images!");
+        mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support layered images!");
         return false;
     }
 
@@ -181,14 +181,14 @@ bool MaterialManager::prepare_texture(
 bool MaterialManager::loadTextures(mi::base::Handle<const mi::neuraylib::ITarget_code>& targetCode)
 {
     // Acquire image API needed to prepare the textures
-    mi::base::Handle<mi::neuraylib::IImage_api> image_api(neuray->get_api_component<mi::neuraylib::IImage_api>());
+    mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
 
     if (targetCode->get_texture_count() > 0)
     {
         for (int i = 1; i < targetCode->get_texture_count(); ++i)
         {
-            m_logger->message(mi::base::MESSAGE_SEVERITY_INFO, targetCode->get_texture_url(i));
-            prepare_texture(m_transaction, image_api, targetCode, i);
+            mLogger->message(mi::base::MESSAGE_SEVERITY_INFO, targetCode->get_texture_url(i));
+            prepare_texture(mTransaction, image_api, targetCode, i);
         }
     }
     else
