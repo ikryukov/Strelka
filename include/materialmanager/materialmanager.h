@@ -2,6 +2,7 @@
 
 #include "ShaderManager.h"
 #include "mdlHlslCodeGen.h"
+#include "mdlLogger.h"
 #include "mdlMaterialCompiler.h"
 #include "mdlNeurayLoader.h"
 #include "mdlRuntime.h"
@@ -12,8 +13,8 @@
 #include <MaterialXGenShader/ShaderGenerator.h>
 #include <mi/mdl_sdk.h>
 
-#include <iostream>
 #include <filesystem>
+#include <iostream>
 namespace fs = std::filesystem;
 
 namespace nevk
@@ -36,6 +37,7 @@ public:
 
         runtime = new nevk::MdlRuntime();
         runtime->init(resourcePath.c_str(), pathso.c_str(), mdlPaths, imagePluginPath.c_str());
+        neuray = runtime->getNeuray();
 
         matCompiler = new nevk::MdlMaterialCompiler(*runtime);
         matCompiler->compileMaterial(mdlSrc, ident, compiledMaterial); // todo: fix create module if mtlx & make module name
@@ -44,7 +46,11 @@ public:
         codeGen = new MdlHlslCodeGen(mTexManager);
         codeGen->init(*runtime);
         targetHlsl = codeGen->translate(materials, hlslCode, mInternalsInfo);
-        codeGen->loadTextures(targetHlsl);
+
+        m_logger = mi::base::Handle<MdlLogger>(runtime->getLogger());
+        m_transaction = mi::base::Handle<mi::neuraylib::ITransaction>(runtime->getTransaction());
+
+        loadTextures(targetHlsl);
 
         loadArgBlocks();
         loadROData();
@@ -64,6 +70,12 @@ private:
     nevk::MdlRuntime* runtime = nullptr;
     nevk::MtlxMdlCodeGen* mtlxCodeGen = nullptr;
 
+    mi::base::Handle<mi::neuraylib::ITransaction> m_transaction;
+    mi::base::Handle<MdlLogger> m_logger;
+    mi::base::Handle<mi::neuraylib::INeuray> neuray;
+
+    std::vector<Mdl_resource_info> mInfo;
+
     TextureManager* mTexManager = nullptr;
 
     std::vector<std::string> mdlPaths;
@@ -76,8 +88,8 @@ private:
 
         if (isMtlx)
         {
-           // mdlPaths.emplace_back("/Users/jswark/school/USD_Build/mdl/");
-           // resourcePath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface"; // for mtlx
+            // mdlPaths.emplace_back("/Users/jswark/school/USD_Build/mdl/");
+            // resourcePath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface"; // for mtlx
         }
         else
         {
@@ -90,7 +102,7 @@ private:
         }
 #ifdef MI_PLATFORM_WINDOWS
         pathso = cwd.string();
-        imagePluginPath =  cwd.string() + "/nv_freeimage.dll";
+        imagePluginPath = cwd.string() + "/nv_freeimage.dll";
 #else
         pathso = cwd.string();
         imagePluginPath = cwd.string() + "/nv_freeimage.so";
@@ -100,15 +112,14 @@ private:
     std::string imagePluginPath;
     std::string pathso;
     // mtlx -> hlsl
-   // std::string mtlxMaterialPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_plastic.mtlx"; //brass_tiled.mtlx"; -- w/ images
-   // std::string mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
+    // std::string mtlxMaterialPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_plastic.mtlx"; //brass_tiled.mtlx"; -- w/ images
+    // std::string mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
     // mdl -> hlsl
     std::string mdlSrc;
     std::string ident = "carbon_composite"; //todo: the identifier depends on a material file // empty for mtlx mode
 
     mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
     std::vector<const mi::neuraylib::ICompiled_material*> materials;
-
     mi::base::Handle<const mi::neuraylib::ITarget_code> targetHlsl;
 
     VkSampler mMaterialSampler;
@@ -118,104 +129,18 @@ private:
         return (value + (power_of_two_factor - 1)) & ~(power_of_two_factor - 1);
     }
 
-    std::vector<uint8_t> loadArgBlocks()
-    {
-       /* for (int i = 0; i < materials.size(); i++)
-        {
-            mi::Size argLayoutIndex = mInternalsInfo[i].argument_block_index;
-            if (argLayoutIndex != static_cast<mi::Size>(-1) &&
-                argLayoutIndex < targetHlsl->get_argument_layout_count())
-            {
-                // argument block for class compilation parameter data
-                mi::base::Handle<const mi::neuraylib::ITarget_argument_block> arg_block;
-                {
-                    // get the layout
-                    mi::base::Handle<const mi::neuraylib::ITarget_value_layout> arg_layout(
-                        targetHlsl->get_argument_block_layout(argLayoutIndex));
-
-                    // for the first instances of the materials, the argument block already exists
-                    // for further blocks new ones have to be created. To avoid special treatment,
-                    // an new block is created for every material
-                    mi::base::Handle<mi::neuraylib::ITarget_resource_callback> callback(
-                        targetHlsl->create_resource_callback(this));
-
-                    arg_block = targetHlsl->create_argument_block(
-                        argLayoutIndex,
-                        materials[i],
-                        callback.get());
-
-                    if (!arg_block)
-                    {
-                        std::cerr << ("Failed to create material argument block: ") << std::endl;
-                        return false;
-                    }
-                }
-                // create a buffer to provide those parameters to the shader
-                size_t buffer_size = round_to_power_of_two(arg_block->get_size(), 4);
-                argBlockData = std::vector<uint8_t>(buffer_size, 0);
-                memcpy(argBlockData.data(), arg_block->get_data(), arg_block->get_size());
-            }
-        }*/
-
-        argBlockData.resize(4);
-        return argBlockData;
-    };
-
-    std::vector<uint8_t> loadROData(){
-        size_t ro_data_seg_index = 0; // assuming one material per target code only
-        if (targetHlsl->get_ro_data_segment_count() > 0)
-        {
-            const char* data = targetHlsl->get_ro_data_segment_data(ro_data_seg_index);
-            size_t dataSize = targetHlsl->get_ro_data_segment_size(ro_data_seg_index);
-            const char* name = targetHlsl->get_ro_data_segment_name(ro_data_seg_index);
-
-            std::cerr << name << std::endl;
-
-            roData.resize(dataSize);
-            if (dataSize != 0)
-            {
-                memcpy(roData.data(), data, dataSize);
-            }
-        }
-
-        if (roData.empty())
-        {
-            roData.resize(4);
-        }
-
-        return roData;
-    };
-
     std::vector<uint8_t> argBlockData;
     std::vector<uint8_t> roData;
+    std::vector<uint8_t> loadArgBlocks();
+    std::vector<uint8_t> loadROData();
 
+    bool loadTextures(mi::base::Handle<const mi::neuraylib::ITarget_code>& targetCode);
+    bool prepare_texture(
+        const mi::base::Handle<mi::neuraylib::ITransaction>& transaction,
+        const mi::base::Handle<mi::neuraylib::IImage_api>& image_api,
+        const mi::base::Handle<const mi::neuraylib::ITarget_code>& code,
+        mi::Size texture_index);
 
-    bool createSampler()
-    {
-        // sampler
-        VkSamplerCreateInfo samplerInfo{};
-        samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-        samplerInfo.magFilter = VK_FILTER_LINEAR;
-        samplerInfo.minFilter = VK_FILTER_LINEAR;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        samplerInfo.anisotropyEnable = VK_TRUE;
-        samplerInfo.maxAnisotropy = 1.0f;
-        samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-        samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_FALSE;
-        samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
-        samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-        //VkResult res = vkCreateSampler(mSharedCtx.mDevice, &samplerInfo, nullptr, &mMaterialSampler);
-        /*if (res != VK_SUCCESS)
-        {
-            // error
-            assert(0);
-        }*/
-
-        return true;
-    }
+    bool createSampler();
 };
 } // namespace nevk

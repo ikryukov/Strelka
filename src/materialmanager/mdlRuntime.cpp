@@ -55,6 +55,11 @@ bool MdlRuntime::init(const char* resourcePath, const char* neurayPath,
     return true;
 }
 
+mi::base::Handle<mi::neuraylib::INeuray> MdlRuntime::getNeuray()
+{
+    return m_loader->getNeuray();
+}
+
 mi::base::Handle<MdlLogger> MdlRuntime::getLogger()
 {
     return m_logger;

@@ -30,6 +30,7 @@ public:
     mi::base::Handle<mi::neuraylib::IMdl_factory> getFactory();
     mi::base::Handle<mi::neuraylib::IMdl_impexp_api> getImpExpApi();
     mi::base::Handle<mi::neuraylib::IMdl_backend_api> getBackendApi();
+    mi::base::Handle<mi::neuraylib::INeuray> getNeuray();
 
     std::unique_ptr<MdlNeurayLoader> m_loader;
 private:
