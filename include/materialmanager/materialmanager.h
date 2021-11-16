@@ -13,6 +13,8 @@
 #include <mi/mdl_sdk.h>
 
 #include <iostream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 namespace nevk
 {
@@ -33,10 +35,10 @@ public:
         //
 
         runtime = new nevk::MdlRuntime();
-        runtime->init(resourcePath.c_str(), pathso.c_str(), pathmdl.c_str());
+        runtime->init(resourcePath.c_str(), pathso.c_str(), mdlPaths, imagePluginPath.c_str());
 
         matCompiler = new nevk::MdlMaterialCompiler(*runtime);
-        matCompiler->compileMaterial(mdlSrc, ident, compiledMaterial); // fix create module if mtlx & make module name
+        matCompiler->compileMaterial(mdlSrc, ident, compiledMaterial); // todo: fix create module if mtlx & make module name
         materials.push_back(compiledMaterial.get());
 
         codeGen = new MdlHlslCodeGen(mTexManager);
@@ -64,28 +66,45 @@ private:
 
     TextureManager* mTexManager = nullptr;
 
-    std::string pathmdl;
+    std::vector<std::string> mdlPaths;
     std::string resourcePath;
+
     void configurePaths(bool isMtlx)
     {
+        using namespace std;
+        const fs::path cwd = fs::current_path();
+
         if (isMtlx)
         {
-            pathmdl = "/Users/jswark/school/USD_Build/mdl/";
+            mdlPaths.emplace_back("/Users/jswark/school/USD_Build/mdl/");
             resourcePath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface"; // for mtlx
         }
         else
         {
-            pathmdl = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path //if mdl -> hlsl
-            resourcePath = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/resources"; // todo: fix path
+            std::string pathToMdlLib = cwd.string() + "/misc/test_data/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // if mdl -> hlsl
+            std::string pathToCoreLib = cwd.string() + "/misc/test_data/mdl-sdk/examples/mdl";
+            mdlPaths.push_back(pathToMdlLib);
+            mdlPaths.push_back(pathToCoreLib);
+            resourcePath = cwd.string() + "/misc/test_data/mdl-sdk/examples/mdl/nvidia/sdk_examples/resources"; // path to the textures
+            mdlSrc = cwd.string() + "/misc/test_data/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // path to the material
         }
+#ifdef MI_PLATFORM_WINDOWS
+        pathso = cwd.string() + "/misc/test_data/mdl-sdk/nt-x86-64/lib";
+        imagePluginPath =  cwd.string() + "/misc/test_data/mdl-sdk/nt-x86-64/lib/nv_freeimage.so";
+#else
+        pathso = cwd.string() + "/misc/test_data/mdl-sdk/macosx-x86-64/lib";
+        imagePluginPath = cwd.string() + "/misc/test_data/mdl-sdk/macosx-x86-64/lib/nv_freeimage.so";
+#endif
     }
-    std::string pathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
+
+    std::string imagePluginPath;
+    std::string pathso;
     // mtlx -> hlsl
     std::string mtlxMaterialPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_plastic.mtlx"; //brass_tiled.mtlx"; -- w/ images
     std::string mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
     // mdl -> hlsl
-    std::string mdlSrc = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // todo: fix path // empty for mtlx mode
-    std::string ident = "carbon_composite"; // empty for mtlx mode
+    std::string mdlSrc;
+    std::string ident = "carbon_composite"; //todo: the identifier depends on a material file // empty for mtlx mode
 
     mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
     std::vector<const mi::neuraylib::ICompiled_material*> materials;

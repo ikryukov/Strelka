@@ -22,7 +22,7 @@ public:
 
 public:
     bool init(const char* resourcePath, const char* neurayPath,
-              const char* mtlxmdlPath);
+              const std::vector<std::string>& mdlModulesPaths, const char* imagePluginPath);
 
     mi::base::Handle<MdlLogger> getLogger();
     mi::base::Handle<mi::neuraylib::IDatabase> getDatabase();

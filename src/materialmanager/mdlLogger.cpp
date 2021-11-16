@@ -1,7 +1,5 @@
 #include "mdlLogger.h"
 
-#include <mi/mdl_sdk.h>
-
 #include <stdio.h>
 
 namespace nevk

@@ -71,8 +71,8 @@ TEST_CASE("mtlx to mdl code gen test")
     std::string mdlFile = "material.mdl";
     std::ofstream mdlMaterial(mdlFile.c_str());
 
-    std::string hlslFile = "../../shaders/newPT.hlsl";
-    std::ofstream hlslMaterial(hlslFile.c_str());
+    std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
+    std::ofstream hlslMaterial(ptFile.c_str());
 
     Render r;
     r.HEIGHT = 600;
@@ -87,7 +87,7 @@ TEST_CASE("mtlx to mdl code gen test")
     CHECK(mTexManager->textures[0].texWidth == 512);
     CHECK(mTexManager->textures[0].texHeight == 512);
 
-    std::ifstream pt("../../shaders/pathtracer.hlsl");
+    std::ifstream pt(cwd.string() + "/shaders/pathtracer.hlsl");
     std::stringstream ptcode;
     ptcode << pt.rdbuf();
 
@@ -97,6 +97,6 @@ TEST_CASE("mtlx to mdl code gen test")
     CHECK(shaderIdString != -1);
 
     hlslMaterial << newPTfile;
-    uint32_t shaderIdFile = sm->loadShader("../../shaders/newPT.hlsl", "computeMain", nevk::ShaderManager::Stage::eCompute);
+    uint32_t shaderIdFile = sm->loadShader(ptFile.c_str(), "computeMain", nevk::ShaderManager::Stage::eCompute);
     CHECK(shaderIdFile != -1);
 }

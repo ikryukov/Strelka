@@ -32,7 +32,7 @@ MdlNeurayLoader::~MdlNeurayLoader()
     }
 }
 
-bool MdlNeurayLoader::init(const char* resourcePath)
+bool MdlNeurayLoader::init(const char* resourcePath, const char* imagePluginPath)
 {
     if (!loadDso(resourcePath))
     {
@@ -42,14 +42,8 @@ bool MdlNeurayLoader::init(const char* resourcePath)
     {
         return false;
     }
-
-    // init plugin
-    mi::base::Handle<mi::neuraylib::INeuray> neuray(getNeuray());
-    mi::base::Handle<mi::neuraylib::IPlugin_configuration> configPl(neuray->get_api_component<mi::neuraylib::IPlugin_configuration>());
-    std::string path = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib/nv_freeimage.so"; // plugin for texture support
-    if (configPl->load_plugin_library(path.c_str())) // This function can only be called before the MDL SDK has been started.
+    if (!loadPlugin(imagePluginPath))
     {
-       std::cout << "Plugin file path not found, translation not possible" << std::endl;
         return false;
     }
 
@@ -59,6 +53,20 @@ bool MdlNeurayLoader::init(const char* resourcePath)
 mi::base::Handle<mi::neuraylib::INeuray> MdlNeurayLoader::getNeuray() const
 {
     return m_neuray;
+}
+
+bool MdlNeurayLoader::loadPlugin(const char* imagePluginPath)
+{
+    // init plugin for texture support
+    mi::base::Handle<mi::neuraylib::INeuray> neuray(getNeuray());
+    mi::base::Handle<mi::neuraylib::IPlugin_configuration> configPl(neuray->get_api_component<mi::neuraylib::IPlugin_configuration>());
+    if (configPl->load_plugin_library(imagePluginPath)) // This function can only be called before the MDL SDK has been started.
+    {
+        std::cout << "Plugin file path not found, translation not possible" << std::endl;
+        return false;
+    }
+
+    return true;
 }
 
 bool MdlNeurayLoader::loadDso(const char* resourcePath)

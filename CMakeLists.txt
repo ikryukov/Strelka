@@ -99,7 +99,7 @@ target_link_libraries(${MATERIALLIB_NAME} PRIVATE #hdMtlx )
         MaterialXFormat
         MaterialXGenMdl)
 # MDL ( $MDL_SDK_ROOT refer to the installation root of the MDL SDK.)
-target_include_directories(${MATERIALLIB_NAME} PUBLIC external/mdl-sdk/include) # $ENV{MDL_SDK_ROOT}
+target_include_directories(${MATERIALLIB_NAME} PUBLIC misc/test_data/mdl-sdk/include) # $ENV{MDL_SDK_ROOT}
 
 # Scene
 set(SCENE_SOURCES
