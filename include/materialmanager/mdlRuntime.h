@@ -33,8 +33,6 @@ public:
 
     std::unique_ptr<MdlNeurayLoader> m_loader;
 private:
-    //std::unique_ptr<MdlNeurayLoader> m_loader;
-
     mi::base::Handle<MdlLogger> m_logger;
     mi::base::Handle<mi::neuraylib::IDatabase> m_database;
     mi::base::Handle<mi::neuraylib::ITransaction> m_transaction;

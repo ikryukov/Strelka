@@ -99,7 +99,7 @@ target_link_libraries(${MATERIALLIB_NAME} PRIVATE #hdMtlx )
         MaterialXFormat
         MaterialXGenMdl)
 # MDL ( $MDL_SDK_ROOT refer to the installation root of the MDL SDK.)
-target_include_directories(${MATERIALLIB_NAME} PUBLIC misc/test_data/mdl-sdk/include) # $ENV{MDL_SDK_ROOT}
+target_include_directories(${MATERIALLIB_NAME} PUBLIC external/mdl-sdk/include) # $ENV{MDL_SDK_ROOT}
 
 # Scene
 set(SCENE_SOURCES
@@ -337,8 +337,28 @@ if (MSVC)
             "${EMBREE_ROOT_DIR}/bin/embree3.dll"
             "${OUTPUT_DIRECTORY}"
             )
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/nt-x86-64/lib/libmdl_sdk.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/nt-x86-64/lib/nv_freeimage.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
+elseif(APPLE)
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/macosx-x86-64/lib/libmdl_sdk.so"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/macosx-x86-64/lib/nv_freeimage.so"
+            "${OUTPUT_DIRECTORY}"
+            )
 endif ()
-
 ##########################################
 # External 3rd-party libraries
 

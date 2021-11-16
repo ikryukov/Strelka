@@ -76,32 +76,32 @@ private:
 
         if (isMtlx)
         {
-            mdlPaths.emplace_back("/Users/jswark/school/USD_Build/mdl/");
-            resourcePath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface"; // for mtlx
+           // mdlPaths.emplace_back("/Users/jswark/school/USD_Build/mdl/");
+           // resourcePath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface"; // for mtlx
         }
         else
         {
-            std::string pathToMdlLib = cwd.string() + "/misc/test_data/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // if mdl -> hlsl
-            std::string pathToCoreLib = cwd.string() + "/misc/test_data/mdl-sdk/examples/mdl";
+            std::string pathToMdlLib = cwd.string() + "/misc/test_data/mdl/nvidia/sdk_examples/"; // if mdl -> hlsl
+            std::string pathToCoreLib = cwd.string() + "/misc/test_data/mdl";
             mdlPaths.push_back(pathToMdlLib);
             mdlPaths.push_back(pathToCoreLib);
-            resourcePath = cwd.string() + "/misc/test_data/mdl-sdk/examples/mdl/nvidia/sdk_examples/resources"; // path to the textures
-            mdlSrc = cwd.string() + "/misc/test_data/mdl-sdk/examples/mdl/nvidia/sdk_examples/"; // path to the material
+            resourcePath = cwd.string() + "/misc/test_data/mdl/nvidia/sdk_examples/resources"; // path to the textures
+            mdlSrc = cwd.string() + "/misc/test_data/mdl/nvidia/sdk_examples/"; // path to the material
         }
 #ifdef MI_PLATFORM_WINDOWS
-        pathso = cwd.string() + "/misc/test_data/mdl-sdk/nt-x86-64/lib";
-        imagePluginPath =  cwd.string() + "/misc/test_data/mdl-sdk/nt-x86-64/lib/nv_freeimage.so";
+        pathso = cwd.string();
+        imagePluginPath =  cwd.string() + "/nv_freeimage.dll";
 #else
-        pathso = cwd.string() + "/misc/test_data/mdl-sdk/macosx-x86-64/lib";
-        imagePluginPath = cwd.string() + "/misc/test_data/mdl-sdk/macosx-x86-64/lib/nv_freeimage.so";
+        pathso = cwd.string();
+        imagePluginPath = cwd.string() + "/nv_freeimage.so";
 #endif
     }
 
     std::string imagePluginPath;
     std::string pathso;
     // mtlx -> hlsl
-    std::string mtlxMaterialPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_plastic.mtlx"; //brass_tiled.mtlx"; -- w/ images
-    std::string mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
+   // std::string mtlxMaterialPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_plastic.mtlx"; //brass_tiled.mtlx"; -- w/ images
+   // std::string mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
     // mdl -> hlsl
     std::string mdlSrc;
     std::string ident = "carbon_composite"; //todo: the identifier depends on a material file // empty for mtlx mode
