@@ -87,7 +87,7 @@ TEST_CASE("mtlx to mdl code gen test")
     CHECK(mTexManager->textures[0].texWidth == 512);
     CHECK(mTexManager->textures[0].texHeight == 512);
 
-    std::ifstream pt(cwd.string() + "/shaders/pathtracer.hlsl");
+    std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
     std::stringstream ptcode;
     ptcode << pt.rdbuf();
 
