@@ -142,7 +142,7 @@ bool MdlHlslCodeGen::prepare_texture(
     {
         mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
         mi::Float32 const* data = static_cast<mi::Float32 const*>(tile->get_data());
-        uint id = mTexManager->loadTextureGltf(data, tex_width, tex_height, std::to_string(texture_index)); // todo: load texture mdl pixel size format(string, mdl_format) name, convert imagetype to vk format
+        uint32_t id = mTexManager->loadTextureGltf(data, tex_width, tex_height, std::to_string(texture_index)); // todo: load texture mdl pixel size format(string, mdl_format) name, convert imagetype to vk format
 
         Mdl_resource_info info;
         info.gpu_resource_array_start = id;
