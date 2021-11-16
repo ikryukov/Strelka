@@ -1,7 +1,7 @@
 #include "render.h"
 
 #include "debugUtils.h"
-
+#include "instanceconstants.h"
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
@@ -1078,18 +1078,6 @@ void Render::createIndexBuffer(nevk::Scene& scene)
 
 void Render::createInstanceBuffer(nevk::Scene& scene)
 {
-    // This struct should match shader's version
-    struct InstanceConstants
-    {
-        glm::float4x4 objectToWorld;
-        glm::float4x4 worldToObject;
-        glm::float4x4 normalMatrix;
-        int32_t materialId;
-        int32_t indexOffset;
-        int32_t indexCount;
-        int32_t pad2;
-    };
-
     const std::vector<Mesh>& meshes = scene.getMeshes();
     const std::vector<nevk::Instance>& sceneInstances = scene.getInstances();
     mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
@@ -1104,7 +1092,7 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
     {
         instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
         instanceConsts[i].objectToWorld = sceneInstances[i].transform;
-        instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
+        //instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
         instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
 
         const uint32_t currentMeshId = sceneInstances[i].mMeshId;

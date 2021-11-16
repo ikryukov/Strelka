@@ -5,6 +5,7 @@
 #include "helper.h"
 #include "raytracing.h"
 #include "pathtracerparam.h"
+#include "instanceconstants.h"
 
 ConstantBuffer<PathTracerParam> ubo;
 
@@ -140,7 +141,7 @@ float3 pathTrace(uint2 pixelIndex)
 
     mdlState.ro_data_segment_offset = 0;
     mdlState.world_to_object = instConst.worldToObject;
-    mdlState.object_to_world = instConst.objectToWorld;
+    mdlState.object_to_world = inverse(instConst.worldToObject); // TODO: replace on precalc
     mdlState.object_id = 0;
     mdlState.meters_per_scene_unit = 1.0f;
     mdlState.arg_block_offset = 0;

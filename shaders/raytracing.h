@@ -1,6 +1,7 @@
 #pragma once
 #include "random.h"
 #include "ray.h"
+#include "instanceconstants.h"
 
 #define INVALID_INDEX 0xFFFFFFFF
 #define PI 3.1415926535897
@@ -13,16 +14,6 @@ struct Vertex
     uint32_t uv;
     float pad0;
     float pad1;
-};
-
-struct InstanceConstants
-{
-    float4x4 model;
-    float4x4 normalMatrix;
-    int32_t materialId;
-    int32_t indexOffset;
-    int32_t indexCount;
-    int32_t pad2;
 };
 
 struct BVHNode
@@ -119,9 +110,9 @@ BVHTriangle getTriangle(uint instanceId, uint primitiveId, in Accel accel)
     uint i2 = accel.ib[instConst.indexOffset + primitiveId * 3 + 2];
 
     // read and transform vertices, calculate edges
-    float3 v0 = mul(instConst.model, float4(accel.vb[i0].position, 1.0)).xyz;
-    float3 e0 = mul(instConst.model, float4(accel.vb[i1].position, 1.0)).xyz - v0;
-    float3 e1 = mul(instConst.model, float4(accel.vb[i2].position, 1.0)).xyz - v0;
+    float3 v0 = mul(instConst.objectToWorld, float4(accel.vb[i0].position, 1.0)).xyz;
+    float3 e0 = mul(instConst.objectToWorld, float4(accel.vb[i1].position, 1.0)).xyz - v0;
+    float3 e1 = mul(instConst.objectToWorld, float4(accel.vb[i2].position, 1.0)).xyz - v0;
 
     BVHTriangle res;
     res.v0 = v0;
