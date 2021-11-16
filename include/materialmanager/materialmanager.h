@@ -81,12 +81,12 @@ private:
         }
         else
         {
-            std::string pathToMdlLib = cwd.string() + "/misc/test_data/mdl/nvidia/sdk_examples/"; // if mdl -> hlsl
+            std::string pathToMdlLib = cwd.string() + "/misc/test_data/mdl/"; // if mdl -> hlsl
             std::string pathToCoreLib = cwd.string() + "/misc/test_data/mdl";
             mdlPaths.push_back(pathToMdlLib);
             mdlPaths.push_back(pathToCoreLib);
-            resourcePath = cwd.string() + "/misc/test_data/mdl/nvidia/sdk_examples/resources"; // path to the textures
-            mdlSrc = cwd.string() + "/misc/test_data/mdl/nvidia/sdk_examples/"; // path to the material
+            resourcePath = cwd.string() + "/misc/test_data/mdl/resources"; // path to the textures
+            mdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
         }
 #ifdef MI_PLATFORM_WINDOWS
         pathso = cwd.string();
