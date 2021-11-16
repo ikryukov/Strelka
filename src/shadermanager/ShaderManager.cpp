@@ -72,7 +72,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShaderFromString(const char* sou
         return ShaderDesc();
 
     ShaderDesc desc{};
-
+    desc.valid = true;
     desc.fileName = std::string("memory");
     desc.entryPointName = std::string(entryPointName);
     desc.stage = stage;
@@ -136,7 +136,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
         return ShaderDesc();
 
     ShaderDesc desc{};
-
+    desc.valid = true;
     desc.fileName = std::string(fileName);
     desc.entryPointName = std::string(entryPointName);
     desc.stage = stage;
@@ -154,6 +154,11 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
 uint32_t ShaderManager::loadShader(const char* fileName, const char* entryPointName, Stage stage)
 {
     ShaderDesc sd = compileShader(fileName, entryPointName, stage);
+    if (sd.valid == false)
+    {
+        return -1;
+    }
+
     uint32_t shaderId = 0;
 
     // Try to reload existing shader
@@ -178,6 +183,12 @@ uint32_t ShaderManager::loadShader(const char* fileName, const char* entryPointN
 uint32_t ShaderManager::loadShaderFromString(const char* source, const char* entryPointName, Stage stage)
 {
     ShaderDesc sd = compileShaderFromString(source, entryPointName, stage);
+
+    if (sd.valid == false)
+    {
+        return -1;
+    }
+
     uint32_t shaderId = 0;
 
     // Try to reload existing shader

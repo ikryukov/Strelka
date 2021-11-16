@@ -54,6 +54,7 @@ public:
 private:
     struct ShaderDesc
     {
+        bool valid = false;
         std::string fileName;
         std::string entryPointName;
         Stage stage = Stage::eNone;
