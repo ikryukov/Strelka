@@ -35,7 +35,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShaderFromString(const char* sou
     spSetOptimizationLevel(slangRequest, optLevel);
     spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(compDir).c_str());
     //spAddPreprocessorDefine(slangRequest, "MDL_NUM_TEXTURE_RESULTS", "0");
-
+    spAddSearchPath(slangRequest, "./shaders/");
     int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
     spAddTranslationUnitSourceString(slangRequest, translationUnitIndex, "memory", source);
 

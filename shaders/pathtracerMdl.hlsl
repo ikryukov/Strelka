@@ -137,11 +137,11 @@ float3 pathTrace(uint2 pixelIndex)
     mdlState.position = wpos;
     mdlState.animation_time = 0.0f;
     mdlState.tangent_u[0] = Tangent;
-    mdlState.tangent_v[0] = Binormal;
+    mdlState.tangent_v[0] = Bitangent;
 
     mdlState.ro_data_segment_offset = 0;
-    mdlState.world_to_object = instConst.worldToObject;
-    mdlState.object_to_world = inverse(instConst.worldToObject); // TODO: replace on precalc
+    mdlState.world_to_object = instConst.objectToWorld;
+    // mdlState.object_to_world = inverse(instConst.objectToWorld); // TODO: replace on precalc
     mdlState.object_id = 0;
     mdlState.meters_per_scene_unit = 1.0f;
     mdlState.arg_block_offset = 0;
@@ -176,11 +176,12 @@ float3 pathTrace(uint2 pixelIndex)
     evalData.k1 = -V;        // outgoing direction
     evalData.k1 = toLight;
     
-    mdl_bsdf_evaluate(scatteringFunctionIndex, evalData, mdlState);
+    mdl_bsdf_scattering_evaluate(scatteringFunctionIndex, evalData, mdlState);
 
+    float3 finalColor = float3(0.0f);
     if (evalData.pdf > 0.0f)
     {
-        finalColor = radiance_over_pdf * evalData.bsdf_diffuse[0];
+        finalColor = radianceOverPdf * evalData.bsdf_diffuse[0];
     }
 
     return finalColor;

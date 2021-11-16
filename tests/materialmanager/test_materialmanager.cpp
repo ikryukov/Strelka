@@ -72,7 +72,7 @@ TEST_CASE("mtlx to mdl code gen test")
     std::ofstream mdlMaterial(mdlFile.c_str());
 
     std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
-    std::ofstream hlslMaterial(ptFile.c_str());
+    std::ofstream outHLSLShaderFile(ptFile.c_str());
 
     Render r;
     r.HEIGHT = 600;
@@ -96,7 +96,9 @@ TEST_CASE("mtlx to mdl code gen test")
     uint32_t shaderIdString = sm->loadShaderFromString(newPTfile.c_str(), "computeMain", nevk::ShaderManager::Stage::eCompute);
     CHECK(shaderIdString != -1);
 
-    hlslMaterial << newPTfile;
+    outHLSLShaderFile << newPTfile << std::endl;
+    outHLSLShaderFile.close();
+
     uint32_t shaderIdFile = sm->loadShader(ptFile.c_str(), "computeMain", nevk::ShaderManager::Stage::eCompute);
     CHECK(shaderIdFile != -1);
 }
