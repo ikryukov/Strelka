@@ -23,15 +23,15 @@ VkFormat getVkFormat(const char* format)
 {
     if ((strcmp(format, "Color") == 0) || (strcmp(format, "Float<4>") == 0))
     {
-        return VK_FORMAT_R8G8B8A8_SRGB;
+        return VK_FORMAT_R8G8B8A8_UNORM;
     }
-    else if ((strcmp(format, "Color3") == 0) || (strcmp(format, "Float<3>") == 0))
+    else if (strcmp(format, "Float<3>") == 0)
     {
-        return VK_FORMAT_R8G8B8_SRGB;
+        return VK_FORMAT_R8G8B8_UNORM;
     }
     else
     {
-        return VK_FORMAT_R8G8B8A8_SRGB;
+        return VK_FORMAT_R8G8B8A8_UNORM;
     }
 }
 
