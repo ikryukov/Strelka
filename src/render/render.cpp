@@ -964,15 +964,15 @@ void nevk::Render::createMdlBuffers()
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     
     memcpy(stagingBufferMemory, args.data(), args.size() * sizeof(uint8_t));
-    mCurrentSceneRenderData->mMdlArgBuffer = mResManager->createBuffer(args.size() * sizeof(uint8_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: arg");
+    mCurrentSceneRenderData->mMdlArgBuffer = mResManager->createBuffer(args.size() * sizeof(uint8_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: arg");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMdlArgBuffer), args.size() * sizeof(uint8_t));
 
     memcpy(stagingBufferMemory, ro.data(), ro.size() * sizeof(uint8_t));
-    mCurrentSceneRenderData->mMdlRoBuffer = mResManager->createBuffer(ro.size() * sizeof(uint8_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: ro");
+    mCurrentSceneRenderData->mMdlRoBuffer = mResManager->createBuffer(ro.size() * sizeof(uint8_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: ro");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMdlRoBuffer), ro.size() * sizeof(uint8_t));
 
-    memcpy(stagingBufferMemory, infos.data(), infos.size() * sizeof(uint8_t));
-    mCurrentSceneRenderData->mMdlInfoBuffer = mResManager->createBuffer(infos.size() * sizeof(Mdl_resource_info), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: info");
+    memcpy(stagingBufferMemory, infos.data(), infos.size() * sizeof(Mdl_resource_info));
+    mCurrentSceneRenderData->mMdlInfoBuffer = mResManager->createBuffer(infos.size() * sizeof(Mdl_resource_info), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: info");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMdlInfoBuffer), infos.size() * sizeof(Mdl_resource_info));
 
     mResManager->destroyBuffer(stagingBuffer);
