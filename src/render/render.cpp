@@ -113,8 +113,7 @@ void Render::initVulkan()
     mRtShadow = new RtShadowPass(mSharedCtx);
     mRtShadow->initialize();
 
-    mPathTracer = new PathTracer(mSharedCtx);
-    mPathTracer->initialize();
+
 
     mReflection = new Reflection(mSharedCtx);
     mReflection->initialize();
@@ -134,10 +133,23 @@ void Render::initVulkan()
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
     modelLoader = new nevk::ModelLoader(mTexManager);
+    
+    const fs::path cwd = fs::current_path();
+    std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
+    std::stringstream ptcode;
+    ptcode << pt.rdbuf();
+
+    mMaterialManager = new MaterialManager(mTexManager);
+
+    std::string newPTCode = mMaterialManager->hlslCode + "\n" + ptcode.str();
+
+    mPathTracer = new PathTracer(mSharedCtx, newPTCode);
+    mPathTracer->initialize();
+
     createDefaultScene();
     if (!MODEL_PATH.empty())
     {
-        mTexManager->saveTexturesInDelQueue();
+        //mTexManager->saveTexturesInDelQueue();
         loadScene(MODEL_PATH);
     }
 
@@ -941,6 +953,31 @@ void Render::setCamera()
     camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 }
 
+void nevk::Render::createMdlBuffers()
+{
+    std::vector<uint8_t>& args = mMaterialManager->mArgBlockData;
+    std::vector<uint8_t>& ro = mMaterialManager->mRoData;
+    std::vector<Mdl_resource_info>& infos = mMaterialManager->mInfo;
+    VkDeviceSize bufferSize = std::max(ro.size() * sizeof(uint8_t), std::max(args.size() * sizeof(uint8_t), infos.size() * sizeof(Mdl_resource_info)));
+    
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    
+    memcpy(stagingBufferMemory, args.data(), args.size() * sizeof(uint8_t));
+    mCurrentSceneRenderData->mMdlArgBuffer = mResManager->createBuffer(args.size() * sizeof(uint8_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: arg");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMdlArgBuffer), args.size() * sizeof(uint8_t));
+
+    memcpy(stagingBufferMemory, ro.data(), ro.size() * sizeof(uint8_t));
+    mCurrentSceneRenderData->mMdlRoBuffer = mResManager->createBuffer(ro.size() * sizeof(uint8_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: ro");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMdlRoBuffer), ro.size() * sizeof(uint8_t));
+
+    memcpy(stagingBufferMemory, infos.data(), infos.size() * sizeof(uint8_t));
+    mCurrentSceneRenderData->mMdlInfoBuffer = mResManager->createBuffer(infos.size() * sizeof(Mdl_resource_info), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: info");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMdlInfoBuffer), infos.size() * sizeof(Mdl_resource_info));
+
+    mResManager->destroyBuffer(stagingBuffer);
+}
+
 void Render::createVertexBuffer(nevk::Scene& scene)
 {
     std::vector<nevk::Scene::Vertex>& sceneVertices = scene.getVertices();
@@ -968,7 +1005,7 @@ void Render::createMaterialBuffer(nevk::Scene& scene)
     }
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    memcpy(stagingBufferMemory, sceneMaterials.data(), (size_t)bufferSize);
+    memcpy(stagingBufferMemory, sceneMaterials.data(), sizeof(Material) * sceneMaterials.size());
     mCurrentSceneRenderData->mMaterialBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Materials");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
@@ -985,7 +1022,7 @@ void Render::createLightsBuffer(nevk::Scene& scene)
     }
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    memcpy(stagingBufferMemory, sceneLights.data(), (size_t)bufferSize);
+    memcpy(stagingBufferMemory, sceneLights.data(), sizeof(nevk::Scene::Light) * sceneLights.size());
     mCurrentSceneRenderData->mLightsBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Lights");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
@@ -1100,11 +1137,11 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
         instanceConsts[i].indexCount = meshes[currentMeshId].mCount;
     }
 
-    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    Buffer* stagingBuffer = mResManager->createBuffer(sizeof(InstanceConstants) * sceneInstances.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    memcpy(stagingBufferMemory, instanceConsts.data(), (size_t)bufferSize);
+    memcpy(stagingBufferMemory, instanceConsts.data(), sizeof(InstanceConstants) * sceneInstances.size());
     mCurrentSceneRenderData->mInstanceBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), bufferSize);
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), sizeof(InstanceConstants) * sceneInstances.size());
     mResManager->destroyBuffer(stagingBuffer);
 }
 
@@ -1267,6 +1304,10 @@ void Render::loadScene(const std::string& modelPath)
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
 
+    
+
+    createMdlBuffers();
+
     setDescriptors(0);
 }
 
@@ -1302,8 +1343,13 @@ void Render::setDescriptors(uint32_t imageIndex)
         desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
         desc.lights = mCurrentSceneRenderData->mLightsBuffer;
         desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-        desc.matSampler = mTexManager->texSamplers;
+        desc.matSampler = mTexManager->mMdlSampler;
         desc.matTextures = mTexManager->textureImages;
+
+        desc.mdl_argument_block = mCurrentSceneRenderData->mMdlArgBuffer;
+        desc.mdl_ro_data_segment = mCurrentSceneRenderData->mMdlRoBuffer;
+        desc.mdl_resource_infos = mCurrentSceneRenderData->mMdlInfoBuffer;
+
         mPathTracer->setResources(desc);
     }
     {
@@ -1448,6 +1494,8 @@ void Render::createDefaultScene()
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
+
+    createMdlBuffers();
 }
 
 void Render::drawFrame()
@@ -1796,7 +1844,7 @@ void Render::drawFrame()
         if (!materials.empty())
         {
             size_t bufferSize = sizeof(Material) * MAX_LIGHT_COUNT;
-            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), materials.data(), bufferSize);
+            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), materials.data(), materials.size() * sizeof(Material));
 
             VkBufferCopy copyRegion{};
             copyRegion.size = bufferSize;

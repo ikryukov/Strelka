@@ -188,6 +188,7 @@ protected:
                 switch (currRes.second.type)
                 {
                 case ShaderManager::ResourceType::eConstantBuffer:
+                case ShaderManager::ResourceType::eByteAddressBuffer:
                 case ShaderManager::ResourceType::eStructuredBuffer: {
                     buffCount += currRes.second.isArray ? resDesc.arraySize : 1;
                     break;
@@ -292,6 +293,7 @@ protected:
                     descriptorWrites.push_back(descWrite);
                     break;
                 }
+                case ShaderManager::ResourceType::eByteAddressBuffer:
                 case ShaderManager::ResourceType::eStructuredBuffer: {
                     for (uint32_t i = 0; i < descriptorCount; ++i)
                     {

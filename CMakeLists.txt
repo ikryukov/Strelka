@@ -30,6 +30,11 @@ if (MINGW)
             )
 endif ()
 
+if(WIN32)
+  add_compile_definitions(NOMINMAX)
+  add_compile_definitions(_USE_MATH_DEFINES)
+endif()
+
 ######## Packages
 # Vulkan
 if (NOT DEFINED VULKAN_SDK)
@@ -287,11 +292,29 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${UILIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${TEXTURELIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC embree)
+target_link_libraries(${RENDERLIB_NAME} PRIVATE 
+    ${MATERIALLIB_NAME}
+    MaterialXCore
+    MaterialXFormat
+    MaterialXGenMdl)
+
 target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+    ${RESMNGR_NAME} 
+    ${SHADERLIB_NAME} 
+    ${MATERIALLIB_NAME}
+    MaterialXCore
+    MaterialXFormat
+    MaterialXGenMdl
+    ${SCENELIB_NAME} 
+    ${RENDERLIB_NAME} 
+    ${UILIB_NAME} 
+    ${MODELLIB_NAME} 
+    ${TEXTURELIB_NAME} 
+    ${TRACY_LIB})  # Link the executable to library (if it uses it).
 target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 

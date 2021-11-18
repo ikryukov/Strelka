@@ -118,14 +118,14 @@ float3 calc(uint2 pixelIndex)
     float3 V = normalize(ubo.CameraPos - wpos);
     float ndotv = saturate(dot(N, V));
     float2 matUV = gbUV[pixelIndex].xy;
-    float3 dcol = getBaseColor(material, matUV, textures, samplers);
+    float3 dcol = getBaseColor(material, matUV, textures, samplers[0]);
 
     if (material.isLight == 1)
     {
         return dcol;
     }
 
-    float roughness = getRoughness(material, matUV, textures, samplers);
+    float roughness = getRoughness(material, matUV, textures, samplers[0]);
 
     float2 uv = float2(roughness, sqrt(1.0 - ndotv));
     uv = uv * LUT_SCALE + LUT_BIAS;

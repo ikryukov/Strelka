@@ -22,9 +22,6 @@ StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<Material> materials;
 StructuredBuffer<RectLight> lights;
 
-Texture2D textures[BINDLESS_TEXTURE_COUNT];
-SamplerState samplers[BINDLESS_SAMPLER_COUNT];
-
 RWTexture2D<float4> output;
 
 float3 UniformSampleRect(in RectLight l, float2 u)
@@ -95,7 +92,7 @@ float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId
     Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
     float3 Bitangent = cross(Normal, Tangent);
 
-    float3 BumpMapNormal = textures[NonUniformResourceIndex(texId)].Sample(samplers[sampId], uv).xyz;
+    float3 BumpMapNormal = mdl_textures_2d[NonUniformResourceIndex(texId)].Sample(mdl_sampler_tex, uv).xyz;
     BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
 
     float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
@@ -116,7 +113,7 @@ float3 pathTrace(uint2 pixelIndex)
     float2 matUV = gbUV[pixelIndex];
     if (material.isLight)
     {
-        return getBaseColor(material, matUV, textures, samplers);
+        return getBaseColor(material, matUV, mdl_textures_2d, mdl_sampler_tex);
     }
     float3 wpos = gbWPos[pixelIndex].xyz;
 
@@ -181,7 +178,8 @@ float3 pathTrace(uint2 pixelIndex)
     float3 finalColor = float3(0.0f);
     if (evalData.pdf > 0.0f)
     {
-        finalColor = radianceOverPdf * evalData.bsdf_diffuse[0];
+        finalColor = radianceOverPdf * evalData.bsdf_diffuse;
+        //finalColor = radianceOverPdf;
     }
 
     return finalColor;

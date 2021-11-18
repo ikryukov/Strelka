@@ -405,7 +405,7 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                            material.pbrMetallicRoughness.baseColorFactor[2],
                                            material.pbrMetallicRoughness.baseColorFactor[3]);
         currMaterial.texNormalId = material.normalTexture.index;
-        currMaterial.sampNormalId = texIdToModelSamp.find(currMaterial.texNormalId)->second;
+        //currMaterial.sampNormalId = texIdToModelSamp.find(currMaterial.texNormalId)->second;
 
         currMaterial.baseColorFactor = glm::float4(material.pbrMetallicRoughness.baseColorFactor[0],
                                                    material.pbrMetallicRoughness.baseColorFactor[1],
@@ -413,22 +413,22 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
                                                    material.pbrMetallicRoughness.baseColorFactor[3]);
 
         currMaterial.texBaseColor = material.pbrMetallicRoughness.baseColorTexture.index;
-        currMaterial.sampBaseId = texIdToModelSamp.find(currMaterial.texBaseColor)->second;
+        //currMaterial.sampBaseId = texIdToModelSamp.find(currMaterial.texBaseColor)->second;
 
         currMaterial.roughnessFactor = (float)material.pbrMetallicRoughness.roughnessFactor;
         currMaterial.metallicFactor = (float)material.pbrMetallicRoughness.metallicFactor;
 
         currMaterial.texMetallicRoughness = material.pbrMetallicRoughness.metallicRoughnessTexture.index;
-        currMaterial.sampMetallicRoughness = texIdToModelSamp.find(currMaterial.texMetallicRoughness)->second;
+        //currMaterial.sampMetallicRoughness = texIdToModelSamp.find(currMaterial.texMetallicRoughness)->second;
 
         currMaterial.emissiveFactor = glm::float3(material.emissiveFactor[0],
                                                   material.emissiveFactor[1],
                                                   material.emissiveFactor[2]);
         currMaterial.texEmissive = material.emissiveTexture.index;
-        currMaterial.sampEmissiveId = texIdToModelSamp.find(currMaterial.texEmissive)->second;
+        //currMaterial.sampEmissiveId = texIdToModelSamp.find(currMaterial.texEmissive)->second;
 
         currMaterial.texOcclusion = material.occlusionTexture.index;
-        currMaterial.sampOcclusionId = texIdToModelSamp.find(currMaterial.texOcclusion)->second;
+        //currMaterial.sampOcclusionId = texIdToModelSamp.find(currMaterial.texOcclusion)->second;
 
         currMaterial.d = (float)material.pbrMetallicRoughness.baseColorFactor[3];
 

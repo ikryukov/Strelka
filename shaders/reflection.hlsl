@@ -51,7 +51,7 @@ float3 calcReflection(uint2 pixelIndex)
     float2 matUV = gbUV[pixelIndex].xy;
     InstanceConstants constantsBase = instanceConstants[NonUniformResourceIndex(instId)];
     Material materialBase = materials[NonUniformResourceIndex(constantsBase.materialId)];
-    float roughness = getRoughness(materialBase, matUV, textures, samplers);
+    float roughness = getRoughness(materialBase, matUV, textures, samplers[0]);
     if (abs(roughness - 1.0) < 1e-5) {
         return (0, 0, 0);
     }
@@ -78,7 +78,7 @@ float3 calcReflection(uint2 pixelIndex)
 
         float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
 
-        float3 dcol = getBaseColor(material, uvCoord, textures, samplers);
+        float3 dcol = getBaseColor(material, uvCoord, textures, samplers[0]);
 
         dcol = (1 - roughness) * dcol;
 

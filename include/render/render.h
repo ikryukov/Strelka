@@ -1,5 +1,10 @@
 #pragma once
 
+#define GLFW_INCLUDE_NONE
+#ifdef _WIN32
+#    define GLFW_EXPOSE_NATIVE_WIN32
+#    undef APIENTRY
+#endif
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -31,11 +36,15 @@
 #include "tonemap.h"
 #include "upscalepass.h"
 
+//#include "debugUtils.h"
+
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
 #include <scene/scene.h>
 #include <shadermanager/ShaderManager.h>
 #include <ui/ui.h>
+
+#include <materialmanager/materialmanager.h>
 
 #include <array>
 #include <chrono>
@@ -131,7 +140,7 @@ private:
 
     ResourceManager* mResManager = nullptr;
     TextureManager* mTexManager = nullptr;
-
+    MaterialManager* mMaterialManager = nullptr;
     BvhBuilder mBvhBuilder;
 
     GbufferPass mGbufferPass;
@@ -286,6 +295,10 @@ private:
         Buffer* mLightsBuffer = nullptr;
         Buffer* mBvhNodeBuffer = nullptr;
 
+        Buffer* mMdlArgBuffer = nullptr;
+        Buffer* mMdlRoBuffer = nullptr;
+        Buffer* mMdlInfoBuffer = nullptr;
+
         ResourceManager* mResManager = nullptr;
         explicit SceneRenderData(ResourceManager* resManager)
         {
@@ -411,6 +424,8 @@ private:
     bool hasStencilComponent(VkFormat format);
 
     void setCamera();
+
+    void createMdlBuffers();
 
     void createVertexBuffer(nevk::Scene& scene);
     void createMaterialBuffer(nevk::Scene& scene);

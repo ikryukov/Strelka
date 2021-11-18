@@ -75,6 +75,20 @@ public:
         vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
     }
 
+    void initializeFromCode(const char* code)
+    {
+        const char* csShaderCode = nullptr;
+        uint32_t csShaderCodeSize = 0;
+        uint32_t csId = mSharedCtx.mShaderManager->loadShaderFromString(code, "computeMain", nevk::ShaderManager::Stage::eCompute);
+        assert(csId != -1);
+        mSharedCtx.mShaderManager->getShaderCode(csId, csShaderCode, csShaderCodeSize);
+        mCS = createShaderModule(csShaderCode, csShaderCodeSize);
+
+        mShaderParams.create(mSharedCtx, csId);
+
+        createComputePipeline(mCS);
+    }
+
     void initialize(const char* shaderFile)
     {
         const char* csShaderCode = nullptr;

@@ -111,7 +111,7 @@ FSOutput fragmentMain(PS_INPUT inp) : SV_TARGET
     float3 N = normalize(inp.normal);
     if (texNormalId != INVALID_INDEX)
     {
-        N = CalcBumpedNormal(inp, texNormalId, sampNormalId);
+        //N = CalcBumpedNormal(inp, texNormalId, sampNormalId);
     }
 
     FSOutput ret;

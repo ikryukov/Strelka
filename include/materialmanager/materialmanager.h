@@ -62,6 +62,10 @@ public:
 
     ~MaterialManager(){};
 
+    std::vector<Mdl_resource_info> mInfo;
+    std::vector<uint8_t> mArgBlockData;
+    std::vector<uint8_t> mRoData;
+
 private:
     std::vector<nevk::MdlHlslCodeGen::InternalMaterialInfo> mInternalsInfo;
 
@@ -74,7 +78,6 @@ private:
     mi::base::Handle<MdlLogger> mLogger;
     mi::base::Handle<mi::neuraylib::INeuray> mNeuray;
 
-    std::vector<Mdl_resource_info> mInfo;
 
     TextureManager* mTexManager = nullptr;
 
@@ -129,8 +132,6 @@ private:
         return (value + (power_of_two_factor - 1)) & ~(power_of_two_factor - 1);
     }
 
-    std::vector<uint8_t> mArgBlockData;
-    std::vector<uint8_t> mRoData;
     std::vector<uint8_t> loadArgBlocks();
     std::vector<uint8_t> loadROData();
 
