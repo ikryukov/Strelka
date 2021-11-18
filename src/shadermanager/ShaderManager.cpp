@@ -26,6 +26,7 @@ ShaderManager::~ShaderManager()
 
 ShaderManager::ShaderDesc ShaderManager::compileShaderFromString(const char* source, const char* entryPointName, Stage stage)
 {
+    printf("%s\n", source);
     SlangCompileRequest* slangRequest = spCreateCompileRequest(mSlangSession);
     // spSetDebugInfoLevel(slangRequest, SLANG_DEBUG_INFO_LEVEL_MAXIMAL);
     int targetIndex = spAddCodeGenTarget(slangRequest, SLANG_SPIRV);

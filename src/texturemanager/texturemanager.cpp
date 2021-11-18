@@ -23,25 +23,26 @@ VkFormat getVkFormat(const char* format)
 {
     if ((strcmp(format, "Color") == 0) || (strcmp(format, "Float<4>") == 0))
     {
-        return VK_FORMAT_R8G8B8A8_UNORM;
+        return VK_FORMAT_R32G32B32A32_SFLOAT;
     }
     else if (strcmp(format, "Float<3>") == 0)
     {
-        return VK_FORMAT_R8G8B8_UNORM;
+        return VK_FORMAT_R32G32B32A32_SFLOAT;
     }
     else
     {
-        return VK_FORMAT_R8G8B8A8_UNORM;
+        return VK_FORMAT_R32G32B32A32_SFLOAT;
     }
 }
 
 int nevk::TextureManager::loadTextureMdl(const void* pixels, const uint32_t width, const uint32_t height,  const char* format, const std::string& name)
 {
     VkFormat vkFormat = getVkFormat(format);
+    assert(vkFormat == VK_FORMAT_R32G32B32A32_SFLOAT);
     if (mNameToID.count(name) == 0)
     {
         mNameToID[name] = textures.size();
-        Texture tex = createTextureImage(pixels, vkFormat, width, height);
+        Texture tex = createTextureImage(pixels, 4 * 4, vkFormat, width, height);
         textures.push_back(tex);
         textureImages.push_back(tex.textureImage);
 
@@ -109,7 +110,7 @@ int nevk::TextureManager::findTexture(const std::string& name)
 
 void nevk::TextureManager::createTextureImageView(Texture& texture)
 {
-    textureImageView.push_back(createImageView(mResManager->getVkImage(texture.textureImage), VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT));
+    textureImageView.push_back(mResManager->getView(texture.textureImage));
 }
 
 void nevk::TextureManager::createTextureSampler(TextureSamplerDesc& texSamplerData)

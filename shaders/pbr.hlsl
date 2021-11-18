@@ -199,7 +199,7 @@ float3 cookTorrance(in Material material, in PointData pd, in float2 uv)
     // Shadow b&w
     if (debugView == 2)
     {
-        return float4(dot(N, L) * shadow, 1.0);
+        return float4(float3(dot(N, L) * shadow), 1.0);
     }
     // pcf shadow
     if (debugView == 3)

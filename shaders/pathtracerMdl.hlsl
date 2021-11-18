@@ -138,7 +138,7 @@ float3 pathTrace(uint2 pixelIndex)
 
     mdlState.ro_data_segment_offset = 0;
     mdlState.world_to_object = instConst.objectToWorld;
-    // mdlState.object_to_world = inverse(instConst.objectToWorld); // TODO: replace on precalc
+    mdlState.object_to_world = instConst.worldToObject; // TODO: replace on precalc
     mdlState.object_id = 0;
     mdlState.meters_per_scene_unit = 1.0f;
     mdlState.arg_block_offset = 0;
@@ -178,8 +178,12 @@ float3 pathTrace(uint2 pixelIndex)
     float3 finalColor = float3(0.0f);
     if (evalData.pdf > 0.0f)
     {
-        finalColor = radianceOverPdf * evalData.bsdf_diffuse;
-        //finalColor = radianceOverPdf;
+        const float mis_weight = lightPdf / (lightPdf + evalData.pdf);
+        const float3 w = float3(1.0f) * radianceOverPdf * mis_weight;
+        finalColor += w * evalData.bsdf_diffuse;
+        finalColor += w * evalData.bsdf_glossy;
+        //finalColor = evalData.bsdf_glossy;
+        //finalColor = float3(dot(N, toLight));
     }
 
     return finalColor;

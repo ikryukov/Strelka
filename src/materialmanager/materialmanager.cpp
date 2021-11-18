@@ -141,12 +141,14 @@ bool MaterialManager::prepare_texture(
     }
 
     // This example supports only 2D textures
-    mi::neuraylib::ITarget_code::Texture_shape texture_shape =
-        code->get_texture_shape(texture_index);
+    mi::neuraylib::ITarget_code::Texture_shape texture_shape = code->get_texture_shape(texture_index);
     if (texture_shape == mi::neuraylib::ITarget_code::Texture_shape_2d)
     {
         mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
         mi::Float32 const* data = static_cast<mi::Float32 const*>(tile->get_data());
+        int cpp = image_api->get_components_per_pixel("Color");
+        int bpc = image_api->get_bytes_per_component("Color");
+        int bpp = cpp * bpc;
         uint32_t id = mTexManager->loadTextureMdl(data, tex_width, tex_height, image_type, std::to_string(texture_index));
 
         Mdl_resource_info info{};
@@ -172,6 +174,7 @@ bool MaterialManager::loadTextures(mi::base::Handle<const mi::neuraylib::ITarget
     }
     else
     {
+        mInfo.resize(1);
         return false;
     }
 

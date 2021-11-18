@@ -1129,7 +1129,7 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
     {
         instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
         instanceConsts[i].objectToWorld = sceneInstances[i].transform;
-        //instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
+        instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
         instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
 
         const uint32_t currentMeshId = sceneInstances[i].mMeshId;
@@ -1790,22 +1790,13 @@ void Render::drawFrame()
         bool needBarrier = false;
         if (!sceneInstances.empty())
         {
-            // This struct must match shader's version
-            struct InstanceConstants
-            {
-                glm::float4x4 model;
-                glm::float4x4 normalMatrix;
-                int32_t materialId;
-                int32_t indexOffset;
-                int32_t indexCount;
-                int32_t pad2;
-            };
             std::vector<InstanceConstants> instanceConsts;
             instanceConsts.resize(sceneInstances.size());
             for (uint32_t i = 0; i < sceneInstances.size(); ++i)
             {
                 instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
-                instanceConsts[i].model = sceneInstances[i].transform;
+                instanceConsts[i].objectToWorld = sceneInstances[i].transform;
+                instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
                 instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
 
                 const uint32_t currentMeshId = sceneInstances[i].mMeshId;
