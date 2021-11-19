@@ -126,27 +126,22 @@ float3 pathTrace(uint2 pixelIndex)
     world_tangent = normalize(world_tangent - dot(world_tangent, world_normal) * world_normal);
     float3 world_binormal = cross(world_normal, world_tangent);
 
-    
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-
 
     // setup MDL state
     Shading_state_material mdlState = (Shading_state_material) 0;
-
     mdlState.normal = world_normal;
     mdlState.geom_normal = world_normal;
     mdlState.position = wpos;
     mdlState.animation_time = 0.0f;
     mdlState.tangent_u[0] = world_tangent;
     mdlState.tangent_v[0] = world_binormal;
-
     mdlState.ro_data_segment_offset = 0;
     mdlState.world_to_object = instConst.objectToWorld;
     mdlState.object_to_world = instConst.worldToObject; // TODO: replace on precalc
     mdlState.object_id = 0;
     mdlState.meters_per_scene_unit = 1.0f;
     mdlState.arg_block_offset = 0;
-    
     mdlState.text_coords[0] = float3(matUV, 0);
 
     int scatteringFunctionIndex = 0;
@@ -164,7 +159,6 @@ float3 pathTrace(uint2 pixelIndex)
         return debugN;
     }
 
-    float4 rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
     float3 V = normalize(wpos - ubo.camPos.xyz);
 
     float3 toLight;
@@ -189,10 +183,148 @@ float3 pathTrace(uint2 pixelIndex)
         const float3 w = float3(1.0f) * radianceOverPdf * mis_weight;
         finalColor += w * evalData.bsdf_diffuse;
         finalColor += w * evalData.bsdf_glossy;
-        //finalColor = evalData.bsdf_glossy;
-        //finalColor = float3(dot(N, toLight));
     }
 
+    float4 rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
+
+    Bsdf_sample_data sampleData = (Bsdf_sample_data) 0;
+    sampleData.ior1 = ior1;
+    sampleData.ior2 = ior2;
+    sampleData.k1 = -V;
+    sampleData.xi = rndSample;
+
+    mdl_bsdf_scattering_sample(scatteringFunctionIndex, sampleData, mdlState);
+
+    // generate new ray
+    Ray ray;
+    const float3 offset = world_normal * 1e-6; // need to add small offset to fix self-collision
+    // add check and flip offset for transmission event
+    ray.o = float4(mdlState.position + offset, 1e9);
+    ray.d = float4(sampleData.k2, 0.0);
+
+    Hit hit;
+    hit.t = 0.0;
+    
+    float3 throughput = sampleData.bsdf_over_pdf;
+    
+    int depth = 1;
+    int maxDepth = ubo.maxDepth;
+    while (depth < maxDepth)
+    {
+        if (closestHit(accel, ray, hit))
+        {
+            instConst = accel.instanceConstants[hit.instId];
+            material = materials[instConst.materialId];
+
+            if (material.isLight)
+            {
+                finalColor += throughput * float3(1.0f);
+                //break;
+                depth = maxDepth;
+            }
+            else
+            {
+                uint i0 = accel.ib[instConst.indexOffset + hit.primId * 3 + 0];
+                uint i1 = accel.ib[instConst.indexOffset + hit.primId * 3 + 1];
+                uint i2 = accel.ib[instConst.indexOffset + hit.primId * 3 + 2];
+
+                float3 p0 = mul(instConst.objectToWorld, float4(accel.vb[i0].position, 1.0f)).xyz;
+                float3 p1 = mul(instConst.objectToWorld, float4(accel.vb[i1].position, 1.0f)).xyz;
+                float3 p2 = mul(instConst.objectToWorld, float4(accel.vb[i2].position, 1.0f)).xyz;
+
+                float3 geom_normal = normalize(cross(p1 - p0, p2 - p0));
+
+                float3 n0 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i0].normal));
+                float3 n1 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i1].normal));
+                float3 n2 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i2].normal));
+
+                float3 t0 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i0].tangent));
+                float3 t1 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i1].tangent));
+                float3 t2 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i2].tangent));
+
+                const float2 bcoords = hit.bary;
+
+                float3 world_normal = normalize(interpolateAttrib(n0, n1, n2, bcoords));
+                float3 world_tangent = normalize(interpolateAttrib(t0, t1, t2, bcoords));
+                float3 world_binormal = cross(world_normal, world_tangent);
+
+                float2 uv0 = unpackUV(accel.vb[i0].uv);
+                float2 uv1 = unpackUV(accel.vb[i1].uv);
+                float2 uv2 = unpackUV(accel.vb[i2].uv);
+
+                float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
+
+                // setup MDL state
+                mdlState.normal = world_normal;
+                mdlState.geom_normal = geom_normal;
+                mdlState.position = ray.o.xyz + ray.d.xyz * hit.t; // hit position
+                mdlState.animation_time = 0.0f;
+                mdlState.tangent_u[0] = world_tangent;
+                mdlState.tangent_v[0] = world_binormal;
+                mdlState.ro_data_segment_offset = 0;
+                mdlState.world_to_object = instConst.objectToWorld;
+                mdlState.object_to_world = instConst.worldToObject; // TODO: replace on precalc
+                mdlState.object_id = 0;
+                mdlState.meters_per_scene_unit = 1.0f;
+                mdlState.arg_block_offset = 0;
+                mdlState.text_coords[0] = float3(uvCoord, 0);
+        
+                radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
+
+                Bsdf_evaluate_data evalData = (Bsdf_evaluate_data) 0;
+                evalData.ior1 = ior1;       // IOR current medium
+                evalData.ior2 = ior2;       // IOR other side
+                evalData.k1 = -ray.d.xyz; // outgoing direction
+                evalData.k2 = toLight;      // incoming direction
+                
+                mdl_bsdf_scattering_evaluate(scatteringFunctionIndex, evalData, mdlState);
+
+                if (evalData.pdf > 0.0f)
+                {
+                    const float mis_weight = lightPdf / (lightPdf + evalData.pdf + 1e-5);
+                    const float3 w = throughput * radianceOverPdf * mis_weight;
+                    finalColor += w * evalData.bsdf_diffuse;
+                    finalColor += w * evalData.bsdf_glossy;
+                }
+
+                rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
+
+                Bsdf_sample_data sampleData = (Bsdf_sample_data) 0;
+                sampleData.ior1 = ior1;
+                sampleData.ior2 = ior2;
+                sampleData.k1 = -ray.d.xyz;
+                sampleData.xi = rndSample;
+
+                mdl_bsdf_scattering_sample(scatteringFunctionIndex, sampleData, mdlState);
+
+                throughput *= sampleData.bsdf_over_pdf;
+
+                if (depth > 3)
+                {
+                    float p = max(throughput.r, max(throughput.g, throughput.b));
+                    if (rand(rngState) > p)
+                    {
+                        // break
+                        depth = maxDepth;
+                    }
+                    throughput *= 1.0 / p;
+                }
+
+                const float3 offset = world_normal * 1e-6; // need to add small offset to fix self-collision
+                // add check and flip offset for transmission event
+                ray.o = float4(mdlState.position + offset, 1e9);
+                ray.d = float4(sampleData.k2, 0.0);
+            }
+        }
+        else
+        {
+            // miss - add background color and exit
+            finalColor += throughput * float3(0.f);
+            //break;
+            depth = maxDepth;
+        }
+        ++depth;
+    }
     return finalColor;
 }
 
