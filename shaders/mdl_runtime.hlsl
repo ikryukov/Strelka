@@ -185,7 +185,7 @@ float4 tex_lookup_float4_2d(
     Mdl_resource_info info = mdl_resource_infos[tex - 1]; // assuming this is in bounds
 
     // handle UDIM and/or get texture array index
-    int array_index = info.gpu_resource_array_start;;
+    int array_index = info.gpu_resource_array_start;
     if (array_index < 0) return float4(0, 0, 0, 0); // out of bounds or no UDIM tile
 
     if (wrap_u == TEX_WRAP_CLIP && (coord.x < 0.0 || coord.x >= 1.0))

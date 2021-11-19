@@ -118,23 +118,27 @@ float3 pathTrace(uint2 pixelIndex)
     float3 wpos = gbWPos[pixelIndex].xyz;
 
     float3 N = normalize(gbNormal[pixelIndex].xyz);
-    float3 Tangent = -normalize(gbTangent[pixelIndex].xyz);
-    Tangent = normalize(Tangent - dot(Tangent, N) * N);
-    float3 Bitangent = cross(N, Tangent);
+    float3 world_normal = N;// normalize(mul(float4(N, 0), instConst.worldToObject).xyz);
 
+    float4 tangent0 = gbTangent[pixelIndex];
+    tangent0.xyz = normalize(tangent0.xyz);
+    float3 world_tangent = tangent0.xyz;//normalize(mul(instConst.objectToWorld, float4(tangent0.xyz, 0)).xyz);
+    world_tangent = normalize(world_tangent - dot(world_tangent, world_normal) * world_normal);
+    float3 world_binormal = cross(world_normal, world_tangent);
+
+    
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
 
-    const float ior1 = 1.0f;
-    const float ior2 = BSDF_USE_MATERIAL_IOR;
-    // setup MDL state
-    Shading_state_material mdlState;
 
-    mdlState.normal = N;
-    mdlState.geom_normal = N;
+    // setup MDL state
+    Shading_state_material mdlState = (Shading_state_material) 0;
+
+    mdlState.normal = world_normal;
+    mdlState.geom_normal = world_normal;
     mdlState.position = wpos;
     mdlState.animation_time = 0.0f;
-    mdlState.tangent_u[0] = Tangent;
-    mdlState.tangent_v[0] = Bitangent;
+    mdlState.tangent_u[0] = world_tangent;
+    mdlState.tangent_v[0] = world_binormal;
 
     mdlState.ro_data_segment_offset = 0;
     mdlState.world_to_object = instConst.objectToWorld;
@@ -156,7 +160,7 @@ float3 pathTrace(uint2 pixelIndex)
 
     if (ubo.debug == 1)
     {
-        float3 debugN = (N + 1.0) * 0.5;
+        float3 debugN = (world_normal + 1.0) * 0.5;
         return debugN;
     }
 
@@ -167,18 +171,21 @@ float3 pathTrace(uint2 pixelIndex)
     float lightPdf = 0;
     float3 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
 
-    Bsdf_evaluate_data evalData = (Bsdf_evaluate_data)0;
+    const float ior1 = 1.5f;
+    const float ior2 = 1.5f;
+
+    Bsdf_evaluate_data evalData = (Bsdf_evaluate_data) 0;
     evalData.ior1 = ior1;    // IOR current medium
     evalData.ior2 = ior2;    // IOR other side
     evalData.k1 = -V;        // outgoing direction
-    evalData.k1 = toLight;
+    evalData.k2 = toLight;   // incoming direction
     
     mdl_bsdf_scattering_evaluate(scatteringFunctionIndex, evalData, mdlState);
 
     float3 finalColor = float3(0.0f);
     if (evalData.pdf > 0.0f)
     {
-        const float mis_weight = lightPdf / (lightPdf + evalData.pdf);
+        const float mis_weight = lightPdf / (lightPdf + evalData.pdf + 1e-5);
         const float3 w = float3(1.0f) * radianceOverPdf * mis_weight;
         finalColor += w * evalData.bsdf_diffuse;
         finalColor += w * evalData.bsdf_glossy;

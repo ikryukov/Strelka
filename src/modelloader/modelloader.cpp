@@ -141,7 +141,16 @@ void processPrimitive(const tinygltf::Model& model, nevk::Scene& scene, const ti
         nevk::Scene::Vertex vertex{};
         vertex.pos = glm::make_vec3(&positionData[v * posStride]) * globalScale;
         vertex.normal = packNormal(glm::normalize(glm::vec3(normalsData ? glm::make_vec3(&normalsData[v * normalStride]) : glm::vec3(0.0f))));
-        vertex.uv = packUV(texCoord0Data ? glm::make_vec2(&texCoord0Data[v * texCoord0Stride]) : glm::vec3(0.0f));
+        if (texCoord0Data)
+        {
+            glm::float2 uv = glm::make_vec2(&texCoord0Data[v * texCoord0Stride]);
+            uv.y = 1.0f - uv.y;
+            vertex.uv = packUV(uv);
+        }
+        else
+        {
+            vertex.uv = packUV(glm::float2(0.0f));
+        }
         vertices.push_back(vertex);
         sum += vertex.pos;
     }
