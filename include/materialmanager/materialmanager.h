@@ -23,6 +23,34 @@ namespace nevk
 class MaterialManager
 {
 public:
+
+    struct Module;
+    struct Material;
+    struct TargetCode;
+
+    bool addMdlSearchPath(const char* paths[], uint32_t numPaths);
+
+    Module* createModule(const char* file);
+    void destroyModule(Module* module);
+
+    Material* createMaterial(const Module* module, const char* materialName);
+    void destroyMaterial(Material* material);
+
+    const TargetCode* generateTargetCode(Material* material);
+    const char* getTargetCode(const TargetCode* targetCode);
+
+    uint32_t getReadOnlyBlockSize(const TargetCode* shaderCode);
+    const uint8_t* getReadOnlyBlockData(const TargetCode* targetCode);
+
+    uint32_t getArgBufferSize(const TargetCode* shaderCode);
+    const uint8_t* getArgBufferData(const TargetCode* targetCode);
+    
+    uint32_t getResourceInfoSize(const TargetCode* targetCode);
+    const uint8_t* getResourceInfoData(const TargetCode* targetCode);
+
+    uint32_t getTextureCount(const TargetCode* targetCode);
+    const char* getTextureName(const TargetCode* targetCode, uint32_t index);
+
     MaterialManager(TextureManager* texManager)
         : mTexManager(texManager)
     {
@@ -120,7 +148,8 @@ private:
     // mdl -> hlsl
     std::string mMdlSrc;
     std::string mIdentifier = "carbon_composite"; //todo: the identifier depends on a material file // empty for mtlx mode
-
+    //std::string mIdentifier = "brushed_antique_copper"; //todo: the identifier depends on a material file // empty for mtlx mode
+    
     mi::base::Handle<mi::neuraylib::ICompiled_material> mCompiledMaterial;
     std::vector<const mi::neuraylib::ICompiled_material*> mMaterials;
     mi::base::Handle<const mi::neuraylib::ITarget_code> mTargetHlsl;
