@@ -188,7 +188,8 @@ public:
     const char* getTextureName(const TargetCode* targetCode, uint32_t index)
     {
         assert(index); // index == 0 is invalid
-        return targetCode->targetCode->get_texture_url(index); // not sure about name
+        return targetCode->targetCode->get_texture(index);
+
     }
 
     const float* getTextureData(const TargetCode* targetCode, uint32_t index)

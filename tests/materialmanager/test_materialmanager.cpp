@@ -112,9 +112,8 @@ TEST_CASE("mtlx to mdl code gen test")
         uint32_t width = matMngr->getTextureWidth(code, i);
         uint32_t height = matMngr->getTextureHeight(code, i);
         const char* type = matMngr->getTextureType(code, i);
-        res = -1;
-        res = mTexManager->loadTextureMdl(data, width, height, type, to_string(i));
-        CHECK(res != -1);
+        std::string name = matMngr->getTextureName(code, i);
+        mTexManager->loadTextureMdl(data, width, height, type, name);
     }
 
     CHECK(mTexManager->textures.size() == 7);

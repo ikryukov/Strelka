@@ -84,15 +84,40 @@ void Render::initVulkan()
     mView[0] = createView(swapChainExtent.width, swapChainExtent.height);
     mView[1] = createView(swapChainExtent.width, swapChainExtent.height);
     mView[2] = createView(swapChainExtent.width, swapChainExtent.height);
-}
 
-void Render::initPasses(){
     mSharedCtx.mDescriptorPool = mDescriptorPool;
     mSharedCtx.mDevice = mDevice;
     mSharedCtx.mResManager = mResManager;
     mSharedCtx.mShaderManager = &mShaderManager;
     mSharedCtx.mTextureManager = mTexManager;
 
+    TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
+    mTexManager->createTextureSampler(defSamplerDesc);
+    modelLoader = new nevk::ModelLoader(mTexManager);
+
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        mUploadBuffer[i] = mResManager->createBuffer(MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    }
+
+    mTexManager->createShadowSampler();
+    QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
+
+    ImGui_ImplVulkan_InitInfo init_info{};
+    init_info.DescriptorPool = mDescriptorPool;
+    init_info.Device = mDevice;
+    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
+    init_info.Instance = mInstance;
+    init_info.MinImageCount = 2;
+    init_info.PhysicalDevice = mPhysicalDevice;
+    init_info.Queue = mGraphicsQueue;
+    init_info.QueueFamily = indicesFamily.graphicsFamily.value();
+
+    mUi.init(init_info, swapChainImageFormat, mWindow, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
+    mUi.createFrameBuffers(mDevice, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
+}
+
+void Render::initPasses(){
     mDebugView = new DebugView(mSharedCtx);
     mDebugView->initialize();
 
@@ -132,10 +157,6 @@ void Render::initPasses(){
     mAccumulationPathTracer = new Accumulation(mSharedCtx);
     mAccumulationPathTracer->initialize();
 
-    TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
-    mTexManager->createTextureSampler(defSamplerDesc);
-    modelLoader = new nevk::ModelLoader(mTexManager);
-
     // Material manager
     const fs::path cwd = fs::current_path();
     std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
@@ -167,36 +188,14 @@ void Render::initPasses(){
     }
     // Workaround:
     mCurrentSceneRenderData->mMaterialTargetCode = code;
+
     createMdlBuffers();
-
-    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        mUploadBuffer[i] = mResManager->createBuffer(MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    }
-
-    mCurrentSceneRenderData->mMaterialTargetCode = code;
-
-    mTexManager->createShadowSampler();
 
     createGbufferPass();
 
     setDescriptors(0);
-
-    QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
-
-    ImGui_ImplVulkan_InitInfo init_info{};
-    init_info.DescriptorPool = mDescriptorPool;
-    init_info.Device = mDevice;
-    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
-    init_info.Instance = mInstance;
-    init_info.MinImageCount = 2;
-    init_info.PhysicalDevice = mPhysicalDevice;
-    init_info.Queue = mGraphicsQueue;
-    init_info.QueueFamily = indicesFamily.graphicsFamily.value();
-
-    mUi.init(init_info, swapChainImageFormat, mWindow, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
-    mUi.createFrameBuffers(mDevice, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
 }
+
 void Render::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
     if (width == 0 || height == 0)
