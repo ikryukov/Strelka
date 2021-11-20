@@ -15,7 +15,7 @@ namespace nevk
 class MdlHlslCodeGen
 {
 public:
-    explicit MdlHlslCodeGen(nevk::TextureManager* texManager) : mTexManager(texManager){};
+    explicit MdlHlslCodeGen(){};
     bool init(MdlRuntime& runtime);
 
     struct InternalMaterialInfo
@@ -32,7 +32,6 @@ private:
                                   const mi::neuraylib::ICompiled_material* compiledMaterial,
                                   mi::neuraylib::ILink_unit* linkUnit, mi::Size& argBlockIndex);
 
-    nevk::TextureManager* mTexManager = nullptr;
     std::unique_ptr<MdlNeurayLoader> mLoader;
 
     mi::base::Handle<MdlLogger> mLogger;

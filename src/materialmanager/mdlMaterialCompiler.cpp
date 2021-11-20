@@ -26,36 +26,25 @@ MdlMaterialCompiler::MdlMaterialCompiler(MdlRuntime& runtime)
     mImpExpApi = mi::base::Handle<mi::neuraylib::IMdl_impexp_api>(runtime.getImpExpApi());
 }
 
-bool MdlMaterialCompiler::compileMaterial(const std::string& src,
-                                          const std::string& identifier,
-                                          mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial)
+bool MdlMaterialCompiler::createModule(const std::string& identifier,
+                                       const char* mdlSrc, std::string& moduleName)
 {
     mi::base::Handle<mi::neuraylib::IMdl_execution_context> context(mFactory->create_execution_context());
 
-    std::string moduleName = _makeModuleName(identifier);
+    moduleName = _makeModuleName(identifier);
 
-    bool result = createModule(context.get(), moduleName.c_str(), src.c_str()) &&
-        createCompiledMaterial(context.get(), moduleName.c_str(), identifier, compiledMaterial);
-
-    mLogger->flushContextMessages(context.get());
-
-    return result;
-}
-
-bool MdlMaterialCompiler::createModule(mi::neuraylib::IMdl_execution_context* context,
-                                       const char* moduleName,
-                                       const char* mdlSrc)
-{
-    mi::Sint32 result = mImpExpApi->load_module(mTransaction.get(), moduleName, context); // if mdl -> hlsl
+    mi::Sint32 result = mImpExpApi->load_module(mTransaction.get(), moduleName.c_str(), context.get()); // if mdl -> hlsl
     // mi::Sint32 result = m_impExpApi->load_module_from_string(m_transaction.get(), moduleName, mdlSrc, context); //if mtlx -> hlsl
+    mLogger->flushContextMessages(context.get());
     return result == 0 || result == 1;
 }
 
-bool MdlMaterialCompiler::createCompiledMaterial(mi::neuraylib::IMdl_execution_context* context,
-                                                 const char* moduleName,
-                                                 const std::string& identifier,
+bool MdlMaterialCompiler::createCompiledMaterial(const char* moduleName,
+                                                 const char* identifier,
                                                  mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial)
 {
+    mi::base::Handle<mi::neuraylib::IMdl_execution_context> context(mFactory->create_execution_context());
+
     mi::base::Handle<const mi::IString> moduleDbName(mFactory->get_db_module_name(moduleName));
     mi::base::Handle<const mi::neuraylib::IModule> module(mTransaction->access<mi::neuraylib::IModule>(moduleDbName->get_c_str()));
     assert(module);
@@ -90,7 +79,9 @@ bool MdlMaterialCompiler::createCompiledMaterial(mi::neuraylib::IMdl_execution_c
     }
 
     auto flags = mi::neuraylib::IMaterial_instance::DEFAULT_OPTIONS; // Instance compilation, no class compilation.
-    compiledMaterial = mi::base::Handle<mi::neuraylib::ICompiled_material>(matInstance->create_compiled_material(flags, context));
+    compiledMaterial = mi::base::Handle<mi::neuraylib::ICompiled_material>(matInstance->create_compiled_material(flags, context.get()));
+
+    mLogger->flushContextMessages(context.get());
     return true;
 }
 }

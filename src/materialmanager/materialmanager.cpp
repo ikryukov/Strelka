@@ -1,5 +1,14 @@
 #include "materialmanager.h"
 
+#include "ShaderManager.h"
+#include "materials.h"
+#include "mdlHlslCodeGen.h"
+#include "mdlLogger.h"
+#include "mdlMaterialCompiler.h"
+#include "mdlNeurayLoader.h"
+#include "mdlRuntime.h"
+#include "mtlxMdlCodeGen.h"
+
 #include <MaterialXCore/Definition.h>
 #include <MaterialXCore/Document.h>
 #include <MaterialXCore/Library.h>
@@ -12,11 +21,398 @@
 #include <MaterialXGenShader/GenOptions.h>
 #include <MaterialXGenShader/Library.h>
 #include <MaterialXGenShader/Shader.h>
+#include <MaterialXGenShader/ShaderGenerator.h>
 #include <MaterialXGenShader/Util.h>
+#include <mi/mdl_sdk.h>
+
+#include <filesystem>
+#include <iostream>
+
+namespace fs = std::filesystem;
+
 
 namespace nevk
 {
-std::vector<uint8_t> MaterialManager::loadArgBlocks()
+struct MaterialManager::Module
+{
+    std::string moduleName;
+    std::string identifier;
+};
+
+struct MaterialManager::Material
+{
+    mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
+};
+
+struct MaterialManager::TargetCode
+{
+    mi::base::Handle<const mi::neuraylib::ITarget_code> targetCode;
+    std::string targetHlsl;
+    std::vector<Mdl_resource_info> resourceInfo;
+    std::vector<nevk::MdlHlslCodeGen::InternalMaterialInfo> internalsInfo;
+    std::vector<uint8_t> argBlockData;
+    std::vector<uint8_t> roData;
+};
+
+class MaterialManager::Context
+{
+public:
+    Context()
+    {
+        configurePaths(false);
+    };
+
+    ~Context(){};
+
+
+    bool addMdlSearchPath(const char* paths[], uint32_t numPaths)
+    { // resource path + mdl path
+        mRuntime = new nevk::MdlRuntime();
+        if (!mRuntime->init(paths, numPaths, mPathso.c_str(), mImagePluginPath.c_str()))
+        {
+            return false;
+        }
+
+        mNeuray = mRuntime->getNeuray();
+        return true;
+    }
+
+    Module* createModule(const char* file)
+    {
+        Module* module = new Module;
+
+        const fs::path materialFile = file;
+        module->identifier = materialFile.stem();
+
+        mMatCompiler = new nevk::MdlMaterialCompiler(*mRuntime);
+        if (!mMatCompiler->createModule(module->identifier, mMdlSrc.c_str(), module->moduleName))
+        {
+            return nullptr;
+        }
+
+        return module;
+    };
+
+    void destroyModule(Module* module)
+    {
+        assert(module);
+        delete module;
+    };
+
+    Material* createMaterial(const Module* module, const char* materialName)
+    {
+        assert(module);
+        assert(materialName);
+
+        Material* material = new Material;
+        if (!mMatCompiler->createCompiledMaterial(module->moduleName.c_str(), materialName, material->compiledMaterial)) // need to be checked for dif material names in module. it should be different module names for dif. materials in case of mdl -> hlsl
+        {
+            return nullptr;
+        }
+
+        return material;
+    };
+
+    void destroyMaterial(Material* materials)
+    {
+        delete materials;
+    }
+
+    const TargetCode* generateTargetCode(const std::vector<Material*>& materials)
+    {
+        TargetCode* targetCode = new TargetCode;
+
+        mCodeGen = new MdlHlslCodeGen();
+        mCodeGen->init(*mRuntime);
+
+        std::vector<const mi::neuraylib::ICompiled_material*> compiledMaterials;
+        for (auto& material : materials)
+        {
+            compiledMaterials.push_back(material->compiledMaterial.get());
+        }
+
+        targetCode->targetCode = mCodeGen->translate(compiledMaterials, targetCode->targetHlsl, targetCode->internalsInfo);
+        targetCode->argBlockData = loadArgBlocks(targetCode);
+        targetCode->roData = loadROData(targetCode);
+
+        targetCode->resourceInfo.resize(targetCode->targetCode->get_texture_count());
+        for (uint32_t i = 0; i < targetCode->targetCode->get_texture_count(); ++i)
+        {
+            targetCode->resourceInfo[i].gpu_resource_array_start = i;
+        }
+
+        return targetCode;
+    };
+
+    const char* getShaderCode(const TargetCode* targetCode) // get shader code
+    {
+        return targetCode->targetHlsl.c_str();
+    }
+
+    uint32_t getReadOnlyBlockSize(const TargetCode* shaderCode)
+    {
+        return shaderCode->argBlockData.size();
+    }
+
+    const uint8_t* getReadOnlyBlockData(const TargetCode* targetCode)
+    {
+        return targetCode->roData.data();
+    }
+
+    uint32_t getArgBufferSize(const TargetCode* shaderCode)
+    {
+        return shaderCode->argBlockData.size();
+    }
+    const uint8_t* getArgBufferData(const TargetCode* targetCode)
+    {
+        return targetCode->argBlockData.data();
+    }
+
+    uint32_t getResourceInfoSize(const TargetCode* targetCode)
+    {
+        return targetCode->internalsInfo.size();
+    }
+
+    const uint8_t* getResourceInfoData(const TargetCode* targetCode)
+    {
+        return reinterpret_cast<const uint8_t*>(targetCode->resourceInfo.data());
+    }
+
+    uint32_t getTextureCount(const TargetCode* targetCode)
+    {
+        return targetCode->targetCode->get_texture_count();
+    }
+
+    const char* getTextureName(const TargetCode* targetCode, uint32_t index)
+    {
+        return targetCode->targetCode->get_texture_url(index); // not sure about name
+    }
+
+    const float* getTextureData(const TargetCode* targetCode, uint32_t index)
+    {
+        mi::base::Handle<const mi::neuraylib::ITexture> texture(
+            mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
+        mi::base::Handle<const mi::neuraylib::IImage> image(
+            mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
+        mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
+        mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
+
+        //todo:: convert
+        mi::Float32 const* data = static_cast<mi::Float32 const*>(tile->get_data());
+
+        return data;
+    }
+
+    const char* getTextureType(const TargetCode* targetCode, uint32_t index)
+    {
+        mi::base::Handle<const mi::neuraylib::ITexture> texture(
+            mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
+        mi::base::Handle<const mi::neuraylib::IImage> image(
+            mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
+        char const* imageType = image->get_type();
+
+        return imageType;
+    }
+
+    uint32_t getTextureWidth(const TargetCode* targetCode, uint32_t index)
+    {
+        mi::base::Handle<const mi::neuraylib::ITexture> texture(
+            mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
+        mi::base::Handle<const mi::neuraylib::IImage> image(
+            mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
+        mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
+        mi::Uint32 texWidth = canvas->get_resolution_x();
+
+        return texWidth;
+    }
+
+    uint32_t getTextureHeight(const TargetCode* targetCode, uint32_t index)
+    {
+        mi::base::Handle<const mi::neuraylib::ITexture> texture(
+            mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
+        mi::base::Handle<const mi::neuraylib::IImage> image(
+            mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
+        mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
+        mi::Uint32 texHeight = canvas->get_resolution_y();
+
+        return texHeight;
+    }
+
+    uint32_t getTextureBytesPerTexel(const TargetCode* targetCode, uint32_t index)
+    {
+        mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
+
+        mi::base::Handle<const mi::neuraylib::ITexture> texture(
+            mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
+        mi::base::Handle<const mi::neuraylib::IImage> image(
+            mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
+        char const* imageType = image->get_type();
+
+        int cpp = image_api->get_components_per_pixel(imageType);
+        int bpc = image_api->get_bytes_per_component(imageType);
+        int bpp = cpp * bpc;
+
+        return bpp;
+    }
+
+private:
+    std::vector<std::string> mMdlPaths;
+    std::string mResourcePath;
+    std::string mImagePluginPath;
+    std::string mPathso;
+    std::string mMdlSrc;
+    std::string hlslCode;
+
+    void configurePaths(bool isMtlx)
+    {
+        using namespace std;
+        const fs::path cwd = fs::current_path();
+
+        if (isMtlx)
+        {
+            // mdlPaths.emplace_back("/Users/jswark/school/USD_Build/mdl/");
+            // resourcePath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface"; // for mtlx
+        }
+        else
+        {
+            std::string pathToMdlLib = cwd.string() + "/misc/test_data/mdl/"; // if mdl -> hlsl
+            std::string pathToCoreLib = cwd.string() + "/misc/test_data/mdl";
+            mMdlPaths.push_back(pathToMdlLib);
+            mMdlPaths.push_back(pathToCoreLib);
+            mResourcePath = cwd.string() + "/misc/test_data/mdl/resources"; // path to the textures
+            mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
+        }
+#ifdef MI_PLATFORM_WINDOWS
+        mPathso = cwd.string();
+        mImagePluginPath = cwd.string() + "/nv_freeimage.dll";
+#else
+        mPathso = cwd.string();
+        mImagePluginPath = cwd.string() + "/nv_freeimage.so";
+#endif
+    }
+
+    nevk::MdlHlslCodeGen* mCodeGen = nullptr;
+    nevk::MdlMaterialCompiler* mMatCompiler = nullptr;
+    nevk::MdlRuntime* mRuntime = nullptr;
+    nevk::MtlxMdlCodeGen* mMtlxCodeGen = nullptr;
+
+    mi::base::Handle<mi::neuraylib::ITransaction> mTransaction;
+    mi::base::Handle<MdlLogger> mLogger;
+    mi::base::Handle<mi::neuraylib::INeuray> mNeuray;
+
+    std::vector<uint8_t> loadArgBlocks(const TargetCode* targetCode);
+    std::vector<uint8_t> loadROData(const TargetCode* targetCode);
+};
+
+MaterialManager::MaterialManager()
+{
+    mContext = std::make_unique<Context>();
+}
+
+MaterialManager::~MaterialManager()
+{
+    mContext.reset(nullptr);
+};
+
+bool MaterialManager::addMdlSearchPath(const char** paths, uint32_t numPaths)
+{
+    return mContext->addMdlSearchPath(paths, numPaths);
+}
+MaterialManager::Module* MaterialManager::createModule(const char* file)
+{
+    return mContext->createModule(file);
+}
+void MaterialManager::destroyModule(MaterialManager::Module* module)
+{
+    return mContext->destroyModule(module);
+}
+
+MaterialManager::Material* MaterialManager::createMaterial(const MaterialManager::Module* module, const char* materialName)
+{
+    return mContext->createMaterial(module, materialName);
+}
+
+void MaterialManager::destroyMaterial(Material* materials)
+{
+    return mContext->destroyMaterial(materials);
+}
+
+const MaterialManager::TargetCode* MaterialManager::generateTargetCode(const std::vector<MaterialManager::Material*>& materials)
+{
+    return mContext->generateTargetCode(materials);
+}
+
+const char* MaterialManager::getShaderCode(const TargetCode* targetCode) // get shader code
+{
+    return mContext->getShaderCode(targetCode);
+}
+
+uint32_t MaterialManager::getReadOnlyBlockSize(const TargetCode* shaderCode)
+{
+    return mContext->getReadOnlyBlockSize(shaderCode);
+}
+
+const uint8_t* MaterialManager::getReadOnlyBlockData(const TargetCode* targetCode)
+{
+    return mContext->getReadOnlyBlockData(targetCode);
+}
+
+uint32_t MaterialManager::getArgBufferSize(const TargetCode* shaderCode)
+{
+    return mContext->getArgBufferSize(shaderCode);
+}
+
+const uint8_t* MaterialManager::getArgBufferData(const TargetCode* targetCode)
+{
+    return mContext->getArgBufferData(targetCode);
+}
+
+uint32_t MaterialManager::getResourceInfoSize(const TargetCode* targetCode)
+{
+    return mContext->getResourceInfoSize(targetCode);
+}
+
+const uint8_t* MaterialManager::getResourceInfoData(const TargetCode* targetCode)
+{
+    return mContext->getResourceInfoData(targetCode);
+}
+
+uint32_t MaterialManager::getTextureCount(const TargetCode* targetCode)
+{
+    return mContext->getTextureCount(targetCode);
+}
+
+const char* MaterialManager::getTextureName(const TargetCode* targetCode, uint32_t index)
+{
+    return mContext->getTextureName(targetCode, index);
+}
+
+const float* MaterialManager::getTextureData(const TargetCode* targetCode, uint32_t index)
+{
+    return mContext->getTextureData(targetCode, index);
+}
+
+const char* MaterialManager::getTextureType(const TargetCode* targetCode, uint32_t index)
+{
+    return mContext->getTextureType(targetCode, index);
+}
+
+uint32_t MaterialManager::getTextureWidth(const TargetCode* targetCode, uint32_t index)
+{
+    return mContext->getTextureWidth(targetCode, index);
+}
+
+uint32_t MaterialManager::getTextureHeight(const TargetCode* targetCode, uint32_t index)
+{
+    return mContext->getTextureHeight(targetCode, index);
+}
+
+uint32_t MaterialManager::getTextureBytesPerTexel(const TargetCode* targetCode, uint32_t index)
+{
+    return mContext->getTextureBytesPerTexel(targetCode, index);
+}
+
+std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(const TargetCode* targetCode)
 {
     /* for (int i = 0; i < materials.size(); i++)
      {
@@ -55,45 +451,44 @@ std::vector<uint8_t> MaterialManager::loadArgBlocks()
          }
      }*/
 
-    mArgBlockData.resize(4);
-    return mArgBlockData;
+    std::vector<uint8_t> argBlockData;
+    argBlockData.resize(4);
+    return argBlockData;
 };
 
-std::vector<uint8_t> MaterialManager::loadROData()
+std::vector<uint8_t> MaterialManager::Context::loadROData(const TargetCode* targetCode)
 {
+    std::vector<uint8_t> roData;
+
     size_t ro_data_seg_index = 0; // assuming one material per target code only
-    if (mTargetHlsl->get_ro_data_segment_count() > 0)
+    if (targetCode->targetCode->get_ro_data_segment_count() > 0)
     {
-        const char* data = mTargetHlsl->get_ro_data_segment_data(ro_data_seg_index);
-        size_t dataSize = mTargetHlsl->get_ro_data_segment_size(ro_data_seg_index);
-        const char* name = mTargetHlsl->get_ro_data_segment_name(ro_data_seg_index);
+        const char* data = targetCode->targetCode->get_ro_data_segment_data(ro_data_seg_index);
+        size_t dataSize = targetCode->targetCode->get_ro_data_segment_size(ro_data_seg_index);
+        const char* name = targetCode->targetCode->get_ro_data_segment_name(ro_data_seg_index);
 
-        std::cerr << name << std::endl;
+       // std::cerr << name << std::endl;
 
-        mRoData.resize(dataSize);
+        roData.resize(dataSize);
         if (dataSize != 0)
         {
-            memcpy(mRoData.data(), data, dataSize);
+            memcpy(roData.data(), data, dataSize);
         }
     }
 
-    if (mRoData.empty())
+    if (roData.empty())
     {
-        mRoData.resize(4);
+        roData.resize(4);
     }
 
-    return mRoData;
+    return roData;
 }
 
-bool MaterialManager::createSampler()
-{
 
-
-    return true;
-}
 // Prepare the texture identified by the texture_index for use by the texture access functions
 // on the GPU.
-bool MaterialManager::prepare_texture(
+/*
+bool MaterialManager::Context::prepare_texture(
     const mi::base::Handle<mi::neuraylib::ITransaction>& transaction,
     const mi::base::Handle<mi::neuraylib::IImage_api>& image_api,
     const mi::base::Handle<const mi::neuraylib::ITarget_code>& code,
@@ -113,13 +508,13 @@ bool MaterialManager::prepare_texture(
     if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1)
     {
         mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
-        return false;
+        // return 0;
     }
 
     if (tex_layers != 1)
     {
         mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support layered images!");
-        return false;
+        // return 0;
     }
 
     // For simplicity, the texture access functions are only implemented for float4 and gamma
@@ -149,21 +544,22 @@ bool MaterialManager::prepare_texture(
         int cpp = image_api->get_components_per_pixel("Color");
         int bpc = image_api->get_bytes_per_component("Color");
         int bpp = cpp * bpc;
+
         uint32_t id = mTexManager->loadTextureMdl(data, tex_width, tex_height, image_type, std::to_string(texture_index));
 
         Mdl_resource_info info{};
         info.gpu_resource_array_start = id;
         mInfo.push_back(info);
+
     }
-
-    return true;
-}
-
+} */
+/*
 bool MaterialManager::loadTextures(mi::base::Handle<const mi::neuraylib::ITarget_code>& targetCode)
 {
     // Acquire image API needed to prepare the textures
     mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
 
+    std::vector<TextureDesc> moduleTextures;
     if (targetCode->get_texture_count() > 0)
     {
         for (int i = 1; i < targetCode->get_texture_count(); ++i)
@@ -174,10 +570,11 @@ bool MaterialManager::loadTextures(mi::base::Handle<const mi::neuraylib::ITarget
     }
     else
     {
-        mInfo.resize(1);
-        return false;
+         //mInfo.resize(1);
+         return false;
     }
 
     return true;
 }
+*/
 } // namespace nevk

@@ -17,8 +17,7 @@ MdlRuntime::~MdlRuntime()
     }
 }
 
-bool MdlRuntime::init(const char* resourcePath, const char* neurayPath,
-                      const std::vector<std::string>& mdlModulesPaths, const char* imagePluginPath)
+bool MdlRuntime::init(const char* paths[], uint32_t numPaths, const char* neurayPath, const char* imagePluginPath)
 {
     mLoader = std::make_unique<MdlNeurayLoader>();
     if (!mLoader->init(neurayPath, imagePluginPath))
@@ -32,17 +31,11 @@ bool MdlRuntime::init(const char* resourcePath, const char* neurayPath,
     mLogger = mi::base::Handle<MdlLogger>(new MdlLogger());
     config->set_logger(mLogger.get());
 
-    for (const std::string & mdlModulesPath : mdlModulesPaths) {
-        if (config->add_mdl_path(mdlModulesPath.c_str()) != 0 || config->add_resource_path(mdlModulesPath.c_str()) != 0) {
+    for (uint32_t i = 0; i < numPaths; i++){
+        if (config->add_mdl_path(paths[i]) != 0 || config->add_resource_path(paths[i]) != 0) {
             mLogger->message(mi::base::MESSAGE_SEVERITY_FATAL, "MDL file path not found, translation not possible");
             return false;
         }
-    }
-
-    if (config->add_resource_path(resourcePath))
-    {
-        mLogger->message(mi::base::MESSAGE_SEVERITY_FATAL, "Resource path not found, translation not possible");
-        return false;
     }
 
     mDatabase = mi::base::Handle<mi::neuraylib::IDatabase>(neuray->get_api_component<mi::neuraylib::IDatabase>());

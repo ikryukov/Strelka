@@ -1,17 +1,11 @@
 #include "materialmanager.h"
-#include "mdlHlslCodeGen.h"
-#include "mdlMaterialCompiler.h"
-#include "mdlNeurayLoader.h"
-#include "mdlRuntime.h"
-#include "mtlxMdlCodeGen.h"
-#include "shadermanager/ShaderManager.h"
 
 #include <render/render.h>
 
 #include <doctest.h>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <filesystem>
 
 using namespace nevk;
 namespace fs = std::filesystem;
@@ -67,38 +61,55 @@ TEST_CASE("mtlx to mdl code gen test")
     using namespace std;
     const fs::path cwd = fs::current_path();
     cout << cwd.c_str() << endl;
-    
+
     std::string mdlFile = "material.mdl";
     std::ofstream mdlMaterial(mdlFile.c_str());
 
     std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
     std::ofstream outHLSLShaderFile(ptFile.c_str());
 
+    MaterialManager* matMngr = new MaterialManager();
+    CHECK(matMngr);
+    const char* path[2] = { "misc/test_data/mdl", "misc/test_data/mdl/resources" };
+    bool res = matMngr->addMdlSearchPath(path, 2);
+    CHECK(res);
+    MaterialManager::Module* currModule = matMngr->createModule("carbon_composite.mdl");
+    CHECK(currModule);
+    MaterialManager::Material* material = matMngr->createMaterial(currModule, "carbon_composite");
+    CHECK(material);
+    std::vector<MaterialManager::Material*> materials;
+    materials.push_back(material);
+    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials);
+    CHECK(code);
+    const char* hlsl = matMngr->getShaderCode(code);
+    std::cout << hlsl << std::endl;
+
+    uint32_t size = matMngr->getArgBufferSize(code);
+    CHECK(size != 0);
+    size = matMngr->getArgBufferSize(code);
+    CHECK(size != 0);
+    size = matMngr->getResourceInfoSize(code);
+    CHECK(size != 0);
+
     Render r;
     r.HEIGHT = 600;
     r.WIDTH = 800;
     r.initWindow();
     r.initVulkan();
+
     nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
+    uint32_t texSize = matMngr->getTextureCount(code);
+    for (uint32_t i = 0; i < texSize; ++i)
+    {
+        const float* data = matMngr->getTextureData(code, i);
+        uint32_t width = matMngr->getTextureWidth(code, i);
+        uint32_t height = matMngr->getTextureHeight(code, i);
+        const char* type = matMngr->getTextureType(code, i);
+        res = mTexManager->loadTextureMdl(data, width, height, type, to_string(i));
+        CHECK(res);
+    }
 
-    MaterialManager* matMngr = new MaterialManager(mTexManager);
-
-    CHECK(mTexManager->textures.size() == 3);
+    CHECK(mTexManager->textures.size() == 3); // not sure
     CHECK(mTexManager->textures[0].texWidth == 512);
     CHECK(mTexManager->textures[0].texHeight == 512);
-
-    std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
-    std::stringstream ptcode;
-    ptcode << pt.rdbuf();
-
-    nevk::ShaderManager* sm = new nevk::ShaderManager();
-    std::string newPTfile = matMngr->hlslCode + "\n" + ptcode.str();
-    uint32_t shaderIdString = sm->loadShaderFromString(newPTfile.c_str(), "computeMain", nevk::ShaderManager::Stage::eCompute);
-    CHECK(shaderIdString != -1);
-
-    outHLSLShaderFile << newPTfile << std::endl;
-    outHLSLShaderFile.close();
-
-    uint32_t shaderIdFile = sm->loadShader(ptFile.c_str(), "computeMain", nevk::ShaderManager::Stage::eCompute);
-    CHECK(shaderIdFile != -1);
 }

@@ -25,14 +25,11 @@ public:
                          const std::string& identifier,
                          mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial);
 
-private:
-    bool createModule(mi::neuraylib::IMdl_execution_context* context,
-                      const char* moduleName,
-                      const char* mdlSrc);
+    bool createModule(const std::string& identifier,
+                      const char* mdlSrc, std::string& moduleName);
 
-    bool createCompiledMaterial(mi::neuraylib::IMdl_execution_context* context,
-                                const char* moduleName,
-                                const std::string& identifier,
+    bool createCompiledMaterial(const char* moduleName,
+                                const char* identifier,
                                 mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial);
 
 private:

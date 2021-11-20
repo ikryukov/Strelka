@@ -22,8 +22,7 @@ public:
     ~MdlRuntime();
 
 public:
-    bool init(const char* resourcePath, const char* neurayPath,
-              const std::vector<std::string>& mdlModulesPaths, const char* imagePluginPath);
+    bool init(const char* paths[], uint32_t numPaths, const char* neurayPath, const char* imagePluginPath);
 
     mi::base::Handle<MdlLogger> getLogger();
     mi::base::Handle<mi::neuraylib::IDatabase> getDatabase();
