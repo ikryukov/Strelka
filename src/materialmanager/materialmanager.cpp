@@ -82,7 +82,7 @@ public:
         Module* module = new Module;
 
         const fs::path materialFile = file;
-        module->identifier = materialFile.stem();
+        module->identifier = materialFile.stem().string();
 
         mMatCompiler = new nevk::MdlMaterialCompiler(*mRuntime);
         if (!mMatCompiler->createModule(module->identifier, mMdlSrc.c_str(), module->moduleName))

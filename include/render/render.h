@@ -295,6 +295,8 @@ private:
         Buffer* mLightsBuffer = nullptr;
         Buffer* mBvhNodeBuffer = nullptr;
 
+        const MaterialManager::TargetCode* mMaterialTargetCode = nullptr;
+        
         Buffer* mMdlArgBuffer = nullptr;
         Buffer* mMdlRoBuffer = nullptr;
         Buffer* mMdlInfoBuffer = nullptr;

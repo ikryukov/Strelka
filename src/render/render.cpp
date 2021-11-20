@@ -8,6 +8,8 @@
 
 #include <chrono>
 #include <filesystem>
+#include <sstream>
+#include <fstream>
 
 // profiler
 #include "Tracy.hpp"
@@ -113,8 +115,6 @@ void Render::initVulkan()
     mRtShadow = new RtShadowPass(mSharedCtx);
     mRtShadow->initialize();
 
-
-
     mReflection = new Reflection(mSharedCtx);
     mReflection->initialize();
 
@@ -134,14 +134,24 @@ void Render::initVulkan()
     mTexManager->createTextureSampler(defSamplerDesc);
     modelLoader = new nevk::ModelLoader(mTexManager);
     
+    // Material manager
     const fs::path cwd = fs::current_path();
     std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
     std::stringstream ptcode;
     ptcode << pt.rdbuf();
 
-    mMaterialManager = new MaterialManager(mTexManager);
+    mMaterialManager = new MaterialManager();
+    const char* path[2] = { "misc/test_data/mdl", "misc/test_data/mdl/resources" };
+    mMaterialManager->addMdlSearchPath(path, 2);
+    MaterialManager::Module* currModule = mMaterialManager->createModule("carbon_composite.mdl");
+    MaterialManager::Material* material = mMaterialManager->createMaterial(currModule, "carbon_composite");
+    std::vector<MaterialManager::Material*> materials;
+    materials.push_back(material);
+    const MaterialManager::TargetCode* code = mMaterialManager->generateTargetCode(materials);
+    const char* hlsl = mMaterialManager->getShaderCode(code);
+    std::cout << hlsl << std::endl;
 
-    std::string newPTCode = mMaterialManager->hlslCode + "\n" + ptcode.str();
+    std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
 
     mPathTracer = new PathTracer(mSharedCtx, newPTCode);
     mPathTracer->initialize();
@@ -149,14 +159,20 @@ void Render::initVulkan()
     createDefaultScene();
     if (!MODEL_PATH.empty())
     {
+        // Workaround:
         //mTexManager->saveTexturesInDelQueue();
         loadScene(MODEL_PATH);
     }
+    // Workaround:
+    mCurrentSceneRenderData->mMaterialTargetCode = code;
+    createMdlBuffers();
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         mUploadBuffer[i] = mResManager->createBuffer(MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
+
+    mCurrentSceneRenderData->mMaterialTargetCode = code;
 
     mTexManager->createShadowSampler();
 
@@ -955,25 +971,27 @@ void Render::setCamera()
 
 void nevk::Render::createMdlBuffers()
 {
-    std::vector<uint8_t>& args = mMaterialManager->mArgBlockData;
-    std::vector<uint8_t>& ro = mMaterialManager->mRoData;
-    std::vector<Mdl_resource_info>& infos = mMaterialManager->mInfo;
-    VkDeviceSize bufferSize = std::max(ro.size() * sizeof(uint8_t), std::max(args.size() * sizeof(uint8_t), infos.size() * sizeof(Mdl_resource_info)));
+    const MaterialManager::TargetCode* code = mCurrentSceneRenderData->mMaterialTargetCode;
+    mMaterialManager->getArgBufferData(code);
+
+    const uint32_t argSize = mMaterialManager->getArgBufferSize(code);
+    const uint32_t roSize = mMaterialManager->getReadOnlyBlockSize(code);
+    const uint32_t infoSize = mMaterialManager->getResourceInfoSize(code);
     
-    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VkDeviceSize stagingSize = std::max(roSize, std::max(argSize, infoSize));
+    
+    Buffer* stagingBuffer = mResManager->createBuffer(stagingSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, "Staging MDL");
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     
-    memcpy(stagingBufferMemory, args.data(), args.size() * sizeof(uint8_t));
-    mCurrentSceneRenderData->mMdlArgBuffer = mResManager->createBuffer(args.size() * sizeof(uint8_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: arg");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMdlArgBuffer), args.size() * sizeof(uint8_t));
+    auto createGpuBuffer = [&](Buffer*& dest, const uint8_t* src, uint32_t size, const char* name) {
+        memcpy(stagingBufferMemory, src, size);
+        dest = mResManager->createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, name);
+        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(dest), size);
+    };
 
-    memcpy(stagingBufferMemory, ro.data(), ro.size() * sizeof(uint8_t));
-    mCurrentSceneRenderData->mMdlRoBuffer = mResManager->createBuffer(ro.size() * sizeof(uint8_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: ro");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMdlRoBuffer), ro.size() * sizeof(uint8_t));
-
-    memcpy(stagingBufferMemory, infos.data(), infos.size() * sizeof(Mdl_resource_info));
-    mCurrentSceneRenderData->mMdlInfoBuffer = mResManager->createBuffer(infos.size() * sizeof(Mdl_resource_info), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "MDL: info");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMdlInfoBuffer), infos.size() * sizeof(Mdl_resource_info));
+    createGpuBuffer(mCurrentSceneRenderData->mMdlArgBuffer, mMaterialManager->getArgBufferData(code), argSize, "MDL args");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlInfoBuffer, mMaterialManager->getResourceInfoData(code), infoSize, "MDL info");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlRoBuffer, mMaterialManager->getReadOnlyBlockData(code), roSize, "MDL read only");
 
     mResManager->destroyBuffer(stagingBuffer);
 }
@@ -1304,10 +1322,6 @@ void Render::loadScene(const std::string& modelPath)
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
 
-    
-
-    createMdlBuffers();
-
     setDescriptors(0);
 }
 
@@ -1495,7 +1509,7 @@ void Render::createDefaultScene()
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
 
-    createMdlBuffers();
+
 }
 
 void Render::drawFrame()
