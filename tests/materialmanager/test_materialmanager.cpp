@@ -68,17 +68,30 @@ TEST_CASE("mtlx to mdl code gen test")
     std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
     std::ofstream outHLSLShaderFile(ptFile.c_str());
 
+    Render r;
+    r.HEIGHT = 600;
+    r.WIDTH = 800;
+    r.initWindow();
+    r.initVulkan();
+
     MaterialManager* matMngr = new MaterialManager();
     CHECK(matMngr);
     const char* path[2] = { "misc/test_data/mdl", "misc/test_data/mdl/resources" };
     bool res = matMngr->addMdlSearchPath(path, 2);
     CHECK(res);
+
     MaterialManager::Module* currModule = matMngr->createModule("carbon_composite.mdl");
     CHECK(currModule);
     MaterialManager::Material* material = matMngr->createMaterial(currModule, "carbon_composite");
     CHECK(material);
     std::vector<MaterialManager::Material*> materials;
     materials.push_back(material);
+    currModule = matMngr->createModule("brushed_antique_copper.mdl");
+    CHECK(currModule);
+    material = matMngr->createMaterial(currModule, "brushed_antique_copper");
+    CHECK(material);
+    materials.push_back(material);
+
     const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials);
     CHECK(code);
     const char* hlsl = matMngr->getShaderCode(code);
@@ -91,25 +104,20 @@ TEST_CASE("mtlx to mdl code gen test")
     size = matMngr->getResourceInfoSize(code);
     CHECK(size != 0);
 
-    Render r;
-    r.HEIGHT = 600;
-    r.WIDTH = 800;
-    r.initWindow();
-    r.initVulkan();
-
     nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
     uint32_t texSize = matMngr->getTextureCount(code);
-    for (uint32_t i = 0; i < texSize; ++i)
+    for (uint32_t i = 1; i < texSize; ++i)
     {
         const float* data = matMngr->getTextureData(code, i);
         uint32_t width = matMngr->getTextureWidth(code, i);
         uint32_t height = matMngr->getTextureHeight(code, i);
         const char* type = matMngr->getTextureType(code, i);
+        res = -1;
         res = mTexManager->loadTextureMdl(data, width, height, type, to_string(i));
-        CHECK(res);
+        CHECK(res != -1);
     }
 
-    CHECK(mTexManager->textures.size() == 3); // not sure
+    CHECK(mTexManager->textures.size() == 7);
     CHECK(mTexManager->textures[0].texWidth == 512);
     CHECK(mTexManager->textures[0].texHeight == 512);
 }

@@ -73,6 +73,7 @@ public:
             return false;
         }
 
+        mTransaction = mi::base::Handle<mi::neuraylib::ITransaction>(mRuntime->getTransaction());
         mNeuray = mRuntime->getNeuray();
         return true;
     }
@@ -115,6 +116,7 @@ public:
 
     void destroyMaterial(Material* materials)
     {
+        assert(materials);
         delete materials;
     }
 
@@ -185,26 +187,57 @@ public:
 
     const char* getTextureName(const TargetCode* targetCode, uint32_t index)
     {
+        assert(index); // index == 0 is invalid
         return targetCode->targetCode->get_texture_url(index); // not sure about name
     }
 
     const float* getTextureData(const TargetCode* targetCode, uint32_t index)
     {
+        assert(index); // index == 0 is invalid
+        assert(mTransaction);
+
+        mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
         mi::base::Handle<const mi::neuraylib::ITexture> texture(
             mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
         mi::base::Handle<const mi::neuraylib::IImage> image(
             mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
         mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
-        mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
+        char const* image_type = image->get_type();
 
-        //todo:: convert
-        mi::Float32 const* data = static_cast<mi::Float32 const*>(tile->get_data());
+        if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1)
+        {
+            mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
+            return nullptr;
+        }
 
+        if (texture->get_effective_gamma() != 1.0f)
+        {
+            // Copy/convert to float4 canvas and adjust gamma from "effective gamma" to 1.
+            mi::base::Handle<mi::neuraylib::ICanvas> gamma_canvas(
+                image_api->convert(canvas.get(), "Color"));
+            gamma_canvas->set_gamma(texture->get_effective_gamma());
+            image_api->adjust_gamma(gamma_canvas.get(), 1.0f);
+            canvas = gamma_canvas;
+        }
+        else if (strcmp(image_type, "Color") != 0 && strcmp(image_type, "Float32<4>") != 0)
+        {
+            // Convert to expected format
+            canvas = image_api->convert(canvas.get(), "Color");
+        }
+
+        mi::Float32 const* data = nullptr;
+        mi::neuraylib::ITarget_code::Texture_shape texture_shape = targetCode->targetCode->get_texture_shape(index);
+        if (texture_shape == mi::neuraylib::ITarget_code::Texture_shape_2d)
+        {
+            mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
+            data = static_cast<mi::Float32 const*>(tile->get_data());
+        }
         return data;
     }
 
     const char* getTextureType(const TargetCode* targetCode, uint32_t index)
     {
+        assert(index); // index == 0 is invalid
         mi::base::Handle<const mi::neuraylib::ITexture> texture(
             mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
         mi::base::Handle<const mi::neuraylib::IImage> image(
@@ -216,6 +249,7 @@ public:
 
     uint32_t getTextureWidth(const TargetCode* targetCode, uint32_t index)
     {
+        assert(index); // index == 0 is invalid
         mi::base::Handle<const mi::neuraylib::ITexture> texture(
             mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
         mi::base::Handle<const mi::neuraylib::IImage> image(
@@ -228,6 +262,7 @@ public:
 
     uint32_t getTextureHeight(const TargetCode* targetCode, uint32_t index)
     {
+        assert(index); // index == 0 is invalid
         mi::base::Handle<const mi::neuraylib::ITexture> texture(
             mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
         mi::base::Handle<const mi::neuraylib::IImage> image(
@@ -240,6 +275,7 @@ public:
 
     uint32_t getTextureBytesPerTexel(const TargetCode* targetCode, uint32_t index)
     {
+        assert(index); // index == 0 is invalid
         mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
 
         mi::base::Handle<const mi::neuraylib::ITexture> texture(
@@ -483,98 +519,4 @@ std::vector<uint8_t> MaterialManager::Context::loadROData(const TargetCode* targ
 
     return roData;
 }
-
-
-// Prepare the texture identified by the texture_index for use by the texture access functions
-// on the GPU.
-/*
-bool MaterialManager::Context::prepare_texture(
-    const mi::base::Handle<mi::neuraylib::ITransaction>& transaction,
-    const mi::base::Handle<mi::neuraylib::IImage_api>& image_api,
-    const mi::base::Handle<const mi::neuraylib::ITarget_code>& code,
-    mi::Size texture_index)
-{
-    // Get access to the texture data by the texture database name from the target code.
-    mi::base::Handle<const mi::neuraylib::ITexture> texture(
-        transaction->access<mi::neuraylib::ITexture>(code->get_texture(texture_index)));
-    mi::base::Handle<const mi::neuraylib::IImage> image(
-        transaction->access<mi::neuraylib::IImage>(texture->get_image()));
-    mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
-    mi::Uint32 tex_width = canvas->get_resolution_x();
-    mi::Uint32 tex_height = canvas->get_resolution_y();
-    mi::Uint32 tex_layers = canvas->get_layers_size();
-    char const* image_type = image->get_type();
-
-    if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1)
-    {
-        mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
-        // return 0;
-    }
-
-    if (tex_layers != 1)
-    {
-        mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support layered images!");
-        // return 0;
-    }
-
-    // For simplicity, the texture access functions are only implemented for float4 and gamma
-    // is pre-applied here (all images are converted to linear space).
-    // Convert to linear color space if necessary
-    if (texture->get_effective_gamma() != 1.0f)
-    {
-        // Copy/convert to float4 canvas and adjust gamma from "effective gamma" to 1.
-        mi::base::Handle<mi::neuraylib::ICanvas> gamma_canvas(
-            image_api->convert(canvas.get(), "Color"));
-        gamma_canvas->set_gamma(texture->get_effective_gamma());
-        image_api->adjust_gamma(gamma_canvas.get(), 1.0f);
-        canvas = gamma_canvas;
-    }
-    else if (strcmp(image_type, "Color") != 0 && strcmp(image_type, "Float32<4>") != 0)
-    {
-        // Convert to expected format
-        canvas = image_api->convert(canvas.get(), "Color");
-    }
-
-    // This example supports only 2D textures
-    mi::neuraylib::ITarget_code::Texture_shape texture_shape = code->get_texture_shape(texture_index);
-    if (texture_shape == mi::neuraylib::ITarget_code::Texture_shape_2d)
-    {
-        mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
-        mi::Float32 const* data = static_cast<mi::Float32 const*>(tile->get_data());
-        int cpp = image_api->get_components_per_pixel("Color");
-        int bpc = image_api->get_bytes_per_component("Color");
-        int bpp = cpp * bpc;
-
-        uint32_t id = mTexManager->loadTextureMdl(data, tex_width, tex_height, image_type, std::to_string(texture_index));
-
-        Mdl_resource_info info{};
-        info.gpu_resource_array_start = id;
-        mInfo.push_back(info);
-
-    }
-} */
-/*
-bool MaterialManager::loadTextures(mi::base::Handle<const mi::neuraylib::ITarget_code>& targetCode)
-{
-    // Acquire image API needed to prepare the textures
-    mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
-
-    std::vector<TextureDesc> moduleTextures;
-    if (targetCode->get_texture_count() > 0)
-    {
-        for (int i = 1; i < targetCode->get_texture_count(); ++i)
-        {
-            mLogger->message(mi::base::MESSAGE_SEVERITY_INFO, targetCode->get_texture_url(i));
-            prepare_texture(mTransaction, image_api, targetCode, i);
-        }
-    }
-    else
-    {
-         //mInfo.resize(1);
-         return false;
-    }
-
-    return true;
-}
-*/
 } // namespace nevk

@@ -106,6 +106,7 @@ public:
     {
         initWindow();
         initVulkan();
+        initPasses();
         mainLoop();
         cleanup();
     }
@@ -116,6 +117,7 @@ public:
 
     void initWindow();
     void initVulkan();
+    void initPasses();
     void cleanup();
 
 private:

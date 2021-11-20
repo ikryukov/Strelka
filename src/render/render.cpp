@@ -81,15 +81,17 @@ void Render::initVulkan()
     createCommandBuffers();
     createSyncObjects();
 
+    mView[0] = createView(swapChainExtent.width, swapChainExtent.height);
+    mView[1] = createView(swapChainExtent.width, swapChainExtent.height);
+    mView[2] = createView(swapChainExtent.width, swapChainExtent.height);
+}
+
+void Render::initPasses(){
     mSharedCtx.mDescriptorPool = mDescriptorPool;
     mSharedCtx.mDevice = mDevice;
     mSharedCtx.mResManager = mResManager;
     mSharedCtx.mShaderManager = &mShaderManager;
     mSharedCtx.mTextureManager = mTexManager;
-
-    mView[0] = createView(swapChainExtent.width, swapChainExtent.height);
-    mView[1] = createView(swapChainExtent.width, swapChainExtent.height);
-    mView[2] = createView(swapChainExtent.width, swapChainExtent.height);
 
     mDebugView = new DebugView(mSharedCtx);
     mDebugView->initialize();
@@ -133,7 +135,7 @@ void Render::initVulkan()
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
     modelLoader = new nevk::ModelLoader(mTexManager);
-    
+
     // Material manager
     const fs::path cwd = fs::current_path();
     std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
@@ -195,7 +197,6 @@ void Render::initVulkan()
     mUi.init(init_info, swapChainImageFormat, mWindow, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(mDevice, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
 }
-
 void Render::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
     if (width == 0 || height == 0)
