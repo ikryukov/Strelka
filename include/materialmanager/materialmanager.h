@@ -19,16 +19,16 @@ public:
 
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths);
 
-    Module* createModule(const char* file); // путь до файла, взять идентификатор
+    Module* createModule(const char* file);
     void destroyModule(Module* module);
 
-    Material* createMaterial(const Module* module, const char* materialName); //  модуль и имя материала в этом модуле, если nULL - неуспех
-    void destroyMaterial(Material* material); // удаляет вектор материалов или вообще не хранит !
+    Material* createMaterial(const Module* module, const char* materialName);
+    void destroyMaterial(Material* material);
 
-    const TargetCode* generateTargetCode(const std::vector<Material*>& material);  //  + вызвать ро дата и другое
-    const char* getShaderCode(const TargetCode* targetCode); // get shader code
+    const TargetCode* generateTargetCode(const std::vector<Material*>& material);
+    const char* getShaderCode(const TargetCode* targetCode);
 
-    uint32_t getReadOnlyBlockSize(const TargetCode* shaderCode); //
+    uint32_t getReadOnlyBlockSize(const TargetCode* shaderCode);
     const uint8_t* getReadOnlyBlockData(const TargetCode* targetCode);
 
     uint32_t getArgBufferSize(const TargetCode* shaderCode);
@@ -37,11 +37,6 @@ public:
     uint32_t getResourceInfoSize(const TargetCode* targetCode);
     const uint8_t* getResourceInfoData(const TargetCode* targetCode);
 
-   /* struct TextureDesc{
-        mi::base::Handle<const mi::neuraylib::ICanvas> canvas;
-    };
-
-    std::vector<TextureDesc> textures; */
     uint32_t getTextureCount(const TargetCode* targetCode);
     const char* getTextureName(const TargetCode* targetCode, uint32_t index);
     const float* getTextureData(const TargetCode* targetCode, uint32_t index);
