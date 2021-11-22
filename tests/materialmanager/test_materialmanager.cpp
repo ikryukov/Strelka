@@ -10,52 +10,6 @@
 using namespace nevk;
 namespace fs = std::filesystem;
 
-/*
-TEST_CASE("mtlx to mdl code gen test")
-{
-    std::string mdlFile = "material.mdl";
-    std::ofstream mdlMaterial(mdlFile.c_str());
-
-    std::string hlslFile = "material.hlsl";
-    std::ofstream hlslMaterial(mdlFile.c_str());
-
-    std::string mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
-    nevk::MtlxMdlCodeGen* mtlxCodeGen = new nevk::MtlxMdlCodeGen(mtlxLibPath.c_str());
-        CHECK(mtlxCodeGen != nullptr);
-
-    std::string mtlxMaterialPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_brass_tiled.mtlx";
-    std::string mdlSrc;
-    std::string ident;
-    mtlxCodeGen->translate(mtlxMaterialPath.c_str(), mdlSrc, ident);
-    mdlMaterial << mdlSrc;
-
-    std::string pathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib"; // todo: fix path
-    nevk::MdlRuntime* runtime = new nevk::MdlRuntime();
-    std::string pathmdl = "/Users/jswark/school/USD_Build/mdl/"; // todo: fix path
-    bool res = runtime->init(pathso.c_str(), pathmdl.c_str());
-        CHECK(res != 0);
-
-    nevk::MdlMaterialCompiler* matCompiler = new nevk::MdlMaterialCompiler(*runtime);
-
-    mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
-    bool res1 = matCompiler->compileMaterial(mdlSrc, ident, compiledMaterial);
-
-    nevk::MdlHlslCodeGen* codeGen = new MdlHlslCodeGen();
-
-    std::string hlslCode;
-    int id = 0;
-    bool res2 = codeGen->init(*runtime);
-        CHECK(res2 != 0);
-
-    std::vector<const mi::neuraylib::ICompiled_material*> materials;
-    materials.push_back(compiledMaterial.get()); // 1 material
-    bool res3 = codeGen->translate(materials, hlslCode);
-        CHECK(res3 != 0);
-
-    hlslMaterial << hlslCode;
-}*/
-
-
 TEST_CASE("mdl to hlsl code gen test")
 {
     using namespace std;
@@ -76,7 +30,7 @@ TEST_CASE("mdl to hlsl code gen test")
 
     MaterialManager* matMngr = new MaterialManager();
     CHECK(matMngr);
-    const char* path[2] = { "misc/test_data/mdl", "misc/test_data/mdl/resources" }; //for mdl - hlsl
+    const char* path[2] = { "misc/test_data/mdl", "misc/test_data/mdl/resources" };
     bool res = matMngr->addMdlSearchPath(path, 2);
     CHECK(res);
 
@@ -141,12 +95,12 @@ TEST_CASE("mtlx to mdl code gen test")
 
     MaterialManager* matMngr = new MaterialManager();
     CHECK(matMngr);
-    const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface" };
+    const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" };
     bool res = matMngr->addMdlSearchPath(path, 2);
     CHECK(res);
 
-    //"/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_plastic.mtlx"; //brass_tiled.mtlx"; -- w/ images
-    MaterialManager::Module* currModule = matMngr->createMtlxModule("/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_brass_tiled.mtlx");
+    std::string file = "misc/test_data/mtlx/standard_surface_greysphere_calibration.mtlx";
+    MaterialManager::Module* currModule = matMngr->createMtlxModule(file.c_str());
     CHECK(currModule);
     MaterialManager::Material* material = matMngr->createMaterial(currModule, "");
     CHECK(material);
@@ -177,7 +131,7 @@ TEST_CASE("mtlx to mdl code gen test")
         mTexManager->loadTextureMdl(data, width, height, type, name);
     }
 
-    CHECK(mTexManager->textures.size() == 7);
-    CHECK(mTexManager->textures[0].texWidth == 512);
-    CHECK(mTexManager->textures[0].texHeight == 512);
+    CHECK(mTexManager->textures.size() == 1);
+    CHECK(mTexManager->textures[0].texWidth == 1024);
+    CHECK(mTexManager->textures[0].texHeight == 1024);
 }

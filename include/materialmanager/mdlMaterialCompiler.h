@@ -26,7 +26,7 @@ public:
                          mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial);
 
     bool createModule(const std::string& identifier,
-                      const char* mdlSrc, std::string& moduleName);
+                      std::string& moduleName);
 
     bool createCompiledMaterial(const char* moduleName,
                                 const char* identifier,

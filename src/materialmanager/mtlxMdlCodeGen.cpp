@@ -68,7 +68,7 @@ mx::TypedElementPtr _FindSurfaceShaderElement(mx::DocumentPtr doc)
 
     if (node && node->getType() == mx::MATERIAL_TYPE_STRING)
     {
-        std::unordered_set<mx::NodePtr> shaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING); // originally std::unordered_set
+        std::unordered_set<mx::NodePtr> shaderNodes = mx::getShaderNodes(node, mx::SURFACE_SHADER_TYPE_STRING);
         if (!shaderNodes.empty())
         {
             renderableElement = *shaderNodes.begin();
@@ -98,8 +98,7 @@ bool MtlxMdlCodeGen::translate(const char* mtlxSrc, std::string& mdlSrc, std::st
     {
         mx::DocumentPtr doc = mx::createDocument();
         doc->importLibrary(mStdLib);
-        std::string searchPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/";
-        mx::readFromXmlFile(doc, mtlxSrc, searchPath); // originally from string
+        mx::readFromXmlFile(doc, mtlxSrc); // originally from string
 
         mx::TypedElementPtr element = _FindSurfaceShaderElement(doc);
         if (!element)

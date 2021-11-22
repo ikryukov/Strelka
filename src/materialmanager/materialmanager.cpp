@@ -27,6 +27,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <fstream>
 
 namespace fs = std::filesystem;
 
@@ -80,14 +81,19 @@ public:
         return true;
     }
 
-    Module* createMtlxModule(const char* file) // path to file
+    Module* createMtlxModule(const char* file)
     {
         Module* module = new Module;
 
         mMtlxCodeGen->translate(file, mMdlSrc, module->identifier);
 
+        std::string mdlFile = "misc/test_data/mtlx/" + module->identifier + ".mdl";
+        std::ofstream material(mdlFile.c_str());
+        material << mMdlSrc;
+        material.close();
+
         mMatCompiler = new nevk::MdlMaterialCompiler(*mRuntime);
-        if (!mMatCompiler->createModule(module->identifier, mMdlSrc.c_str(), module->moduleName))
+        if (!mMatCompiler->createModule(module->identifier, module->moduleName))
         {
             return nullptr;
         }
@@ -103,7 +109,7 @@ public:
         module->identifier = materialFile.stem().string();
 
         mMatCompiler = new nevk::MdlMaterialCompiler(*mRuntime);
-        if (!mMatCompiler->createModule(module->identifier, mMdlSrc.c_str(), module->moduleName))
+        if (!mMatCompiler->createModule(module->identifier, module->moduleName))
         {
             return nullptr;
         }
