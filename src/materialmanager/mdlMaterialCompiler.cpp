@@ -13,8 +13,8 @@ std::atomic_uint32_t s_idCounter(0);
 std::string _makeModuleName(const std::string& identifier)
 {
     uint32_t uniqueId = ++s_idCounter;
-    return "::" + identifier; //if mdl->hlsl
-    //return std::string(MODULE_PREFIX) + std::to_string(uniqueId) + "_" + identifier;
+    //return "::" + identifier; //if mdl->hlsl
+    return std::string(MODULE_PREFIX) + std::to_string(uniqueId) + "_" + identifier; // //if mtlx->hlsl
 }
 
 MdlMaterialCompiler::MdlMaterialCompiler(MdlRuntime& runtime)
@@ -33,8 +33,8 @@ bool MdlMaterialCompiler::createModule(const std::string& identifier,
 
     moduleName = _makeModuleName(identifier);
 
-    mi::Sint32 result = mImpExpApi->load_module(mTransaction.get(), moduleName.c_str(), context.get()); // if mdl -> hlsl
-    // mi::Sint32 result = m_impExpApi->load_module_from_string(m_transaction.get(), moduleName, mdlSrc, context); //if mtlx -> hlsl
+    //mi::Sint32 result = mImpExpApi->load_module(mTransaction.get(), moduleName.c_str(), context.get()); // if mdl -> hlsl
+    mi::Sint32 result = mImpExpApi->load_module_from_string(mTransaction.get(), moduleName.c_str(), mdlSrc, context.get()); //if mtlx -> hlsl
     mLogger->flushContextMessages(context.get());
     return result == 0 || result == 1;
 }

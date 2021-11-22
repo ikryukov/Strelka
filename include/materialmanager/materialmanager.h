@@ -20,6 +20,7 @@ public:
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths);
 
     Module* createModule(const char* file);
+    Module* createMtlxModule(const char* file);
     void destroyModule(Module* module);
 
     Material* createMaterial(const Module* module, const char* materialName);

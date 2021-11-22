@@ -59,7 +59,7 @@ class MaterialManager::Context
 public:
     Context()
     {
-        configurePaths(false);
+        configurePaths(true);
     };
 
     ~Context(){};
@@ -73,10 +73,27 @@ public:
             return false;
         }
 
+        mMtlxCodeGen = new nevk::MtlxMdlCodeGen(mtlxLibPath.c_str());
+
         mTransaction = mi::base::Handle<mi::neuraylib::ITransaction>(mRuntime->getTransaction());
         mNeuray = mRuntime->getNeuray();
         return true;
     }
+
+    Module* createMtlxModule(const char* file) // path to file
+    {
+        Module* module = new Module;
+
+        mMtlxCodeGen->translate(file, mMdlSrc, module->identifier);
+
+        mMatCompiler = new nevk::MdlMaterialCompiler(*mRuntime);
+        if (!mMatCompiler->createModule(module->identifier, mMdlSrc.c_str(), module->moduleName))
+        {
+            return nullptr;
+        }
+
+        return module;
+    };
 
     Module* createModule(const char* file)
     {
@@ -146,7 +163,7 @@ public:
         return targetCode;
     };
 
-    const char* getShaderCode(const TargetCode* targetCode) // get shader code
+    const char* getShaderCode(const TargetCode* targetCode)
     {
         return targetCode->targetHlsl.c_str();
     }
@@ -189,7 +206,6 @@ public:
     {
         assert(index); // index == 0 is invalid
         return targetCode->targetCode->get_texture(index);
-
     }
 
     const float* getTextureData(const TargetCode* targetCode, uint32_t index)
@@ -293,39 +309,34 @@ public:
     }
 
 private:
-    std::vector<std::string> mMdlPaths;
-    std::string mResourcePath;
     std::string mImagePluginPath;
     std::string mPathso;
     std::string mMdlSrc;
     std::string hlslCode;
+    std::string mtlxLibPath;
 
     void configurePaths(bool isMtlx)
     {
         using namespace std;
         const fs::path cwd = fs::current_path();
+        mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
+        mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
 
-        if (isMtlx)
+        if (!isMtlx)
         {
-            // mdlPaths.emplace_back("/Users/jswark/school/USD_Build/mdl/");
-            // resourcePath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface"; // for mtlx
+#ifdef MI_PLATFORM_WINDOWS
+            mPathso = cwd.string();
+            mImagePluginPath = cwd.string() + "/nv_freeimage.dll";
+#else
+            mPathso = cwd.string();
+            mImagePluginPath = cwd.string() + "/nv_freeimage.so";
+#endif
         }
         else
         {
-            std::string pathToMdlLib = cwd.string() + "/misc/test_data/mdl/"; // if mdl -> hlsl
-            std::string pathToCoreLib = cwd.string() + "/misc/test_data/mdl";
-            mMdlPaths.push_back(pathToMdlLib);
-            mMdlPaths.push_back(pathToCoreLib);
-            mResourcePath = cwd.string() + "/misc/test_data/mdl/resources"; // path to the textures
-            mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
+            mPathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib";
+            mImagePluginPath = cwd.string() + "/nv_freeimage.so";
         }
-#ifdef MI_PLATFORM_WINDOWS
-        mPathso = cwd.string();
-        mImagePluginPath = cwd.string() + "/nv_freeimage.dll";
-#else
-        mPathso = cwd.string();
-        mImagePluginPath = cwd.string() + "/nv_freeimage.so";
-#endif
     }
 
     nevk::MdlHlslCodeGen* mCodeGen = nullptr;
@@ -359,26 +370,26 @@ MaterialManager::Module* MaterialManager::createModule(const char* file)
 {
     return mContext->createModule(file);
 }
+MaterialManager::Module* MaterialManager::createMtlxModule(const char* file)
+{
+    return mContext->createMtlxModule(file);
+}
 void MaterialManager::destroyModule(MaterialManager::Module* module)
 {
     return mContext->destroyModule(module);
 }
-
 MaterialManager::Material* MaterialManager::createMaterial(const MaterialManager::Module* module, const char* materialName)
 {
     return mContext->createMaterial(module, materialName);
 }
-
 void MaterialManager::destroyMaterial(Material* materials)
 {
     return mContext->destroyMaterial(materials);
 }
-
 const MaterialManager::TargetCode* MaterialManager::generateTargetCode(const std::vector<MaterialManager::Material*>& materials)
 {
     return mContext->generateTargetCode(materials);
 }
-
 const char* MaterialManager::getShaderCode(const TargetCode* targetCode) // get shader code
 {
     return mContext->getShaderCode(targetCode);
@@ -504,7 +515,7 @@ std::vector<uint8_t> MaterialManager::Context::loadROData(const TargetCode* targ
         size_t dataSize = targetCode->targetCode->get_ro_data_segment_size(ro_data_seg_index);
         const char* name = targetCode->targetCode->get_ro_data_segment_name(ro_data_seg_index);
 
-       // std::cerr << name << std::endl;
+        // std::cerr << name << std::endl;
 
         roData.resize(dataSize);
         if (dataSize != 0)
