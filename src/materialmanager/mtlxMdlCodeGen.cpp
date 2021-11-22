@@ -98,7 +98,8 @@ bool MtlxMdlCodeGen::translate(const char* mtlxSrc, std::string& mdlSrc, std::st
     {
         mx::DocumentPtr doc = mx::createDocument();
         doc->importLibrary(mStdLib);
-        mx::readFromXmlFile(doc, mtlxSrc); // originally from string
+        std::string searchPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/";
+        mx::readFromXmlFile(doc, mtlxSrc, searchPath); // originally from string
 
         mx::TypedElementPtr element = _FindSurfaceShaderElement(doc);
         if (!element)

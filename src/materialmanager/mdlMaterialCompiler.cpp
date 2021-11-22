@@ -34,6 +34,7 @@ bool MdlMaterialCompiler::createModule(const std::string& identifier,
     moduleName = _makeModuleName(identifier);
 
     //mi::Sint32 result = mImpExpApi->load_module(mTransaction.get(), moduleName.c_str(), context.get()); // if mdl -> hlsl
+
     mi::Sint32 result = mImpExpApi->load_module_from_string(mTransaction.get(), moduleName.c_str(), mdlSrc, context.get()); //if mtlx -> hlsl
     mLogger->flushContextMessages(context.get());
     return result == 0 || result == 1;

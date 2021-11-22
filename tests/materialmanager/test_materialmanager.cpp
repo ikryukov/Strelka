@@ -146,7 +146,7 @@ TEST_CASE("mtlx to mdl code gen test")
     CHECK(res);
 
     //"/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_plastic.mtlx"; //brass_tiled.mtlx"; -- w/ images
-    MaterialManager::Module* currModule = matMngr->createMtlxModule("/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_plastic.mtlx");
+    MaterialManager::Module* currModule = matMngr->createMtlxModule("/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_brass_tiled.mtlx");
     CHECK(currModule);
     MaterialManager::Material* material = matMngr->createMaterial(currModule, "");
     CHECK(material);

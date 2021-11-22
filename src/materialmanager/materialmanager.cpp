@@ -123,7 +123,7 @@ public:
         assert(materialName);
 
         Material* material = new Material;
-        if (!mMatCompiler->createCompiledMaterial(module->moduleName.c_str(), materialName, material->compiledMaterial)) // need to be checked for dif material names in module. it should be different module names for dif. materials in case of mdl -> hlsl
+        if (!mMatCompiler->createCompiledMaterial(module->moduleName.c_str(), module->identifier.c_str(), material->compiledMaterial)) // need to be checked for dif material names in module. it should be different module names for dif. materials in case of mdl -> hlsl
         {
             return nullptr;
         }
