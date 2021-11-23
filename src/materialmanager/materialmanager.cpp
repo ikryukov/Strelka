@@ -195,7 +195,7 @@ public:
 
     uint32_t getResourceInfoSize(const TargetCode* targetCode)
     {
-        return targetCode->internalsInfo.size() * sizeof(TargetCode);
+        return targetCode->internalsInfo.size() * sizeof(MdlHlslCodeGen::InternalMaterialInfo);
     }
 
     const uint8_t* getResourceInfoData(const TargetCode* targetCode)
