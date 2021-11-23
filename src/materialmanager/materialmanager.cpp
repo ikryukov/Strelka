@@ -195,7 +195,7 @@ public:
 
     uint32_t getResourceInfoSize(const TargetCode* targetCode)
     {
-        return targetCode->internalsInfo.size();
+        return targetCode->internalsInfo.size() * sizeof(TargetCode);
     }
 
     const uint8_t* getResourceInfoData(const TargetCode* targetCode)
