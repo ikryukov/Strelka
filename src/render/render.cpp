@@ -164,8 +164,13 @@ void Render::initPasses(){
     ptcode << pt.rdbuf();
 
     mMaterialManager = new MaterialManager();
-    const char* path[2] = { "misc/test_data/mdl", "misc/test_data/mdl/resources" };
-    mMaterialManager->addMdlSearchPath(path, 2);
+    const char* path[2] = { "./misc/test_data/mdl", "./misc/test_data/mdl/resources" };
+    bool res = mMaterialManager->addMdlSearchPath(path, 2);
+    if (!res)
+    {
+        // failed to load MDL
+        return;
+    }
     MaterialManager::Module* currModule = mMaterialManager->createModule("brushed_antique_copper.mdl");
     MaterialManager::Material* material = mMaterialManager->createMaterial(currModule, "brushed_antique_copper");
     std::vector<MaterialManager::Material*> materials;

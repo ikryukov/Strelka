@@ -28,6 +28,7 @@
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
 
@@ -64,7 +65,6 @@ public:
     };
 
     ~Context(){};
-
 
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths)
     { // resource path + mdl path
@@ -219,42 +219,48 @@ public:
         assert(index); // index == 0 is invalid
         assert(mTransaction);
 
-        mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
-        mi::base::Handle<const mi::neuraylib::ITexture> texture(
-            mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
-        mi::base::Handle<const mi::neuraylib::IImage> image(
-            mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
-        mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
-        char const* image_type = image->get_type();
+        auto cachedCanvas = m_indexToCanvas.find(index);
 
-        if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1)
+        if (cachedCanvas == m_indexToCanvas.end())
         {
-            mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
-            return nullptr;
-        }
 
-        if (texture->get_effective_gamma() != 1.0f)
-        {
-            // Copy/convert to float4 canvas and adjust gamma from "effective gamma" to 1.
-            mi::base::Handle<mi::neuraylib::ICanvas> gamma_canvas(
-                image_api->convert(canvas.get(), "Color"));
-            gamma_canvas->set_gamma(texture->get_effective_gamma());
-            image_api->adjust_gamma(gamma_canvas.get(), 1.0f);
-            canvas = gamma_canvas;
-        }
-        else if (strcmp(image_type, "Color") != 0 && strcmp(image_type, "Float32<4>") != 0)
-        {
-            // Convert to expected format
-            canvas = image_api->convert(canvas.get(), "Color");
-        }
+            mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
+            mi::base::Handle<const mi::neuraylib::ITexture> texture(mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
+            mi::base::Handle<const mi::neuraylib::IImage> image(mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
+            mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
+            char const* image_type = image->get_type();
 
+            if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1)
+            {
+                mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
+                return nullptr;
+            }
+
+            if (texture->get_effective_gamma() != 1.0f)
+            {
+                // Copy/convert to float4 canvas and adjust gamma from "effective gamma" to 1.
+                mi::base::Handle<mi::neuraylib::ICanvas> gamma_canvas(image_api->convert(canvas.get(), "Color"));
+                gamma_canvas->set_gamma(texture->get_effective_gamma());
+                image_api->adjust_gamma(gamma_canvas.get(), 1.0f);
+                canvas = gamma_canvas;
+            }
+            else if (strcmp(image_type, "Color") != 0 && strcmp(image_type, "Float32<4>") != 0)
+            {
+                // Convert to expected format
+                canvas = image_api->convert(canvas.get(), "Color");
+            }
+            m_indexToCanvas[index] = canvas;
+            cachedCanvas = m_indexToCanvas.find(index);
+        }
+        
         mi::Float32 const* data = nullptr;
         mi::neuraylib::ITarget_code::Texture_shape texture_shape = targetCode->targetCode->get_texture_shape(index);
         if (texture_shape == mi::neuraylib::ITarget_code::Texture_shape_2d)
         {
-            mi::base::Handle<const mi::neuraylib::ITile> tile(canvas->get_tile());
+            mi::base::Handle<const mi::neuraylib::ITile> tile(cachedCanvas->second->get_tile());
             data = static_cast<mi::Float32 const*>(tile->get_data());
         }
+
         return data;
     }
 
@@ -321,6 +327,8 @@ private:
     std::string hlslCode;
     std::string mtlxLibPath;
 
+    std::unordered_map<uint32_t, mi::base::Handle<const mi::neuraylib::ICanvas>> m_indexToCanvas;
+
     void configurePaths(bool isMtlx)
     {
         using namespace std;
@@ -328,7 +336,7 @@ private:
         mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
         mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
 
-        if (!isMtlx)
+//        if (!isMtlx)
         {
 #ifdef MI_PLATFORM_WINDOWS
             mPathso = cwd.string();
@@ -338,11 +346,11 @@ private:
             mImagePluginPath = cwd.string() + "/nv_freeimage.so";
 #endif
         }
-        else
-        {
-            mPathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib";
-            mImagePluginPath = cwd.string() + "/nv_freeimage.so";
-        }
+        //else
+        //{
+        //    mPathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib";
+        //    mImagePluginPath = cwd.string() + "/nv_freeimage.so";
+        //}
     }
 
     nevk::MdlHlslCodeGen* mCodeGen = nullptr;
