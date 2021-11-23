@@ -326,9 +326,9 @@ target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/)
 target_link_libraries(
   ${HD_PLUGIN_NAME}
   PRIVATE
-    optimized ${Boost_LIBRARIES}
-    optimized usdImaging
-    optimized hdMtlx
+    ${Boost_LIBRARIES}
+    usdImaging
+    hdMtlx
     ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB}
   PUBLIC
     hd
