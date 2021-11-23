@@ -166,8 +166,8 @@ void Render::initPasses(){
     mMaterialManager = new MaterialManager();
     const char* path[2] = { "misc/test_data/mdl", "misc/test_data/mdl/resources" };
     mMaterialManager->addMdlSearchPath(path, 2);
-    MaterialManager::Module* currModule = mMaterialManager->createModule("carbon_composite.mdl");
-    MaterialManager::Material* material = mMaterialManager->createMaterial(currModule, "carbon_composite");
+    MaterialManager::Module* currModule = mMaterialManager->createModule("brushed_antique_copper.mdl");
+    MaterialManager::Material* material = mMaterialManager->createMaterial(currModule, "brushed_antique_copper");
     std::vector<MaterialManager::Material*> materials;
     materials.push_back(material);
     const MaterialManager::TargetCode* code = mMaterialManager->generateTargetCode(materials);
@@ -190,6 +190,7 @@ void Render::initPasses(){
     mCurrentSceneRenderData->mMaterialTargetCode = code;
 
     createMdlBuffers();
+    createMdlTextures();
 
     createGbufferPass();
 
@@ -967,6 +968,23 @@ void Render::setCamera()
     Camera& camera = mScene->getCamera(getActiveCameraIndex());
     camera.setPerspective(45.0f, (float)swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10000.0f);
     camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
+}
+
+void nevk::Render::createMdlTextures()
+{
+    const MaterialManager::TargetCode* code = mCurrentSceneRenderData->mMaterialTargetCode;
+
+    uint32_t texSize = mMaterialManager->getTextureCount(code);
+    for (uint32_t i = 1; i < texSize; ++i)
+    {
+        const float* data = mMaterialManager->getTextureData(code, i);
+        uint32_t width = mMaterialManager->getTextureWidth(code, i);
+        uint32_t height = mMaterialManager->getTextureHeight(code, i);
+        const char* type = mMaterialManager->getTextureType(code, i);
+        std::string name = mMaterialManager->getTextureName(code, i);
+
+        mTexManager->loadTextureMdl(data, width, height, type, name);
+    }
 }
 
 void nevk::Render::createMdlBuffers()

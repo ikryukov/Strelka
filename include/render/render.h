@@ -430,6 +430,7 @@ private:
     void setCamera();
 
     void createMdlBuffers();
+    void createMdlTextures();
 
     void createVertexBuffer(nevk::Scene& scene);
     void createMaterialBuffer(nevk::Scene& scene);
