@@ -50,6 +50,14 @@ struct Material
     }
 };
 
+struct MdlMaterial
+{
+    int arg_block_offset = -1;
+    int ro_data_segment_offset = 0;
+    int functionId = -1;
+    int pad1;
+};
+
 /// Information passed to GPU for mapping id requested in the runtime functions to buffer
 /// views of the corresponding type.
 struct Mdl_resource_info

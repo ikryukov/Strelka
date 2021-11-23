@@ -20,6 +20,7 @@ StructuredBuffer<Vertex> vb;
 StructuredBuffer<uint> ib;
 StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<Material> materials;
+StructuredBuffer<MdlMaterial> mdlMaterials;
 StructuredBuffer<RectLight> lights;
 
 RWTexture2D<float4> output;
@@ -128,6 +129,8 @@ float3 pathTrace(uint2 pixelIndex)
 
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
 
+    MdlMaterial currMdlMaterial = mdlMaterials[gbInstId[pixelIndex] & 1];
+
     // setup MDL state
     Shading_state_material mdlState = (Shading_state_material) 0;
     mdlState.normal = world_normal;
@@ -136,15 +139,17 @@ float3 pathTrace(uint2 pixelIndex)
     mdlState.animation_time = 0.0f;
     mdlState.tangent_u[0] = world_tangent;
     mdlState.tangent_v[0] = world_binormal;
-    mdlState.ro_data_segment_offset = 0;
     mdlState.world_to_object = instConst.objectToWorld;
-    mdlState.object_to_world = instConst.worldToObject; // TODO: replace on precalc
+    mdlState.object_to_world = instConst.worldToObject;
     mdlState.object_id = 0;
     mdlState.meters_per_scene_unit = 1.0f;
-    mdlState.arg_block_offset = 0;
+    //fill from MDL material struct
+    mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
+    mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
+    
     mdlState.text_coords[0] = float3(matUV, 0);
 
-    int scatteringFunctionIndex = 0;
+    int scatteringFunctionIndex = currMdlMaterial.functionId;
     mdl_bsdf_scattering_init(scatteringFunctionIndex, mdlState);
 
     Accel accel;
@@ -155,8 +160,20 @@ float3 pathTrace(uint2 pixelIndex)
 
     if (ubo.debug == 1)
     {
-        float3 debugN = (world_normal + 1.0) * 0.5;
-        return debugN;
+        //float3 debugN = (world_normal + 1.0) * 0.5;
+        if (scatteringFunctionIndex == 0)
+        {
+            return float3(1.0, 0.0, 0.0);
+        }
+        else if (scatteringFunctionIndex == 1)
+        {
+            return float3(0.0, 1.0, 0.0);
+        }
+        else
+        {
+            return float3(0.0, 0.0, 1.0);
+        }
+        //return debugN;
     }
 
     float3 V = normalize(wpos - ubo.camPos.xyz);

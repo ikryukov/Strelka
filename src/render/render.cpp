@@ -171,10 +171,18 @@ void Render::initPasses(){
         // failed to load MDL
         return;
     }
-    MaterialManager::Module* currModule = mMaterialManager->createModule("brushed_antique_copper.mdl");
-    MaterialManager::Material* material = mMaterialManager->createMaterial(currModule, "brushed_antique_copper");
+    //MaterialManager::Module* currModule = mMaterialManager->createModule("brushed_antique_copper.mdl");
+    //MaterialManager::Material* material = mMaterialManager->createMaterial(currModule, "brushed_antique_copper");
+    
+    MaterialManager::Module* carbonModule = mMaterialManager->createModule("tutorials.mdl");
+    MaterialManager::Material* carbonMaterial = mMaterialManager->createMaterial(carbonModule, "example_df");
+    MaterialManager::Material* carbonMaterial1 = mMaterialManager->createMaterial(carbonModule, "dxr_sphere_mat");
+    
     std::vector<MaterialManager::Material*> materials;
-    materials.push_back(material);
+    //materials.push_back(material);
+    materials.push_back(carbonMaterial);
+    materials.push_back(carbonMaterial1);
+    
     const MaterialManager::TargetCode* code = mMaterialManager->generateTargetCode(materials);
     const char* hlsl = mMaterialManager->getShaderCode(code);
     std::cout << hlsl << std::endl;
@@ -1000,8 +1008,9 @@ void nevk::Render::createMdlBuffers()
     const uint32_t argSize = mMaterialManager->getArgBufferSize(code);
     const uint32_t roSize = mMaterialManager->getReadOnlyBlockSize(code);
     const uint32_t infoSize = mMaterialManager->getResourceInfoSize(code);
+    const uint32_t mdlMaterialSize = mMaterialManager->getMdlMaterialSize(code);
     
-    VkDeviceSize stagingSize = std::max(roSize, std::max(argSize, infoSize));
+    VkDeviceSize stagingSize = std::max(std::max(roSize, mdlMaterialSize), std::max(argSize, infoSize));
     
     Buffer* stagingBuffer = mResManager->createBuffer(stagingSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, "Staging MDL");
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
@@ -1015,6 +1024,7 @@ void nevk::Render::createMdlBuffers()
     createGpuBuffer(mCurrentSceneRenderData->mMdlArgBuffer, mMaterialManager->getArgBufferData(code), argSize, "MDL args");
     createGpuBuffer(mCurrentSceneRenderData->mMdlInfoBuffer, mMaterialManager->getResourceInfoData(code), infoSize, "MDL info");
     createGpuBuffer(mCurrentSceneRenderData->mMdlRoBuffer, mMaterialManager->getReadOnlyBlockData(code), roSize, "MDL read only");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlMaterialBuffer, mMaterialManager->getMdlMaterialData(code), mdlMaterialSize, "MDL mdl material");
 
     mResManager->destroyBuffer(stagingBuffer);
 }
@@ -1386,6 +1396,7 @@ void Render::setDescriptors(uint32_t imageIndex)
         desc.mdl_argument_block = mCurrentSceneRenderData->mMdlArgBuffer;
         desc.mdl_ro_data_segment = mCurrentSceneRenderData->mMdlRoBuffer;
         desc.mdl_resource_infos = mCurrentSceneRenderData->mMdlInfoBuffer;
+        desc.mdl_mdlMaterial = mCurrentSceneRenderData->mMdlMaterialBuffer;
 
         mPathTracer->setResources(desc);
     }

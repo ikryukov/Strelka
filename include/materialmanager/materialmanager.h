@@ -29,14 +29,17 @@ public:
     const TargetCode* generateTargetCode(const std::vector<Material*>& material);
     const char* getShaderCode(const TargetCode* targetCode);
 
-    uint32_t getReadOnlyBlockSize(const TargetCode* shaderCode);
+    uint32_t getReadOnlyBlockSize(const TargetCode* targetCode);
     const uint8_t* getReadOnlyBlockData(const TargetCode* targetCode);
 
-    uint32_t getArgBufferSize(const TargetCode* shaderCode);
+    uint32_t getArgBufferSize(const TargetCode* targetCode);
     const uint8_t* getArgBufferData(const TargetCode* targetCode);
 
     uint32_t getResourceInfoSize(const TargetCode* targetCode);
     const uint8_t* getResourceInfoData(const TargetCode* targetCode);
+
+    uint32_t getMdlMaterialSize(const TargetCode* targetCode);
+    const uint8_t* getMdlMaterialData(const TargetCode* targetCode);
 
     uint32_t getTextureCount(const TargetCode* targetCode);
     const char* getTextureName(const TargetCode* targetCode, uint32_t index);

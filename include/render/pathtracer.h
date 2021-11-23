@@ -12,6 +12,7 @@ struct PathTracerDesc
     Buffer* mdl_ro_data_segment = VK_NULL_HANDLE;
     Buffer* mdl_argument_block = VK_NULL_HANDLE;
     Buffer* mdl_resource_infos = VK_NULL_HANDLE;
+    Buffer* mdl_mdlMaterial = nullptr;
 
     GBuffer* gbuffer = VK_NULL_HANDLE;
     Buffer* bvhNodes = VK_NULL_HANDLE;

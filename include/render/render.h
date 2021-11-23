@@ -302,6 +302,7 @@ private:
         Buffer* mMdlArgBuffer = nullptr;
         Buffer* mMdlRoBuffer = nullptr;
         Buffer* mMdlInfoBuffer = nullptr;
+        Buffer* mMdlMaterialBuffer = nullptr;
 
         ResourceManager* mResManager = nullptr;
         explicit SceneRenderData(ResourceManager* resManager)

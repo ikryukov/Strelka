@@ -52,8 +52,125 @@ struct MaterialManager::TargetCode
     std::string targetHlsl;
     std::vector<Mdl_resource_info> resourceInfo;
     std::vector<nevk::MdlHlslCodeGen::InternalMaterialInfo> internalsInfo;
+    std::vector<MdlMaterial> mdlMaterials;
     std::vector<uint8_t> argBlockData;
     std::vector<uint8_t> roData;
+    std::vector<const mi::neuraylib::ICompiled_material*> compiledMaterials;
+};
+
+class Resource_callback
+    : public mi::base::Interface_implement<mi::neuraylib::ITarget_resource_callback>
+{
+public:
+    /// Constructor.
+    Resource_callback(
+        mi::neuraylib::ITransaction* transaction,
+        mi::neuraylib::ITarget_code const* target_code)
+        : m_transaction(mi::base::make_handle_dup(transaction)),
+        m_target_code(mi::base::make_handle_dup(target_code))
+    {
+    }
+
+    /// Destructor.
+    virtual ~Resource_callback() = default;
+
+    /// Returns a resource index for the given resource value usable by the target code
+    /// resource handler for the corresponding resource type.
+    ///
+    /// \param resource  the resource value
+    ///
+    /// \returns a resource index or 0 if no resource index can be returned
+    mi::Uint32 get_resource_index(mi::neuraylib::IValue_resource const* resource) override
+    {
+        // check whether we already know the resource index
+        auto it = m_resource_cache.find(resource);
+        if (it != m_resource_cache.end())
+            return it->second;
+
+        // handle resources already known by the target code
+        mi::Uint32 res_idx = m_target_code->get_known_resource_index(m_transaction.get(), resource);
+        if (res_idx != 0)
+        {
+            // only accept body resources
+            switch (resource->get_kind())
+            {
+            case mi::neuraylib::IValue::VK_TEXTURE:
+                if (res_idx < m_target_code->get_body_texture_count())
+                    return res_idx;
+                break;
+            case mi::neuraylib::IValue::VK_LIGHT_PROFILE:
+                if (res_idx < m_target_code->get_body_light_profile_count())
+                    return res_idx;
+                break;
+            case mi::neuraylib::IValue::VK_BSDF_MEASUREMENT:
+                if (res_idx < m_target_code->get_body_bsdf_measurement_count())
+                    return res_idx;
+                break;
+            default:
+                return 0u; // invalid kind
+            }
+        }
+
+        switch (resource->get_kind())
+        {
+        case mi::neuraylib::IValue::VK_TEXTURE: {
+            mi::base::Handle<mi::neuraylib::IValue_texture const> val_texture(
+                resource->get_interface<mi::neuraylib::IValue_texture const>());
+            if (!val_texture)
+                return 0u; // unknown resource
+
+            mi::base::Handle<const mi::neuraylib::IType_texture> texture_type(
+                val_texture->get_type());
+
+            mi::neuraylib::ITarget_code::Texture_shape shape =
+                mi::neuraylib::ITarget_code::Texture_shape(texture_type->get_shape());
+
+            //m_compile_result.textures.emplace_back(resource->get_value(), shape);
+            //res_idx = m_compile_result.textures.size() - 1;
+            break;
+        }
+        case mi::neuraylib::IValue::VK_LIGHT_PROFILE:
+            //m_compile_result.light_profiles.emplace_back(resource->get_value());
+            //res_idx = m_compile_result.light_profiles.size() - 1;
+            break;
+        case mi::neuraylib::IValue::VK_BSDF_MEASUREMENT:
+            //m_compile_result.bsdf_measurements.emplace_back(resource->get_value());
+            //res_idx = m_compile_result.bsdf_measurements.size() - 1;
+            break;
+        default:
+            return 0u; // invalid kind
+        }
+
+        m_resource_cache[resource] = res_idx;
+        return res_idx;
+    }
+
+    /// Returns a string identifier for the given string value usable by the target code.
+    ///
+    /// The value 0 is always the "not known string".
+    ///
+    /// \param s  the string value
+    mi::Uint32 get_string_index(mi::neuraylib::IValue_string const* s) override
+    {
+        char const* str_val = s->get_value();
+        if (str_val == nullptr)
+            return 0u;
+
+        for (mi::Size i = 0, n = m_target_code->get_string_constant_count(); i < n; ++i)
+        {
+            if (strcmp(m_target_code->get_string_constant(i), str_val) == 0)
+                return mi::Uint32(i);
+        }
+
+        // string not known by code
+        return 0u;
+    }
+
+private:
+    mi::base::Handle<mi::neuraylib::ITransaction> m_transaction;
+    mi::base::Handle<const mi::neuraylib::ITarget_code> m_target_code;
+
+    std::unordered_map<mi::neuraylib::IValue_resource const*, mi::Uint32> m_resource_cache;
 };
 
 class MaterialManager::Context
@@ -128,8 +245,9 @@ public:
         assert(module);
         assert(materialName);
 
+        // use smart pointer
         Material* material = new Material;
-        if (!mMatCompiler->createCompiledMaterial(module->moduleName.c_str(), module->identifier.c_str(), material->compiledMaterial)) // need to be checked for dif material names in module. it should be different module names for dif. materials in case of mdl -> hlsl
+        if (!mMatCompiler->createCompiledMaterial(module->moduleName.c_str(), materialName, material->compiledMaterial)) // need to be checked for dif material names in module. it should be different module names for dif. materials in case of mdl -> hlsl
         {
             return nullptr;
         }
@@ -150,13 +268,15 @@ public:
         mCodeGen = new MdlHlslCodeGen();
         mCodeGen->init(*mRuntime);
 
-        std::vector<const mi::neuraylib::ICompiled_material*> compiledMaterials;
-        for (auto& material : materials)
+        targetCode->mdlMaterials.resize(materials.size());
+
+        for (uint32_t i = 0; i < materials.size(); ++i)
         {
-            compiledMaterials.push_back(material->compiledMaterial.get());
+            targetCode->compiledMaterials.push_back(materials[i]->compiledMaterial.get());
+            targetCode->mdlMaterials[i].functionId = i; // TODO: ???
         }
 
-        targetCode->targetCode = mCodeGen->translate(compiledMaterials, targetCode->targetHlsl, targetCode->internalsInfo);
+        targetCode->targetCode = mCodeGen->translate(targetCode->compiledMaterials, targetCode->targetHlsl, targetCode->internalsInfo);
         targetCode->argBlockData = loadArgBlocks(targetCode);
         targetCode->roData = loadROData(targetCode);
 
@@ -176,7 +296,7 @@ public:
 
     uint32_t getReadOnlyBlockSize(const TargetCode* shaderCode)
     {
-        return shaderCode->argBlockData.size();
+        return shaderCode->roData.size();
     }
 
     const uint8_t* getReadOnlyBlockData(const TargetCode* targetCode)
@@ -201,6 +321,16 @@ public:
     const uint8_t* getResourceInfoData(const TargetCode* targetCode)
     {
         return reinterpret_cast<const uint8_t*>(targetCode->resourceInfo.data());
+    }
+
+    uint32_t getMdlMaterialSize(const TargetCode* targetCode)
+    {
+        return targetCode->mdlMaterials.size() * sizeof(MdlMaterial);
+    }
+
+    const uint8_t* getMdlMaterialData(const TargetCode* targetCode)
+    {
+        return reinterpret_cast<const uint8_t*>(targetCode->mdlMaterials.data());
     }
 
     uint32_t getTextureCount(const TargetCode* targetCode)
@@ -376,7 +506,7 @@ MaterialManager::~MaterialManager()
     mContext.reset(nullptr);
 };
 
-bool MaterialManager::addMdlSearchPath(const char** paths, uint32_t numPaths)
+bool MaterialManager::addMdlSearchPath(const char* paths[], uint32_t numPaths)
 {
     return mContext->addMdlSearchPath(paths, numPaths);
 }
@@ -409,9 +539,9 @@ const char* MaterialManager::getShaderCode(const TargetCode* targetCode) // get 
     return mContext->getShaderCode(targetCode);
 }
 
-uint32_t MaterialManager::getReadOnlyBlockSize(const TargetCode* shaderCode)
+uint32_t MaterialManager::getReadOnlyBlockSize(const TargetCode* targetCode)
 {
-    return mContext->getReadOnlyBlockSize(shaderCode);
+    return mContext->getReadOnlyBlockSize(targetCode);
 }
 
 const uint8_t* MaterialManager::getReadOnlyBlockData(const TargetCode* targetCode)
@@ -419,9 +549,9 @@ const uint8_t* MaterialManager::getReadOnlyBlockData(const TargetCode* targetCod
     return mContext->getReadOnlyBlockData(targetCode);
 }
 
-uint32_t MaterialManager::getArgBufferSize(const TargetCode* shaderCode)
+uint32_t MaterialManager::getArgBufferSize(const TargetCode* targetCode)
 {
-    return mContext->getArgBufferSize(shaderCode);
+    return mContext->getArgBufferSize(targetCode);
 }
 
 const uint8_t* MaterialManager::getArgBufferData(const TargetCode* targetCode)
@@ -437,6 +567,16 @@ uint32_t MaterialManager::getResourceInfoSize(const TargetCode* targetCode)
 const uint8_t* MaterialManager::getResourceInfoData(const TargetCode* targetCode)
 {
     return mContext->getResourceInfoData(targetCode);
+}
+
+uint32_t MaterialManager::getMdlMaterialSize(const TargetCode* targetCode)
+{
+    return mContext->getMdlMaterialSize(targetCode);
+}
+
+const uint8_t* MaterialManager::getMdlMaterialData(const TargetCode* targetCode)
+{
+    return mContext->getMdlMaterialData(targetCode);
 }
 
 uint32_t MaterialManager::getTextureCount(const TargetCode* targetCode)
@@ -473,68 +613,75 @@ uint32_t MaterialManager::getTextureBytesPerTexel(const TargetCode* targetCode, 
 {
     return mContext->getTextureBytesPerTexel(targetCode, index);
 }
-
+inline size_t round_to_power_of_two(size_t value, size_t power_of_two_factor)
+{
+    return (value + (power_of_two_factor - 1)) & ~(power_of_two_factor - 1);
+}
 std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(const TargetCode* targetCode)
 {
-    /* for (int i = 0; i < materials.size(); i++)
-     {
-         mi::Size argLayoutIndex = mInternalsInfo[i].argument_block_index;
-         if (argLayoutIndex != static_cast<mi::Size>(-1) &&
-             argLayoutIndex < targetHlsl->get_argument_layout_count())
-         {
-             // argument block for class compilation parameter data
-             mi::base::Handle<const mi::neuraylib::ITarget_argument_block> arg_block;
-             {
-                 // get the layout
-                 mi::base::Handle<const mi::neuraylib::ITarget_value_layout> arg_layout(
-                     targetHlsl->get_argument_block_layout(argLayoutIndex));
+    std::vector<uint8_t> res;
+    Resource_callback resCallBack(mTransaction.get(), targetCode->targetCode.get());
+    for (int i = 0; i < targetCode->compiledMaterials.size(); i++)
+    {
+        const mi::Size argLayoutIndex = targetCode->internalsInfo[i].argument_block_index;
+        if (argLayoutIndex != static_cast<mi::Size>(-1) &&
+            argLayoutIndex < targetCode->targetCode->get_argument_layout_count())
+        {
+            // argument block for class compilation parameter data
+            mi::base::Handle<const mi::neuraylib::ITarget_argument_block> arg_block;
+            {
+                // get the layout
+                mi::base::Handle<const mi::neuraylib::ITarget_value_layout> arg_layout(
+                    targetCode->targetCode->get_argument_block_layout(argLayoutIndex));
 
-                 // for the first instances of the materials, the argument block already exists
-                 // for further blocks new ones have to be created. To avoid special treatment,
-                 // an new block is created for every material
-                 mi::base::Handle<mi::neuraylib::ITarget_resource_callback> callback(
-                     targetHlsl->create_resource_callback(this));
+                // for the first instances of the materials, the argument block already exists
+                // for further blocks new ones have to be created. To avoid special treatment,
+                // an new block is created for every material
+                mi::base::Handle<mi::neuraylib::ITarget_resource_callback> callback(&resCallBack);
 
-                 arg_block = targetHlsl->create_argument_block(
-                     argLayoutIndex,
-                     materials[i],
-                     callback.get());
+                arg_block = targetCode->targetCode->create_argument_block(
+                    argLayoutIndex,
+                    targetCode->compiledMaterials[i],
+                    callback.get());
 
-                 if (!arg_block)
-                 {
-                     std::cerr << ("Failed to create material argument block: ") << std::endl;
-                     return false;
-                 }
-             }
-             // create a buffer to provide those parameters to the shader
-             size_t buffer_size = round_to_power_of_two(arg_block->get_size(), 4);
-             argBlockData = std::vector<uint8_t>(buffer_size, 0);
-             memcpy(argBlockData.data(), arg_block->get_data(), arg_block->get_size());
-         }
-     }*/
+                if (!arg_block)
+                {
+                    std::cerr << ("Failed to create material argument block: ") << std::endl;
+                    res.resize(4);
+                    return res;
+                }
+            }
+            // create a buffer to provide those parameters to the shader
+            size_t buffer_size = round_to_power_of_two(arg_block->get_size(), 4);
+            std::vector<uint8_t> argBlockData = std::vector<uint8_t>(buffer_size, 0);
+            memcpy(argBlockData.data(), arg_block->get_data(), arg_block->get_size());
 
-    std::vector<uint8_t> argBlockData;
-    argBlockData.resize(4);
-    return argBlockData;
+            res.insert(res.end(), argBlockData.begin(), argBlockData.end());
+        }
+    }
+
+    if (res.empty())
+    {
+        res.resize(4);
+    }
+    return res;
 };
 
 std::vector<uint8_t> MaterialManager::Context::loadROData(const TargetCode* targetCode)
 {
     std::vector<uint8_t> roData;
 
-    size_t ro_data_seg_index = 0; // assuming one material per target code only
-    if (targetCode->targetCode->get_ro_data_segment_count() > 0)
+    size_t segCount = targetCode->targetCode->get_ro_data_segment_count();
+    for (size_t i = 0; i < segCount; ++i)
     {
-        const char* data = targetCode->targetCode->get_ro_data_segment_data(ro_data_seg_index);
-        size_t dataSize = targetCode->targetCode->get_ro_data_segment_size(ro_data_seg_index);
-        const char* name = targetCode->targetCode->get_ro_data_segment_name(ro_data_seg_index);
-
-        // std::cerr << name << std::endl;
-
-        roData.resize(dataSize);
+        const char* data = targetCode->targetCode->get_ro_data_segment_data(i);
+        size_t dataSize = targetCode->targetCode->get_ro_data_segment_size(i);
+        const char* name = targetCode->targetCode->get_ro_data_segment_name(i);
+        std::cerr << "MDL segment [" << i << "] name : " << name << std::endl;
+        
         if (dataSize != 0)
         {
-            memcpy(roData.data(), data, dataSize);
+            roData.insert(roData.end(), data, data + dataSize);
         }
     }
 
