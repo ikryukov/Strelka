@@ -41,7 +41,12 @@ struct MaterialManager::Module
     std::string identifier;
 };
 
-struct MaterialManager::Material
+struct MaterialManager::MaterialInstance
+{
+    mi::base::Handle<mi::neuraylib::IMaterial_instance> instance;
+};
+
+struct MaterialManager::CompiledMaterial
 {
     mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
 };
@@ -240,14 +245,63 @@ public:
         delete module;
     };
 
-    Material* createMaterial(const Module* module, const char* materialName)
+    MaterialInstance* createMaterialInstance(const MaterialManager::Module* module, const char* materialName)
     {
         assert(module);
         assert(materialName);
 
         // use smart pointer
-        Material* material = new Material;
-        if (!mMatCompiler->createCompiledMaterial(module->moduleName.c_str(), materialName, material->compiledMaterial)) // need to be checked for dif material names in module. it should be different module names for dif. materials in case of mdl -> hlsl
+        MaterialInstance* material = new MaterialInstance;
+        if (!mMatCompiler->createMaterialInstace(module->moduleName.c_str(), materialName, material->instance))
+        {
+            return nullptr;
+        }
+
+        return material;        
+    }
+
+    void destroyMaterialInstance(MaterialInstance* matInst)
+    {
+        assert(matInst);
+        delete matInst;
+    }
+
+    bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, void* paramData)
+    {
+        mi::base::Handle<mi::neuraylib::IValue_factory> value_factory(mMatCompiler->getFactory()->create_value_factory(mTransaction.get()));
+        mi::base::Handle<mi::neuraylib::IExpression_factory> expression_factory(mMatCompiler->getFactory()->create_expression_factory(mTransaction.get()));
+        mi::base::Handle<mi::neuraylib::IType_factory> type_factory(mMatCompiler->getFactory()->create_type_factory(mTransaction.get()));
+        mi::base::Handle<mi::neuraylib::IValue> value;
+        switch (type)
+        {
+        case nevk::MaterialManager::ParamType::eFloat: {
+            value = value_factory->create_float(*((float*)paramData));
+            break;
+        }
+        case nevk::MaterialManager::ParamType::eColor: {
+            float* dataPtr = (float*)paramData;
+            value = value_factory->create_color(dataPtr[0], dataPtr[1], dataPtr[2]);
+            break;
+        }
+        case nevk::MaterialManager::ParamType::eTexture: {
+            mi::base::Handle<const mi::neuraylib::IType_texture> texture_type(type_factory->create_texture(mi::neuraylib::IType_texture::TS_2D));
+            value = value_factory->create_texture(texture_type.get(), (const char*)paramData); // param - texture path in DB
+            break;
+        }
+        default:
+            break;
+        }
+        mi::base::Handle<mi::neuraylib::IExpression> expr(expression_factory->create_constant(value.get()));
+        mi::Sint32 res = matInst->instance->set_argument(paramName, expr.get());
+        return res == 0;
+    }
+
+    CompiledMaterial* compileMaterial(MaterialInstance* matInstance)
+    {
+        assert(matInstance);
+        // use smart pointer
+        CompiledMaterial* material = new CompiledMaterial;
+        if (!mMatCompiler->compileMaterial(matInstance->instance, material->compiledMaterial))
         {
             return nullptr;
         }
@@ -255,13 +309,13 @@ public:
         return material;
     };
 
-    void destroyMaterial(Material* materials)
+    void destroyCompiledMaterial(CompiledMaterial* materials)
     {
         assert(materials);
         delete materials;
     }
 
-    const TargetCode* generateTargetCode(const std::vector<Material*>& materials)
+    const TargetCode* generateTargetCode(const std::vector<CompiledMaterial*>& materials)
     {
         TargetCode* targetCode = new TargetCode;
 
@@ -530,15 +584,29 @@ void MaterialManager::destroyModule(MaterialManager::Module* module)
 {
     return mContext->destroyModule(module);
 }
-MaterialManager::Material* MaterialManager::createMaterial(const MaterialManager::Module* module, const char* materialName)
+MaterialManager::MaterialInstance* MaterialManager::createMaterialInstance(const MaterialManager::Module* module, const char* materialName)
 {
-    return mContext->createMaterial(module, materialName);
+    return mContext->createMaterialInstance(module, materialName);
 }
-void MaterialManager::destroyMaterial(Material* materials)
+void MaterialManager::destroyMaterialInstance(MaterialManager::MaterialInstance* matInst)
 {
-    return mContext->destroyMaterial(materials);
+    return mContext->destroyMaterialInstance(matInst);
 }
-const MaterialManager::TargetCode* MaterialManager::generateTargetCode(const std::vector<MaterialManager::Material*>& materials)
+
+bool MaterialManager::changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, void* paramData)
+{
+    return mContext->changeParam(matInst, type, paramName, paramData);
+}
+
+MaterialManager::CompiledMaterial* MaterialManager::compileMaterial(MaterialManager::MaterialInstance* matInstance)
+{
+    return mContext->compileMaterial(matInstance);
+}
+void MaterialManager::destroyCompiledMaterial(CompiledMaterial* material)
+{
+    return mContext->destroyCompiledMaterial(material);
+}
+const MaterialManager::TargetCode* MaterialManager::generateTargetCode(const std::vector<MaterialManager::CompiledMaterial*>& materials)
 {
     return mContext->generateTargetCode(materials);
 }

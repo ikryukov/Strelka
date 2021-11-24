@@ -21,16 +21,16 @@ public:
     MdlMaterialCompiler(MdlRuntime& runtime);
 
 public:
-    bool compileMaterial(const std::string& src,
-                         const std::string& identifier,
-                         mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial);
-
     bool createModule(const std::string& identifier,
                       std::string& moduleName);
 
-    bool createCompiledMaterial(const char* moduleName,
-                                const char* identifier,
-                                mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial);
+    bool createMaterialInstace(const char* moduleName, const char* identifier, 
+        mi::base::Handle<mi::neuraylib::IMaterial_instance>& matInstance);
+
+    bool compileMaterial(mi::base::Handle<mi::neuraylib::IMaterial_instance>& instance,
+                         mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial);
+
+    mi::base::Handle<mi::neuraylib::IMdl_factory>& getFactory();
 
 private:
     mi::base::Handle<MdlLogger> mLogger;

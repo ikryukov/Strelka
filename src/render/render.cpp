@@ -164,22 +164,29 @@ void Render::initPasses(){
     ptcode << pt.rdbuf();
 
     mMaterialManager = new MaterialManager();
-    const char* path[4] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/Wood/textures", "./misc/test_data/mdl/Wood/", "./misc/test_data/mdl/Wood/.thumbs" };
+    const char* path[4] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
+                            "./misc/test_data/mdl/Plastic", "./misc/test_data/mdl/Plastic/textures" };
     bool res = mMaterialManager->addMdlSearchPath(path, 4);
     if (!res)
     {
         // failed to load MDL
         return;
     }
-    MaterialManager::Module* currModule = mMaterialManager->createModule("Wood/Wood_Bark.mdl");
-    MaterialManager::Material* material = mMaterialManager->createMaterial(currModule, "Wood_Bark");
+    MaterialManager::Module* currModule = mMaterialManager->createModule("Plastic_Thick_Translucent_Flakes.mdl");
+    MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule, "plastic_orange");
     
+    float val = 0.01f;
+    res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "reflection_roughness", &val);
+    assert(res);
+
+    MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
+
     //MaterialManager::Module* carbonModule = mMaterialManager->createModule("tutorials.mdl");
    // MaterialManager::Material* carbonMaterial = mMaterialManager->createMaterial(carbonModule, "example_df");
    // MaterialManager::Material* carbonMaterial1 = mMaterialManager->createMaterial(carbonModule, "dxr_sphere_mat");
     
-    std::vector<MaterialManager::Material*> materials;
-    materials.push_back(material);
+    std::vector<MaterialManager::CompiledMaterial*> materials;
+    materials.push_back(materialComp1);
     //materials.push_back(carbonMaterial);
    // materials.push_back(carbonMaterial1);
     

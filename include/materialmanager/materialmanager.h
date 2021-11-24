@@ -14,7 +14,8 @@ class MaterialManager
 
 public:
     struct Module;
-    struct Material;
+    struct MaterialInstance;
+    struct CompiledMaterial;
     struct TargetCode;
 
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths);
@@ -23,10 +24,22 @@ public:
     Module* createMtlxModule(const char* file);
     void destroyModule(Module* module);
 
-    Material* createMaterial(const Module* module, const char* materialName);
-    void destroyMaterial(Material* material);
+    MaterialInstance* createMaterialInstance(const Module* module, const char* materialName);
+    void destroyMaterialInstance(MaterialInstance* material);
 
-    const TargetCode* generateTargetCode(const std::vector<Material*>& material);
+    enum class ParamType: uint32_t
+    {
+        eFloat = 0,
+        eColor,
+        eTexture
+    };
+
+    bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, void* paramData);
+
+    CompiledMaterial* compileMaterial(MaterialInstance* matInstance);
+    void destroyCompiledMaterial(CompiledMaterial* compMaterial);
+
+    const TargetCode* generateTargetCode(const std::vector<CompiledMaterial*>& material);
     const char* getShaderCode(const TargetCode* targetCode);
 
     uint32_t getReadOnlyBlockSize(const TargetCode* targetCode);
