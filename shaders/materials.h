@@ -52,9 +52,9 @@ struct Material
 
 struct MdlMaterial
 {
-    int arg_block_offset = -1;
+    int arg_block_offset = 0;
     int ro_data_segment_offset = 0;
-    int functionId = -1;
+    int functionId = 0;
     int pad1;
 };
 
