@@ -64,10 +64,10 @@ class Resource_callback
 public:
     /// Constructor.
     Resource_callback(
-        mi::neuraylib::ITransaction* transaction,
-        mi::neuraylib::ITarget_code const* target_code)
-        : m_transaction(mi::base::make_handle_dup(transaction)),
-        m_target_code(mi::base::make_handle_dup(target_code))
+        mi::base::Handle<mi::neuraylib::ITransaction>& transaction,
+        const mi::base::Handle<const mi::neuraylib::ITarget_code>& target_code)
+        : m_transaction(transaction),
+          m_target_code(target_code)
     {
     }
 
@@ -620,7 +620,7 @@ inline size_t round_to_power_of_two(size_t value, size_t power_of_two_factor)
 std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(const TargetCode* targetCode)
 {
     std::vector<uint8_t> res;
-    Resource_callback resCallBack(mTransaction.get(), targetCode->targetCode.get());
+    mi::base::Handle<Resource_callback> callback(new Resource_callback(mTransaction, targetCode->targetCode));
     for (int i = 0; i < targetCode->compiledMaterials.size(); i++)
     {
         const mi::Size argLayoutIndex = targetCode->internalsInfo[i].argument_block_index;
@@ -637,8 +637,6 @@ std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(const TargetCode* t
                 // for the first instances of the materials, the argument block already exists
                 // for further blocks new ones have to be created. To avoid special treatment,
                 // an new block is created for every material
-                mi::base::Handle<mi::neuraylib::ITarget_resource_callback> callback(&resCallBack);
-
                 arg_block = targetCode->targetCode->create_argument_block(
                     argLayoutIndex,
                     targetCode->compiledMaterials[i],
