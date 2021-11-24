@@ -280,10 +280,18 @@ public:
         targetCode->argBlockData = loadArgBlocks(targetCode);
         targetCode->roData = loadROData(targetCode);
 
-        targetCode->resourceInfo.resize(targetCode->targetCode->get_texture_count());
-        for (uint32_t i = 0; i < targetCode->targetCode->get_texture_count(); ++i)
+        uint32_t  texCount = targetCode->targetCode->get_texture_count();
+        if (texCount > 0)
         {
-            targetCode->resourceInfo[i].gpu_resource_array_start = i;
+            targetCode->resourceInfo.resize(texCount);
+            for (uint32_t i = 0; i < texCount; ++i)
+            {
+                targetCode->resourceInfo[i].gpu_resource_array_start = i;
+            }
+        }
+        else
+        {
+            targetCode->resourceInfo.resize(1);
         }
 
         return targetCode;

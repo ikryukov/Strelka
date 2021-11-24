@@ -164,24 +164,24 @@ void Render::initPasses(){
     ptcode << pt.rdbuf();
 
     mMaterialManager = new MaterialManager();
-    const char* path[2] = { "./misc/test_data/mdl", "./misc/test_data/mdl/resources" };
-    bool res = mMaterialManager->addMdlSearchPath(path, 2);
+    const char* path[4] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/Wood/textures", "./misc/test_data/mdl/Wood/", "./misc/test_data/mdl/Wood/.thumbs" };
+    bool res = mMaterialManager->addMdlSearchPath(path, 4);
     if (!res)
     {
         // failed to load MDL
         return;
     }
-    //MaterialManager::Module* currModule = mMaterialManager->createModule("brushed_antique_copper.mdl");
-    //MaterialManager::Material* material = mMaterialManager->createMaterial(currModule, "brushed_antique_copper");
+    MaterialManager::Module* currModule = mMaterialManager->createModule("Wood/Wood_Bark.mdl");
+    MaterialManager::Material* material = mMaterialManager->createMaterial(currModule, "Wood_Bark");
     
-    MaterialManager::Module* carbonModule = mMaterialManager->createModule("tutorials.mdl");
-    MaterialManager::Material* carbonMaterial = mMaterialManager->createMaterial(carbonModule, "example_df");
-    MaterialManager::Material* carbonMaterial1 = mMaterialManager->createMaterial(carbonModule, "dxr_sphere_mat");
+    //MaterialManager::Module* carbonModule = mMaterialManager->createModule("tutorials.mdl");
+   // MaterialManager::Material* carbonMaterial = mMaterialManager->createMaterial(carbonModule, "example_df");
+   // MaterialManager::Material* carbonMaterial1 = mMaterialManager->createMaterial(carbonModule, "dxr_sphere_mat");
     
     std::vector<MaterialManager::Material*> materials;
-    //materials.push_back(material);
-    materials.push_back(carbonMaterial);
-    materials.push_back(carbonMaterial1);
+    materials.push_back(material);
+    //materials.push_back(carbonMaterial);
+   // materials.push_back(carbonMaterial1);
     
     const MaterialManager::TargetCode* code = mMaterialManager->generateTargetCode(materials);
     const char* hlsl = mMaterialManager->getShaderCode(code);

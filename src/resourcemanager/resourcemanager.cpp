@@ -99,7 +99,8 @@ public:
         }
 
         Buffer* ret = new Buffer();
-        if (vmaCreateBuffer(mAllocator, &bufferInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, nullptr) != VK_SUCCESS)
+        VkResult res = vmaCreateBuffer(mAllocator, &bufferInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, nullptr);
+        if (res != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create buffer!");
         }

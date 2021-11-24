@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <cassert>
+#include <iostream>
 
 namespace nevk
 {
@@ -59,6 +60,7 @@ bool MdlMaterialCompiler::createCompiledMaterial(const char* moduleName,
     }
 
     mi::base::Handle<const mi::IString> exactMaterialDbName(funcs->get_element<mi::IString>(0));
+    // get material definition from database
     mi::base::Handle<const mi::neuraylib::IMaterial_definition> matDefinition(mTransaction->access<mi::neuraylib::IMaterial_definition>(exactMaterialDbName->get_c_str()));
     if (!matDefinition)
     {
@@ -66,16 +68,41 @@ bool MdlMaterialCompiler::createCompiledMaterial(const char* moduleName,
     }
 
     mi::Sint32 result;
+    // instantiate material with default parameters and store in database
     mi::base::Handle<mi::neuraylib::IMaterial_instance> matInstance(matDefinition->create_material_instance(NULL, &result));
     if (result != 0 || !matInstance)
     {
         return false;
     }
 
-    auto flags = mi::neuraylib::IMaterial_instance::DEFAULT_OPTIONS; // Instance compilation, no class compilation.
-    compiledMaterial = mi::base::Handle<mi::neuraylib::ICompiled_material>(matInstance->create_compiled_material(flags, context.get()));
+    // Editing material
+    std::string name = "editedMaterial";
+    // store in database
+    mTransaction->store(matInstance.get(), name.c_str());
+    // create argument editor
+    mi::neuraylib::Argument_editor arg_editor(mTransaction.get(), name.c_str(), mFactory.get());
+
+    // print all arguments
+
+    for (uint32_t i = 0; i < arg_editor.get_arguments()->get_size(); ++i) {
+        std::cout << arg_editor.get_arguments()->get_name(i) << std::endl;
+    }
+    // change the roughness parameter of the material instance
+    arg_editor.set_value("reflection_roughness", 1.0);
+    // attach a function call to the "tint" parameter via DB name
+    arg_editor.set_call("tint", "uv_as_color");
+    // access material instance
+    mi::base::Handle<const mi::neuraylib::IMaterial_instance> editedMatInstance(mTransaction->access<const mi::neuraylib::IMaterial_instance>(name.c_str()));
+    if (!editedMatInstance)
+    {
+        return false;
+    }
+
+    //auto flags = mi::neuraylib::IMaterial_instance::DEFAULT_OPTIONS; // Instance compilation, no class compilation.
+     auto flags = mi::neuraylib::IMaterial_instance::CLASS_COMPILATION; // Class compilation.
+    compiledMaterial = mi::base::Handle<mi::neuraylib::ICompiled_material>(editedMatInstance->create_compiled_material(flags, context.get()));
 
     mLogger->flushContextMessages(context.get());
     return true;
 }
-}
+} // namespace nevk
