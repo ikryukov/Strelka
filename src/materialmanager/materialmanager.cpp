@@ -290,8 +290,8 @@ public:
             break;
         }
         case nevk::MaterialManager::ParamType::eTexture: {
-            mi::base::Handle<const mi::neuraylib::IType_texture> texture_type(type_factory->create_texture(mi::neuraylib::IType_texture::TS_2D));
-            value = value_factory->create_texture(texture_type.get(), (const char*)paramData); // param - texture path in DB
+            const TextureDescription* texDesc = (const TextureDescription*) paramData;
+            value = value_factory->create_texture(texDesc->textureType.get(), texDesc->dbName.c_str());
             break;
         }
         default:

@@ -190,6 +190,7 @@ void Render::initPasses(){
         std::vector<Material> gltfMaterials = mScene->getMaterials();
         for (int i = 0; i < gltfMaterials.size(); ++i)
         {
+            const Material& gltfMaterial = gltfMaterials[i];
             // create MDL mat instance
             // ...
             // create Textures for MDL from gltf
@@ -206,8 +207,7 @@ void Render::initPasses(){
     MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription("Vespa_BaseColor.png", "linear");
     assert(texDesc);
 
-    const char* texDbName = mMaterialManager->getTextureDbName(texDesc);
-    res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, "tex", (const void*) texDbName);
+    res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, "tex", (const void*) texDesc);
     assert(res);
 
     //float val = 0.01f;
