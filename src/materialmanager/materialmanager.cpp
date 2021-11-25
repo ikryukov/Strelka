@@ -554,7 +554,7 @@ private:
     mi::base::Handle<MdlLogger> mLogger;
     mi::base::Handle<mi::neuraylib::INeuray> mNeuray;
 
-    std::vector<uint8_t> loadArgBlocks(const TargetCode* targetCode);
+    std::vector<uint8_t> loadArgBlocks(TargetCode* targetCode);
     std::vector<uint8_t> loadROData(const TargetCode* targetCode);
 };
 
@@ -693,7 +693,7 @@ inline size_t round_to_power_of_two(size_t value, size_t power_of_two_factor)
 {
     return (value + (power_of_two_factor - 1)) & ~(power_of_two_factor - 1);
 }
-std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(const TargetCode* targetCode)
+std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(TargetCode* targetCode)
 {
     std::vector<uint8_t> res;
     mi::base::Handle<Resource_callback> callback(new Resource_callback(mTransaction, targetCode->targetCode));
@@ -726,9 +726,13 @@ std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(const TargetCode* t
                 }
             }
             // create a buffer to provide those parameters to the shader
+            // align to 4 bytes and pow of two
             size_t buffer_size = round_to_power_of_two(arg_block->get_size(), 4);
             std::vector<uint8_t> argBlockData = std::vector<uint8_t>(buffer_size, 0);
             memcpy(argBlockData.data(), arg_block->get_data(), arg_block->get_size());
+
+            // set offset in common arg block buffer
+            targetCode->mdlMaterials[i].arg_block_offset = (int) res.size();
 
             res.insert(res.end(), argBlockData.begin(), argBlockData.end());
         }
