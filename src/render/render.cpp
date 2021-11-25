@@ -157,6 +157,14 @@ void Render::initPasses(){
     mAccumulationPathTracer = new Accumulation(mSharedCtx);
     mAccumulationPathTracer->initialize();
 
+    createDefaultScene();
+    if (!MODEL_PATH.empty())
+    {
+        // Workaround:
+        //mTexManager->saveTexturesInDelQueue();
+        loadScene(MODEL_PATH);
+    }
+
     // Material manager
     const fs::path cwd = fs::current_path();
     std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
@@ -173,9 +181,28 @@ void Render::initPasses(){
         // failed to load MDL
         return;
     }
-    MaterialManager::Module* currModule = mMaterialManager->createModule("tutorials.mdl");
-    MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule, "example_df");
+    MaterialManager::Module* currModule = mMaterialManager->createModule("gltf_support.mdl");
+
+    MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule, "gltf_material");
     
+    // 
+    {
+        std::vector<Material> gltfMaterials = mScene->getMaterials();
+        for (int i = 0; i < gltfMaterials.size(); ++i)
+        {
+            // create MDL mat instance
+            // ...
+            // create Textures for MDL from gltf
+            // MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription("Vespa_BaseColor.png", "linear");
+            // ...
+            // set params: colors, floats... textures
+            // changeParam(materialInst1, MaterialManager::ParamType::eFloat, "reflection_roughness", &val);
+            // Compile Materials
+        }
+    }
+    // generate code for PT
+    // ...
+
     MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription("Vespa_BaseColor.png", "linear");
     assert(texDesc);
 
@@ -207,13 +234,7 @@ void Render::initPasses(){
     mPathTracer = new PathTracer(mSharedCtx, newPTCode);
     mPathTracer->initialize();
 
-    createDefaultScene();
-    if (!MODEL_PATH.empty())
-    {
-        // Workaround:
-        //mTexManager->saveTexturesInDelQueue();
-        loadScene(MODEL_PATH);
-    }
+
     // Workaround:
     mCurrentSceneRenderData->mMaterialTargetCode = code;
 
@@ -1372,7 +1393,7 @@ void Render::loadScene(const std::string& modelPath)
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
 
-    setDescriptors(0);
+    //setDescriptors(0);
 }
 
 void Render::setDescriptors(uint32_t imageIndex)
