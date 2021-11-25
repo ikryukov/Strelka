@@ -334,7 +334,7 @@ public:
                 return nullptr;
             }
             std::string imageName = textureDbName + std::string("_image");
-            mMatCompiler->getTransaction()->store(image.get(), textureDbName.c_str());
+            mMatCompiler->getTransaction()->store(image.get(), imageName.c_str());
 
             tex->set_image(imageName.c_str());
             tex->set_gamma(gamma);
