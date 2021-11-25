@@ -31,6 +31,7 @@ public:
                          mi::base::Handle<mi::neuraylib::ICompiled_material>& compiledMaterial);
 
     mi::base::Handle<mi::neuraylib::IMdl_factory>& getFactory();
+    mi::base::Handle<mi::neuraylib::ITransaction>& getTransaction();
 
 private:
     mi::base::Handle<MdlLogger> mLogger;

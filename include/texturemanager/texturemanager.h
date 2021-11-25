@@ -110,7 +110,7 @@ public:
     Texture createTextureImage(const std::string& texture_path);
     Texture createTextureImage(const void* pixels, uint32_t width, uint32_t height);
     Texture createTextureImage(const void* pixels, VkFormat format, uint32_t width, uint32_t height);
-    Texture createTextureImage(const void* pixels, uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height);
+    Texture createTextureImage(const void* pixels, uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height, const char* name = "");
 
     void createTextureImageView(Texture& texture);
     void createShadowSampler();

@@ -164,20 +164,28 @@ void Render::initPasses(){
     ptcode << pt.rdbuf();
 
     mMaterialManager = new MaterialManager();
-    const char* path[4] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
-                            "./misc/test_data/mdl/Plastic", "./misc/test_data/mdl/Plastic/textures" };
-    bool res = mMaterialManager->addMdlSearchPath(path, 4);
+    const char* paths[5] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
+                            "./misc/test_data/mdl/Plastic", "./misc/test_data/mdl/Plastic/textures",
+                             "./misc/m4/" };
+    bool res = mMaterialManager->addMdlSearchPath(paths, 5);
     if (!res)
     {
         // failed to load MDL
         return;
     }
-    MaterialManager::Module* currModule = mMaterialManager->createModule("Plastic_Thick_Translucent_Flakes.mdl");
-    MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule, "plastic_orange");
+    MaterialManager::Module* currModule = mMaterialManager->createModule("tutorials.mdl");
+    MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule, "example_df");
     
-    float val = 0.01f;
-    res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "reflection_roughness", &val);
+    MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription("Vespa_BaseColor.png", "linear");
+    assert(texDesc);
+
+    const char* texDbName = mMaterialManager->getTextureDbName(texDesc);
+    res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, "tex", (const void*) texDbName);
     assert(res);
+
+    //float val = 0.01f;
+    //res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "reflection_roughness", &val);
+    //assert(res);
 
     MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
 
@@ -1002,6 +1010,8 @@ void nevk::Render::createMdlTextures()
         uint32_t height = mMaterialManager->getTextureHeight(code, i);
         const char* type = mMaterialManager->getTextureType(code, i);
         std::string name = mMaterialManager->getTextureName(code, i);
+
+        std::cout << "Load MDL texture: " << name << std::endl;
 
         mTexManager->loadTextureMdl(data, width, height, type, name);
     }

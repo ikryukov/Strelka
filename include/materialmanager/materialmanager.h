@@ -17,6 +17,7 @@ public:
     struct MaterialInstance;
     struct CompiledMaterial;
     struct TargetCode;
+    struct TextureDescription;
 
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths);
 
@@ -34,7 +35,10 @@ public:
         eTexture
     };
 
-    bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, void* paramData);
+    bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, const void* paramData);
+
+    TextureDescription* createTextureDescription(const char* name, const char* gamma);
+    const char* getTextureDbName(TextureDescription* texDesc);
 
     CompiledMaterial* compileMaterial(MaterialInstance* matInstance);
     void destroyCompiledMaterial(CompiledMaterial* compMaterial);

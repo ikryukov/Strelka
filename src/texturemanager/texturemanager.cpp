@@ -42,7 +42,7 @@ int nevk::TextureManager::loadTextureMdl(const void* pixels, const uint32_t widt
     if (mNameToID.count(name) == 0)
     {
         mNameToID[name] = textures.size();
-        Texture tex = createTextureImage(pixels, 4 * 4, vkFormat, width, height);
+        Texture tex = createTextureImage(pixels, 4 * 4, vkFormat, width, height, name.c_str());
         textures.push_back(tex);
         textureImages.push_back(tex.textureImage);
 
@@ -79,7 +79,7 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const voi
     return createTextureImage(pixels, 4, format, width, height);
 }
 
-nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height)
+nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height, const char* name)
 {
     VkDeviceSize imageSize = width * height * bytesPerPixel;
     Buffer* stagingBuffer = mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -87,7 +87,7 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const voi
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, pixels, static_cast<size_t>(imageSize));
 
-    Image* textureImage = mResManager->createImage(width, height, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    Image* textureImage = mResManager->createImage(width, height, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, name);
 
     transitionImageLayout(mResManager->getVkImage(textureImage), format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     copyBufferToImage(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkImage(textureImage), static_cast<uint32_t>(width), static_cast<uint32_t>(height));

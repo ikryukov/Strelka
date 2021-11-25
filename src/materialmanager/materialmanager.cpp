@@ -63,6 +63,12 @@ struct MaterialManager::TargetCode
     std::vector<const mi::neuraylib::ICompiled_material*> compiledMaterials;
 };
 
+struct MaterialManager::TextureDescription
+{
+    std::string dbName;
+    mi::base::Handle<const mi::neuraylib::IType_texture> textureType;
+};
+
 class Resource_callback
     : public mi::base::Interface_implement<mi::neuraylib::ITarget_resource_callback>
 {
@@ -266,11 +272,11 @@ public:
         delete matInst;
     }
 
-    bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, void* paramData)
+    bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, const void* paramData)
     {
-        mi::base::Handle<mi::neuraylib::IValue_factory> value_factory(mMatCompiler->getFactory()->create_value_factory(mTransaction.get()));
-        mi::base::Handle<mi::neuraylib::IExpression_factory> expression_factory(mMatCompiler->getFactory()->create_expression_factory(mTransaction.get()));
-        mi::base::Handle<mi::neuraylib::IType_factory> type_factory(mMatCompiler->getFactory()->create_type_factory(mTransaction.get()));
+        mi::base::Handle<mi::neuraylib::IValue_factory> value_factory(mMatCompiler->getFactory()->create_value_factory(mMatCompiler->getTransaction().get()));
+        mi::base::Handle<mi::neuraylib::IExpression_factory> expression_factory(mMatCompiler->getFactory()->create_expression_factory(mMatCompiler->getTransaction().get()));
+        mi::base::Handle<mi::neuraylib::IType_factory> type_factory(mMatCompiler->getFactory()->create_type_factory(mMatCompiler->getTransaction().get()));
         mi::base::Handle<mi::neuraylib::IValue> value;
         switch (type)
         {
@@ -294,6 +300,60 @@ public:
         mi::base::Handle<mi::neuraylib::IExpression> expr(expression_factory->create_constant(value.get()));
         mi::Sint32 res = matInst->instance->set_argument(paramName, expr.get());
         return res == 0;
+    }
+
+    TextureDescription* createTextureDescription(const char* name, const char* gammaMode)
+    {
+        assert(name);
+        float gamma = 1.0;
+        const char* texGamma = "";
+        if (strcmp(gammaMode, "srgb")  == 0)
+        {
+            gamma = 2.2f;
+            texGamma = "_srgb";
+        }
+        else if (strcmp(gammaMode, "linear") == 0)
+        {
+            gamma = 1.0f;
+            texGamma = "_linear";
+        }
+
+        std::string textureDbName = std::string(name) + std::string(texGamma);
+        mi::base::Handle<const mi::neuraylib::ITexture> texAccess = mi::base::Handle<const mi::neuraylib::ITexture>(
+            mMatCompiler->getTransaction()->access<mi::neuraylib::ITexture>(textureDbName.c_str()));
+
+        // check if it is in DB
+        if (!texAccess.is_valid_interface())
+        {
+            // Load it
+            mi::base::Handle<mi::neuraylib::ITexture> tex(mMatCompiler->getTransaction()->create<mi::neuraylib::ITexture>("Texture"));
+            mi::base::Handle<mi::neuraylib::IImage> image(mMatCompiler->getTransaction()->create<mi::neuraylib::IImage>("Image"));
+            if (image->reset_file(name) != 0)
+            {
+                // TODO: report error could not find texture!
+                return nullptr;
+            }
+            std::string imageName = textureDbName + std::string("_image");
+            mMatCompiler->getTransaction()->store(image.get(), textureDbName.c_str());
+
+            tex->set_image(imageName.c_str());
+            tex->set_gamma(gamma);
+            mMatCompiler->getTransaction()->store(tex.get(), textureDbName.c_str());
+        }
+
+        mi::base::Handle<mi::neuraylib::IType_factory> typeFactory(mMatCompiler->getFactory()->create_type_factory(mMatCompiler->getTransaction().get()));
+        // TODO: texture could be 1D, 3D
+        mi::base::Handle<const mi::neuraylib::IType_texture> textureType(typeFactory->create_texture(mi::neuraylib::IType_texture::TS_2D));
+
+        TextureDescription* texDesc = new TextureDescription;
+        texDesc->dbName = textureDbName;
+        texDesc->textureType = textureType;
+        return texDesc;
+    }
+
+    const char* getTextureDbName(TextureDescription* texDesc)
+    {
+        return texDesc->dbName.c_str();
     }
 
     CompiledMaterial* compileMaterial(MaterialInstance* matInstance)
@@ -593,7 +653,17 @@ void MaterialManager::destroyMaterialInstance(MaterialManager::MaterialInstance*
     return mContext->destroyMaterialInstance(matInst);
 }
 
-bool MaterialManager::changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, void* paramData)
+MaterialManager::TextureDescription* MaterialManager::createTextureDescription(const char* name, const char* gamma)
+{
+    return mContext->createTextureDescription(name, gamma);
+}
+
+const char* MaterialManager::getTextureDbName(TextureDescription* texDesc)
+{
+    return mContext->getTextureDbName(texDesc);
+}
+
+bool MaterialManager::changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, const void* paramData)
 {
     return mContext->changeParam(matInst, type, paramName, paramData);
 }
