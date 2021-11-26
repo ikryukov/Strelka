@@ -258,6 +258,13 @@ public:
 
         // use smart pointer
         MaterialInstance* material = new MaterialInstance;
+
+        if (strcmp(materialName, "") == 0) // mtlx
+        {
+            materialName = module->identifier.c_str();
+        }
+
+
         if (!mMatCompiler->createMaterialInstace(module->moduleName.c_str(), materialName, material->instance))
         {
             return nullptr;
