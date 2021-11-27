@@ -319,14 +319,14 @@ if (MSVC_VERSION GREATER_EQUAL 1920)
 endif()
 set(Boost_USE_STATIC_LIBS OFF) 
 set(BUILD_SHARED_LIBS ON)
-find_package(Boost COMPONENTS python REQUIRED)
+# find_package(Boost COMPONENTS python REQUIRED)
 
 target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/hdNeVK)
-target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/)
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/hdNeVK)
 target_link_libraries(
   ${HD_PLUGIN_NAME}
   PRIVATE
-    ${Boost_LIBRARIES}
+    # ${Boost_LIBRARIES}
     usdImaging
     hdMtlx
     ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB}

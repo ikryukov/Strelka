@@ -4,6 +4,8 @@
 #include <pxr/usd/sdr/registry.h>
 #include <pxr/imaging/hdMtlx/hdMtlx.h>
 
+#include <pxr/imaging/hd/tokens.h>
+
 #include <MaterialXCore/Document.h>
 #include <MaterialXCore/Library.h>
 #include <MaterialXCore/Material.h>
