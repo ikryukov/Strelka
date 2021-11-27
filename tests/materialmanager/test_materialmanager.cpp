@@ -34,23 +34,23 @@ TEST_CASE("mdl to hlsl code gen test")
     bool res = matMngr->addMdlSearchPath(path, 2);
     CHECK(res);
 
-    MaterialManager::Module* currModule = matMngr->createModule("carbon_composite.mdl");
+    std::unique_ptr<MaterialManager::Module> currModule = matMngr->createModule("carbon_composite.mdl");
     CHECK(currModule);
-    MaterialManager::MaterialInstance* materialInst1 = matMngr->createMaterialInstance(currModule, "carbon_composite");
+    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = matMngr->createMaterialInstance(std::move(currModule), "carbon_composite");
     CHECK(materialInst1);
-    MaterialManager::CompiledMaterial* materialComp1 = matMngr->compileMaterial(materialInst1);
+    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = matMngr->compileMaterial(std::move(materialInst1));
     CHECK(materialComp1);
 
-    MaterialManager::Module* currModule2 = matMngr->createModule("brushed_antique_copper.mdl");
+    std::unique_ptr<MaterialManager::Module> currModule2 = matMngr->createModule("brushed_antique_copper.mdl");
     CHECK(currModule2);
-    MaterialManager::MaterialInstance* materialInst2 = matMngr->createMaterialInstance(currModule2, "brushed_antique_copper");
+    std::unique_ptr<MaterialManager::MaterialInstance> materialInst2 = matMngr->createMaterialInstance(std::move(currModule2), "brushed_antique_copper");
     CHECK(materialInst2);
-    MaterialManager::CompiledMaterial* materialComp2 = matMngr->compileMaterial(materialInst2);
+    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp2 = matMngr->compileMaterial(std::move(materialInst2));
     CHECK(materialComp2);
 
-    std::vector<MaterialManager::CompiledMaterial*> materials;
-    materials.push_back(materialComp1);
-    materials.push_back(materialComp2);
+    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
+    materials.push_back(std::move(materialComp1));
+    materials.push_back(std::move(materialComp2));
     CHECK(materials.size() == 2);
 
     const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials);
@@ -83,7 +83,6 @@ TEST_CASE("mdl to hlsl code gen test")
     CHECK(mTexManager->textures[0].texHeight == 512);
 }
 
-
 TEST_CASE("mtlx to mdl code gen test")
 {
     using namespace std;
@@ -109,15 +108,15 @@ TEST_CASE("mtlx to mdl code gen test")
     CHECK(res);
 
     std::string file = "misc/test_data/mtlx/standard_surface_greysphere_calibration.mtlx";
-    MaterialManager::Module* currModule = matMngr->createMtlxModule(file.c_str());
+    std::unique_ptr<MaterialManager::Module> currModule = matMngr->createMtlxModule(file.c_str());
     CHECK(currModule);
-    MaterialManager::MaterialInstance* materialInst1 = matMngr->createMaterialInstance(currModule, "");
+    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = matMngr->createMaterialInstance(std::move(currModule), "");
     CHECK(materialInst1);
-    MaterialManager::CompiledMaterial* materialComp1 = matMngr->compileMaterial(materialInst1);
+    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = matMngr->compileMaterial(std::move(materialInst1));
     CHECK(materialComp1);
 
-    std::vector<MaterialManager::CompiledMaterial*> materials;
-    materials.push_back(materialComp1);
+    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
+    materials.push_back(std::move(materialComp1));
 
     const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials);
     CHECK(code);

@@ -23,11 +23,10 @@
 #include <MaterialXGenShader/Shader.h>
 #include <MaterialXGenShader/ShaderGenerator.h>
 #include <MaterialXGenShader/Util.h>
-#include <mi/mdl_sdk.h>
 
 #include <filesystem>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <unordered_map>
 
 namespace fs = std::filesystem;
@@ -35,22 +34,6 @@ namespace fs = std::filesystem;
 
 namespace nevk
 {
-struct MaterialManager::Module
-{
-    std::string moduleName;
-    std::string identifier;
-};
-
-struct MaterialManager::MaterialInstance
-{
-    mi::base::Handle<mi::neuraylib::IMaterial_instance> instance;
-};
-
-struct MaterialManager::CompiledMaterial
-{
-    mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
-};
-
 struct MaterialManager::TargetCode
 {
     mi::base::Handle<const mi::neuraylib::ITarget_code> targetCode;
@@ -196,22 +179,23 @@ public:
 
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths)
     { // resource path + mdl path
-        mRuntime = new nevk::MdlRuntime();
+        mRuntime = std::make_unique<nevk::MdlRuntime>();
         if (!mRuntime->init(paths, numPaths, mPathso.c_str(), mImagePluginPath.c_str()))
         {
             return false;
         }
 
-        mMtlxCodeGen = new nevk::MtlxMdlCodeGen(mtlxLibPath.c_str());
+        mMtlxCodeGen = std::make_unique<nevk::MtlxMdlCodeGen>(mtlxLibPath.c_str());
 
+        mMatCompiler = std::make_unique<nevk::MdlMaterialCompiler>(*mRuntime);
         mTransaction = mi::base::Handle<mi::neuraylib::ITransaction>(mRuntime->getTransaction());
         mNeuray = mRuntime->getNeuray();
         return true;
     }
 
-    Module* createMtlxModule(const char* file)
+    std::unique_ptr<Module> createMtlxModule(const char* file)
     {
-        Module* module = new Module;
+        std::unique_ptr<Module> module = std::make_unique<Module>();
 
         mMtlxCodeGen->translate(file, mMdlSrc, module->identifier);
 
@@ -220,7 +204,6 @@ public:
         material << mMdlSrc;
         material.close();
 
-        mMatCompiler = new nevk::MdlMaterialCompiler(*mRuntime);
         if (!mMatCompiler->createModule(module->identifier, module->moduleName))
         {
             return nullptr;
@@ -229,14 +212,13 @@ public:
         return module;
     };
 
-    Module* createModule(const char* file)
+    std::unique_ptr<Module> createModule(const char* file)
     {
-        Module* module = new Module;
+        std::unique_ptr<Module> module = std::make_unique<Module>();
 
         const fs::path materialFile = file;
         module->identifier = materialFile.stem().string();
 
-        mMatCompiler = new nevk::MdlMaterialCompiler(*mRuntime);
         if (!mMatCompiler->createModule(module->identifier, module->moduleName))
         {
             return nullptr;
@@ -245,19 +227,19 @@ public:
         return module;
     };
 
-    void destroyModule(Module* module)
+    void destroyModule(std::unique_ptr<Module> module)
     {
         assert(module);
-        delete module;
+        //delete module;
     };
 
-    MaterialInstance* createMaterialInstance(const MaterialManager::Module* module, const char* materialName)
+    std::unique_ptr<MaterialInstance> createMaterialInstance(const std::unique_ptr<MaterialManager::Module> module, const char* materialName)
     {
         assert(module);
         assert(materialName);
 
         // use smart pointer
-        MaterialInstance* material = new MaterialInstance;
+        std::unique_ptr<MaterialInstance> material = std::make_unique<MaterialInstance>();
 
         if (strcmp(materialName, "") == 0) // mtlx
         {
@@ -270,13 +252,13 @@ public:
             return nullptr;
         }
 
-        return material;        
+        return material;
     }
 
-    void destroyMaterialInstance(MaterialInstance* matInst)
+    void destroyMaterialInstance(std::unique_ptr<MaterialInstance> matInst)
     {
         assert(matInst);
-        delete matInst;
+        //delete matInst;
     }
 
     bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, const void* paramData)
@@ -297,7 +279,7 @@ public:
             break;
         }
         case nevk::MaterialManager::ParamType::eTexture: {
-            const TextureDescription* texDesc = (const TextureDescription*) paramData;
+            const TextureDescription* texDesc = (const TextureDescription*)paramData;
             value = value_factory->create_texture(texDesc->textureType.get(), texDesc->dbName.c_str());
             break;
         }
@@ -314,7 +296,7 @@ public:
         assert(name);
         float gamma = 1.0;
         const char* texGamma = "";
-        if (strcmp(gammaMode, "srgb")  == 0)
+        if (strcmp(gammaMode, "srgb") == 0)
         {
             gamma = 2.2f;
             texGamma = "_srgb";
@@ -363,11 +345,10 @@ public:
         return texDesc->dbName.c_str();
     }
 
-    CompiledMaterial* compileMaterial(MaterialInstance* matInstance)
+    std::unique_ptr<CompiledMaterial> compileMaterial(std::unique_ptr<MaterialInstance> matInstance)
     {
         assert(matInstance);
-        // use smart pointer
-        CompiledMaterial* material = new CompiledMaterial;
+        std::unique_ptr<CompiledMaterial> material = std::make_unique<CompiledMaterial>();
         if (!mMatCompiler->compileMaterial(matInstance->instance, material->compiledMaterial))
         {
             return nullptr;
@@ -376,17 +357,17 @@ public:
         return material;
     };
 
-    void destroyCompiledMaterial(CompiledMaterial* materials)
+    void destroyCompiledMaterial(std::unique_ptr<CompiledMaterial> materials)
     {
         assert(materials);
-        delete materials;
+        // delete materials;
     }
 
-    const TargetCode* generateTargetCode(const std::vector<CompiledMaterial*>& materials)
+    const TargetCode* generateTargetCode(std::vector<std::unique_ptr<CompiledMaterial>>& materials)
     {
         TargetCode* targetCode = new TargetCode;
 
-        mCodeGen = new MdlHlslCodeGen();
+        mCodeGen = std::make_unique<MdlHlslCodeGen>();
         mCodeGen->init(*mRuntime);
 
         targetCode->mdlMaterials.resize(materials.size());
@@ -401,7 +382,7 @@ public:
         targetCode->argBlockData = loadArgBlocks(targetCode);
         targetCode->roData = loadROData(targetCode);
 
-        uint32_t  texCount = targetCode->targetCode->get_texture_count();
+        uint32_t texCount = targetCode->targetCode->get_texture_count();
         if (texCount > 0)
         {
             targetCode->resourceInfo.resize(texCount);
@@ -511,7 +492,7 @@ public:
             m_indexToCanvas[index] = canvas;
             cachedCanvas = m_indexToCanvas.find(index);
         }
-        
+
         mi::Float32 const* data = nullptr;
         mi::neuraylib::ITarget_code::Texture_shape texture_shape = targetCode->targetCode->get_texture_shape(index);
         if (texture_shape == mi::neuraylib::ITarget_code::Texture_shape_2d)
@@ -595,7 +576,7 @@ private:
         mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
         mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
 
-//        if (!isMtlx)
+        //        if (!isMtlx)
         {
 #ifdef MI_PLATFORM_WINDOWS
             mPathso = cwd.string();
@@ -612,10 +593,10 @@ private:
         //}
     }
 
-    nevk::MdlHlslCodeGen* mCodeGen = nullptr;
-    nevk::MdlMaterialCompiler* mMatCompiler = nullptr;
-    nevk::MdlRuntime* mRuntime = nullptr;
-    nevk::MtlxMdlCodeGen* mMtlxCodeGen = nullptr;
+    std::unique_ptr<nevk::MdlHlslCodeGen> mCodeGen = nullptr;
+    std::unique_ptr<nevk::MdlMaterialCompiler> mMatCompiler = nullptr;
+    std::unique_ptr<nevk::MdlRuntime> mRuntime = nullptr;
+    std::unique_ptr<nevk::MtlxMdlCodeGen> mMtlxCodeGen = nullptr;
 
     mi::base::Handle<mi::neuraylib::ITransaction> mTransaction;
     mi::base::Handle<MdlLogger> mLogger;
@@ -639,25 +620,25 @@ bool MaterialManager::addMdlSearchPath(const char* paths[], uint32_t numPaths)
 {
     return mContext->addMdlSearchPath(paths, numPaths);
 }
-MaterialManager::Module* MaterialManager::createModule(const char* file)
+std::unique_ptr<MaterialManager::Module> MaterialManager::createModule(const char* file)
 {
     return mContext->createModule(file);
 }
-MaterialManager::Module* MaterialManager::createMtlxModule(const char* file)
+std::unique_ptr<MaterialManager::Module> MaterialManager::createMtlxModule(const char* file)
 {
     return mContext->createMtlxModule(file);
 }
-void MaterialManager::destroyModule(MaterialManager::Module* module)
+void MaterialManager::destroyModule(std::unique_ptr<MaterialManager::Module> module)
 {
-    return mContext->destroyModule(module);
+    return mContext->destroyModule(std::move(module));
 }
-MaterialManager::MaterialInstance* MaterialManager::createMaterialInstance(const MaterialManager::Module* module, const char* materialName)
+std::unique_ptr<MaterialManager::MaterialInstance> MaterialManager::createMaterialInstance(std::unique_ptr<MaterialManager::Module> module, const char* materialName)
 {
-    return mContext->createMaterialInstance(module, materialName);
+    return mContext->createMaterialInstance(std::move(module), materialName);
 }
-void MaterialManager::destroyMaterialInstance(MaterialManager::MaterialInstance* matInst)
+void MaterialManager::destroyMaterialInstance(std::unique_ptr<MaterialManager::MaterialInstance> matInst)
 {
-    return mContext->destroyMaterialInstance(matInst);
+    return mContext->destroyMaterialInstance(std::move(matInst));
 }
 
 MaterialManager::TextureDescription* MaterialManager::createTextureDescription(const char* name, const char* gamma)
@@ -670,20 +651,20 @@ const char* MaterialManager::getTextureDbName(TextureDescription* texDesc)
     return mContext->getTextureDbName(texDesc);
 }
 
-bool MaterialManager::changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, const void* paramData)
+bool MaterialManager::changeParam(MaterialManager::MaterialInstance* matInst, ParamType type, const char* paramName, const void* paramData)
 {
     return mContext->changeParam(matInst, type, paramName, paramData);
 }
 
-MaterialManager::CompiledMaterial* MaterialManager::compileMaterial(MaterialManager::MaterialInstance* matInstance)
+std::unique_ptr<MaterialManager::CompiledMaterial> MaterialManager::compileMaterial(std::unique_ptr<MaterialManager::MaterialInstance> matInstance)
 {
-    return mContext->compileMaterial(matInstance);
+    return mContext->compileMaterial(std::move(matInstance));
 }
-void MaterialManager::destroyCompiledMaterial(CompiledMaterial* material)
+void MaterialManager::destroyCompiledMaterial(std::unique_ptr<MaterialManager::CompiledMaterial> material)
 {
-    return mContext->destroyCompiledMaterial(material);
+    return mContext->destroyCompiledMaterial(std::move(material));
 }
-const MaterialManager::TargetCode* MaterialManager::generateTargetCode(const std::vector<MaterialManager::CompiledMaterial*>& materials)
+const MaterialManager::TargetCode* MaterialManager::generateTargetCode(std::vector<std::unique_ptr<CompiledMaterial>>& materials)
 {
     return mContext->generateTargetCode(materials);
 }
@@ -809,7 +790,7 @@ std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(TargetCode* targetC
             memcpy(argBlockData.data(), arg_block->get_data(), arg_block->get_size());
 
             // set offset in common arg block buffer
-            targetCode->mdlMaterials[i].arg_block_offset = (int) res.size();
+            targetCode->mdlMaterials[i].arg_block_offset = (int)res.size();
 
             res.insert(res.end(), argBlockData.begin(), argBlockData.end());
         }
@@ -833,7 +814,7 @@ std::vector<uint8_t> MaterialManager::Context::loadROData(const TargetCode* targ
         size_t dataSize = targetCode->targetCode->get_ro_data_segment_size(i);
         const char* name = targetCode->targetCode->get_ro_data_segment_name(i);
         std::cerr << "MDL segment [" << i << "] name : " << name << std::endl;
-        
+
         if (dataSize != 0)
         {
             roData.insert(roData.end(), data, data + dataSize);

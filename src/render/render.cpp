@@ -181,12 +181,12 @@ void Render::initPasses(){
         // failed to load MDL
         return;
     }
-    MaterialManager::Module* currModule = mMaterialManager->createModule("gltf_support.mdl");
+    std::unique_ptr<MaterialManager::Module> currModule = mMaterialManager->createModule("gltf_support.mdl");
 
-    MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule, "gltf_material");
+    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(std::move(currModule), "gltf_material");
     
     // 
-    {
+    /*{
         std::vector<Material> gltfMaterials = mScene->getMaterials();
         for (int i = 0; i < gltfMaterials.size(); ++i)
         {
@@ -200,28 +200,28 @@ void Render::initPasses(){
             // changeParam(materialInst1, MaterialManager::ParamType::eFloat, "reflection_roughness", &val);
             // Compile Materials
         }
-    }
+    }*/
     // generate code for PT
     // ...
 
     MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription("Vespa_BaseColor.png", "linear");
     assert(texDesc);
 
-    res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, "tex", (const void*) texDesc);
+    res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eTexture, "tex", (const void*) texDesc);
     assert(res);
 
     //float val = 0.01f;
     //res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "reflection_roughness", &val);
     //assert(res);
 
-    MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
+    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(std::move(materialInst1));
 
     //MaterialManager::Module* carbonModule = mMaterialManager->createModule("tutorials.mdl");
    // MaterialManager::Material* carbonMaterial = mMaterialManager->createMaterial(carbonModule, "example_df");
    // MaterialManager::Material* carbonMaterial1 = mMaterialManager->createMaterial(carbonModule, "dxr_sphere_mat");
     
-    std::vector<MaterialManager::CompiledMaterial*> materials;
-    materials.push_back(materialComp1);
+    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
+    materials.push_back(std::move(materialComp1));
     //materials.push_back(carbonMaterial);
    // materials.push_back(carbonMaterial1);
     

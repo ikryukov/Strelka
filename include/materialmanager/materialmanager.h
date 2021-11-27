@@ -3,6 +3,8 @@
 #include <memory>
 #include <stdint.h>
 #include <vector>
+#include <string>
+#include <mi/mdl_sdk.h>
 
 namespace nevk
 {
@@ -13,20 +15,32 @@ class MaterialManager
     std::unique_ptr<Context> mContext;
 
 public:
-    struct Module;
-    struct MaterialInstance;
-    struct CompiledMaterial;
+    struct Module
+    {
+        std::string moduleName;
+        std::string identifier;
+    };
+    struct MaterialInstance
+    {
+        mi::base::Handle<mi::neuraylib::IMaterial_instance> instance;
+    };
+
+    struct CompiledMaterial
+    {
+        mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
+    };
+
     struct TargetCode;
     struct TextureDescription;
 
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths);
 
-    Module* createModule(const char* file);
-    Module* createMtlxModule(const char* file);
-    void destroyModule(Module* module);
+    std::unique_ptr<Module> createModule(const char* file);
+    std::unique_ptr<Module> createMtlxModule(const char* file);
+    void destroyModule(std::unique_ptr<Module> module);
 
-    MaterialInstance* createMaterialInstance(const Module* module, const char* materialName);
-    void destroyMaterialInstance(MaterialInstance* material);
+    std::unique_ptr<MaterialInstance> createMaterialInstance(std::unique_ptr<Module> module, const char* materialName);
+    void destroyMaterialInstance(std::unique_ptr<MaterialInstance> material);
 
     enum class ParamType: uint32_t
     {
@@ -40,10 +54,10 @@ public:
     TextureDescription* createTextureDescription(const char* name, const char* gamma);
     const char* getTextureDbName(TextureDescription* texDesc);
 
-    CompiledMaterial* compileMaterial(MaterialInstance* matInstance);
-    void destroyCompiledMaterial(CompiledMaterial* compMaterial);
+    std::unique_ptr<CompiledMaterial> compileMaterial(std::unique_ptr<MaterialInstance> matInstance);
+    void destroyCompiledMaterial(std::unique_ptr<CompiledMaterial> compMaterial);
 
-    const TargetCode* generateTargetCode(const std::vector<CompiledMaterial*>& material);
+    const TargetCode* generateTargetCode(std::vector<std::unique_ptr<CompiledMaterial>>& material);
     const char* getShaderCode(const TargetCode* targetCode);
 
     uint32_t getReadOnlyBlockSize(const TargetCode* targetCode);
@@ -68,13 +82,5 @@ public:
 
     MaterialManager();
     ~MaterialManager();
-
-    // mtlx -> hlsl
-    // std::string mtlxMaterialPath = "/Users/jswark/school/USD_Build/resources/Materials/Examples/StandardSurface/standard_surface_plastic.mtlx"; //brass_tiled.mtlx"; -- w/ images
-    // std::string mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
-    // mdl -> hlsl
-    //std::string mIdentifier = "brushed_antique_copper"; //todo: the identifier depends on a material file // empty for mtlx mode
-
-
 };
 } // namespace nevk
