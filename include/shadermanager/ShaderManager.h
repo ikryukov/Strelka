@@ -21,7 +21,9 @@ public:
         eByteAddressBuffer,
         eTexture2D,
         eRWTexture2D,
-        eSampler
+        eSampler,
+        eTexture3D,
+        eRWTexture3D,
     };
 
     struct ResourceDesc

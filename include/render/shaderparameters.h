@@ -126,6 +126,14 @@ protected:
                 descType = VK_DESCRIPTOR_TYPE_SAMPLER;
                 break;
             }
+            case ShaderManager::ResourceType::eTexture3D: {
+                descType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                break;
+            }
+            case ShaderManager::ResourceType::eRWTexture3D: {
+                descType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                break;
+            }
             default:
                 assert(0);
                 break;
@@ -193,6 +201,8 @@ protected:
                     buffCount += currRes.second.isArray ? resDesc.arraySize : 1;
                     break;
                 }
+                case ShaderManager::ResourceType::eTexture3D:
+                case ShaderManager::ResourceType::eRWTexture3D:
                 case ShaderManager::ResourceType::eTexture2D:
                 case ShaderManager::ResourceType::eRWTexture2D:
                 case ShaderManager::ResourceType::eSampler: {
@@ -267,13 +277,57 @@ protected:
                     descriptorWrites.push_back(descWrite);
                     break;
                 }
+                case ShaderManager::ResourceType::eTexture3D: {
+                    for (uint32_t i = 0; i < descriptorCount; ++i)
+                    {
+                        imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                        imageInfos[imageInfosOffset + i].imageView = (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
+                        imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
+                    }
+
+                    VkWriteDescriptorSet descWrite{};
+                    descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                    descWrite.dstSet = dstDescSet;
+                    descWrite.dstBinding = resDesc.binding;
+                    descWrite.dstArrayElement = 0;
+                    descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                    descWrite.descriptorCount = descriptorCount;
+                    descWrite.pImageInfo = &imageInfos[imageInfosOffset];
+
+                    imageInfosOffset += descriptorCount;
+
+                    descriptorWrites.push_back(descWrite);
+                    break;
+                }
+                case ShaderManager::ResourceType::eRWTexture3D: {
+                    for (uint32_t i = 0; i < descriptorCount; ++i)
+                    {
+                        imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                        imageInfos[imageInfosOffset + i].imageView = descriptor.handles[i].imageView;
+                        imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
+                    }
+
+                    VkWriteDescriptorSet descWrite{};
+                    descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                    descWrite.dstSet = dstDescSet;
+                    descWrite.dstBinding = resDesc.binding;
+                    descWrite.dstArrayElement = 0;
+                    descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                    descWrite.descriptorCount = descriptorCount;
+                    descWrite.pImageInfo = &imageInfos[imageInfosOffset];
+
+                    imageInfosOffset += descriptorCount;
+
+                    descriptorWrites.push_back(descWrite);
+                    break;
+                }
                 case ShaderManager::ResourceType::eSampler: {
                     //for (uint32_t i = 0; i < descriptorCount; ++i)
                     //{
                     //    imageInfos[imageInfosOffset + i].sampler = (i < descriptor.handles.size()) ? descriptor.handles[i].sampler : VK_NULL_HANDLE;
                     //}
                     assert(descriptor.handles.size() > 0);
-                    for (uint32_t i = 0; i < (uint32_t) descriptor.handles.size(); ++i)
+                    for (uint32_t i = 0; i < (uint32_t)descriptor.handles.size(); ++i)
                     {
                         imageInfos[imageInfosOffset + i].imageView = VK_NULL_HANDLE;
                         imageInfos[imageInfosOffset + i].sampler = descriptor.handles[i].sampler;
@@ -285,7 +339,7 @@ protected:
                     descWrite.dstArrayElement = 0;
                     descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
                     //descWrite.descriptorCount = descriptorCount;
-                    descWrite.descriptorCount = (uint32_t) descriptor.handles.size();
+                    descWrite.descriptorCount = (uint32_t)descriptor.handles.size();
                     descWrite.pImageInfo = &imageInfos[imageInfosOffset];
 
                     imageInfosOffset += descriptorCount;
@@ -443,6 +497,23 @@ public:
         {
             ResourceDescriptor resDescriptor{};
             resDescriptor.type = ShaderManager::ResourceType::eTexture2D;
+            resDescriptor.isArray = true;
+            resDescriptor.handles.resize(images.size());
+            for (uint32_t j = 0; j < images.size(); ++j)
+            {
+                resDescriptor.handles[j].imageView = mResManager->getView(images[j]);
+            }
+            mResUpdate[i][name] = resDescriptor;
+            needDesciptorSetUpdate[i] = true;
+        }
+    }
+
+    void setTextures3d(const std::string& name, std::vector<Image*>& images)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            ResourceDescriptor resDescriptor{};
+            resDescriptor.type = ShaderManager::ResourceType::eTexture3D;
             resDescriptor.isArray = true;
             resDescriptor.handles.resize(images.size());
             for (uint32_t j = 0; j < images.size(); ++j)

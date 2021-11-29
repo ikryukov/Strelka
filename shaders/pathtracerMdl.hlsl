@@ -129,7 +129,7 @@ float3 pathTrace(uint2 pixelIndex)
 
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
 
-    MdlMaterial currMdlMaterial = mdlMaterials[gbInstId[pixelIndex] & 1];
+    MdlMaterial currMdlMaterial = mdlMaterials[instConst.materialId];
 
     // setup MDL state
     Shading_state_material mdlState = (Shading_state_material) 0;

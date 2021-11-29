@@ -362,6 +362,7 @@ void findTextureSamplers(const tinygltf::Model& model, nevk::Scene& scene, nevk:
 void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::TextureManager& textureManager)
 {
     texIdToModelSamp[-1] = 0;
+    int32_t texId = 0;
     for (const tinygltf::Texture& tex : model.textures)
     {
         const tinygltf::Image& image = model.images[tex.source];
@@ -387,6 +388,7 @@ void loadTextures(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textur
 
         const std::string name = image.uri;
 
+        scene.mTexIdToTexName[texId++] = name;
         //int texId = textureManager.loadTextureGltf(data, width, height, name);
         //assert(texId != -1);
 
@@ -414,6 +416,14 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
 
         currMaterial.texBaseColor = material.pbrMetallicRoughness.baseColorTexture.index;
         //currMaterial.sampBaseId = texIdToModelSamp.find(currMaterial.texBaseColor)->second;
+        if (currMaterial.texBaseColor != -1)
+        {
+            scene.mMatIdToTexName[scene.mMaterials.size()] = scene.mTexIdToTexName.find(currMaterial.texBaseColor)->second;
+        }
+        else
+        {
+            scene.mMatIdToTexName[scene.mMaterials.size()] = "";
+        }
 
         currMaterial.roughnessFactor = (float)material.pbrMetallicRoughness.roughnessFactor;
         currMaterial.metallicFactor = (float)material.pbrMetallicRoughness.metallicFactor;

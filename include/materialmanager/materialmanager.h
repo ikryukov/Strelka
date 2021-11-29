@@ -39,7 +39,7 @@ public:
     std::unique_ptr<Module> createMtlxModule(const char* file);
     void destroyModule(std::unique_ptr<Module> module);
 
-    std::unique_ptr<MaterialInstance> createMaterialInstance(std::unique_ptr<Module> module, const char* materialName);
+    std::unique_ptr<MaterialInstance> createMaterialInstance(Module* module, const char* materialName);
     void destroyMaterialInstance(std::unique_ptr<MaterialInstance> material);
 
     enum class ParamType: uint32_t
@@ -54,7 +54,7 @@ public:
     TextureDescription* createTextureDescription(const char* name, const char* gamma);
     const char* getTextureDbName(TextureDescription* texDesc);
 
-    std::unique_ptr<CompiledMaterial> compileMaterial(std::unique_ptr<MaterialInstance> matInstance);
+    std::unique_ptr<CompiledMaterial> compileMaterial(MaterialInstance* matInstance);
     void destroyCompiledMaterial(std::unique_ptr<CompiledMaterial> compMaterial);
 
     const TargetCode* generateTargetCode(std::vector<std::unique_ptr<CompiledMaterial>>& material);

@@ -305,6 +305,14 @@ ShaderManager::ResourceType getType(const char* resourceType)
     {
         return ShaderManager::ResourceType::eRWTexture2D;
     }
+    else if (strcmp(resourceType, "Texture3D") == 0)
+    {
+        return ShaderManager::ResourceType::eTexture3D;
+    }
+    else if (strcmp(resourceType, "RWTexture3D") == 0)
+    {
+        return ShaderManager::ResourceType::eRWTexture3D;
+    }
     else if (strcmp(resourceType, "StructuredBuffer") == 0)
     {
         return ShaderManager::ResourceType::eStructuredBuffer;

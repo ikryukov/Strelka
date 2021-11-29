@@ -12,7 +12,7 @@ ByteAddressBuffer mdl_argument_block;
 StructuredBuffer<Mdl_resource_info> mdl_resource_infos;
 // - texture views, unbound and overlapping for 2D and 3D resources
 Texture2D mdl_textures_2d[BINDLESS_TEXTURE_COUNT]; // mac doesn't support unsized arrays
-// Texture3D mdl_textures_3d[]; // TODO: add support and check with material
+Texture3D mdl_textures_3d[BINDLESS_TEXTURE_COUNT]; // TODO: add support and check with material
 
 // global samplers
 SamplerState mdl_sampler_tex;
@@ -269,4 +269,50 @@ float2 tex_texel_float2_2d(uint tex, int2 coord, int2 uv_tile, float frame)
 float tex_texel_float_2d(uint tex, int2 coord, int2 uv_tile, float frame)
 {
     return tex_texel_float4_2d(tex, coord, uv_tile, frame).x;
+}
+
+// corresponds to ::tex::lookup_float4(uniform texture_3d tex, float2 coord, ...)
+float4 tex_lookup_float4_3d(
+
+    uint tex,
+    float3 coord,
+    int wrap_u,
+    int wrap_v,
+    int wrap_w,
+    float2 crop_u,
+    float2 crop_v,
+    float2 crop_w,
+    float frame)
+{
+    if (tex == 0) return float4(0, 0, 0, 0); // invalid texture
+
+    if (wrap_u == TEX_WRAP_CLIP && (coord.x < 0.0 || coord.x >= 1.0))
+        return float4(0, 0, 0, 0);
+    if (wrap_v == TEX_WRAP_CLIP && (coord.y < 0.0 || coord.y >= 1.0))
+        return float4(0, 0, 0, 0);
+    if (wrap_w == TEX_WRAP_CLIP && (coord.z < 0.0 || coord.z >= 1.0))
+        return float4(0, 0, 0, 0);
+
+    // fetch the infos about this resource
+    Mdl_resource_info info = mdl_resource_infos[tex - 1]; // assuming this is in bounds
+
+    // no UDIM for 3D textures (shortcut the index calculation)
+    int array_index = info.gpu_resource_array_start;
+
+    uint width, height, depth;
+    mdl_textures_3d[NonUniformResourceIndex(array_index)].GetDimensions(width, height, depth);
+    coord.x = apply_wrap_and_crop(coord.x, wrap_u, crop_u, width);
+    coord.y = apply_wrap_and_crop(coord.y, wrap_v, crop_v, height);
+    coord.z = apply_wrap_and_crop(coord.z, wrap_w, crop_w, depth);
+
+    // Note, since we don't have ddx and ddy in the compute pipeline, TextureObject::Sample() is not
+    // available, we use SampleLevel instead and go for the most detailed level. Therefore, we don't
+    // need mipmaps. Manual mip level computation is possible though.
+    return mdl_textures_3d[NonUniformResourceIndex(array_index)].SampleLevel(
+        mdl_sampler_tex, coord, /*lod=*/ 0.0f, /*offset=*/ int3(0, 0, 0));
+}
+
+float3 tex_lookup_float3_3d(uint tex, float3 coord, int wrap_u, int wrap_v, int wrap_w,float2 crop_u, float2 crop_v, float2 crop_w, float frame)
+{
+    return tex_lookup_float4_3d(tex, coord, wrap_u, wrap_v, wrap_w, crop_u, crop_v, crop_w, frame).xyz;
 }

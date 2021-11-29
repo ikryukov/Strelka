@@ -233,7 +233,7 @@ public:
         //delete module;
     };
 
-    std::unique_ptr<MaterialInstance> createMaterialInstance(const std::unique_ptr<MaterialManager::Module> module, const char* materialName)
+    std::unique_ptr<MaterialInstance> createMaterialInstance(MaterialManager::Module* module, const char* materialName)
     {
         assert(module);
         assert(materialName);
@@ -345,7 +345,7 @@ public:
         return texDesc->dbName.c_str();
     }
 
-    std::unique_ptr<CompiledMaterial> compileMaterial(std::unique_ptr<MaterialInstance> matInstance)
+    std::unique_ptr<CompiledMaterial> compileMaterial(MaterialInstance* matInstance)
     {
         assert(matInstance);
         std::unique_ptr<CompiledMaterial> material = std::make_unique<CompiledMaterial>();
@@ -632,9 +632,9 @@ void MaterialManager::destroyModule(std::unique_ptr<MaterialManager::Module> mod
 {
     return mContext->destroyModule(std::move(module));
 }
-std::unique_ptr<MaterialManager::MaterialInstance> MaterialManager::createMaterialInstance(std::unique_ptr<MaterialManager::Module> module, const char* materialName)
+std::unique_ptr<MaterialManager::MaterialInstance> MaterialManager::createMaterialInstance(MaterialManager::Module* module, const char* materialName)
 {
-    return mContext->createMaterialInstance(std::move(module), materialName);
+    return mContext->createMaterialInstance(module, materialName);
 }
 void MaterialManager::destroyMaterialInstance(std::unique_ptr<MaterialManager::MaterialInstance> matInst)
 {
@@ -656,7 +656,7 @@ bool MaterialManager::changeParam(MaterialManager::MaterialInstance* matInst, Pa
     return mContext->changeParam(matInst, type, paramName, paramData);
 }
 
-std::unique_ptr<MaterialManager::CompiledMaterial> MaterialManager::compileMaterial(std::unique_ptr<MaterialManager::MaterialInstance> matInstance)
+std::unique_ptr<MaterialManager::CompiledMaterial> MaterialManager::compileMaterial(MaterialManager::MaterialInstance* matInstance)
 {
     return mContext->compileMaterial(std::move(matInstance));
 }

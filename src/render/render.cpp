@@ -2,14 +2,15 @@
 
 #include "debugUtils.h"
 #include "instanceconstants.h"
+
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
 #include <chrono>
 #include <filesystem>
-#include <sstream>
 #include <fstream>
+#include <sstream>
 
 // profiler
 #include "Tracy.hpp"
@@ -117,7 +118,8 @@ void Render::initVulkan()
     mUi.createFrameBuffers(mDevice, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
 }
 
-void Render::initPasses(){
+void Render::initPasses()
+{
     mDebugView = new DebugView(mSharedCtx);
     mDebugView->initialize();
 
@@ -173,63 +175,68 @@ void Render::initPasses(){
 
     mMaterialManager = new MaterialManager();
     const char* paths[5] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
-                            "./misc/test_data/mdl/Plastic", "./misc/test_data/mdl/Plastic/textures",
-                             "./misc/m4/" };
+                             "./misc/test_data/mdl/Plastic", "./misc/test_data/mdl/Plastic/textures",
+                             "./misc/vespa" };
     bool res = mMaterialManager->addMdlSearchPath(paths, 5);
     if (!res)
     {
         // failed to load MDL
         return;
     }
+
     std::unique_ptr<MaterialManager::Module> currModule = mMaterialManager->createModule("gltf_support.mdl");
 
-    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(std::move(currModule), "gltf_material");
-    
-    // 
-    /*{
+    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
+    {
         std::vector<Material> gltfMaterials = mScene->getMaterials();
         for (int i = 0; i < gltfMaterials.size(); ++i)
         {
             const Material& gltfMaterial = gltfMaterials[i];
             // create MDL mat instance
-            // ...
+            std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "gltf_material");
             // create Textures for MDL from gltf
-            // MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription("Vespa_BaseColor.png", "linear");
-            // ...
+            auto texIter = mScene->mTexIdToTexName.find(gltfMaterial.texBaseColor);
+            if (texIter != mScene->mTexIdToTexName.end())
+            {
+                std::string texBaseName = texIter->second;
+                MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texBaseName.c_str(), "linear");
+                if (texDesc != nullptr)
+                {
+                    res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eTexture, "base_color_texture", (const void*)texDesc);
+                    assert(res);
+                }
+            }
+
             // set params: colors, floats... textures
-            // changeParam(materialInst1, MaterialManager::ParamType::eFloat, "reflection_roughness", &val);
+            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "base_color_factor", &gltfMaterial.baseColorFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "metallic_factor", &gltfMaterial.metallicFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
+            assert(res);
+            //res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "ior", &gltfMaterial.extIOR);
+            //assert(res);
+            //res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "ior", &gltfMaterial.intIOR);
+            //assert(res);
+            // res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "ior", &gltfMaterial.);
+            // assert(res);
+
             // Compile Materials
+            std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(materialInst1.get());
+            materials.push_back(std::move(materialComp1));
         }
-    }*/
+    }
     // generate code for PT
-    // ...
-
-    MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription("Vespa_BaseColor.png", "linear");
-    assert(texDesc);
-
-    res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eTexture, "tex", (const void*) texDesc);
-    assert(res);
-
-    //float val = 0.01f;
-    //res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "reflection_roughness", &val);
-    //assert(res);
-
-    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(std::move(materialInst1));
-
-    //MaterialManager::Module* carbonModule = mMaterialManager->createModule("tutorials.mdl");
-   // MaterialManager::Material* carbonMaterial = mMaterialManager->createMaterial(carbonModule, "example_df");
-   // MaterialManager::Material* carbonMaterial1 = mMaterialManager->createMaterial(carbonModule, "dxr_sphere_mat");
-    
-    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
-    materials.push_back(std::move(materialComp1));
-    //materials.push_back(carbonMaterial);
-   // materials.push_back(carbonMaterial1);
-    
+    assert(materials.size() != 0);
     const MaterialManager::TargetCode* code = mMaterialManager->generateTargetCode(materials);
     const char* hlsl = mMaterialManager->getShaderCode(code);
     std::cout << hlsl << std::endl;
 
     std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+
+    std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
+    std::ofstream outHLSLShaderFile(ptFile.c_str());
+    outHLSLShaderFile << newPTCode;
 
     mPathTracer = new PathTracer(mSharedCtx, newPTCode);
     mPathTracer->initialize();
@@ -814,8 +821,8 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height) // swapcha
     ViewData* view = new ViewData();
     view->finalWidth = width;
     view->finalHeight = height;
-    view->renderWidth = (uint32_t) (width * mRenderConfig.upscaleFactor);
-    view->renderHeight = (uint32_t) (height * mRenderConfig.upscaleFactor);
+    view->renderWidth = (uint32_t)(width * mRenderConfig.upscaleFactor);
+    view->renderHeight = (uint32_t)(height * mRenderConfig.upscaleFactor);
     view->mResManager = mResManager;
     view->gbuffer = createGbuffer(view->renderWidth, view->renderHeight);
     view->prevDepth = mResManager->createImage(view->renderWidth, view->renderHeight, view->gbuffer->depthFormat, VK_IMAGE_TILING_OPTIMAL,
@@ -884,15 +891,15 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height) // swapcha
 
     const std::string imageName = "Accumulation Image";
     view->mAccumulationImages = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                                            VK_IMAGE_TILING_OPTIMAL,
-                                                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+                                                         VK_IMAGE_TILING_OPTIMAL,
+                                                         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
     mTexManager->transitionImageLayout(mResManager->getVkImage(view->mAccumulationImages), VK_FORMAT_R16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     view->mAccumulationAOImages = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                                              VK_IMAGE_TILING_OPTIMAL,
-                                                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+                                                           VK_IMAGE_TILING_OPTIMAL,
+                                                           VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
     mTexManager->transitionImageLayout(mResManager->getVkImage(view->mAccumulationAOImages), VK_FORMAT_R16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 
@@ -1047,12 +1054,12 @@ void nevk::Render::createMdlBuffers()
     const uint32_t roSize = mMaterialManager->getReadOnlyBlockSize(code);
     const uint32_t infoSize = mMaterialManager->getResourceInfoSize(code);
     const uint32_t mdlMaterialSize = mMaterialManager->getMdlMaterialSize(code);
-    
+
     VkDeviceSize stagingSize = std::max(std::max(roSize, mdlMaterialSize), std::max(argSize, infoSize));
-    
+
     Buffer* stagingBuffer = mResManager->createBuffer(stagingSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, "Staging MDL");
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    
+
     auto createGpuBuffer = [&](Buffer*& dest, const uint8_t* src, uint32_t size, const char* name) {
         memcpy(stagingBufferMemory, src, size);
         dest = mResManager->createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, name);
@@ -1580,8 +1587,6 @@ void Render::createDefaultScene()
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
-
-
 }
 
 void Render::drawFrame()
@@ -1747,12 +1752,12 @@ void Render::drawFrame()
     pathTracerParam.maxDepth = mRenderConfig.maxDepth;
     pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
     pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
-    pathTracerParam.numLights = (uint32_t) scene->getLights().size();
+    pathTracerParam.numLights = (uint32_t)scene->getLights().size();
     mPathTracer->setParams(pathTracerParam);
 
     ReflectionParam reflectionParam{};
     reflectionParam.camPos = cam.getPosition();
-    reflectionParam.dimension = glm::int2(renderWidth,renderHeight);
+    reflectionParam.dimension = glm::int2(renderWidth, renderHeight);
     reflectionParam.frameNumber = (uint32_t)mFrameNumber;
     mReflection->setParams(reflectionParam);
 
@@ -2003,9 +2008,9 @@ void Render::drawFrame()
             mAccumulationPathTracer->setOutputTexture4(accOut);
 
             recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
-            recordBarrier(cmd, mResManager->getVkImage(accOut),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
             finalPathTracerImage = accOut;
@@ -2053,7 +2058,7 @@ void Render::drawFrame()
                 recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
                 mAccumulationShadows->execute(cmd, renderWidth, renderHeight, imageIndex);
-                recordBarrier(cmd, mResManager->getVkImage(accOut),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
                 finalRtImage = accOut;
@@ -2108,7 +2113,7 @@ void Render::drawFrame()
                 recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
                 mAccumulationAO->execute(cmd, renderWidth, renderHeight, imageIndex);
-                recordBarrier(cmd, mResManager->getVkImage(accOutAO),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
                 finalAOImage = accOutAO;
@@ -2211,8 +2216,8 @@ void Render::drawFrame()
         {
             recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->textureTonemapImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-           // recordBarrier(cmd, mResManager->getVkImage(tmpImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-             //             VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            // recordBarrier(cmd, mResManager->getVkImage(tmpImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            //             VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mToneParams.dimension.x = renderWidth;
             mToneParams.dimension.y = renderHeight;
             mTonemap->setParams(mToneParams);
@@ -2228,8 +2233,8 @@ void Render::drawFrame()
                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mUpscalePassParam.dimension.x = finalWidth;
             mUpscalePassParam.dimension.y = finalHeight;
-            mUpscalePassParam.invDimension.x =  1.0f / (float) finalWidth;
-            mUpscalePassParam.invDimension.y = 1.0f / (float) finalHeight;
+            mUpscalePassParam.invDimension.x = 1.0f / (float)finalWidth;
+            mUpscalePassParam.invDimension.y = 1.0f / (float)finalHeight;
             mUpscalePass->setParams(mUpscalePassParam);
             mUpscalePass->setInputTexture(mResManager->getView(finalImage));
             mUpscalePass->execute(cmd, finalWidth, finalHeight, imageIndex);
