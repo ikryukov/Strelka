@@ -323,6 +323,12 @@ set(BUILD_SHARED_LIBS ON)
 
 target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/hdNeVK)
 target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/hdNeVK)
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC hd)
+target_include_directories(${HD_PLUGIN_NAME} PRIVATE 
+    usdImaging
+    hdMtlx
+)
+
 target_link_libraries(
   ${HD_PLUGIN_NAME}
   PRIVATE
