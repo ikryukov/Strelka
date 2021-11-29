@@ -374,11 +374,35 @@ install(
     COMPONENT ${HD_PLUGIN_NAME}
 )
 
+# Hydra runner application
+set(HD_RUNNER_SOURCES
+    src/hdRunner/main.cpp
+    src/hdRunner/SimpleRenderTask.h
+    src/hdRunner/SimpleRenderTask.cpp
+)
+set(HD_RUNNER_NAME HdRunner)
+add_executable(${HD_RUNNER_NAME} ${HD_RUNNER_SOURCES})
+set_target_properties(
+  ${HD_RUNNER_NAME}
+  PROPERTIES
+    LINKER_LANGUAGE CXX
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED TRUE
+    CXX_EXTENSIONS OFF
+)
+
+target_link_libraries(
+  ${HD_RUNNER_NAME}
+  ar cameraUtil hd hf hgi hio usd usdGeom usdImaging
+)
+
 # Set working directory
 if (MSVC)
     set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
+    set_property(TARGET ${HD_RUNNER_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
 elseif (APPLE)
     set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_SCHEME_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
+    set_property(TARGET ${HD_RUNNER_NAME} PROPERTY XCODE_SCHEME_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
 endif ()
 
 # Create symbolic links in final directory before building
