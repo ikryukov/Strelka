@@ -40,3 +40,8 @@ Use vscode with preset env variable
 ## Example
 
     ./nevk misc/Cube/Cube.gltf
+
+## USD
+    
+    Install plugin:
+        cmake --install . --component HdNeVK
