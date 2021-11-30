@@ -171,7 +171,6 @@ public:
 
     std::unordered_map<uint32_t, uint32_t> mLightIdToInstanceId{};
 
-    std::unordered_map<uint32_t, std::string> mMatIdToTexName{};
     std::unordered_map<int32_t, std::string> mTexIdToTexName{};
 
     std::vector<Vertex>& getVertices()

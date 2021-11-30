@@ -31,7 +31,7 @@ void PathTracer::setResources(const PathTracerDesc& desc)
     mShaderParams.setBuffer("mdlMaterials", mSharedCtx.mResManager->getVkBuffer(desc.mdl_mdlMaterial));
     
     mShaderParams.setTextures("mdl_textures_2d", mMatTextures);
-    mShaderParams.setTextures3d("mdl_textures_3d", mMatTextures);
+   // mShaderParams.setTextures3d("mdl_textures_3d", mMatTextures);
     mShaderParams.setSampler("mdl_sampler_tex", mMdlSampler);
 
     mShaderParams.setTexture("gbWPos", mSharedCtx.mResManager->getView(desc.gbuffer->wPos));

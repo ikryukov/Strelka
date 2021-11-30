@@ -194,18 +194,27 @@ void Render::initPasses()
             const Material& gltfMaterial = gltfMaterials[i];
             // create MDL mat instance
             std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "gltf_material");
+
             // create Textures for MDL from gltf
-            auto texIter = mScene->mTexIdToTexName.find(gltfMaterial.texBaseColor);
-            if (texIter != mScene->mTexIdToTexName.end())
-            {
-                std::string texBaseName = texIter->second;
-                MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texBaseName.c_str(), "linear");
-                if (texDesc != nullptr)
+            auto createTexture = [&](int32_t id, const char* paramName) {
+                auto texIter = mScene->mTexIdToTexName.find(id);
+                if (texIter != mScene->mTexIdToTexName.end())
                 {
-                    res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eTexture, "base_color_texture", (const void*)texDesc);
-                    assert(res);
+                    std::string texName = texIter->second;
+                    MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texName.c_str(), "linear");
+                    if (texDesc != nullptr)
+                    {
+                        res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
+                        assert(res);
+                    }
                 }
-            }
+            };
+
+            createTexture(gltfMaterial.texBaseColor, "base_color_texture");
+            createTexture(gltfMaterial.texNormalId, "normal_texture");
+            createTexture(gltfMaterial.texEmissive, "emissive_texture");
+            createTexture(gltfMaterial.texOcclusion, "occlusion_texture");
+            createTexture(gltfMaterial.texMetallicRoughness, "metallic_roughness_texture");
 
             // set params: colors, floats... textures
             res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "base_color_factor", &gltfMaterial.baseColorFactor);
@@ -214,14 +223,10 @@ void Render::initPasses()
             assert(res);
             res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
             assert(res);
-            //res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "ior", &gltfMaterial.extIOR);
-            //assert(res);
-            //res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "ior", &gltfMaterial.intIOR);
-            //assert(res);
-            // res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "ior", &gltfMaterial.);
-            // assert(res);
+            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "emissive_factor", &gltfMaterial.emissiveFactor);
+            assert(res);
 
-            // Compile Materials
+            // compile Materials
             std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(materialInst1.get());
             materials.push_back(std::move(materialComp1));
         }
@@ -240,7 +245,6 @@ void Render::initPasses()
 
     mPathTracer = new PathTracer(mSharedCtx, newPTCode);
     mPathTracer->initialize();
-
 
     // Workaround:
     mCurrentSceneRenderData->mMaterialTargetCode = code;
