@@ -36,16 +36,16 @@ TEST_CASE("mdl to hlsl code gen test")
 
     std::unique_ptr<MaterialManager::Module> currModule = matMngr->createModule("carbon_composite.mdl");
     CHECK(currModule);
-    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = matMngr->createMaterialInstance(std::move(currModule), "carbon_composite");
+    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = matMngr->createMaterialInstance(currModule.get(), "carbon_composite");
     CHECK(materialInst1);
-    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = matMngr->compileMaterial(std::move(materialInst1));
+    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = matMngr->compileMaterial(materialInst1.get());
     CHECK(materialComp1);
 
     std::unique_ptr<MaterialManager::Module> currModule2 = matMngr->createModule("brushed_antique_copper.mdl");
     CHECK(currModule2);
-    std::unique_ptr<MaterialManager::MaterialInstance> materialInst2 = matMngr->createMaterialInstance(std::move(currModule2), "brushed_antique_copper");
+    std::unique_ptr<MaterialManager::MaterialInstance> materialInst2 = matMngr->createMaterialInstance(currModule2.get(), "brushed_antique_copper");
     CHECK(materialInst2);
-    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp2 = matMngr->compileMaterial(std::move(materialInst2));
+    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp2 = matMngr->compileMaterial(materialInst2.get());
     CHECK(materialComp2);
 
     std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
@@ -107,12 +107,12 @@ TEST_CASE("mtlx to mdl code gen test")
     bool res = matMngr->addMdlSearchPath(path, 2);
     CHECK(res);
 
-    std::string file = "misc/test_data/mtlx/standard_surface_greysphere_calibration.mtlx";
+    std::string file = "misc/test_data/mtlx/standard_surface_wood_tiled.mtlx";
     std::unique_ptr<MaterialManager::Module> currModule = matMngr->createMtlxModule(file.c_str());
     CHECK(currModule);
-    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = matMngr->createMaterialInstance(std::move(currModule), "");
+    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = matMngr->createMaterialInstance(currModule.get(), "");
     CHECK(materialInst1);
-    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = matMngr->compileMaterial(std::move(materialInst1));
+    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = matMngr->compileMaterial(materialInst1.get());
     CHECK(materialComp1);
 
     std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
@@ -145,7 +145,7 @@ TEST_CASE("mtlx to mdl code gen test")
         }
     }
 
-    CHECK(mTexManager->textures.size() == 1);
-    CHECK(mTexManager->textures[0].texWidth == 1024);
-    CHECK(mTexManager->textures[0].texHeight == 1024);
+    CHECK(mTexManager->textures.size() == 2);
+    CHECK(mTexManager->textures[0].texWidth == 512);
+    CHECK(mTexManager->textures[0].texHeight == 512);
 }
