@@ -35,203 +35,203 @@ TF_DEFINE_PRIVATE_TOKENS(
 
 HdRendererPluginHandle GetHdNeVKPlugin()
 {
-  HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
+    HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
 
-  HfPluginDescVector pluginDescriptors;
-  registry.GetPluginDescs(&pluginDescriptors);
+    HfPluginDescVector pluginDescriptors;
+    registry.GetPluginDescs(&pluginDescriptors);
 
-  for (const HfPluginDesc& pluginDesc : pluginDescriptors)
-  {
-    const TfToken& pluginId = pluginDesc.id;
-
-    if (pluginId != _AppTokens->HdNeVKRendererPlugin)
+    for (const HfPluginDesc& pluginDesc : pluginDescriptors)
     {
-      continue;
+        const TfToken& pluginId = pluginDesc.id;
+
+        if (pluginId != _AppTokens->HdNeVKRendererPlugin)
+        {
+            continue;
+        }
+
+        HdRendererPluginHandle plugin = registry.GetOrCreateRendererPlugin(pluginId);
+
+        return plugin;
     }
 
-    HdRendererPluginHandle plugin = registry.GetOrCreateRendererPlugin(pluginId);
-
-    return plugin;
-  }
-
-  return HdRendererPluginHandle();
+    return HdRendererPluginHandle();
 }
 
 HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, std::string& settingsCameraPath)
 {
-  SdfPath cameraPath;
+    SdfPath cameraPath;
 
-  if (!settingsCameraPath.empty())
-  {
-    cameraPath = SdfPath(settingsCameraPath);
-  }
-  else
-  {
-    UsdPrimRange primRange = stage->TraverseAll();
-    for (auto prim = primRange.cbegin(); prim != primRange.cend(); prim++)
+    if (!settingsCameraPath.empty())
     {
-      if (!prim->IsA<UsdGeomCamera>())
-      {
-        continue;
-      }
-      cameraPath = prim->GetPath();
-      break;
+        cameraPath = SdfPath(settingsCameraPath);
     }
-  }
+    else
+    {
+        UsdPrimRange primRange = stage->TraverseAll();
+        for (auto prim = primRange.cbegin(); prim != primRange.cend(); prim++)
+        {
+            if (!prim->IsA<UsdGeomCamera>())
+            {
+                continue;
+            }
+            cameraPath = prim->GetPath();
+            break;
+        }
+    }
 
-  HdCamera* camera = (HdCamera*) dynamic_cast<HdCamera*>(renderIndex->GetSprim(HdTokens->camera, cameraPath));
+    HdCamera* camera = (HdCamera*)dynamic_cast<HdCamera*>(renderIndex->GetSprim(HdTokens->camera, cameraPath));
 
-  return camera;
+    return camera;
 }
 
 int main(int argc, const char* argv[])
 {
-  // Init plugin.
-  HdRendererPluginHandle pluginHandle = GetHdNeVKPlugin();
+    // Init plugin.
+    HdRendererPluginHandle pluginHandle = GetHdNeVKPlugin();
 
-  if (!pluginHandle)
-  {
-    fprintf(stderr, "HdNeVK plugin not found!\n");
-    return EXIT_FAILURE;
-  }
+    if (!pluginHandle)
+    {
+        fprintf(stderr, "HdNeVK plugin not found!\n");
+        return EXIT_FAILURE;
+    }
 
-  if (!pluginHandle->IsSupported())
-  {
-    fprintf(stderr, "HdNeVK plugin is not supported!\n");
-    return EXIT_FAILURE;
-  }
+    if (!pluginHandle->IsSupported())
+    {
+        fprintf(stderr, "HdNeVK plugin is not supported!\n");
+        return EXIT_FAILURE;
+    }
 
-  HdRenderDelegate* renderDelegate = pluginHandle->CreateRenderDelegate();
-  TF_VERIFY(renderDelegate);
+    HdRenderDelegate* renderDelegate = pluginHandle->CreateRenderDelegate();
+    TF_VERIFY(renderDelegate);
 
-  // Handle cmdline args.
-  // Load scene.
-  TfStopwatch timerLoad;
-  timerLoad.Start();
+    // Handle cmdline args.
+    // Load scene.
+    TfStopwatch timerLoad;
+    timerLoad.Start();
 
-  //ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
-  //std::string usdPath = "C:/work/Kitchen_set/Kitchen_set.usd";
-  std::string usdPath = "C:/work/cornell.usdc";
-  UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
-  
-  timerLoad.Stop();
+    //ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
+    //std::string usdPath = "C:/work/Kitchen_set/Kitchen_set.usd";
+    std::string usdPath = "C:/work/cornell.usdc";
+    UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
 
-  if (!stage)
-  {
-    fprintf(stderr, "Unable to open USD stage file.\n");
-    return EXIT_FAILURE;
-  }
+    timerLoad.Stop();
 
-  printf("USD scene loaded (%.3fs)\n", timerLoad.GetSeconds());
-  fflush(stdout);
+    if (!stage)
+    {
+        fprintf(stderr, "Unable to open USD stage file.\n");
+        return EXIT_FAILURE;
+    }
 
-  HdRenderIndex* renderIndex = HdRenderIndex::New(renderDelegate, HdDriverVector());
-  TF_VERIFY(renderIndex);
+    printf("USD scene loaded (%.3fs)\n", timerLoad.GetSeconds());
+    fflush(stdout);
 
-  UsdImagingDelegate sceneDelegate(renderIndex, SdfPath::AbsoluteRootPath());
-  sceneDelegate.Populate(stage->GetPseudoRoot());
-  sceneDelegate.SetTime(0);
-  sceneDelegate.SetRefineLevelFallback(4);
+    HdRenderIndex* renderIndex = HdRenderIndex::New(renderDelegate, HdDriverVector());
+    TF_VERIFY(renderIndex);
 
-  std::string cameraPath = "";
+    UsdImagingDelegate sceneDelegate(renderIndex, SdfPath::AbsoluteRootPath());
+    sceneDelegate.Populate(stage->GetPseudoRoot());
+    sceneDelegate.SetTime(0);
+    sceneDelegate.SetRefineLevelFallback(4);
 
-  HdCamera* camera = FindCamera(stage, renderIndex, cameraPath);
-  if (!camera)
-  {
-    fprintf(stderr, "Camera not found!\n");
-    return EXIT_FAILURE;
-  }
+    std::string cameraPath = "";
 
-  // Set up rendering context.
-  uint32_t imageWidth = 800;
-  uint32_t imageHeight = 600;
-  HdRenderBuffer* renderBuffer = (HdRenderBuffer*) renderDelegate->CreateFallbackBprim(HdPrimTypeTokens->renderBuffer);
-  renderBuffer->Allocate(GfVec3i(imageWidth, imageHeight, 1), HdFormatFloat32Vec4, false);
+    HdCamera* camera = FindCamera(stage, renderIndex, cameraPath);
+    if (!camera)
+    {
+        fprintf(stderr, "Camera not found!\n");
+        return EXIT_FAILURE;
+    }
 
-  HdRenderPassAovBindingVector aovBindings(1);
-  aovBindings[0].aovName = HdAovTokens->color;
-  aovBindings[0].renderBuffer = renderBuffer;
+    // Set up rendering context.
+    uint32_t imageWidth = 800;
+    uint32_t imageHeight = 600;
+    HdRenderBuffer* renderBuffer = (HdRenderBuffer*)renderDelegate->CreateFallbackBprim(HdPrimTypeTokens->renderBuffer);
+    renderBuffer->Allocate(GfVec3i(imageWidth, imageHeight, 1), HdFormatFloat32Vec4, false);
 
-  CameraUtilFraming framing;
-  framing.dataWindow = GfRect2i(GfVec2i(0, 0), GfVec2i(imageWidth, imageHeight));
-  framing.displayWindow = GfRange2f(GfVec2f(0.0f, 0.0f), GfVec2f((float) imageWidth, (float) imageHeight));
-  framing.pixelAspectRatio = 1.0f;
+    HdRenderPassAovBindingVector aovBindings(1);
+    aovBindings[0].aovName = HdAovTokens->color;
+    aovBindings[0].renderBuffer = renderBuffer;
 
-  std::pair<bool, CameraUtilConformWindowPolicy> overrideWindowPolicy(false, CameraUtilFit);
+    CameraUtilFraming framing;
+    framing.dataWindow = GfRect2i(GfVec2i(0, 0), GfVec2i(imageWidth, imageHeight));
+    framing.displayWindow = GfRange2f(GfVec2f(0.0f, 0.0f), GfVec2f((float)imageWidth, (float)imageHeight));
+    framing.pixelAspectRatio = 1.0f;
 
-  auto renderPassState = std::make_shared<HdRenderPassState>();
-  renderPassState->SetCameraAndFraming(camera, framing, overrideWindowPolicy);
-  renderPassState->SetAovBindings(aovBindings);
+    std::pair<bool, CameraUtilConformWindowPolicy> overrideWindowPolicy(false, CameraUtilFit);
 
-  HdRprimCollection renderCollection(HdTokens->geometry, HdReprSelector(HdReprTokens->refined));
-  HdRenderPassSharedPtr renderPass = renderDelegate->CreateRenderPass(renderIndex, renderCollection);
+    auto renderPassState = std::make_shared<HdRenderPassState>();
+    renderPassState->SetCameraAndFraming(camera, framing, overrideWindowPolicy);
+    renderPassState->SetAovBindings(aovBindings);
 
-  TfTokenVector renderTags(1, HdRenderTagTokens->geometry);
-  auto renderTask = std::make_shared<SimpleRenderTask>(renderPass, renderPassState, renderTags);
+    HdRprimCollection renderCollection(HdTokens->geometry, HdReprSelector(HdReprTokens->refined));
+    HdRenderPassSharedPtr renderPass = renderDelegate->CreateRenderPass(renderIndex, renderCollection);
 
-  HdTaskSharedPtrVector tasks;
-  tasks.push_back(renderTask);
+    TfTokenVector renderTags(1, HdRenderTagTokens->geometry);
+    auto renderTask = std::make_shared<SimpleRenderTask>(renderPass, renderPassState, renderTags);
 
-  // Perform rendering.
-  TfStopwatch timerRender;
-  timerRender.Start();
+    HdTaskSharedPtrVector tasks;
+    tasks.push_back(renderTask);
 
-  HdEngine engine;
-  engine.Execute(renderIndex, &tasks);
+    // Perform rendering.
+    TfStopwatch timerRender;
+    timerRender.Start();
 
-  renderBuffer->Resolve();
-  TF_VERIFY(renderBuffer->IsConverged());
+    HdEngine engine;
+    engine.Execute(renderIndex, &tasks);
 
-  timerRender.Stop();
+    renderBuffer->Resolve();
+    TF_VERIFY(renderBuffer->IsConverged());
 
-  printf("Rendering finished (%.3fs)\n", timerRender.GetSeconds());
-  fflush(stdout);
+    timerRender.Stop();
 
-  // Gamma correction.
-  float* mappedMem = (float*) renderBuffer->Map();
-  TF_VERIFY(mappedMem != nullptr);
+    printf("Rendering finished (%.3fs)\n", timerRender.GetSeconds());
+    fflush(stdout);
 
-  int pixelCount = renderBuffer->GetWidth() * renderBuffer->GetHeight();
+    // Gamma correction.
+    float* mappedMem = (float*)renderBuffer->Map();
+    TF_VERIFY(mappedMem != nullptr);
 
-  for (int i = 0; i < pixelCount; i++)
-  {
-    mappedMem[i * 4 + 0] = GfConvertLinearToDisplay(mappedMem[i * 4 + 0]);
-    mappedMem[i * 4 + 1] = GfConvertLinearToDisplay(mappedMem[i * 4 + 1]);
-    mappedMem[i * 4 + 2] = GfConvertLinearToDisplay(mappedMem[i * 4 + 2]);
-  }
+    int pixelCount = renderBuffer->GetWidth() * renderBuffer->GetHeight();
 
-  // Write image to file.
-  TfStopwatch timerWrite;
-  timerWrite.Start();
+    for (int i = 0; i < pixelCount; i++)
+    {
+        mappedMem[i * 4 + 0] = GfConvertLinearToDisplay(mappedMem[i * 4 + 0]);
+        mappedMem[i * 4 + 1] = GfConvertLinearToDisplay(mappedMem[i * 4 + 1]);
+        mappedMem[i * 4 + 2] = GfConvertLinearToDisplay(mappedMem[i * 4 + 2]);
+    }
 
-  std::string outputFilePath = "res.png";
+    // Write image to file.
+    TfStopwatch timerWrite;
+    timerWrite.Start();
 
-  HioImageSharedPtr image = HioImage::OpenForWriting(outputFilePath);
+    std::string outputFilePath = "res.png";
 
-  if (!image)
-  {
-    fprintf(stderr, "Unable to open output file for writing!\n");
-    return EXIT_FAILURE;
-  }
+    HioImageSharedPtr image = HioImage::OpenForWriting(outputFilePath);
 
-  HioImage::StorageSpec storage;
-  storage.width = (int) renderBuffer->GetWidth();
-  storage.height = (int) renderBuffer->GetHeight();
-  storage.depth = (int) renderBuffer->GetDepth();
-  storage.format = HioFormat::HioFormatFloat32Vec4;
-  storage.flipped = true;
-  storage.data = mappedMem;
+    if (!image)
+    {
+        fprintf(stderr, "Unable to open output file for writing!\n");
+        return EXIT_FAILURE;
+    }
 
-  VtDictionary metadata;
-  image->Write(storage, metadata);
+    HioImage::StorageSpec storage;
+    storage.width = (int)renderBuffer->GetWidth();
+    storage.height = (int)renderBuffer->GetHeight();
+    storage.depth = (int)renderBuffer->GetDepth();
+    storage.format = HioFormat::HioFormatFloat32Vec4;
+    storage.flipped = true;
+    storage.data = mappedMem;
 
-  renderBuffer->Unmap();
-  timerWrite.Stop();
+    VtDictionary metadata;
+    image->Write(storage, metadata);
 
-  printf("Wrote image (%.3fs)\n", timerWrite.GetSeconds());
-  fflush(stdout);
+    renderBuffer->Unmap();
+    timerWrite.Stop();
 
-  renderDelegate->DestroyBprim(renderBuffer);
+    printf("Wrote image (%.3fs)\n", timerWrite.GetSeconds());
+    fflush(stdout);
 
-  return EXIT_SUCCESS;
+    renderDelegate->DestroyBprim(renderBuffer);
+
+    return EXIT_SUCCESS;
 }
