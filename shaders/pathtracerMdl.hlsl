@@ -110,7 +110,7 @@ float3 pathTrace(uint2 pixelIndex)
         return 0;
 
     InstanceConstants instConst = instanceConstants[gbInstId[pixelIndex]];
-    Material material = materials[instConst.materialId];
+    Material material = materials[0];
     float2 matUV = gbUV[pixelIndex];
     if (material.isLight)
     {
