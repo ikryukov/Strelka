@@ -73,7 +73,7 @@ float3 estimateDirectLighting(inout uint rngState, in Accel accel, in RectLight 
 
         toLight = L;
         lightPdf = lightPDF;
-        return visibility * Li * saturate(dot(state.normal, L)) / lightPDF;
+        return visibility * Li * saturate(dot(state.normal, L)) / (lightPDF + 1e-5);
     }
 
     return float3(0.0);
@@ -86,7 +86,8 @@ float3 sampleLights(inout uint rngState, in Accel accel, in Shading_state_materi
     RectLight currLight = lights[lightId];
     float3 r = estimateDirectLighting(rngState, accel, currLight, state, toLight, lightPdf);
     lightPdf *= lightSelectionPdf;
-    return r / lightPdf;
+
+    return r / (lightPdf + 1e-5);
 }
 
 float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId, uint32_t sampId)
@@ -105,6 +106,193 @@ float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId
     return NewNormal;
 }
 
+Ray generateCameraRay(uint2 pixelIndex)
+{
+    Ray rayGen;
+    rayGen.o = ubo.camPos;
+
+    //https://raytracing.github.io/books/RayTracingInOneWeekend.html#rays,asimplecamera,andbackground/therayclass
+//    // camera params
+//    float imageAspectRatio = ubo.dimension.x / ubo.dimension.y; // assuming width > height
+//    float viewport_height = 2.0;
+//    float viewport_width = imageAspectRatio * viewport_height;
+//    float focal_length = 1.0;
+//
+//    float3 horizontal = float3(viewport_width, 0, 0);
+//    float3 vertical = float3(0, viewport_height, 0);
+//    float3 lower_left_corner = rayGen.o.xyz - horizontal/2 - vertical/2 - float3(0, 0, focal_length);
+//
+//    float u = float(pixelIndex.x) / (ubo.dimension.x - 1);
+//    float v = float(pixelIndex.y) / (ubo.dimension.y - 1);
+//
+//    rayGen.d = normalize(float4(lower_left_corner + u*horizontal + v*vertical - rayGen.o.xyz, 0.0));
+//
+    // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays
+    float fov = 45.0f;
+    float imageAspectRatio = ubo.dimension.x / ubo.dimension.y; // assuming width > height
+    float Px = (2 * ((pixelIndex.x + 0.5) / ubo.dimension.x) - 1) * tan(fov / 2 * PI / 180) * imageAspectRatio;
+    float Py = (1 - 2 * ((pixelIndex.y + 0.5) / ubo.dimension.y) * tan(fov / 2 * PI / 180));
+
+    rayGen.o = ubo.camPos;
+    rayGen.d = float4(normalize(float3(Px, Py, -1) - rayGen.o.xyz), 0); // note that this just equal to Vec3f(Px, Py, -1);
+//
+   return rayGen;
+}
+
+
+float3 pathTrace1(uint2 pixelIndex)
+{
+    float3 finalColor = 0.0;
+    float3 toLight;
+    float lightPdf = 0;
+
+    Ray ray = generateCameraRay(pixelIndex);
+
+    Hit hit;
+    hit.t = 0.0;
+
+    InstanceConstants instConst = instanceConstants[gbInstId[pixelIndex]];
+
+    Accel accel;
+    accel.bvhNodes = bvhNodes;
+    accel.instanceConstants = instanceConstants;
+    accel.vb = vb;
+    accel.ib = ib;
+
+    float3 throughput = 1;
+
+    int depth = 1;  // ? 0
+    int maxDepth = ubo.maxDepth;
+    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
+    float4 rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
+    Shading_state_material mdlState;
+
+    while (depth < maxDepth)
+    {
+        if (closestHit(accel, ray, hit))
+        {
+            InstanceConstants instConst = accel.instanceConstants[hit.instId];
+            Material material = materials[instConst.materialId];
+
+            if (material.isLight)
+            {
+                finalColor += throughput * float3(1.0f);
+                //break;
+                depth = maxDepth;
+            }
+            else
+            {
+                uint i0 = accel.ib[instConst.indexOffset + hit.primId * 3 + 0];
+                uint i1 = accel.ib[instConst.indexOffset + hit.primId * 3 + 1];
+                uint i2 = accel.ib[instConst.indexOffset + hit.primId * 3 + 2];
+
+                float3 p0 = mul(instConst.objectToWorld, float4(accel.vb[i0].position, 1.0f)).xyz;
+                float3 p1 = mul(instConst.objectToWorld, float4(accel.vb[i1].position, 1.0f)).xyz;
+                float3 p2 = mul(instConst.objectToWorld, float4(accel.vb[i2].position, 1.0f)).xyz;
+
+                float3 geom_normal = normalize(cross(p1 - p0, p2 - p0));
+
+                float3 n0 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i0].normal));
+                float3 n1 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i1].normal));
+                float3 n2 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i2].normal));
+
+                float3 t0 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i0].tangent));
+                float3 t1 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i1].tangent));
+                float3 t2 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i2].tangent));
+
+                const float2 bcoords = hit.bary;
+
+                float3 world_normal = normalize(interpolateAttrib(n0, n1, n2, bcoords));
+                float3 world_tangent = normalize(interpolateAttrib(t0, t1, t2, bcoords));
+                float3 world_binormal = cross(world_normal, world_tangent);
+
+                float2 uv0 = unpackUV(accel.vb[i0].uv);
+                float2 uv1 = unpackUV(accel.vb[i1].uv);
+                float2 uv2 = unpackUV(accel.vb[i2].uv);
+
+                float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
+
+                MdlMaterial currMdlMaterial = mdlMaterials[instConst.materialId];
+
+                // setup MDL state
+                mdlState.normal = world_normal;
+                mdlState.geom_normal = geom_normal;
+                mdlState.position = ray.o.xyz + ray.d.xyz * hit.t; // hit position
+                mdlState.animation_time = 0.0f;
+                mdlState.tangent_u[0] = world_tangent;
+                mdlState.tangent_v[0] = world_binormal;
+                mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
+                mdlState.world_to_object = instConst.objectToWorld;
+                mdlState.object_to_world = instConst.worldToObject; // TODO: replace on precalc
+                mdlState.object_id = 0;
+                mdlState.meters_per_scene_unit = 1.0f;
+                mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
+                mdlState.text_coords[0] = float3(uvCoord, 0);
+
+                int scatteringFunctionIndex = currMdlMaterial.functionId;
+                mdl_bsdf_scattering_init(scatteringFunctionIndex, mdlState);
+
+                float3 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
+
+                Bsdf_evaluate_data evalData = (Bsdf_evaluate_data) 0;
+                evalData.ior1 = 1.5;       // IOR current medium // 1.2
+                evalData.ior2 = 1.5;       // IOR other side
+                evalData.k1 = -ray.d.xyz;   // outgoing direction
+                evalData.k2 = toLight;      // incoming direction
+
+                mdl_bsdf_scattering_evaluate(scatteringFunctionIndex, evalData, mdlState);
+
+                if (evalData.pdf > 0.0f)
+                {
+                    const float mis_weight = lightPdf / (lightPdf + evalData.pdf + 1e-5);
+                    const float3 w = throughput * radianceOverPdf * mis_weight;
+                    finalColor += w * evalData.bsdf_diffuse;
+                    finalColor += w * evalData.bsdf_glossy;
+                }
+
+                rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
+
+                Bsdf_sample_data sampleData = (Bsdf_sample_data) 0;
+                sampleData.ior1 = 1.5;
+                sampleData.ior2 = 1.5;
+                sampleData.k1 = -ray.d.xyz;
+                sampleData.xi = rndSample;
+
+                mdl_bsdf_scattering_sample(scatteringFunctionIndex, sampleData, mdlState);
+
+                throughput *= sampleData.bsdf_over_pdf;
+
+                if (depth > 3)
+                {
+                    float p = max(throughput.r, max(throughput.g, throughput.b));
+                    if (rand(rngState) > p)
+                    {
+                        // break
+                        depth = maxDepth;
+                    }
+                    throughput *= 1.0 / p;
+                }
+
+                const float3 offset = world_normal * 1e-6; // need to add small offset to fix self-collision
+                // add check and flip offset for transmission event
+                ray.o = float4(mdlState.position + offset, 1e9);
+                ray.d = float4(sampleData.k2, 0.0);
+            }
+        }
+        else
+        {
+            // miss - add background color and exit
+            // finalColor += throughput * float3(0.f);
+            finalColor += (throughput + 1e-5) * cubeMap.Sample(cubeMapSampler, ray.d.xyz).rgb;
+
+            //break;
+            depth = maxDepth;
+        }
+        ++depth;
+    }
+    return finalColor;
+}
+
 float3 pathTrace(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
@@ -113,7 +301,7 @@ float3 pathTrace(uint2 pixelIndex)
         return 0;
 
     InstanceConstants instConst = instanceConstants[gbInstId[pixelIndex]];
-    Material material = materials[0];
+    Material material = materials[instConst.materialId];
     float2 matUV = gbUV[pixelIndex];
     if (material.isLight)
     {
@@ -274,6 +462,8 @@ float3 pathTrace(uint2 pixelIndex)
 
                 float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
 
+               currMdlMaterial = mdlMaterials[instConst.materialId];
+
                 // setup MDL state
                 mdlState.normal = world_normal;
                 mdlState.geom_normal = geom_normal;
@@ -281,18 +471,21 @@ float3 pathTrace(uint2 pixelIndex)
                 mdlState.animation_time = 0.0f;
                 mdlState.tangent_u[0] = world_tangent;
                 mdlState.tangent_v[0] = world_binormal;
-                mdlState.ro_data_segment_offset = 0;
+                mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
                 mdlState.world_to_object = instConst.objectToWorld;
                 mdlState.object_to_world = instConst.worldToObject; // TODO: replace on precalc
                 mdlState.object_id = 0;
                 mdlState.meters_per_scene_unit = 1.0f;
-                mdlState.arg_block_offset = 0;
+                mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
                 mdlState.text_coords[0] = float3(uvCoord, 0);
-        
+
+                int scatteringFunctionIndex = currMdlMaterial.functionId;
+                mdl_bsdf_scattering_init(scatteringFunctionIndex, mdlState);
+
                 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
 
                 Bsdf_evaluate_data evalData = (Bsdf_evaluate_data) 0;
-                evalData.ior1 = ior1;       // IOR current medium
+                evalData.ior1 = ior1;       // IOR current medium // 1.2
                 evalData.ior2 = ior2;       // IOR other side
                 evalData.k1 = -ray.d.xyz; // outgoing direction
                 evalData.k2 = toLight;      // incoming direction
@@ -339,8 +532,9 @@ float3 pathTrace(uint2 pixelIndex)
         else
         {
             // miss - add background color and exit
-            //finalColor += throughput * float3(0.f);
-            finalColor = cubeMap.Sample(cubeMapSampler, ray.d.xyz).rgb;
+            // finalColor += throughput * float3(0.f);
+            finalColor += (throughput + 1e-5) * cubeMap.Sample(cubeMapSampler, ray.d.xyz).rgb;
+
             //break;
             depth = maxDepth;
         }
@@ -360,9 +554,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 
     float3 color = 0.f;
 
-   color = pathTrace(pixelIndex);
-
-   // color = cubeMap.Sample(cubeMapSampler, pixelIndex).rgb;
+   color = pathTrace1(pixelIndex);
 
     output[pixelIndex] = float4(color, 1.0);
 }
