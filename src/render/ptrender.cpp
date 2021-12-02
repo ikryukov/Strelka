@@ -334,8 +334,8 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height)
     ViewData* view = new ViewData();
     view->finalWidth = width;
     view->finalHeight = height;
-    view->renderWidth = (uint32_t) (width * 0.5f); //mRenderConfig.upscaleFactor
-    view->renderHeight = (uint32_t) (height * 0.5f); //mRenderConfig.upscaleFactor
+    view->renderWidth = (uint32_t) (width * 1.0f); //mRenderConfig.upscaleFactor
+    view->renderHeight = (uint32_t) (height * 1.0f); //mRenderConfig.upscaleFactor
     view->mResManager = mResManager;
     view->gbuffer = createGbuffer(view->renderWidth, view->renderHeight);
     view->prevDepth = mResManager->createImage(view->renderWidth, view->renderHeight, view->gbuffer->depthFormat, VK_IMAGE_TILING_OPTIMAL,
@@ -348,7 +348,7 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height)
                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
     mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureDebugViewImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
-    view->textureTonemapImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16G16B16A16_SFLOAT,
+    view->textureTonemapImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                          VK_IMAGE_TILING_OPTIMAL,
                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
@@ -356,7 +356,7 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height)
                                                          VK_IMAGE_TILING_OPTIMAL,
                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Upscale Output");
-    mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureUpscaleImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureUpscaleImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     
     view->mPathTracerImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -504,7 +504,7 @@ void PtRender::createMaterialBuffer(nevk::Scene& scene)
     }
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    memcpy(stagingBufferMemory, sceneMaterials.data(), (size_t)bufferSize);
+    memcpy(stagingBufferMemory, sceneMaterials.data(), sceneMaterials.size() * sizeof(Material));
     mCurrentSceneRenderData->mMaterialBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Materials");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
@@ -521,7 +521,7 @@ void PtRender::createLightsBuffer(nevk::Scene& scene)
     {
         Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-        memcpy(stagingBufferMemory, sceneLights.data(), (size_t)bufferSize);
+        memcpy(stagingBufferMemory, sceneLights.data(), sceneLights.size() * sizeof(nevk::Scene::Light));
         mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), bufferSize);
         mResManager->destroyBuffer(stagingBuffer);
     }
@@ -648,7 +648,7 @@ void PtRender::createInstanceBuffer(nevk::Scene& scene)
 
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    memcpy(stagingBufferMemory, instanceConsts.data(), (size_t)bufferSize);
+    memcpy(stagingBufferMemory, instanceConsts.data(), instanceConsts.size() * sizeof(InstanceConstants));
     mCurrentSceneRenderData->mInstanceBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
@@ -757,20 +757,7 @@ void PtRender::setDescriptors(uint32_t imageIndex)
         mGbufferPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
         mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
     }
-    {
-        PathTracerDesc desc{};
-        desc.result = currView->mPathTracerImage;
-        desc.gbuffer = currView->gbuffer;
-        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
-        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
-        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-        desc.matSampler = mTexManager->texSamplers;
-        desc.matTextures = mTexManager->textureImages;
-        mPathTracer->setResources(desc);
-    }
+
     {
         mAccumulationPathTracer->setInputTexture4(currView->mPathTracerImage);
         mAccumulationPathTracer->setMotionTexture(currView->gbuffer->motion);
@@ -800,7 +787,7 @@ void PtRender::setDescriptors(uint32_t imageIndex)
     }
 }
 
-void PtRender::drawFrame()
+void PtRender::drawFrame(const uint8_t* outPixels)
 {
     assert(mScene);
     ZoneScoped;
@@ -815,15 +802,21 @@ void PtRender::drawFrame()
     createMaterialBuffer(*mScene);
     createBvhBuffer(*mScene); // need to update descriptors after it
 
+    ViewData* currView = mView[imageIndex];
+    uint32_t renderWidth = currView->renderWidth;
+    uint32_t renderHeight = currView->renderHeight;
+    uint32_t finalWidth = currView->finalWidth;
+    uint32_t finalHeight = currView->finalHeight;
+
+    mScene->updateCamerasParams(renderWidth, renderHeight);
+
     Camera& cam = mScene->getCamera(getActiveCameraIndex());
+    cam.updateViewMatrix();
 
     setDescriptors(imageIndex);
+    
 
-    uint32_t renderWidth = mView[imageIndex]->renderWidth;
-    uint32_t renderHeight = mView[imageIndex]->renderHeight;
-    uint32_t finalWidth = mView[imageIndex]->finalWidth;
-    uint32_t finalHeight = mView[imageIndex]->finalHeight;
-
+    mGbufferPass.onResize(currView->gbuffer, 0);
     mGbufferPass.updateUniformBuffer(imageIndex, *mScene, getActiveCameraIndex());
 
     PathTracerParam pathTracerParam{};
@@ -850,8 +843,8 @@ void PtRender::drawFrame()
     accParam.clipToView = cam.matrices.invPerspective;
     accParam.viewToWorld = glm::inverse(cam.matrices.view);
     accParam.isPt = 1;
-    mView[imageIndex]->mPtIteration = 0;
-    accParam.iteration = mView[imageIndex]->mPtIteration;
+    currView->mPtIteration = 0;
+    accParam.iteration = currView->mPtIteration;
     mAccumulationPathTracer->setParams(accParam);
 
     VkCommandBuffer& cmd = getFrameData(imageIndex).cmdBuffer;
@@ -861,7 +854,7 @@ void PtRender::drawFrame()
     cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cmdBeginInfo.pNext = nullptr;
     cmdBeginInfo.pInheritanceInfo = nullptr;
-    cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
@@ -961,7 +954,7 @@ void PtRender::drawFrame()
 
     mGbufferPass.record(cmd, mResManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, renderWidth, renderHeight, imageIndex, getActiveCameraIndex());
 
-    const GBuffer& gbuffer = *mView[imageIndex]->gbuffer;
+    const GBuffer& gbuffer = *currView->gbuffer;
 
     // barriers
     {
@@ -988,6 +981,20 @@ void PtRender::drawFrame()
 
     // Path Tracer
     {
+        {
+            PathTracerDesc desc{};
+            desc.result = currView->mPathTracerImage;
+            desc.gbuffer = currView->gbuffer;
+            desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+            desc.vb = mCurrentSceneRenderData->mVertexBuffer;
+            desc.ib = mCurrentSceneRenderData->mIndexBuffer;
+            desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+            desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+            desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+            desc.matSampler = mTexManager->texSamplers;
+            desc.matTextures = mTexManager->textureImages;
+            mPathTracer->setResources(desc);
+        }
         recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                       VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         mPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
@@ -996,26 +1003,25 @@ void PtRender::drawFrame()
 
         finalPathTracerImage = mView[imageIndex]->mPathTracerImage;
 
-        if (0)
-        {
-            // Accumulation pass
-            Image* accHist = mPrevView->mAccumulationPathTracerImage;
-            Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
+        //if (0)
+        //{
+        //    // Accumulation pass
+        //    Image* accHist = mPrevView->mAccumulationPathTracerImage;
+        //    Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
 
-            mAccumulationPathTracer->setHistoryTexture4(accHist);
-            mAccumulationPathTracer->setOutputTexture4(accOut);
+        //    mAccumulationPathTracer->setHistoryTexture4(accHist);
+        //    mAccumulationPathTracer->setOutputTexture4(accOut);
 
-            recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
-            recordBarrier(cmd, mResManager->getVkImage(accOut),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        //    recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+        //                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        //    mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
+        //    recordBarrier(cmd, mResManager->getVkImage(accOut),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        //                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-            finalPathTracerImage = accOut;
-        }
+        //    finalPathTracerImage = accOut;
+        //}
     }
 
-    if (mScene->mDebugViewSettings != Scene::DebugView::eNone)
     {
         Image* tmpImage = finalPathTracerImage;
   
@@ -1034,7 +1040,7 @@ void PtRender::drawFrame()
         }
 
         // Upscale
-        if (0)
+        if (1)
         {
             recordBarrier(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
@@ -1052,13 +1058,27 @@ void PtRender::drawFrame()
     }
 
     // Copy to swapchain image
-    //{
 
-    //    recordBarrier(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-    //                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    recordBarrier(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-    //    recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //                  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    VkDeviceSize imageSize = finalWidth * finalHeight * 16;
+    Buffer* stagingBuffer = mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VkBufferImageCopy region{};
+    region.bufferOffset = 0;
+    region.bufferRowLength = finalWidth;
+    region.bufferImageHeight = 0;
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageSubresource.mipLevel = 0;
+    region.imageOffset.x = 0;
+    region.imageOffset.y = 0;
+    region.imageOffset.z = 0;
+    region.imageExtent.width = finalWidth;
+    region.imageExtent.height = finalHeight;
+    region.imageExtent.depth = 1;
+    vkCmdCopyImageToBuffer(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mResManager->getVkBuffer(stagingBuffer), 1, &region);
 
     //    VkOffset3D blitSize{};
     //    blitSize.x = finalWidth;
@@ -1081,30 +1101,30 @@ void PtRender::drawFrame()
     //}
 
     // copy current depth from gbuffer to prev gbuffer
-    {
-        recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->gbuffer->depth), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
-        recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->prevDepth), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
-        VkImageCopy region{};
-        region.extent.width = renderWidth;
-        region.extent.height = renderHeight;
-        region.extent.depth = 1;
+    //{
+    //    recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->gbuffer->depth), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    //                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+    //    recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->prevDepth), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+    //    VkImageCopy region{};
+    //    region.extent.width = renderWidth;
+    //    region.extent.height = renderHeight;
+    //    region.extent.depth = 1;
 
-        region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        region.srcSubresource.mipLevel = 0;
-        region.srcSubresource.layerCount = 1;
-        region.srcSubresource.baseArrayLayer = 0;
+    //    region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    //    region.srcSubresource.mipLevel = 0;
+    //    region.srcSubresource.layerCount = 1;
+    //    region.srcSubresource.baseArrayLayer = 0;
 
-        region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-        region.dstSubresource.mipLevel = 0;
-        region.dstSubresource.layerCount = 1;
-        region.dstSubresource.baseArrayLayer = 0;
+    //    region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+    //    region.dstSubresource.mipLevel = 0;
+    //    region.dstSubresource.layerCount = 1;
+    //    region.dstSubresource.baseArrayLayer = 0;
 
-        vkCmdCopyImage(cmd, mResManager->getVkImage(mView[imageIndex]->gbuffer->depth), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mResManager->getVkImage(mView[imageIndex]->prevDepth), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-        recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->prevDepth), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
-    }
+    //    vkCmdCopyImage(cmd, mResManager->getVkImage(mView[imageIndex]->gbuffer->depth), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mResManager->getVkImage(mView[imageIndex]->prevDepth), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+    //    recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->prevDepth), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    //                  VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+    //}
 
     // assign prev resources for next frame rendering
     mPrevView = mView[imageIndex];
@@ -1125,6 +1145,13 @@ void PtRender::drawFrame()
     {
         throw std::runtime_error("failed to submit draw command buffer!");
     }
+
+    vkWaitForFences(mDevice, 1, &currFrame.inFlightFence, true, UINT64_MAX);
+
+    vkDeviceWaitIdle(mDevice);
+
+    void* data = mResManager->getMappedMemory(stagingBuffer);
+    memcpy((void*)outPixels, data, static_cast<size_t>(imageSize));
 
     ++mFrameNumber;
 }

@@ -83,6 +83,11 @@ public:
             allocFlags = 0;
             break;
         }
+        case VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT: {
+            memUsage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+            allocFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            break;
+        }
         default:
             break;
         }

@@ -1,4 +1,8 @@
 #include <render/ptrender.h>
+#define STB_IMAGE_STATIC
+#define STB_IMAGE_IMPLEMENTATION
+
+#include <stb_image_write.h>
 
 #include <scene/scene.h>
 #include <modelloader/modelloader.h>
@@ -21,6 +25,7 @@ TEST_CASE("render test")
 
     ModelLoader modelLoader(shared.mTextureManager);
     modelLoader.loadModelGltf("./misc/m4/minbox.gltf", scene);
+    //modelLoader.loadModelGltf("./misc/cornell_box/cornell_box.gltf", scene);
 
     Scene::RectLightDesc desc{};
     desc.color = glm::float3(1.0f);
@@ -34,7 +39,19 @@ TEST_CASE("render test")
 
     render->setScene(&scene);
 
-    render->drawFrame();
+    std::vector<float> data(800 * 600 * 4);
+    const uint8_t* pixels = (const uint8_t*) data.data();
+
+    render->drawFrame(pixels);
+
+    std::vector<uint8_t> saveData;
+    for (const float& p: data)
+    {
+        uint8_t v = p * 255.0f;
+        saveData.push_back(v);
+    }
+
+    stbi_write_png("res.bmp", 800, 600, 4, saveData.data(), 800 * 4);
 
     CHECK(render != nullptr);
 }

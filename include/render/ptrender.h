@@ -80,7 +80,7 @@ public:
     void initVulkan();
     void cleanup();
 
-    void drawFrame();
+    void drawFrame(const uint8_t* outPixels);
 
     SharedContext& getSharedContext()
     {
@@ -296,8 +296,6 @@ private:
     void createCommandBuffers();
 
     void createSyncObjects();
-
-    
 
     bool isDeviceSuitable(VkPhysicalDevice device);
 
