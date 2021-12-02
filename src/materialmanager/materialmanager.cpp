@@ -801,7 +801,7 @@ std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(TargetCode* targetC
         res.resize(4);
     }
     return res;
-};
+}
 
 std::vector<uint8_t> MaterialManager::Context::loadROData(const TargetCode* targetCode)
 {

@@ -13,6 +13,40 @@ PathTracer::~PathTracer()
 
 void PathTracer::initialize()
 {
+    // sampler
+    VkSamplerCreateInfo samplerInfo{};
+    samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    samplerInfo.magFilter = VK_FILTER_LINEAR;
+    samplerInfo.minFilter = VK_FILTER_LINEAR;
+    samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+    samplerInfo.anisotropyEnable = VK_TRUE;
+    samplerInfo.maxAnisotropy = 1.0f;
+    samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    samplerInfo.unnormalizedCoordinates = VK_FALSE;
+    samplerInfo.compareEnable = VK_FALSE;
+    samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+    samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+    VkResult res = vkCreateSampler(mSharedCtx.mDevice, &samplerInfo, nullptr, &mCubeMapSampler);
+    if (res != VK_SUCCESS)
+    {
+        // error
+        assert(0);
+    }
+    mShaderParams.setSampler("cubeMapSampler", mCubeMapSampler);
+
+    std::string texPath[6] = {"misc/skybox/right.jpg",
+                              "misc/skybox/left.jpg",
+                              "misc/skybox/top.jpg",
+                              "misc/skybox/bottom.jpg",
+                              "misc/skybox/front.jpg",
+                              "misc/skybox/back.jpg"};
+    nevk::TextureManager::Texture cubeMapTex = mSharedCtx.mTextureManager->createCubeMapTextureImage(texPath);
+    mCubeMap = cubeMapTex.textureImage;
+    mShaderParams.setCubeMap("cubeMap", mSharedCtx.mResManager->getView(mCubeMap));
+
     //PathTracerBase::initialize("shaders/pathtracer.hlsl");
     //PathTracerBase::initialize("shaders/newPT.hlsl");
     PathTracerBase::initializeFromCode(mShaderCode.c_str());
@@ -39,6 +73,7 @@ void PathTracer::setResources(const PathTracerDesc& desc)
     mShaderParams.setTexture("gbTangent", mSharedCtx.mResManager->getView(desc.gbuffer->tangent));    
     mShaderParams.setTexture("gbInstId", mSharedCtx.mResManager->getView(desc.gbuffer->instId));
     mShaderParams.setTexture("gbUV", mSharedCtx.mResManager->getView(desc.gbuffer->uv));
+
     mShaderParams.setBuffer("bvhNodes", mSharedCtx.mResManager->getVkBuffer(desc.bvhNodes));
     mShaderParams.setBuffer("vb", mSharedCtx.mResManager->getVkBuffer(desc.vb));
     mShaderParams.setBuffer("ib", mSharedCtx.mResManager->getVkBuffer(desc.ib));

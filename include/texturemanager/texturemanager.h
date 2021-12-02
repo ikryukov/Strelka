@@ -107,6 +107,9 @@ public:
 
     void createTextureSampler(TextureSamplerDesc& texSamplerData);
 
+    Texture createCubeMapTextureImage(std::string texture_path[6]);
+    Texture createCubeMapImage(const uint8_t* pixels[6], uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height, const char* name);
+
     Texture createTextureImage(const std::string& texture_path);
     Texture createTextureImage(const void* pixels, uint32_t width, uint32_t height);
     Texture createTextureImage(const void* pixels, VkFormat format, uint32_t width, uint32_t height);
@@ -116,8 +119,8 @@ public:
     void createShadowSampler();
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+    void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layer = 0);
+    void copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer = 0);
 
     void textureDestroy()
     {

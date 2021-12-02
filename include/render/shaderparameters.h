@@ -126,10 +126,12 @@ protected:
                 descType = VK_DESCRIPTOR_TYPE_SAMPLER;
                 break;
             }
+            case ShaderManager::ResourceType::eCubeMap:
             case ShaderManager::ResourceType::eTexture3D: {
                 descType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
                 break;
             }
+            case ShaderManager::ResourceType::eRWCubeMap:
             case ShaderManager::ResourceType::eRWTexture3D: {
                 descType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
                 break;
@@ -203,6 +205,8 @@ protected:
                 }
                 case ShaderManager::ResourceType::eTexture3D:
                 case ShaderManager::ResourceType::eRWTexture3D:
+                case ShaderManager::ResourceType::eCubeMap:
+                case ShaderManager::ResourceType::eRWCubeMap:
                 case ShaderManager::ResourceType::eTexture2D:
                 case ShaderManager::ResourceType::eRWTexture2D:
                 case ShaderManager::ResourceType::eSampler: {
@@ -277,6 +281,7 @@ protected:
                     descriptorWrites.push_back(descWrite);
                     break;
                 }
+                case ShaderManager::ResourceType::eCubeMap:
                 case ShaderManager::ResourceType::eTexture3D: {
                     for (uint32_t i = 0; i < descriptorCount; ++i)
                     {
@@ -520,6 +525,20 @@ public:
             {
                 resDescriptor.handles[j].imageView = mResManager->getView(images[j]);
             }
+            mResUpdate[i][name] = resDescriptor;
+            needDesciptorSetUpdate[i] = true;
+        }
+    }
+
+    void setCubeMap(const std::string& name, VkImageView view)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            ResourceDescriptor resDescriptor{};
+            resDescriptor.type = ShaderManager::ResourceType::eCubeMap;
+            resDescriptor.isArray = false;
+            resDescriptor.handles.resize(1);
+            resDescriptor.handles[0].imageView = view;
             mResUpdate[i][name] = resDescriptor;
             needDesciptorSetUpdate[i] = true;
         }

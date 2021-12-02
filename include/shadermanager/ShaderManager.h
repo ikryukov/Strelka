@@ -23,6 +23,8 @@ public:
         eRWTexture2D,
         eSampler,
         eTexture3D,
+        eCubeMap,
+        eRWCubeMap,
         eRWTexture3D,
     };
 

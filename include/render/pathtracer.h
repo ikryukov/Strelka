@@ -34,6 +34,9 @@ public:
     std::vector<Image*> mMatTextures;
     std::string mShaderCode;
 
+    VkSampler mCubeMapSampler = VK_NULL_HANDLE;
+    Image* mCubeMap = VK_NULL_HANDLE;
+
     PathTracer(const SharedContext& ctx, std::string& shaderCode);
     ~PathTracer();
 

@@ -1,7 +1,7 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
-
 #include <stb_image.h>
+
 #include <texturemanager.h>
 
 int nevk::TextureManager::loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name)
@@ -52,6 +52,31 @@ int nevk::TextureManager::loadTextureMdl(const void* pixels, const uint32_t widt
     return mNameToID.find(name)->second;
 }
 
+nevk::TextureManager::Texture nevk::TextureManager::createCubeMapTextureImage(std::string texture_path[6])
+{
+    int texWidth, texHeight, texChannels;
+    const uint8_t* pixels[6];
+
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        pixels[i] = stbi_load(texture_path[i].c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        if (!pixels[i])
+        {
+            throw std::runtime_error("failed to load texture image!");
+        }
+
+    }
+
+    Texture res = createCubeMapImage(pixels, 4, VK_FORMAT_R8G8B8A8_UNORM, texWidth, texHeight, "Cube Map Texture");
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+       //  stbi_image_free(pixels[i]);
+    }
+
+    return res;
+}
+
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std::string& texture_path)
 {
     int texWidth, texHeight, texChannels;
@@ -77,6 +102,27 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const voi
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, VkFormat format, uint32_t width, uint32_t height)
 {
     return createTextureImage(pixels, 4, format, width, height);
+}
+
+nevk::TextureManager::Texture nevk::TextureManager::createCubeMapImage(const uint8_t* pixels[6], uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height, const char* name)
+{
+    VkDeviceSize imageSize = width * height * bytesPerPixel;
+    Buffer* stagingBuffer = mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); //same
+
+    Image* textureImage = mResManager->createCubeMapImage(width, height, format, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, name);
+
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        memcpy(stagingBufferMemory, pixels[i], static_cast<size_t>(imageSize));
+
+        transitionImageLayout(mResManager->getVkImage(textureImage), format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, i);
+        copyBufferToImage(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkImage(textureImage), static_cast<uint32_t>(width), static_cast<uint32_t>(height), i);
+        transitionImageLayout(mResManager->getVkImage(textureImage), format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, i);
+    }
+    mResManager->destroyBuffer(stagingBuffer);
+
+    return Texture{ textureImage, width, height };
 }
 
 nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height, const char* name)
@@ -193,7 +239,7 @@ VkImageView nevk::TextureManager::createImageView(VkImage image, VkFormat format
     return imageView;
 }
 
-void nevk::TextureManager::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void nevk::TextureManager::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layer)
 {
     VkCommandBuffer commandBuffer = mResManager->beginSingleTimeCommands();
 
@@ -207,8 +253,8 @@ void nevk::TextureManager::transitionImageLayout(VkImage image, VkFormat format,
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
+    barrier.subresourceRange.baseArrayLayer = layer;
+    barrier.subresourceRange.layerCount = 1; // ?
 
     VkPipelineStageFlags sourceStage;
     VkPipelineStageFlags destinationStage;
@@ -263,7 +309,7 @@ void nevk::TextureManager::transitionImageLayout(VkImage image, VkFormat format,
     mResManager->endSingleTimeCommands(commandBuffer);
 }
 
-void nevk::TextureManager::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height)
+void nevk::TextureManager::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer)
 {
     VkCommandBuffer commandBuffer = mResManager->beginSingleTimeCommands();
 
@@ -273,7 +319,7 @@ void nevk::TextureManager::copyBufferToImage(VkBuffer buffer, VkImage image, uin
     region.bufferImageHeight = 0;
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.baseArrayLayer = layer;
     region.imageSubresource.layerCount = 1;
     region.imageOffset = { 0, 0, 0 };
     region.imageExtent = {

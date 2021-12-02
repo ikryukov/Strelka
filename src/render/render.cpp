@@ -174,70 +174,70 @@ void Render::initPasses()
     ptcode << pt.rdbuf();
 
     mMaterialManager = new MaterialManager();
-//    const char* paths[5] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
-//                             "./misc/test_data/mdl/Plastic", "./misc/test_data/mdl/Plastic/textures",
-//                             "./misc/vespa" };
-//    bool res = mMaterialManager->addMdlSearchPath(paths, 5);
-//    if (!res)
-//    {
-//        // failed to load MDL
-//        return;
-//    }
-//
-//    std::unique_ptr<MaterialManager::Module> currModule = mMaterialManager->createModule("gltf_support.mdl");
-//
-//    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
-//    {
-//        std::vector<Material> gltfMaterials = mScene->getMaterials();
-//        for (int i = 0; i < gltfMaterials.size(); ++i)
-//        {
-//            const Material& gltfMaterial = gltfMaterials[i];
-//            // create MDL mat instance
-//            std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "gltf_material");
-//
-//            // create Textures for MDL from gltf
-//            auto createTexture = [&](int32_t id, const char* paramName) {
-//                auto texIter = mScene->mTexIdToTexName.find(id);
-//                if (texIter != mScene->mTexIdToTexName.end())
-//                {
-//                    std::string texName = texIter->second;
-//                    MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texName.c_str(), "linear");
-//                    if (texDesc != nullptr)
-//                    {
-//                        res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
-//                        assert(res);
-//                    }
-//                }
-//            };
-//
-//            createTexture(gltfMaterial.texBaseColor, "base_color_texture");
-//            createTexture(gltfMaterial.texNormalId, "normal_texture");
-//            createTexture(gltfMaterial.texEmissive, "emissive_texture");
-//            createTexture(gltfMaterial.texOcclusion, "occlusion_texture");
-//            createTexture(gltfMaterial.texMetallicRoughness, "metallic_roughness_texture");
-//
-//            // set params: colors, floats... textures
-//            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "base_color_factor", &gltfMaterial.baseColorFactor);
-//            assert(res);
-//            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "metallic_factor", &gltfMaterial.metallicFactor);
-//            assert(res);
-//            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
-//            assert(res);
-//            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "emissive_factor", &gltfMaterial.emissiveFactor);
-//            assert(res);
-//
-//            // compile Materials
-//            std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(materialInst1.get());
-//            materials.push_back(std::move(materialComp1));
-//        }
-//    }
+    const char* paths[5] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
+                             "./misc/test_data/mdl/Plastic", "./misc/test_data/mdl/Plastic/textures",
+                             "./misc/vespa" };
+    bool res = mMaterialManager->addMdlSearchPath(paths, 5);
+    if (!res)
+    {
+        // failed to load MDL
+        return;
+    }
+
+    std::unique_ptr<MaterialManager::Module> currModule = mMaterialManager->createModule("gltf_support.mdl");
+
+    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
+    {
+        std::vector<Material> gltfMaterials = mScene->getMaterials();
+        for (int i = 0; i < gltfMaterials.size(); ++i)
+        {
+            const Material& gltfMaterial = gltfMaterials[i];
+            // create MDL mat instance
+            std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "gltf_material");
+
+            // create Textures for MDL from gltf
+            auto createTexture = [&](int32_t id, const char* paramName) {
+                auto texIter = mScene->mTexIdToTexName.find(id);
+                if (texIter != mScene->mTexIdToTexName.end())
+                {
+                    std::string texName = texIter->second;
+                    MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texName.c_str(), "linear");
+                    if (texDesc != nullptr)
+                    {
+                        res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
+                        assert(res);
+                    }
+                }
+            };
+
+            createTexture(gltfMaterial.texBaseColor, "base_color_texture");
+            createTexture(gltfMaterial.texNormalId, "normal_texture");
+            createTexture(gltfMaterial.texEmissive, "emissive_texture");
+            createTexture(gltfMaterial.texOcclusion, "occlusion_texture");
+            createTexture(gltfMaterial.texMetallicRoughness, "metallic_roughness_texture");
+
+            // set params: colors, floats... textures
+            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "base_color_factor", &gltfMaterial.baseColorFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "metallic_factor", &gltfMaterial.metallicFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "emissive_factor", &gltfMaterial.emissiveFactor);
+            assert(res);
+
+            // compile Materials
+            std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(materialInst1.get());
+            materials.push_back(std::move(materialComp1));
+        }
+    }
 
     // MTLX
-    const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" };
+   /* const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" };
     bool res = mMaterialManager->addMdlSearchPath(path, 2);
     assert(res);
 
-    std::string file = "misc/test_data/mtlx/standard_surface_look_brass_tiled.mtlx";
+    std::string file = "misc/test_data/mtlx/standard_surface_wood_tiled.mtlx";
     std::unique_ptr<MaterialManager::Module> currModule = mMaterialManager->createMtlxModule(file.c_str());
     assert(currModule);
     std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "");
@@ -246,7 +246,7 @@ void Render::initPasses()
     assert(materialComp1);
 
     std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
-    materials.push_back(std::move(materialComp1));
+    materials.push_back(std::move(materialComp1));*/
     // MTLX
 
     // generate code for PT
@@ -256,7 +256,7 @@ void Render::initPasses()
     std::cout << hlsl << std::endl;
 
     // MTLX
-    uint32_t texSize = mMaterialManager->getTextureCount(code);
+   /* uint32_t texSize = mMaterialManager->getTextureCount(code);
     for (uint32_t i = 1; i < texSize; ++i)
     {
         const float* data = mMaterialManager->getTextureData(code, i);
@@ -272,7 +272,7 @@ void Render::initPasses()
         {
             std::cout << "tiled " << name <<std::endl;
         }
-    }
+    }*/
     // MTLX
 
     std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();

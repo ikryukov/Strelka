@@ -15,6 +15,9 @@ Texture2D<float4> gbTangent;
 Texture2D<int> gbInstId;
 Texture2D<float2> gbUV;
 
+TextureCube<float4> cubeMap;
+SamplerState cubeMapSampler;
+
 StructuredBuffer<BVHNode> bvhNodes;
 StructuredBuffer<Vertex> vb;
 StructuredBuffer<uint> ib;
@@ -336,7 +339,8 @@ float3 pathTrace(uint2 pixelIndex)
         else
         {
             // miss - add background color and exit
-            finalColor += throughput * float3(0.f);
+            //finalColor += throughput * float3(0.f);
+            finalColor = cubeMap.Sample(cubeMapSampler, ray.d.xyz).rgb;
             //break;
             depth = maxDepth;
         }
@@ -356,7 +360,9 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 
     float3 color = 0.f;
 
-    color = pathTrace(pixelIndex);
+   color = pathTrace(pixelIndex);
+
+   // color = cubeMap.Sample(cubeMapSampler, pixelIndex).rgb;
 
     output[pixelIndex] = float4(color, 1.0);
 }
