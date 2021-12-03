@@ -110,31 +110,34 @@ Ray generateCameraRay(uint2 pixelIndex)
 {
     Ray rayGen;
     rayGen.o = ubo.camPos;
+    rayGen.o.w = 1e9;
 
-    //https://raytracing.github.io/books/RayTracingInOneWeekend.html#rays,asimplecamera,andbackground/therayclass
-//    // camera params
-//    float imageAspectRatio = ubo.dimension.x / ubo.dimension.y; // assuming width > height
-//    float viewport_height = 2.0;
-//    float viewport_width = imageAspectRatio * viewport_height;
-//    float focal_length = 1.0;
-//
-//    float3 horizontal = float3(viewport_width, 0, 0);
-//    float3 vertical = float3(0, viewport_height, 0);
-//    float3 lower_left_corner = rayGen.o.xyz - horizontal/2 - vertical/2 - float3(0, 0, focal_length);
-//
-//    float u = float(pixelIndex.x) / (ubo.dimension.x - 1);
-//    float v = float(pixelIndex.y) / (ubo.dimension.y - 1);
-//
-//    rayGen.d = normalize(float4(lower_left_corner + u*horizontal + v*vertical - rayGen.o.xyz, 0.0));
-//
-    // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays
-    float fov = 45.0f;
+//    //https://raytracing.github.io/books/RayTracingInOneWeekend.html#rays,asimplecamera,andbackground/therayclass
+    // camera params
     float imageAspectRatio = ubo.dimension.x / ubo.dimension.y; // assuming width > height
-    float Px = (2 * ((pixelIndex.x + 0.5) / ubo.dimension.x) - 1) * tan(fov / 2 * PI / 180) * imageAspectRatio;
-    float Py = (1 - 2 * ((pixelIndex.y + 0.5) / ubo.dimension.y) * tan(fov / 2 * PI / 180));
+    float viewport_height = 1.0;
+    float viewport_width = imageAspectRatio * viewport_height;
+    float fov = 45.0f;
+    float focal_length = 1.0f / tan(fov / 2.0f);
 
-    rayGen.o = ubo.camPos;
-    rayGen.d = float4(normalize(float3(Px, Py, -1) - rayGen.o.xyz), 0); // note that this just equal to Vec3f(Px, Py, -1);
+    float3 horizontal = float3(viewport_width, 0, 0);
+    float3 vertical = float3(0, -viewport_height, 0);
+    float3 lower_left_corner = rayGen.o.xyz - horizontal/2 - vertical/2 - float3(0, 0, focal_length);
+
+    float u = float(pixelIndex.x) / (ubo.dimension.x - 1);
+    float v = float(pixelIndex.y) / (ubo.dimension.y - 1);
+
+
+    rayGen.d = mul(ubo.camView, normalize(float4(lower_left_corner + u * horizontal + v * vertical - rayGen.o.xyz, 0.0)));
+
+    // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays
+//    float fov = 45.0f;
+//    float imageAspectRatio = ubo.dimension.x / ubo.dimension.y; // assuming width > height
+//    float Px = (2 * ((pixelIndex.x + 0.5) / ubo.dimension.x) - 1) * tan(fov / 2 * PI / 180) * imageAspectRatio;
+//    float Py = (1 - 2 * ((pixelIndex.y + 0.5) / ubo.dimension.y) * tan(fov / 2 * PI / 180));
+//
+//    rayGen.o = ubo.camPos;
+//    rayGen.d = float4(normalize(float3(Px, Py, -1) - rayGen.o.xyz), 0); // note that this just equal to Vec3f(Px, Py, -1);
 //
    return rayGen;
 }

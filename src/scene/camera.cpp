@@ -163,6 +163,11 @@ void Camera::rotate(float rightAngle, float upAngle)
     updateViewMatrix();
 }
 
+glm::quat Camera::getOrientation()
+{
+    return mOrientation;
+}
+
 void Camera::setTranslation(glm::float3 translation)
 {
     position = translation;

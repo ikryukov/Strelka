@@ -23,6 +23,7 @@ struct PathTracerParam
     uint maxDepth;
 
     float4 camPos;
+    float4x4 camView;
 
     uint debug;
     uint numLights;
