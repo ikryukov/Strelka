@@ -118,10 +118,10 @@ FSOutput fragmentMain(PS_INPUT inp) : SV_TARGET
     int32_t sampNormalId = material.sampNormalId;
 
     float3 N = normalize(inp.normal);
-    if (texNormalId != INVALID_INDEX)
-    {
-        N = CalcBumpedNormal(inp, texNormalId, sampNormalId);
-    }
+    // if (texNormalId != INVALID_INDEX)
+    // {
+    //     N = CalcBumpedNormal(inp, texNormalId, sampNormalId);
+    // }
 
     FSOutput ret;
     ret.wPos = float4(inp.wPos, 1.0);

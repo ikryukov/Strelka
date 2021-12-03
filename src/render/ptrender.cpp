@@ -1,6 +1,6 @@
 #include "ptrender.h"
 
-#include "debugUtils.h"
+//#include "debugUtils.h"
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -10,7 +10,7 @@
 #include <filesystem>
 
 // profiler
-#include "Tracy.hpp"
+//#include "Tracy.hpp"
 
 namespace fs = std::filesystem;
 const uint32_t MAX_LIGHT_COUNT = 100;
@@ -790,7 +790,7 @@ void PtRender::setDescriptors(uint32_t imageIndex)
 void PtRender::drawFrame(const uint8_t* outPixels)
 {
     assert(mScene);
-    ZoneScoped;
+    //ZoneScoped;
     
     FrameData& currFrame = getCurrentFrameData();
     const uint32_t imageIndex = 0;
@@ -808,7 +808,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     uint32_t finalWidth = currView->finalWidth;
     uint32_t finalHeight = currView->finalHeight;
 
-    mScene->updateCamerasParams(renderWidth, renderHeight);
+    //mScene->updateCamerasParams(renderWidth, renderHeight);
 
     Camera& cam = mScene->getCamera(getActiveCameraIndex());
     cam.updateViewMatrix();

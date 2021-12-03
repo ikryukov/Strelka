@@ -8,9 +8,18 @@
 #include "Tokens.h"
 
 #include <pxr/base/gf/matrix3d.h>
+#include <pxr/base/gf/quatd.h>
 #include <pxr/imaging/hd/renderDelegate.h>
 #include <pxr/imaging/hd/renderPassState.h>
 #include <pxr/imaging/hd/rprim.h>
+
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/compatibility.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 
 static const char* DEFAULT_MTLX_DOC =
     "<?xml version=\"1.0\"?>"
@@ -42,159 +51,228 @@ bool HdNeVKRenderPass::IsConverged() const
     return m_isConverged;
 }
 
-//void HdNeVKRenderPass::_BakeMeshInstance(const HdGatlingMesh* mesh,
-//                                            GfMatrix4d transform,
-//                                            uint32_t materialIndex,
-//                                            std::vector<gi_face>& faces,
-//                                            std::vector<gi_vertex>& vertices) const
-//{
-//    GfMatrix4d normalMatrix = transform.GetInverse().GetTranspose();
-//
-//    const std::vector<GfVec3f>& meshPoints = mesh->GetPoints();
-//    const std::vector<GfVec3f>& meshNormals = mesh->GetNormals();
-//    const std::vector<GfVec3i>& meshFaces = mesh->GetFaces();
-//    TF_VERIFY(meshPoints.size() == meshNormals.size());
-//
-//    uint32_t vertexOffset = vertices.size();
-//
-//    for (size_t j = 0; j < meshFaces.size(); j++)
-//    {
-//        const GfVec3i& vertexIndices = meshFaces[j];
-//
-//        gi_face face;
-//        face.v_i[0] = vertexOffset + vertexIndices[0];
-//        face.v_i[1] = vertexOffset + vertexIndices[1];
-//        face.v_i[2] = vertexOffset + vertexIndices[2];
-//        face.mat_index = materialIndex;
-//
-//        faces.push_back(face);
-//    }
-//
-//    for (size_t j = 0; j < meshPoints.size(); j++)
-//    {
-//        const GfVec3f& point = meshPoints[j];
-//        const GfVec3f& normal = meshNormals[j];
-//
-//        GfVec3f newPoint = transform.Transform(point);
-//        GfVec3f newNormal = normalMatrix.TransformDir(normal);
-//        newNormal.Normalize();
-//
-//        gi_vertex vertex;
-//        vertex.pos[0] = newPoint[0];
-//        vertex.pos[1] = newPoint[1];
-//        vertex.pos[2] = newPoint[2];
-//        vertex.norm[0] = newNormal[0];
-//        vertex.norm[1] = newNormal[1];
-//        vertex.norm[2] = newNormal[2];
-//
-//        vertices.push_back(vertex);
-//    }
-//}
 
-//void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
-//                                      GfMatrix4d rootTransform,
-//                                      std::vector<gi_vertex>& vertices,
-//                                      std::vector<gi_face>& faces,
-//                                      std::vector<const gi_material*>& materials) const
-//{
-//    vertices.clear();
-//    faces.clear();
-//
-//    TfHashMap<SdfPath, uint32_t, SdfPath::Hash> materialMapping;
-//    materialMapping[SdfPath::EmptyPath()] = 0;
-//
-//    materials.push_back(m_defaultMaterial);
-//
-//    for (const auto& rprimId : renderIndex->GetRprimIds())
-//    {
-//        const HdRprim* rprim = renderIndex->GetRprim(rprimId);
-//
-//        if (!dynamic_cast<const HdMesh*>(rprim))
-//        {
-//            continue;
-//        }
-//
-//        const HdGatlingMesh* mesh = dynamic_cast<const HdGatlingMesh*>(rprim);
-//
-//        VtMatrix4dArray transforms;
-//        const SdfPath& instancerId = mesh->GetInstancerId();
-//
-//        if (instancerId.IsEmpty())
-//        {
-//            transforms.resize(1);
-//            transforms[0] = GfMatrix4d(1.0);
-//        }
-//        else
-//        {
-//            HdInstancer* boxedInstancer = renderIndex->GetInstancer(instancerId);
-//            HdGatlingInstancer* instancer = dynamic_cast<HdGatlingInstancer*>(boxedInstancer);
-//
-//            const SdfPath& meshId = mesh->GetId();
-//            transforms = instancer->ComputeInstanceTransforms(meshId);
-//        }
-//
-//        const SdfPath& materialId = mesh->GetMaterialId();
-//        uint32_t materialIndex = 0;
-//
-//        if (materialMapping.find(materialId) != materialMapping.end())
-//        {
-//            materialIndex = materialMapping[materialId];
-//        }
-//        else
-//        {
-//            HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->material, materialId);
-//            HdGatlingMaterial* material = dynamic_cast<HdGatlingMaterial*>(sprim);
-//
-//            if (material)
-//            {
-//                const gi_material* giMat = material->GetGiMaterial();
-//
-//                if (giMat)
-//                {
-//                    materialIndex = materials.size();
-//                    materials.push_back(giMat);
-//                    materialMapping[materialId] = materialIndex;
-//                }
-//            }
-//        }
-//
-//        const GfMatrix4d& prototypeTransform = mesh->GetPrototypeTransform();
-//
-//        for (size_t i = 0; i < transforms.size(); i++)
-//        {
-//            GfMatrix4d transform = prototypeTransform * transforms[i] * rootTransform;
-//
-//            _BakeMeshInstance(mesh, transform, materialIndex, faces, vertices);
-//        }
-//    }
-//
-//    printf("#Vertices: %zu\n", vertices.size());
-//    printf("#Faces: %zu\n", faces.size());
-//    fflush(stdout);
-//}
+//  valid range of coordinates [-1; 1]
+uint32_t packNormal(const glm::float3& normal)
+{
+    uint32_t packed = (uint32_t)((normal.x + 1.0f) / 2.0f * 511.99999f);
+    packed += (uint32_t)((normal.y + 1.0f) / 2.0f * 511.99999f) << 10;
+    packed += (uint32_t)((normal.z + 1.0f) / 2.0f * 511.99999f) << 20;
+    return packed;
+}
 
-//void HdNeVKRenderPass::_ConstructGiCamera(const HdGatlingCamera& camera, nevk::Camera& _camera) const
-//{
-//    // We transform the scene into camera space at the beginning, so for
-//    // subsequent camera transforms, we need to 'substract' the initial transform.
-//    GfMatrix4d absInvViewMatrix = camera.GetTransform();
-//    GfMatrix4d relViewMatrix = absInvViewMatrix * m_rootMatrix;
-//
-//    GfVec3d position = relViewMatrix.Transform(GfVec3d(0.0, 0.0, 0.0));
-//    GfVec3d forward = relViewMatrix.TransformDir(GfVec3d(0.0, 0.0, -1.0));
-//    GfVec3d up = relViewMatrix.TransformDir(GfVec3d(0.0, 1.0, 0.0));
-//
-//    forward.Normalize();
-//    up.Normalize();
-//
-//    _camera.fov = camera.GetVFov();
-//}
+void HdNeVKRenderPass::_BakeMeshInstance(const HdNeVKMesh* mesh,
+                                            GfMatrix4d transform,
+                                            uint32_t materialIndex)
+{
+    GfMatrix4d normalMatrix = transform.GetInverse().GetTranspose();
+
+    const std::vector<GfVec3f>& meshPoints = mesh->GetPoints();
+    const std::vector<GfVec3f>& meshNormals = mesh->GetNormals();
+    const std::vector<GfVec3i>& meshFaces = mesh->GetFaces();
+    TF_VERIFY(meshPoints.size() == meshNormals.size());
+    const size_t vertexCount = meshPoints.size();
+
+    std::vector<nevk::Scene::Vertex> vertices(vertexCount);
+    std::vector<uint32_t> indices(meshFaces.size() * 3);
+
+    for (size_t j = 0; j < meshFaces.size(); ++j)
+    {
+        const GfVec3i& vertexIndices = meshFaces[j];
+        indices[j * 3 + 0] = vertexIndices[0];
+        indices[j * 3 + 1] = vertexIndices[1];
+        indices[j * 3 + 2] = vertexIndices[2];
+    }
+    glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
+    for (size_t j = 0; j < vertexCount; ++j)
+    {
+        const GfVec3f& point = meshPoints[j];
+        const GfVec3f& normal = meshNormals[j];
+
+        nevk::Scene::Vertex& vertex = vertices[j];
+        vertex.pos[0] = point[0];
+        vertex.pos[1] = point[1];
+        vertex.pos[2] = point[2];
+
+        glm::float3 glmNormal = glm::float3(normal[0], normal[1], normal[2]);
+        vertex.normal = packNormal(glmNormal);
+        sum += vertex.pos;
+    }
+    const glm::float3 massCenter = sum / (float)vertexCount;
+    int matId = 0;
+
+    glm::float4x4 glmTransform;
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            glmTransform[i][j] = (float)transform[i][j];
+        }
+    }
+
+    uint32_t meshId = mScene.createMesh(vertices, indices);
+    assert(meshId != -1);
+    uint32_t instId = mScene.createInstance(meshId, matId, glmTransform, massCenter);
+    assert(instId != -1);
+}
+
+void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
+                                   GfMatrix4d rootTransform)
+{
+    TfHashMap<SdfPath, uint32_t, SdfPath::Hash> materialMapping;
+    materialMapping[SdfPath::EmptyPath()] = 0;
+    
+    Material defaultMaterial{};
+
+    defaultMaterial.baseColorFactor = glm::float4(1.0f);
+    defaultMaterial.diffuse = defaultMaterial.baseColorFactor;
+    defaultMaterial.illum = 2; // opaque
+    defaultMaterial.texBaseColor = -1; 
+    defaultMaterial.texNormalId = -1;
+    defaultMaterial.texEmissive = -1;
+
+    mScene.addMaterial(defaultMaterial);
+
+    //materials.push_back(m_defaultMaterial);
+
+    for (const auto& rprimId : renderIndex->GetRprimIds())
+    {
+        const HdRprim* rprim = renderIndex->GetRprim(rprimId);
+
+        if (!dynamic_cast<const HdMesh*>(rprim))
+        {
+            continue;
+        }
+
+        const HdNeVKMesh* mesh = dynamic_cast<const HdNeVKMesh*>(rprim);
+
+        VtMatrix4dArray transforms;
+        const SdfPath& instancerId = mesh->GetInstancerId();
+
+        if (instancerId.IsEmpty())
+        {
+            transforms.resize(1);
+            transforms[0] = GfMatrix4d(1.0);
+        }
+        else
+        {
+            HdInstancer* boxedInstancer = renderIndex->GetInstancer(instancerId);
+            HdNeVKInstancer* instancer = dynamic_cast<HdNeVKInstancer*>(boxedInstancer);
+
+            const SdfPath& meshId = mesh->GetId();
+            transforms = instancer->ComputeInstanceTransforms(meshId);
+        }
+
+        const SdfPath& materialId = mesh->GetMaterialId();
+        uint32_t materialIndex = 0;
+
+        if (materialMapping.find(materialId) != materialMapping.end())
+        {
+            materialIndex = materialMapping[materialId];
+        }
+        else
+        {
+            HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->material, materialId);
+            HdNeVKMaterial* material = dynamic_cast<HdNeVKMaterial*>(sprim);
+
+            if (material)
+            {
+                //const gi_material* giMat = material->GetGiMaterial();
+
+                //if (giMat)
+                //{
+                //    materialIndex = materials.size();
+                //    materials.push_back(giMat);
+                //    materialMapping[materialId] = materialIndex;
+                //}
+            }
+        }
+
+        const GfMatrix4d& prototypeTransform = mesh->GetPrototypeTransform();
+
+        for (size_t i = 0; i < transforms.size(); i++)
+        {
+            GfMatrix4d transform = prototypeTransform * transforms[i]; // *rootTransform;
+            //GfMatrix4d transform = GfMatrix4d(1.0);
+            _BakeMeshInstance(mesh, transform, materialIndex);
+        }
+    }
+    printf("Meshes: %zu\n", mScene.getMeshes().size());
+    printf("Instances: %zu\n", mScene.getInstances().size());
+    printf("Materials: %zu\n", mScene.getMaterials().size());
+    fflush(stdout);
+}
+
+void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
+{
+    // We transform the scene into camera space at the beginning, so for
+    // subsequent camera transforms, we need to 'substract' the initial transform.
+    GfMatrix4d absInvViewMatrix = camera.GetTransform();
+    GfMatrix4d relViewMatrix = absInvViewMatrix; //*m_rootMatrix;
+
+    GfVec3d position = relViewMatrix.Transform(GfVec3d(0.0, 0.0, 0.0));
+    GfVec3d forward = relViewMatrix.TransformDir(GfVec3d(0.0, 0.0, -1.0));
+    GfVec3d up = relViewMatrix.TransformDir(GfVec3d(0.0, 1.0, 0.0));
+
+    forward.Normalize();
+    up.Normalize();
+
+    bool isRH = relViewMatrix.IsRightHanded();
+
+    glm::float4x4 xform;
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            xform[i][j] = (float)relViewMatrix[i][j];
+        }
+    }
+
+    GfMatrix4d perspMatrix = camera.GetProjectionMatrix();
+    glm::float4x4 persp;
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            persp[i][j] = (float)perspMatrix[i][j];
+        }
+    }
+
+    nevk::Camera nevkCamera;
+
+    {
+        glm::vec3 scale;
+        glm::quat rotation;
+        glm::vec3 translation;
+        glm::vec3 skew;
+        glm::vec4 perspective;
+        glm::decompose(xform, scale, rotation, translation, skew, perspective);
+        rotation = glm::conjugate(rotation);
+        nevkCamera.position = translation * scale;
+        nevkCamera.mOrientation = rotation;
+    }
+    
+    nevkCamera.matrices.perspective = persp;
+
+    GfQuatd orient = relViewMatrix.ExtractRotationQuat().GetConjugate();
+    const double* im = orient.GetImaginary().data();
+    //nevkCamera.mOrientation = glm::quat((float)orient.GetReal(), (float)im[0], (float)im[1], (float)im[2]);
+
+    //nevkCamera.position = glm::float3(0.0f, 0.0f, 150.0f);
+
+    //TODO: debug:
+    //nevkCamera.setPerspective(45.0f, (float)800 / (float)600, 0.1f, 10000.0f);
+    //nevkCamera.fov = glm::degrees(camera.GetVFov());
+    //nevkCamera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
+
+    mScene.addCamera(nevkCamera);
+}
 
 void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState,
-                                   const TfTokenVector& renderTags)
+                                const TfTokenVector& renderTags)
 {
     TF_UNUSED(renderTags);
-    
+
     HD_TRACE_FUNCTION();
     HF_MALLOC_TAG_FUNCTION();
 
@@ -254,87 +332,33 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     m_lastSceneStateVersion = sceneStateVersion;
     m_lastRenderSettingsVersion = renderSettingsStateVersion;
 
-    //if (!m_geomCache)
-    //{
-    //    if (m_geomCache)
-    //    {
-    //        giDestroyGeomCache(m_geomCache);
-    //    }
 
-    //    const SdfPath& cameraId = camera->GetId();
-    //    printf("Building geom cache for camera %s\n", cameraId.GetText());
-    //    fflush(stdout);
+    // Transform scene into camera space to increase floating point precision.
+    GfMatrix4d viewMatrix = camera->GetTransform().GetInverse();
 
-    //    std::vector<gi_vertex> vertices;
-    //    std::vector<gi_face> faces;
-    //    std::vector<const gi_material*> materials;
+    _BakeMeshes(renderIndex, viewMatrix);
 
-    //    // Transform scene into camera space to increase floating point precision.
-    //    GfMatrix4d viewMatrix = camera->GetTransform().GetInverse();
+    m_rootMatrix = viewMatrix;
 
-    //    _BakeMeshes(renderIndex, viewMatrix, vertices, faces, materials);
+    _ConstructNeVKCamera(*camera);
 
-    //    gi_geom_cache_params geomParams;
-    //    geomParams.face_count = faces.size();
-    //    geomParams.faces = faces.data();
-    //    geomParams.material_count = materials.size();
-    //    geomParams.materials = materials.data();
-    //    geomParams.vertex_count = vertices.size();
-    //    geomParams.vertices = vertices.data();
+    mRender = new nevk::PtRender();
+    mRender->initVulkan();
+    mRender->setScene(&mScene);
 
-    //    m_geomCache = giCreateGeomCache(&geomParams);
-    //    TF_VERIFY(m_geomCache, "Unable to create geom cache");
+    nevk::Scene::RectLightDesc desc{};
+    desc.color = glm::float3(1.0f);
+    desc.height = 0.4f;
+    desc.width = 0.4f;
+    desc.position = glm::float3(0, 1.1, 0.67);
+    desc.orientation = glm::float3(179.68, 29.77, -89.97);
+    desc.intensity = 160.0f;
 
-    //    m_rootMatrix = viewMatrix;
-    //}
+    mScene.createLight(desc);
 
-    //bool rebuildShaderCache = !m_shaderCache || renderSettingsChanged;
+    float* img_data = (float*)renderBuffer->Map();
 
-    //if (m_geomCache && rebuildShaderCache)
-    //{
-    //    if (m_shaderCache)
-    //    {
-    //        giDestroyShaderCache(m_shaderCache);
-    //    }
-
-    //    printf("Building shader cache...\n");
-    //    fflush(stdout);
-
-    //    gi_shader_cache_params shaderParams;
-    //    shaderParams.geom_cache = m_geomCache;
-    //    shaderParams.max_bounces = m_settings.find(HdGatlingSettingsTokens->max_bounces)->second.Get<int>();
-    //    shaderParams.spp = m_settings.find(HdGatlingSettingsTokens->spp)->second.Get<int>();
-    //    shaderParams.rr_bounce_offset = m_settings.find(HdGatlingSettingsTokens->rr_bounce_offset)->second.Get<int>();
-    //    // Workaround for bug https://github.com/PixarAnimationStudios/USD/issues/913
-    //    VtValue rr_inv_min_term_prob = m_settings.find(HdGatlingSettingsTokens->rr_inv_min_term_prob)->second;
-    //    VtValue max_sample_value = m_settings.find(HdGatlingSettingsTokens->max_sample_value)->second;
-    //    shaderParams.rr_inv_min_term_prob = rr_inv_min_term_prob.CastToTypeid(typeid(double)).Get<double>();
-    //    shaderParams.max_sample_value = max_sample_value.CastToTypeid(typeid(double)).Get<double>();
-
-    //    m_shaderCache = giCreateShaderCache(&shaderParams);
-    //    TF_VERIFY(m_shaderCache, "Unable to create shader cache");
-    //}
-
-    //if (!m_geomCache || !m_shaderCache)
-    //{
-    //    return;
-    //}
-
-    //gi_camera giCamera;
-    //_ConstructGiCamera(*camera, giCamera);
-
-    //gi_render_params renderParams;
-    //renderParams.camera = &giCamera;
-    //renderParams.geom_cache = m_geomCache;
-    //renderParams.image_width = renderBuffer->GetWidth();
-    //renderParams.image_height = renderBuffer->GetHeight();
-    //renderParams.shader_cache = m_shaderCache;
-
-    //float* img_data = (float*)renderBuffer->Map();
-
-    //int32_t result = giRender(&renderParams,
-    //                          img_data);
-    //TF_VERIFY(result == GI_OK, "Unable to render scene.");
+    mRender->drawFrame((uint8_t*)img_data);
 
     renderBuffer->Unmap();
     renderBuffer->SetConverged(true);

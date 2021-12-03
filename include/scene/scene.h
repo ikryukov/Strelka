@@ -44,6 +44,7 @@ private:
 
     std::set<uint32_t> mDirtyInstances;
 
+    uint32_t mLigthMeshId = (uint32_t) -1;
 
 public:
     struct Vertex
@@ -233,8 +234,8 @@ public:
             camera.updateAspectRatio((float)width / height);
         }
     }
-    void createLightMesh();
-
+    
+    uint32_t createLightMesh();
 
     glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
     {

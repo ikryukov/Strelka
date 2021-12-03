@@ -43,6 +43,8 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
 
 uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter)
 {
+    assert(meshId < mMeshes.size());
+    assert(materialId < mMaterials.size());
     Instance* inst = nullptr;
     uint32_t instId = -1;
     if (mDelInstances.empty())
@@ -104,7 +106,7 @@ uint32_t packNormals(const glm::float3& normal)
     return packed;
 }
 
-void Scene::createLightMesh()
+uint32_t Scene::createLightMesh()
 {
     std::vector<Scene::Vertex> vb;
     Scene::Vertex v1, v2, v3, v4;
@@ -122,6 +124,8 @@ void Scene::createLightMesh()
 
     uint32_t meshId = createMesh(vb, ib);
     assert(meshId != -1);
+
+    return meshId;
 }
 
 void Scene::updateAnimation(const float time)
@@ -216,7 +220,14 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     light.illum = 2;
     uint32_t matId = addMaterial(light);
 
-    uint32_t instId = createInstance(0, matId, localTransform, desc.position);
+    // TODO: only for rect light
+    // Lazy init light mesh
+    if (mLigthMeshId == -1)
+    {
+        mLigthMeshId = createLightMesh();
+    }
+
+    uint32_t instId = createInstance(mLigthMeshId, matId, localTransform, desc.position);
     assert(instId != -1);
 
     mLightIdToInstanceId[lightId] = instId;

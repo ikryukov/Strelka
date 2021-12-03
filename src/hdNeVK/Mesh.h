@@ -8,7 +8,6 @@ PXR_NAMESPACE_OPEN_SCOPE
 class HdNeVKMesh final : public HdMesh
 {
 public:
-
     HF_MALLOC_TAG_NEW("new HdNeVKMesh");
 
     HdNeVKMesh(const SdfPath& id);

@@ -4,7 +4,9 @@
 #include <pxr/imaging/hd/renderPass.h>
 #include <pxr/pxr.h>
 
-//#include <scene/camera.h>
+#include <scene/camera.h>
+#include <scene/scene.h>
+#include <render/ptrender.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -28,19 +30,14 @@ protected:
                   const TfTokenVector& renderTags) override;
 
 private:
-    //void _BakeMeshInstance(const HdNeVKMesh* mesh,
-    //                       GfMatrix4d transform,
-    //                       uint32_t materialIndex,
-    //                       std::vector<gi_face>& faces,
-    //                       std::vector<gi_vertex>& vertices) const;
+    void _BakeMeshInstance(const HdNeVKMesh* mesh,
+                           GfMatrix4d transform,
+                           uint32_t materialIndex);
 
-    //void _BakeMeshes(HdRenderIndex* renderIndex,
-    //                 GfMatrix4d rootTransform,
-    //                 std::vector<gi_vertex>& vertices,
-    //                 std::vector<gi_face>& faces,
-    //                 std::vector<const gi_material*>& materials) const;
+    void _BakeMeshes(HdRenderIndex* renderIndex,
+                     GfMatrix4d rootTransform);
 
-    //void _ConstructNeVKCamera(const HdNeVKCamera& camera, nevk::Camera& giCamera) const;
+    void _ConstructNeVKCamera(const HdNeVKCamera& camera);
 
 private:
     const HdRenderSettingsMap& m_settings;
@@ -48,6 +45,9 @@ private:
     uint32_t m_lastSceneStateVersion;
     uint32_t m_lastRenderSettingsVersion;
     GfMatrix4d m_rootMatrix;
+    
+    nevk::Scene mScene;
+    nevk::PtRender* mRender;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
