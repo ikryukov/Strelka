@@ -1,6 +1,7 @@
 #include "mdlRuntime.h"
 
 #include <mi/mdl_sdk.h>
+
 #include <vector>
 
 namespace nevk
@@ -31,8 +32,10 @@ bool MdlRuntime::init(const char* paths[], uint32_t numPaths, const char* neuray
     mLogger = mi::base::Handle<MdlLogger>(new MdlLogger());
     config->set_logger(mLogger.get());
 
-    for (uint32_t i = 0; i < numPaths; i++){
-        if (config->add_mdl_path(paths[i]) != 0 || config->add_resource_path(paths[i]) != 0) {
+    for (uint32_t i = 0; i < numPaths; i++)
+    {
+        if (config->add_mdl_path(paths[i]) != 0 || config->add_resource_path(paths[i]) != 0)
+        {
             mLogger->message(mi::base::MESSAGE_SEVERITY_FATAL, "MDL file path not found, translation not possible");
             return false;
         }
@@ -82,4 +85,4 @@ mi::base::Handle<mi::neuraylib::IMdl_backend_api> MdlRuntime::getBackendApi()
 {
     return mBackendApi;
 }
-}
+} // namespace nevk

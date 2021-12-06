@@ -3,19 +3,19 @@
 #include <mi/mdl_sdk.h>
 
 #ifdef MI_PLATFORM_WINDOWS
-#include <mi/base/miwindows.h>
+#    include <mi/base/miwindows.h>
 #else
-#include <dlfcn.h>
+#    include <dlfcn.h>
 #endif
 
-#include <string>
 #include "iostream"
+
+#include <string>
 
 namespace nevk
 {
 MdlNeurayLoader::MdlNeurayLoader()
-    : mDsoHandle(nullptr)
-    , mNeuray(nullptr)
+    : mDsoHandle(nullptr), mNeuray(nullptr)
 {
 }
 
@@ -77,21 +77,22 @@ bool MdlNeurayLoader::loadDso(const char* resourcePath)
     HMODULE handle = LoadLibraryA(dsoFilename.c_str());
     if (!handle)
     {
-      LPTSTR buffer = NULL;
-      LPCTSTR message = TEXT("unknown failure");
-      DWORD error_code = GetLastError();
-      if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                        FORMAT_MESSAGE_IGNORE_INSERTS, 0, error_code,
-                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&buffer, 0, 0))
-      {
-        message = buffer;
-      }
-      fprintf(stderr, "Failed to load library (%u): %s", error_code, message);
-      if (buffer)
-      {
-        LocalFree(buffer);
-      }
-      return false;
+        LPTSTR buffer = NULL;
+        LPCTSTR message = TEXT("unknown failure");
+        DWORD error_code = GetLastError();
+        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                              FORMAT_MESSAGE_IGNORE_INSERTS,
+                          0, error_code,
+                          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&buffer, 0, 0))
+        {
+            message = buffer;
+        }
+        fprintf(stderr, "Failed to load library (%u): %s", error_code, message);
+        if (buffer)
+        {
+            LocalFree(buffer);
+        }
+        return false;
     }
 #else
     void* handle = dlopen(dsoFilename.c_str(), RTLD_LAZY);
@@ -112,21 +113,22 @@ bool MdlNeurayLoader::loadNeuray()
     void* symbol = GetProcAddress(reinterpret_cast<HMODULE>(mDsoHandle), "mi_factory");
     if (!symbol)
     {
-      LPTSTR buffer = NULL;
-      LPCTSTR message = TEXT("unknown failure");
-      DWORD error_code = GetLastError();
-      if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-                        FORMAT_MESSAGE_IGNORE_INSERTS, 0, error_code,
-                        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&buffer, 0, 0))
-      {
-        message = buffer;
-      }
-      fprintf(stderr, "GetProcAddress error (%u): %s", error_code, message);
-      if (buffer)
-      {
-        LocalFree(buffer);
-      }
-      return false;
+        LPTSTR buffer = NULL;
+        LPCTSTR message = TEXT("unknown failure");
+        DWORD error_code = GetLastError();
+        if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+                              FORMAT_MESSAGE_IGNORE_INSERTS,
+                          0, error_code,
+                          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&buffer, 0, 0))
+        {
+            message = buffer;
+        }
+        fprintf(stderr, "GetProcAddress error (%u): %s", error_code, message);
+        if (buffer)
+        {
+            LocalFree(buffer);
+        }
+        return false;
     }
 #else
     void* symbol = dlsym(mDsoHandle, "mi_factory");
@@ -161,27 +163,28 @@ void MdlNeurayLoader::unloadDso()
 #ifdef MI_PLATFORM_WINDOWS
     if (FreeLibrary(reinterpret_cast<HMODULE>(mDsoHandle)))
     {
-      return;
+        return;
     }
     LPTSTR buffer = 0;
     LPCTSTR message = TEXT("unknown failure");
     DWORD error_code = GetLastError();
     if (FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS, 0, error_code,
-        MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &buffer, 0, 0))
+                          FORMAT_MESSAGE_IGNORE_INSERTS,
+                      0, error_code,
+                      MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&buffer, 0, 0))
     {
         message = buffer;
     }
     fprintf(stderr, "Failed to unload library (%u): %s", error_code, message);
     if (buffer)
     {
-      LocalFree(buffer);
+        LocalFree(buffer);
     }
 #else
     if (dlclose(mDsoHandle) != 0)
     {
-        printf( "%s\n", dlerror());
+        printf("%s\n", dlerror());
     }
 #endif
 }
-}
+} // namespace nevk

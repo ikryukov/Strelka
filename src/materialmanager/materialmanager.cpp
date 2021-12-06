@@ -177,8 +177,9 @@ public:
 
     ~Context(){};
 
+    // paths is array of resource pathes + mdl path
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths)
-    { // resource path + mdl path
+    {
         mRuntime = std::make_unique<nevk::MdlRuntime>();
         if (!mRuntime->init(paths, numPaths, mPathso.c_str(), mImagePluginPath.c_str()))
         {
@@ -238,7 +239,6 @@ public:
         assert(module);
         assert(materialName);
 
-        // use smart pointer
         std::unique_ptr<MaterialInstance> material = std::make_unique<MaterialInstance>();
 
         if (strcmp(materialName, "") == 0) // mtlx
@@ -576,21 +576,13 @@ private:
         mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
         mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
 
-        //        if (!isMtlx)
-        {
 #ifdef MI_PLATFORM_WINDOWS
-            mPathso = cwd.string();
-            mImagePluginPath = cwd.string() + "/nv_freeimage.dll";
+        mPathso = cwd.string();
+        mImagePluginPath = cwd.string() + "/nv_freeimage.dll";
 #else
-            mPathso = cwd.string();
-            mImagePluginPath = cwd.string() + "/nv_freeimage.so";
+        mPathso = cwd.string();
+        mImagePluginPath = cwd.string() + "/nv_freeimage.so";
 #endif
-        }
-        //else
-        //{
-        //    mPathso = "/Users/jswark/Desktop/school/NeVKf/external/mdl-sdk/macosx-x86-64/lib";
-        //    mImagePluginPath = cwd.string() + "/nv_freeimage.so";
-        //}
     }
 
     std::unique_ptr<nevk::MdlHlslCodeGen> mCodeGen = nullptr;

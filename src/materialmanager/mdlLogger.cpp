@@ -95,4 +95,4 @@ void MdlLogger::flushContextMessages(mi::neuraylib::IMdl_execution_context* cont
     }
     context->clear_messages();
 }
-}
+} // namespace nevk

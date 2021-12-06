@@ -103,7 +103,7 @@ TEST_CASE("mtlx to mdl code gen test")
 
     MaterialManager* matMngr = new MaterialManager();
     CHECK(matMngr);
-    const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" };
+    const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" }; // todo: configure paths
     bool res = matMngr->addMdlSearchPath(path, 2);
     CHECK(res);
 
@@ -139,7 +139,7 @@ TEST_CASE("mtlx to mdl code gen test")
         uint32_t height = matMngr->getTextureHeight(code, i);
         const char* type = matMngr->getTextureType(code, i);
         std::string name = matMngr->getTextureName(code, i);
-        if (data != NULL) // todo: for bsdf_text it is NULL ?? in COMPILATION_CLASS. in default class there is no bsdf_tex, so it is ok
+        if (data != NULL) // todo: for bsdf_text data is NULL in COMPILATION_CLASS. in default class there is no bsdf_tex
         {
             mTexManager->loadTextureMdl(data, width, height, type, name);
         }

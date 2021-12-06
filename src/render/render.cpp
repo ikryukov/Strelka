@@ -174,10 +174,9 @@ void Render::initPasses()
     ptcode << pt.rdbuf();
 
     mMaterialManager = new MaterialManager();
-    const char* paths[5] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
-                             "./misc/test_data/mdl/Plastic", "./misc/test_data/mdl/Plastic/textures",
+    const char* paths[3] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
                              "./misc/vespa" };
-    bool res = mMaterialManager->addMdlSearchPath(paths, 5);
+    bool res = mMaterialManager->addMdlSearchPath(paths, 3);
     if (!res)
     {
         // failed to load MDL
@@ -222,7 +221,6 @@ void Render::initPasses()
             res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "metallic_factor", &gltfMaterial.metallicFactor);
             assert(res);
             res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
-           // res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
             assert(res);
             res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "emissive_factor", &gltfMaterial.emissiveFactor);
             assert(res);
@@ -234,20 +232,20 @@ void Render::initPasses()
     }
 
     // MTLX
-   /* const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" };
-    bool res = mMaterialManager->addMdlSearchPath(path, 2);
-    assert(res);
-
-    std::string file = "misc/test_data/mtlx/standard_surface_wood_tiled.mtlx";
-    std::unique_ptr<MaterialManager::Module> currModule = mMaterialManager->createMtlxModule(file.c_str());
-    assert(currModule);
-    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "");
-    assert(materialInst1);
-    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(materialInst1.get());
-    assert(materialComp1);
-
-    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
-    materials.push_back(std::move(materialComp1));*/
+    //    const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" };
+    //    bool res = mMaterialManager->addMdlSearchPath(path, 2);
+    //    assert(res);
+    //
+    //    std::string file = "misc/test_data/mtlx/standard_surface_wood_tiled.mtlx";
+    //    std::unique_ptr<MaterialManager::Module> currModule = mMaterialManager->createMtlxModule(file.c_str());
+    //    assert(currModule);
+    //    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "");
+    //    assert(materialInst1);
+    //    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(materialInst1.get());
+    //    assert(materialComp1);
+    //
+    //    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
+    //    materials.push_back(std::move(materialComp1));
     // MTLX
 
     // generate code for PT
@@ -257,23 +255,23 @@ void Render::initPasses()
     std::cout << hlsl << std::endl;
 
     // MTLX
-   /* uint32_t texSize = mMaterialManager->getTextureCount(code);
-    for (uint32_t i = 1; i < texSize; ++i)
-    {
-        const float* data = mMaterialManager->getTextureData(code, i);
-        uint32_t width = mMaterialManager->getTextureWidth(code, i);
-        uint32_t height = mMaterialManager->getTextureHeight(code, i);
-        const char* type = mMaterialManager->getTextureType(code, i);
-        std::string name = mMaterialManager->getTextureName(code, i);
-        if (data != NULL) // todo: for bsdf_text it is NULL ?? in COMPILATION_CLASS. in default class there is no bsdf_tex, so it is ok
-        {
-            mTexManager->loadTextureMdl(data, width, height, type, name);
-        }
-        else
-        {
-            std::cout << "tiled " << name <<std::endl;
-        }
-    }*/
+//    uint32_t texSize = mMaterialManager->getTextureCount(code);
+//    for (uint32_t i = 1; i < texSize; ++i)
+//    {
+//        const float* data = mMaterialManager->getTextureData(code, i);
+//        uint32_t width = mMaterialManager->getTextureWidth(code, i);
+//        uint32_t height = mMaterialManager->getTextureHeight(code, i);
+//        const char* type = mMaterialManager->getTextureType(code, i);
+//        std::string name = mMaterialManager->getTextureName(code, i);
+//        if (data != NULL) // todo: for bsdf_text it is NULL ?? in COMPILATION_CLASS. in default class there is no bsdf_tex, so it is ok
+//        {
+//            mTexManager->loadTextureMdl(data, width, height, type, name);
+//        }
+//        else
+//        {
+//            std::cout << "tiled " << name << std::endl;
+//        }
+//    }
     // MTLX
 
     std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();

@@ -6,13 +6,13 @@
 #include <MaterialXCore/Material.h>
 #include <MaterialXFormat/File.h>
 #include <MaterialXFormat/Util.h>
+#include <MaterialXGenMdl/MdlShaderGenerator.h>
 #include <MaterialXGenShader/DefaultColorManagementSystem.h>
 #include <MaterialXGenShader/GenContext.h>
 #include <MaterialXGenShader/GenOptions.h>
 #include <MaterialXGenShader/Library.h>
 #include <MaterialXGenShader/Shader.h>
 #include <MaterialXGenShader/Util.h>
-#include <MaterialXGenMdl/MdlShaderGenerator.h>
 
 #include <unordered_set>
 
@@ -123,4 +123,4 @@ bool MtlxMdlCodeGen::translate(const char* mtlxSrc, std::string& mdlSrc, std::st
     mdlSrc = pixelStage.getSourceCode();
     return true;
 }
-}
+} // namespace nevk
