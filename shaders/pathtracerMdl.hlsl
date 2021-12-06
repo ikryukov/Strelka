@@ -108,7 +108,7 @@ float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId
 
 float toRad(float a)
 {
-    return a / 2 * PI / 180;
+    return a * PI / 180;
 }
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays
@@ -117,17 +117,57 @@ Ray generateCameraRay(uint2 pixelIndex)
     Ray ray;
     ray.o = ubo.camPos;
 
-    float fov = 90.0f;
+    float fov = 45.0f;
     float imageAspectRatio = ubo.dimension.x / (float) ubo.dimension.y; // assuming width > height
-    float a = tan(toRad(fov));
-    float Px = (( 2 * (pixelIndex.x + 0.5)) / ubo.dimension.x - 1 ) * a * imageAspectRatio;
-    float Py = (1 - ( 2 * (pixelIndex.y + 0.5)) / ubo.dimension.y) * a;
+    float a = tan(toRad(fov/2.0));
 
-    float3 pixelInCameraSpace = float3(1, Py, Px);
-    float4 pixelInWorldSpace =  float4(pixelInCameraSpace, 0);
+    float2 pixelPos = float2(pixelIndex) + 0.5;
+    float2 pixelNDC = pixelPos / ubo.dimension * 2.0 - 1.0; // (pixelIndex + 0.5) / ubo.dimension;
+   // pixelNDC = 2.0 * pixelNDC - 1.0;
 
-    ray.d = pixelInWorldSpace;
-    ray.d = normalize(ray.d);
+    //float4 clip = float4(pixelNDC, -1.0, 1.0);
+   // float4 viewSpace = mul(ubo.clipToView, clip);
+
+    //float4 wpos = mul(ubo.viewToWorld, clip);
+   // wpos /= wpos.w;
+
+    float pixelCameraX = (2.0 * pixelNDC.x - 1.0) * a * imageAspectRatio;
+    float pixelCameraY = (1.0 - 2.0 * pixelNDC.y) * a;
+
+    //float Px = (( 2 * (pixelIndex.x + 0.5)) / ubo.dimension.x - 1) * a * imageAspectRatio;
+    //float Py = (1 - ( 2 * (pixelIndex.y + 0.5)) / ubo.dimension.y) * a;
+
+    float3 pixelInCameraSpace = float3(pixelCameraX, pixelCameraY, -1);
+    float4 pixelInWorldSpace =  mul(ubo.viewToWorld, float4(pixelInCameraSpace, 1));
+    // pixelInWorldSpace /= pixelInWorldSpace.w;
+
+    ray.d.xyz = pixelInWorldSpace.xyz - ray.o.xyz;
+    ray.d.xyz = normalize(ray.d.xyz);
+    ray.o.w = 1e9;
+
+    return ray;
+}
+
+// Generates a primary ray for pixel given in NDC space using pinhole camera
+Ray generateCameraRays(uint2 pixelIndex)
+{
+    float2 pixelPos = float2(pixelIndex) + 0.5;
+    float2 pixelNDC = pixelPos / ubo.dimension * 2.0 - 1.0;
+
+    // Setup the ray
+    Ray ray;
+    ray.o.xyz = ubo.worldToView[3].xyz;
+
+    // Extract the aspect ratio and field of view from the projection matrix
+    float aspect = ubo.viewToClip[1][1] / ubo.viewToClip[0][0];
+    float tanHalfFovY = 1.0f / ubo.viewToClip[1][1];
+
+    // Compute the ray direction for this pixel
+    ray.d.xyz = normalize(
+        (pixelNDC.x * ubo.worldToView[0].xyz * tanHalfFovY * aspect) -
+            (pixelNDC.y * ubo.worldToView[1].xyz * tanHalfFovY) +
+            ubo.worldToView[2].xyz);
+
     ray.o.w = 1e9;
 
     return ray;

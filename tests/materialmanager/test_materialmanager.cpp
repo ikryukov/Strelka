@@ -103,7 +103,7 @@ TEST_CASE("mtlx to mdl code gen test")
 
     MaterialManager* matMngr = new MaterialManager();
     CHECK(matMngr);
-    const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" }; // todo: configure paths
+    const char* path[2] = { "misc/test_data/mdl/", "misc/test_data/mtlx" }; // todo: configure paths
     bool res = matMngr->addMdlSearchPath(path, 2);
     CHECK(res);
 

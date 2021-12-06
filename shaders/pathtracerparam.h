@@ -19,18 +19,20 @@
 
 struct PathTracerParam
 {
-    int2 dimension;
-    float2 invDimension;
-    uint frameNumber;
-    uint maxDepth;
+    float4x4 viewToWorld;
+    float4x4 clipToView;
+    float4x4 viewToClip;
+    float4x4 worldToView;
 
     float4 camPos;
-    float4x4 viewToWorld;
 
+    int2 dimension;
+    float2 invDimension;
+
+    uint frameNumber;
+    uint maxDepth;
     uint debug;
     uint numLights;
-    int pad0;
-    int pad1;
 };
 
 #ifdef __cplusplus

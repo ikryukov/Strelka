@@ -1794,6 +1794,9 @@ void Render::drawFrame()
     pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
     pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
     pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);
+    pathTracerParam.worldToView = cam.matrices.view;//
+    pathTracerParam.clipToView = cam.matrices.invPerspective;
+    pathTracerParam.viewToClip = cam.matrices.perspective;//
     pathTracerParam.numLights = (uint32_t)scene->getLights().size();
     pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
     pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
