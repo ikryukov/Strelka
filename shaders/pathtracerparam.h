@@ -12,6 +12,7 @@
 #    define float4 glm::float4
 #    define float4x4 glm::float4x4
 #    define float3 glm::float3
+#    define float2 glm::float2
 #    define int2 glm::int2
 #    define uint glm::uint
 #endif
@@ -19,11 +20,12 @@
 struct PathTracerParam
 {
     int2 dimension;
+    float2 invDimension;
     uint frameNumber;
     uint maxDepth;
 
     float4 camPos;
-    float4x4 camView;
+    float4x4 viewToWorld;
 
     uint debug;
     uint numLights;
@@ -34,6 +36,7 @@ struct PathTracerParam
 #ifdef __cplusplus
 #    undef float4x4
 #    undef float4
+#    undef float2
 #    undef float3
 #    undef int2
 #endif

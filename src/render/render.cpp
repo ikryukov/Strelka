@@ -1795,8 +1795,10 @@ void Render::drawFrame()
     pathTracerParam.maxDepth = mRenderConfig.maxDepth;
     pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
     pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
-    pathTracerParam.camView = glm::float4x4(cam.getView());
+    pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);
     pathTracerParam.numLights = (uint32_t)scene->getLights().size();
+    pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
+    pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
     mPathTracer->setParams(pathTracerParam);
 
     ReflectionParam reflectionParam{};

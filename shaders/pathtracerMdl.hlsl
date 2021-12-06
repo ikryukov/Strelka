@@ -106,42 +106,32 @@ float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId
     return NewNormal;
 }
 
-Ray generateCameraRay(uint2 pixelIndex)
+float toRad(float a)
 {
-    Ray rayGen;
-    rayGen.o = ubo.camPos;
-    rayGen.o.w = 1e9;
-
-//    //https://raytracing.github.io/books/RayTracingInOneWeekend.html#rays,asimplecamera,andbackground/therayclass
-    // camera params
-    float imageAspectRatio = ubo.dimension.x / ubo.dimension.y; // assuming width > height
-    float viewport_height = 1.0;
-    float viewport_width = imageAspectRatio * viewport_height;
-    float fov = 45.0f;
-    float focal_length = 1.0f / tan(fov / 2.0f);
-
-    float3 horizontal = float3(viewport_width, 0, 0);
-    float3 vertical = float3(0, -viewport_height, 0);
-    float3 lower_left_corner = rayGen.o.xyz - horizontal/2 - vertical/2 - float3(0, 0, focal_length);
-
-    float u = float(pixelIndex.x) / (ubo.dimension.x - 1);
-    float v = float(pixelIndex.y) / (ubo.dimension.y - 1);
-
-
-    rayGen.d = mul(ubo.camView, normalize(float4(lower_left_corner + u * horizontal + v * vertical - rayGen.o.xyz, 0.0)));
-
-    // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays
-//    float fov = 45.0f;
-//    float imageAspectRatio = ubo.dimension.x / ubo.dimension.y; // assuming width > height
-//    float Px = (2 * ((pixelIndex.x + 0.5) / ubo.dimension.x) - 1) * tan(fov / 2 * PI / 180) * imageAspectRatio;
-//    float Py = (1 - 2 * ((pixelIndex.y + 0.5) / ubo.dimension.y) * tan(fov / 2 * PI / 180));
-//
-//    rayGen.o = ubo.camPos;
-//    rayGen.d = float4(normalize(float3(Px, Py, -1) - rayGen.o.xyz), 0); // note that this just equal to Vec3f(Px, Py, -1);
-//
-   return rayGen;
+    return a / 2 * PI / 180;
 }
 
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays
+Ray generateCameraRay(uint2 pixelIndex)
+{
+    Ray ray;
+    ray.o = ubo.camPos;
+
+    float fov = 90.0f;
+    float imageAspectRatio = ubo.dimension.x / (float) ubo.dimension.y; // assuming width > height
+    float a = tan(toRad(fov));
+    float Px = (( 2 * (pixelIndex.x + 0.5)) / ubo.dimension.x - 1 ) * a * imageAspectRatio;
+    float Py = (1 - ( 2 * (pixelIndex.y + 0.5)) / ubo.dimension.y) * a;
+
+    float3 pixelInCameraSpace = float3(1, Py, Px);
+    float4 pixelInWorldSpace =  float4(pixelInCameraSpace, 0);
+
+    ray.d = pixelInWorldSpace;
+    ray.d = normalize(ray.d);
+    ray.o.w = 1e9;
+
+    return ray;
+}
 
 float3 pathTrace1(uint2 pixelIndex)
 {
@@ -164,7 +154,7 @@ float3 pathTrace1(uint2 pixelIndex)
 
     float3 throughput = 1;
 
-    int depth = 1;  // ? 0
+    int depth = 0;
     int maxDepth = ubo.maxDepth;
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
     float4 rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
@@ -285,7 +275,6 @@ float3 pathTrace1(uint2 pixelIndex)
         else
         {
             // miss - add background color and exit
-            // finalColor += throughput * float3(0.f);
             finalColor += (throughput + 1e-5) * cubeMap.Sample(cubeMapSampler, ray.d.xyz).rgb;
 
             //break;
