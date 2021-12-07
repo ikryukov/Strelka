@@ -111,39 +111,21 @@ float toRad(float a)
     return a * PI / 180;
 }
 
-// https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-generating-camera-rays/generating-camera-rays
+// Matrices version
 Ray generateCameraRay(uint2 pixelIndex)
 {
-    Ray ray;
+    float2 pixelPos = float2(pixelIndex) + 0.5f;
+    float2 pixelNDC = (pixelPos / ubo.dimension) * 2.0f - 1.0f;
+
+    float4 clip = float4(pixelNDC, 1.0, 1.0);
+    float4 viewSpace = mul(ubo.clipToView, clip);
+
+    float4 wpos = mul(ubo.viewToWorld, float4(viewSpace.xyz, 0.0f));
+
+    Ray ray = (Ray) 0;
     ray.o = ubo.camPos;
-
-    float fov = 45.0f;
-    float imageAspectRatio = ubo.dimension.x / (float) ubo.dimension.y; // assuming width > height
-    float a = tan(toRad(fov/2.0));
-
-    float2 pixelPos = float2(pixelIndex) + 0.5;
-    float2 pixelNDC = pixelPos / ubo.dimension * 2.0 - 1.0; // (pixelIndex + 0.5) / ubo.dimension;
-   // pixelNDC = 2.0 * pixelNDC - 1.0;
-
-    //float4 clip = float4(pixelNDC, -1.0, 1.0);
-   // float4 viewSpace = mul(ubo.clipToView, clip);
-
-    //float4 wpos = mul(ubo.viewToWorld, clip);
-   // wpos /= wpos.w;
-
-    float pixelCameraX = (2.0 * pixelNDC.x - 1.0) * a * imageAspectRatio;
-    float pixelCameraY = (1.0 - 2.0 * pixelNDC.y) * a;
-
-    //float Px = (( 2 * (pixelIndex.x + 0.5)) / ubo.dimension.x - 1) * a * imageAspectRatio;
-    //float Py = (1 - ( 2 * (pixelIndex.y + 0.5)) / ubo.dimension.y) * a;
-
-    float3 pixelInCameraSpace = float3(pixelCameraX, pixelCameraY, -1);
-    float4 pixelInWorldSpace =  mul(ubo.viewToWorld, float4(pixelInCameraSpace, 1));
-    // pixelInWorldSpace /= pixelInWorldSpace.w;
-
-    ray.d.xyz = pixelInWorldSpace.xyz - ray.o.xyz;
-    ray.d.xyz = normalize(ray.d.xyz);
     ray.o.w = 1e9;
+    ray.d.xyz = normalize(wpos.xyz);
 
     return ray;
 }
@@ -175,33 +157,25 @@ Ray generateCameraRays(uint2 pixelIndex)
 
 float3 pathTrace1(uint2 pixelIndex)
 {
-    float3 finalColor = 0.0;
-    float3 toLight;
-    float lightPdf = 0;
-
-    Ray ray = generateCameraRay(pixelIndex);
-
-    Hit hit;
-    hit.t = 0.0;
-
-    InstanceConstants instConst = instanceConstants[gbInstId[pixelIndex]];
-
     Accel accel;
     accel.bvhNodes = bvhNodes;
     accel.instanceConstants = instanceConstants;
     accel.vb = vb;
     accel.ib = ib;
 
-    float3 throughput = 1;
+    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
+
+    float3 finalColor = float3(0.0f);
+    float3 throughput = float3(1.0f);
 
     int depth = 0;
-    int maxDepth = ubo.maxDepth;
-    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-    float4 rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
-    Shading_state_material mdlState;
+    const int maxDepth = ubo.maxDepth;
 
     while (depth < maxDepth)
     {
+        Ray ray = generateCameraRay(pixelIndex);
+        Hit hit;
+        hit.t = 0.0;
         if (closestHit(accel, ray, hit))
         {
             InstanceConstants instConst = accel.instanceConstants[hit.instId];
@@ -248,6 +222,7 @@ float3 pathTrace1(uint2 pixelIndex)
                 MdlMaterial currMdlMaterial = mdlMaterials[instConst.materialId];
 
                 // setup MDL state
+                Shading_state_material mdlState;
                 mdlState.normal = world_normal;
                 mdlState.geom_normal = geom_normal;
                 mdlState.position = ray.o.xyz + ray.d.xyz * hit.t; // hit position
@@ -265,6 +240,8 @@ float3 pathTrace1(uint2 pixelIndex)
                 int scatteringFunctionIndex = currMdlMaterial.functionId;
                 mdl_bsdf_scattering_init(scatteringFunctionIndex, mdlState);
 
+                float3 toLight; //return value for sampleLights()
+                float lightPdf = 0.0f; //return value for sampleLights()
                 float3 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
 
                 Bsdf_evaluate_data evalData = (Bsdf_evaluate_data) 0;
@@ -283,7 +260,7 @@ float3 pathTrace1(uint2 pixelIndex)
                     finalColor += w * evalData.bsdf_glossy;
                 }
 
-                rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
+                float4 rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
 
                 Bsdf_sample_data sampleData = (Bsdf_sample_data) 0;
                 sampleData.ior1 = 1.5;
