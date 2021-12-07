@@ -171,9 +171,10 @@ float3 pathTrace1(uint2 pixelIndex)
     int depth = 0;
     const int maxDepth = ubo.maxDepth;
 
+    Ray ray = generateCameraRay(pixelIndex);
+
     while (depth < maxDepth)
     {
-        Ray ray = generateCameraRay(pixelIndex);
         Hit hit;
         hit.t = 0.0;
         if (closestHit(accel, ray, hit))
@@ -230,8 +231,8 @@ float3 pathTrace1(uint2 pixelIndex)
                 mdlState.tangent_u[0] = world_tangent;
                 mdlState.tangent_v[0] = world_binormal;
                 mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
-                mdlState.world_to_object = instConst.objectToWorld;
-                mdlState.object_to_world = instConst.worldToObject; // TODO: replace on precalc
+                mdlState.world_to_object = instConst.worldToObject;
+                mdlState.object_to_world = instConst.objectToWorld; // TODO: replace on precalc
                 mdlState.object_id = 0;
                 mdlState.meters_per_scene_unit = 1.0f;
                 mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
