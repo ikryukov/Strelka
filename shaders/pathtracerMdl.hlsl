@@ -208,7 +208,7 @@ float3 pathTrace1(uint2 pixelIndex)
                 float3 t2 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[i2].tangent));
 
                 const float2 bcoords = hit.bary;
-
+                float3 world_position = interpolateAttrib(p0, p1, p2, bcoords);
                 float3 world_normal = normalize(interpolateAttrib(n0, n1, n2, bcoords));
                 float3 world_tangent = normalize(interpolateAttrib(t0, t1, t2, bcoords));
                 float3 world_binormal = cross(world_normal, world_tangent);
@@ -225,7 +225,7 @@ float3 pathTrace1(uint2 pixelIndex)
                 Shading_state_material mdlState;
                 mdlState.normal = world_normal;
                 mdlState.geom_normal = geom_normal;
-                mdlState.position = ray.o.xyz + ray.d.xyz * hit.t; // hit position
+                mdlState.position = world_position; // hit position
                 mdlState.animation_time = 0.0f;
                 mdlState.tangent_u[0] = world_tangent;
                 mdlState.tangent_v[0] = world_binormal;
