@@ -17,9 +17,9 @@ namespace nevk
 // GPU structure
 struct BVHNode
 {
-    glm::float3 minBounds;
+    glm::float3 minBounds = {0.0f, 0.0f, 0.0f};
     int instId = (int)0xFFFFFFFF;
-    glm::float3 maxBounds;
+    glm::float3 maxBounds = {0.0f, 0.0f, 0.0f};
     int nodeOffset = (int)0xFFFFFFFF;
 };
 

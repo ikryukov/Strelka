@@ -104,6 +104,7 @@ public:
     int loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name);
     int loadTextureMdl(const void* pixels, const uint32_t width, const uint32_t height, const char* format, const std::string& name);
     int findTexture(const std::string& name);
+    void savePNG(int32_t width, int32_t height, uint8_t* colorData);
 
     void createTextureSampler(TextureSamplerDesc& texSamplerData);
 

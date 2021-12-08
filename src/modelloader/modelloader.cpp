@@ -3,7 +3,6 @@
 #include "camera.h"
 
 #define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 #define TINYGLTF_IMPLEMENTATION

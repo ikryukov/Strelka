@@ -33,6 +33,10 @@ struct PathTracerParam
     uint maxDepth;
     uint debug;
     uint numLights;
+
+    uint len;
+    int pad0;
+    int2 pad1;
 };
 
 #ifdef __cplusplus

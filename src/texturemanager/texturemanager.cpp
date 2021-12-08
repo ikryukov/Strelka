@@ -1,8 +1,15 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 
 #include <texturemanager.h>
+
+void nevk::TextureManager::savePNG(int32_t width, int32_t height, uint8_t* colorData)
+{
+    stbi_write_png("result.png", width, height, 3, colorData, 3 * width);
+}
 
 int nevk::TextureManager::loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name)
 {
