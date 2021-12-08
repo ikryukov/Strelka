@@ -121,6 +121,7 @@ public:
     void cleanup();
 
 private:
+    int32_t lenBVH;
     GLFWwindow* mWindow;
 
     VkInstance mInstance;

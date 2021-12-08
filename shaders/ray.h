@@ -29,3 +29,11 @@ bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax, inout float
     t = t0;
     return t1 >= t0;
 }
+
+#ifdef __cplusplus
+#    undef float4
+#    undef float3
+#    undef uint
+#    undef max
+#    undef min
+#endif

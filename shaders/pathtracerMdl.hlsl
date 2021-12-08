@@ -123,7 +123,7 @@ Ray generateCameraRay(uint2 pixelIndex)
     float4 wpos = mul(ubo.viewToWorld, float4(viewSpace.xyz, 0.0f));
 
     Ray ray = (Ray) 0;
-    ray.o = ubo.camPos;
+    ray.o = ubo.camPos; // mul to view to world
     ray.o.w = 1e9;
     ray.d.xyz = normalize(wpos.xyz);
 
@@ -221,6 +221,8 @@ float3 pathTrace1(uint2 pixelIndex)
                 float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
 
                 MdlMaterial currMdlMaterial = mdlMaterials[instConst.materialId];
+
+                    return world_normal;
 
                 // setup MDL state
                 Shading_state_material mdlState;
@@ -429,6 +431,7 @@ float3 pathTrace(uint2 pixelIndex)
     int maxDepth = ubo.maxDepth;
     while (depth < maxDepth)
     {
+        hit.t = 0.0;
         if (closestHit(accel, ray, hit))
         {
             instConst = accel.instanceConstants[hit.instId];
@@ -482,8 +485,8 @@ float3 pathTrace(uint2 pixelIndex)
                 mdlState.tangent_u[0] = world_tangent;
                 mdlState.tangent_v[0] = world_binormal;
                 mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
-                mdlState.world_to_object = instConst.objectToWorld;
-                mdlState.object_to_world = instConst.worldToObject; // TODO: replace on precalc
+                mdlState.world_to_object = instConst.worldToObject;
+                mdlState.object_to_world = instConst.objectToWorld; // TODO: replace on precalc
                 mdlState.object_id = 0;
                 mdlState.meters_per_scene_unit = 1.0f;
                 mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
@@ -564,7 +567,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 
     float3 color = 0.f;
 
-   color = pathTrace1(pixelIndex);
+    color = pathTrace1(pixelIndex);
 
     output[pixelIndex] = float4(color, 1.0);
 }

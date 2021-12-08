@@ -1,10 +1,19 @@
 #pragma once
+#include "instanceconstants.h"
 #include "random.h"
 #include "ray.h"
-#include "instanceconstants.h"
 
 #define INVALID_INDEX 0xFFFFFFFF
 #define PI 3.1415926535897
+
+#ifdef __cplusplus
+#define float4 glm::float4
+#define float3 glm::float3
+#define float2 glm::float2
+#define min glm::min
+#define max glm::max
+#define inout
+#endif
 
 struct Vertex
 {
@@ -44,10 +53,10 @@ bool RayTriangleIntersect(
     //    return false;
     //}
 
-     if (abs(det) < 1e-6)
-     {
-         return false;
-     }
+    if (abs(det) < 1e-6)
+    {
+        return false;
+    }
 
     float invDet = 1.0 / det;
 
@@ -60,14 +69,14 @@ bool RayTriangleIntersect(
 
     float3 qvec = cross(tvec, e0);
     float v = dot(dir, qvec) * invDet;
-    if (v < 0.0 || u + v > 1.0)
+    if (v < 0.0 || (u + v) > 1.0)
     {
         return false;
     }
 
     t = dot(e1, qvec) * invDet;
 
-    if (t < 0.0)
+    if (t < 1e-6)
     {
         return false;
     }
@@ -122,9 +131,54 @@ BVHTriangle getTriangle(uint instanceId, uint primitiveId, in Accel accel)
     return res;
 }
 
+bool closestHit1(in Accel accel, in Ray ray, inout Hit hit, int len)
+{
+    const float3 invdir = float3(1.0 / ray.d.x, 1.0 / ray.d.y, 1.0 / ray.d.z);
+    int dirIsNeg[3] = { invdir.x < 0, invdir.y < 0, invdir.z < 0 };
+
+    int toVisitOffset = 0, currentNodeIndex = 0;
+    int nodesToVisit[64];
+
+    uint32_t minHit = 1e9;
+    bool isFound = false;
+
+    uint32_t nodeIndex = 0;
+    while (nodeIndex != INVALID_INDEX && nodeIndex < len)
+    {
+        BVHNode node = accel.bvhNodes[NonUniformResourceIndex(nodeIndex)];
+        const uint32_t instanceIndex = node.instId;
+        float boxT = 1e9f;
+        hit.t = 0.0;
+        if (instanceIndex != INVALID_INDEX) // leaf
+        {
+            const uint32_t primitiveIndex = asuint(node.minBounds.x); // triangle index
+
+            BVHTriangle triangle = getTriangle(instanceIndex, primitiveIndex, accel);
+
+            float2 bary = float2(0.0);
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, triangle.v0, triangle.e0, triangle.e1, hit.t, bary);
+            if (isIntersected && (hit.t < ray.o.w) && (hit.t < minHit))
+            {
+                minHit = hit.t;
+                hit.bary = bary;
+                hit.instId = instanceIndex;
+                hit.primId = primitiveIndex;
+                isFound = true;
+            }
+        }
+        nodeIndex++;
+    }
+
+    return isFound;
+}
+
 bool closestHit(in Accel accel, in Ray ray, inout Hit hit)
 {
-    const float3 invdir = 1.0 / ray.d.xyz;
+    const float3 invdir = float3(1.0 / ray.d.x, 1.0 / ray.d.y, 1.0 / ray.d.z);
+    int dirIsNeg[3] = { invdir.x < 0, invdir.y < 0, invdir.z < 0 };
+
+    int toVisitOffset = 0, currentNodeIndex = 0;
+    int nodesToVisit[64];
 
     uint32_t minHit = 1e9;
     bool isFound = false;
@@ -135,13 +189,14 @@ bool closestHit(in Accel accel, in Ray ray, inout Hit hit)
         BVHNode node = accel.bvhNodes[NonUniformResourceIndex(nodeIndex)];
         const uint32_t instanceIndex = node.instId;
         float boxT = 1e9f;
+        hit.t = 0.0;
         if (instanceIndex != INVALID_INDEX) // leaf
         {
             const uint32_t primitiveIndex = asuint(node.minBounds.x); // triangle index
 
             BVHTriangle triangle = getTriangle(instanceIndex, primitiveIndex, accel);
 
-            float2 bary;
+            float2 bary = float2(0.0);
             bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, triangle.v0, triangle.e0, triangle.e1, hit.t, bary);
             if (isIntersected && (hit.t < ray.o.w) && (hit.t < minHit))
             {
@@ -151,6 +206,8 @@ bool closestHit(in Accel accel, in Ray ray, inout Hit hit)
                 hit.primId = primitiveIndex;
                 isFound = true;
             }
+            nodeIndex = node.nodeOffset;
+            continue;
         }
         else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
         {
@@ -162,6 +219,7 @@ bool closestHit(in Accel accel, in Ray ray, inout Hit hit)
             ++nodeIndex;
             continue;
         }
+
         nodeIndex = node.nodeOffset;
     }
 
@@ -206,3 +264,12 @@ bool anyHit(in Accel accel, in Ray ray, inout Hit hit)
     }
     return false;
 }
+
+#ifdef __cplusplus
+#    undef float4
+#    undef float3
+#    undef float2
+#    undef uint
+#    undef max
+#    undef min
+#endif
