@@ -1957,7 +1957,7 @@ void Render::drawFrame()
         if (!lights.empty())
         {
             size_t bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
-            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
+            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), lights.size() * sizeof(nevk::Scene::Light));
 
             VkBufferCopy copyRegion{};
             copyRegion.size = bufferSize;
