@@ -21,6 +21,10 @@ struct BVHNode
     int instId = (int)0xFFFFFFFF;
     glm::float3 maxBounds = {0.0f, 0.0f, 0.0f};
     int nodeOffset = (int)0xFFFFFFFF;
+    int primitiveId = (int)0xFFFFFFFF;
+    int pad0;
+    int pad1;
+    int pad2;
 };
 
 struct BVH

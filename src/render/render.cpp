@@ -1171,8 +1171,8 @@ struct Hit
 {
     glm::float2 bary;
     float t;
-    uint instId;
-    uint primId;
+    uint32_t instId;
+    uint32_t primId;
 };
 
 struct BVHTriangle
@@ -1194,7 +1194,7 @@ void Render::createBvhBuffer(nevk::Scene& scene)
     uint32_t currInstId = 0;
     for (const Instance& currInstance : instances)
     {
-        if (currInstId == 0)
+        //if (currInstId == 0)
         {
             const uint32_t currentMeshId = currInstance.mMeshId;
             const Mesh& mesh = meshes[currentMeshId];
@@ -1261,19 +1261,22 @@ void Render::createBvhBuffer(nevk::Scene& scene)
             }
         }
 
-        int32_t image_width = 400;
-        int32_t image_height = 300;
+        int32_t image_width = 200;
+        int32_t image_height = 150;
         std::vector<uint8_t> colorData;
         colorData.resize(image_width * image_height * 3);
         int index = 0;
 
         Camera tmpCam;
-        tmpCam.setPerspective(45, (float)image_width/ image_height, 0.1f, 1000.f);
+        tmpCam = mScene->getCamera(0);
+
+        tmpCam.updateViewMatrix();
+        tmpCam.setPerspective(45, (float)image_width / image_height, 0.1f, 1000.f);
 
         std::vector<BVHNode>& nodesBvh = sceneBvh.nodes;
-        for (int32_t y = image_height - 1 ; y >= 0; --y)
+        for (int32_t y = 0; y < image_height; ++y)
         {
-            for (uint32_t x = 0; x < image_width; ++x)
+            for (int32_t x = 0; x < image_width; ++x)
             {
                 glm::float3 color = glm::float3(0.0);
 
@@ -1303,9 +1306,9 @@ void Render::createBvhBuffer(nevk::Scene& scene)
 
                     const uint32_t currentMeshId = instConst.mMeshId;
                     int offset = meshes[currentMeshId].mIndex;
-                    uint i0 = mScene->mIndices[offset + primitiveId * 3 + 0];
-                    uint i1 = mScene->mIndices[offset + primitiveId * 3 + 1];
-                    uint i2 = mScene->mIndices[offset + primitiveId * 3 + 2];
+                    uint32_t i0 = mScene->mIndices[offset + primitiveId * 3 + 0];
+                    uint32_t i1 = mScene->mIndices[offset + primitiveId * 3 + 1];
+                    uint32_t i2 = mScene->mIndices[offset + primitiveId * 3 + 2];
 
                     // read and transform vertices, calculate edges
                     glm::float4x4 objectToWorld = instConst.transform;
@@ -1322,6 +1325,20 @@ void Render::createBvhBuffer(nevk::Scene& scene)
                     res.e1 = e1;
 
                     return res;
+                };
+
+                auto interpolateAttrib = [](glm::float3 attr1, glm::float3 attr2, glm::float3 attr3, glm::float2 bary) {
+                    return attr1 * (1 - bary.x - bary.y) + attr2 * bary.x + attr3 * bary.y;
+                };
+
+                //  valid range of coordinates [-1; 1]
+                auto unpackNormal = [](uint32_t val) {
+                    glm::float3 normal;
+                    normal.z = ((val & 0xfff00000) >> 20) / 511.99999f * 2.0f - 1.0f;
+                    normal.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 2.0f - 1.0f;
+                    normal.x = (val & 0x000003ff) / 511.99999f * 2.0f - 1.0f;
+
+                    return normal;
                 };
 
                 auto rayTriangleIntersectCPU = [&](const glm::float3 orig,
@@ -1346,7 +1363,7 @@ void Render::createBvhBuffer(nevk::Scene& scene)
                         return false;
                     }
 
-                    float invDet = 1.0 / det;
+                    float invDet = 1.0f / det;
 
                     glm::float3 tvec = orig - v0;
                     float u = glm::dot(tvec, pvec) * invDet;
@@ -1378,7 +1395,7 @@ void Render::createBvhBuffer(nevk::Scene& scene)
                 auto closestHit = [&](std::vector<BVHNode>& bvhNodes, Ray& ray, Hit& hit) {
                     const glm::float3 invdir = glm::float3(1.0 / ray.d.x, 1.0 / ray.d.y, 1.0 / ray.d.z);
 
-                    uint32_t minHit = 1e9;
+                    float minHit = 1e9f;
                     bool isFound = false;
 
                     uint32_t nodeIndex = 0;
@@ -1437,8 +1454,33 @@ void Render::createBvhBuffer(nevk::Scene& scene)
                 // auto closestHit = [&](std::vector<BVHNode>& bvhNodes, Ray& ray, Hit& hit) {
                 Hit hit;
                 bool f = closestHit(nodesBvh, ray, hit);
-                if (f){
-                    color = glm::float3(1.0f);
+                if (f)
+                {
+                    InstanceConstants instConst = {};
+
+                    const uint32_t currentMeshId = mScene->mInstances[hit.instId].mMeshId;
+
+                    instConst.objectToWorld = mScene->mInstances[hit.instId].transform;
+                    instConst.indexOffset = mScene->mMeshes[currentMeshId].mIndex;
+                    instConst.normalMatrix = glm::inverse(glm::transpose(instConst.objectToWorld));
+
+                    uint32_t i0 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 0];
+                    uint32_t i1 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 1];
+                    uint32_t i2 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 2];
+
+                    glm::float3 p0 = glm::float3(instConst.objectToWorld * glm::float4(mScene->mVertices[i0].pos, 1.0f));
+                    glm::float3 p1 = glm::float3(instConst.objectToWorld * glm::float4(mScene->mVertices[i1].pos, 1.0f));
+                    glm::float3 p2 = glm::float3(instConst.objectToWorld * glm::float4(mScene->mVertices[i2].pos, 1.0f));
+
+                    glm::float3 geom_normal = normalize(cross(p1 - p0, p2 - p0));
+
+                    glm::float3 n0 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i0].normal));
+                    glm::float3 n1 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i1].normal));
+                    glm::float3 n2 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i2].normal));
+
+                    glm::float3 world_normal = normalize(interpolateAttrib(n0, n1, n2, hit.bary));
+
+                    color = world_normal;
                 }
                 else
                 {
@@ -1452,15 +1494,15 @@ void Render::createBvhBuffer(nevk::Scene& scene)
                 int ir = static_cast<int>(256 * glm::clamp(r, 0.0f, 0.999f)), ig = static_cast<int>(256 * glm::clamp(g, 0.0f, 0.999f)),
                     ib = static_cast<int>(256 * glm::clamp(b, 0.0f, 0.999f));
 
-                colorData[index++] = ir;
-                colorData[index++] = ig;
-                colorData[index++] = ib;
+                colorData[index++] = (uint8_t) ir;
+                colorData[index++] = (uint8_t) ig;
+                colorData[index++] = (uint8_t) ib;
             }
         }
         mTexManager->savePNG(image_width, image_height, (uint8_t*)colorData.data());
 
         VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.nodes.size();
-        lenBVH = sceneBvh.nodes.size();
+        lenBVH = (int32_t) sceneBvh.nodes.size();
         if (bufferSize == 0)
         {
             return;
@@ -2160,91 +2202,91 @@ void Render::drawFrame()
 
     vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-    // upload data
-    {
-        const std::vector<Mesh>& meshes = scene->getMeshes();
-        const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
-        mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
-        Buffer* stagingBuffer = mUploadBuffer[frameIndex];
-        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-        size_t stagingBufferOffset = 0;
-        bool needBarrier = false;
-        if (!sceneInstances.empty())
-        {
-            std::vector<InstanceConstants> instanceConsts;
-            instanceConsts.resize(sceneInstances.size());
-            for (uint32_t i = 0; i < sceneInstances.size(); ++i)
-            {
-                instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
-                instanceConsts[i].objectToWorld = sceneInstances[i].transform;
-                instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
-                instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
+    //// upload data
+    //{
+    //    const std::vector<Mesh>& meshes = scene->getMeshes();
+    //    const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
+    //    mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
+    //    Buffer* stagingBuffer = mUploadBuffer[frameIndex];
+    //    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    //    size_t stagingBufferOffset = 0;
+    //    bool needBarrier = false;
+    //    if (!sceneInstances.empty())
+    //    {
+    //        std::vector<InstanceConstants> instanceConsts;
+    //        instanceConsts.resize(sceneInstances.size());
+    //        for (uint32_t i = 0; i < sceneInstances.size(); ++i)
+    //        {
+    //            instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
+    //            instanceConsts[i].objectToWorld = sceneInstances[i].transform;
+    //            instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
+    //            instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
 
-                const uint32_t currentMeshId = sceneInstances[i].mMeshId;
-                instanceConsts[i].indexOffset = meshes[currentMeshId].mIndex;
-                instanceConsts[i].indexCount = meshes[currentMeshId].mCount;
-            }
-            size_t bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
-            memcpy(stagingBufferMemory, instanceConsts.data(), bufferSize);
+    //            const uint32_t currentMeshId = sceneInstances[i].mMeshId;
+    //            instanceConsts[i].indexOffset = meshes[currentMeshId].mIndex;
+    //            instanceConsts[i].indexCount = meshes[currentMeshId].mCount;
+    //        }
+    //        size_t bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
+    //        memcpy(stagingBufferMemory, instanceConsts.data(), bufferSize);
 
-            VkBufferCopy copyRegion{};
-            copyRegion.size = bufferSize;
-            copyRegion.dstOffset = 0;
-            copyRegion.srcOffset = stagingBufferOffset;
-            vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
+    //        VkBufferCopy copyRegion{};
+    //        copyRegion.size = bufferSize;
+    //        copyRegion.dstOffset = 0;
+    //        copyRegion.srcOffset = stagingBufferOffset;
+    //        vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
 
-            stagingBufferOffset += bufferSize;
-            needBarrier = true;
-        }
-        const std::vector<nevk::Scene::Light>& lights = scene->getLights();
-        if (!lights.empty())
-        {
-            size_t bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
-            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), lights.size() * sizeof(nevk::Scene::Light));
+    //        stagingBufferOffset += bufferSize;
+    //        needBarrier = true;
+    //    }
+    //    const std::vector<nevk::Scene::Light>& lights = scene->getLights();
+    //    if (!lights.empty())
+    //    {
+    //        size_t bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
+    //        memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), lights.size() * sizeof(nevk::Scene::Light));
 
-            VkBufferCopy copyRegion{};
-            copyRegion.size = bufferSize;
-            copyRegion.dstOffset = 0;
-            copyRegion.srcOffset = stagingBufferOffset;
-            vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), 1, &copyRegion);
+    //        VkBufferCopy copyRegion{};
+    //        copyRegion.size = bufferSize;
+    //        copyRegion.dstOffset = 0;
+    //        copyRegion.srcOffset = stagingBufferOffset;
+    //        vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), 1, &copyRegion);
 
-            stagingBufferOffset += bufferSize;
-            needBarrier = true;
-        }
+    //        stagingBufferOffset += bufferSize;
+    //        needBarrier = true;
+    //    }
 
-        const std::vector<Material>& materials = scene->getMaterials();
-        if (!materials.empty())
-        {
-            size_t bufferSize = sizeof(Material) * MAX_LIGHT_COUNT;
-            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), materials.data(), materials.size() * sizeof(Material));
+    //    const std::vector<Material>& materials = scene->getMaterials();
+    //    if (!materials.empty())
+    //    {
+    //        size_t bufferSize = sizeof(Material) * MAX_LIGHT_COUNT;
+    //        memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), materials.data(), materials.size() * sizeof(Material));
 
-            VkBufferCopy copyRegion{};
-            copyRegion.size = bufferSize;
-            copyRegion.dstOffset = 0;
-            copyRegion.srcOffset = stagingBufferOffset;
-            vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer), 1, &copyRegion);
+    //        VkBufferCopy copyRegion{};
+    //        copyRegion.size = bufferSize;
+    //        copyRegion.dstOffset = 0;
+    //        copyRegion.srcOffset = stagingBufferOffset;
+    //        vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer), 1, &copyRegion);
 
-            stagingBufferOffset += bufferSize;
-            needBarrier = true;
-        }
+    //        stagingBufferOffset += bufferSize;
+    //        needBarrier = true;
+    //    }
 
 
-        if (needBarrier)
-        {
-            VkMemoryBarrier memoryBarrier = {};
-            memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-            memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+    //    if (needBarrier)
+    //    {
+    //        VkMemoryBarrier memoryBarrier = {};
+    //        memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    //        memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+    //        memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 
-            vkCmdPipelineBarrier(cmd,
-                                 VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
-                                 VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, // dstStageMask
-                                 0,
-                                 1, // memoryBarrierCount
-                                 &memoryBarrier, // pMemoryBarriers
-                                 0, nullptr, 0, nullptr);
-        }
-    }
+    //        vkCmdPipelineBarrier(cmd,
+    //                             VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
+    //                             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, // dstStageMask
+    //                             0,
+    //                             1, // memoryBarrierCount
+    //                             &memoryBarrier, // pMemoryBarriers
+    //                             0, nullptr, 0, nullptr);
+    //    }
+    //}
 
     assert(mView[imageIndex]);
 

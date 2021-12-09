@@ -4838,18 +4838,17 @@ float toRad(float a)
 Ray generateCameraRay(uint2 pixelIndex)
 {
     float2 pixelPos = float2(pixelIndex) + 0.5f;
-    float2 pixelNDC = (pixelPos / ubo.dimension) * 2.0f - 1.0f;
+    float2 pixelNDC = (pixelPos / float2(ubo.dimension)) * 2.0f - 1.0f;
 
-    float4 clip = float4(pixelNDC, 1.0, 1.0);
+    float4 clip = float4(pixelNDC, 1.0f, 1.0f);
     float4 viewSpace = mul(ubo.clipToView, clip);
 
-    float4 wpos = mul(ubo.viewToWorld, float4(viewSpace.xyz, 0.0f));
+    float4 wdir = mul(ubo.viewToWorld, float4(viewSpace.xyz, 0.0f));
 
     Ray ray = (Ray) 0;
-    //ray.o = ubo.camPos;
-    ray.o = mul(ubo.viewToWorld, float4(0.0f, 0.0f, 0.0f, 1.0f));;
-    ray.o.w = 1e9;
-    ray.d.xyz = normalize(wpos.xyz);
+    ray.o = ubo.camPos; // mul to view to world
+    ray.o.w = 100.0;
+    ray.d.xyz = normalize(wdir.xyz);
 
     return ray;
 }
@@ -4900,8 +4899,8 @@ float3 pathTrace1(uint2 pixelIndex)
     while (depth < maxDepth)
     {
         Hit hit;
-        hit.t = 0.0;
-        if (closestHit(accel, ray, hit))
+        hit.t = -1000.0;
+        if (closestHit1(accel, ray, hit, ubo.len))
         {
             InstanceConstants instConst = accel.instanceConstants[hit.instId];
             Material material = materials[instConst.materialId];
@@ -4909,8 +4908,8 @@ float3 pathTrace1(uint2 pixelIndex)
             if (material.isLight)
             {
                 finalColor += throughput * float3(1.0f);
-                //depth = maxDepth;
-                break;
+                //break;
+                depth = maxDepth;
             }
             else
             {
@@ -4938,13 +4937,6 @@ float3 pathTrace1(uint2 pixelIndex)
                 float3 world_tangent = normalize(interpolateAttrib(t0, t1, t2, bcoords));
                 float3 world_binormal = cross(world_normal, world_tangent);
 
-                if (ubo.debug == 1)
-                {
-                    float3 debugN = (world_normal + 1.0) * 0.5;
-                    finalColor = debugN;
-                    break;
-                }
-
                 float2 uv0 = unpackUV(accel.vb[i0].uv);
                 float2 uv1 = unpackUV(accel.vb[i1].uv);
                 float2 uv2 = unpackUV(accel.vb[i2].uv);
@@ -4952,6 +4944,9 @@ float3 pathTrace1(uint2 pixelIndex)
                 float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
 
                 MdlMaterial currMdlMaterial = mdlMaterials[instConst.materialId];
+
+                //return float3(bcoords.x, bcoords.y, 1.0 - bcoords.x - bcoords.y);
+                return float3(hit.t);
 
                 // setup MDL state
                 Shading_state_material mdlState;
@@ -5025,8 +5020,9 @@ float3 pathTrace1(uint2 pixelIndex)
         {
             // miss - add background color and exit
             finalColor += (throughput + 1e-5) * cubeMap.Sample(cubeMapSampler, ray.d.xyz).rgb;
-            //depth = maxDepth;
-            break;
+
+            //break;
+            depth = maxDepth;
         }
         ++depth;
     }
@@ -5159,6 +5155,7 @@ float3 pathTrace(uint2 pixelIndex)
     int maxDepth = ubo.maxDepth;
     while (depth < maxDepth)
     {
+        hit.t = 0.0;
         if (closestHit(accel, ray, hit))
         {
             instConst = accel.instanceConstants[hit.instId];
@@ -5212,8 +5209,8 @@ float3 pathTrace(uint2 pixelIndex)
                 mdlState.tangent_u[0] = world_tangent;
                 mdlState.tangent_v[0] = world_binormal;
                 mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
-                mdlState.world_to_object = instConst.objectToWorld;
-                mdlState.object_to_world = instConst.worldToObject; // TODO: replace on precalc
+                mdlState.world_to_object = instConst.worldToObject;
+                mdlState.object_to_world = instConst.objectToWorld; // TODO: replace on precalc
                 mdlState.object_id = 0;
                 mdlState.meters_per_scene_unit = 1.0f;
                 mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
@@ -5294,7 +5291,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 
     float3 color = 0.f;
 
-   color = pathTrace1(pixelIndex);
+    color = pathTrace1(pixelIndex);
 
     output[pixelIndex] = float4(color, 1.0);
 }

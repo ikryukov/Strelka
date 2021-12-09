@@ -6,6 +6,7 @@
 #define min glm::min
 #define max glm::max
 #define inout
+#define out
 #endif
 
 struct Ray
@@ -15,7 +16,11 @@ struct Ray
 };
 
 // https://interplayoflight.wordpress.com/2018/07/04/hybrid-raytraced-shadows-and-reflections/
-bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax, inout float t)
+#ifdef __cplusplus
+bool intersectRayBox(Ray& r, float3 invdir, float3 pmin, float3 pmax, float& t)
+#else
+bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax, out float t)
+#endif
 {
     const float3 f = float3(pmax.x - r.o.x, pmax.y - r.o.y, pmax.z - r.o.z) * invdir;
     const float3 n = float3(pmin.x - r.o.x, pmin.y - r.o.y, pmin.z - r.o.z) * invdir;
@@ -36,4 +41,6 @@ bool intersectRayBox(Ray r, float3 invdir, float3 pmin, float3 pmax, inout float
 #    undef uint
 #    undef max
 #    undef min
+#    undef out
+#    undef inout
 #endif

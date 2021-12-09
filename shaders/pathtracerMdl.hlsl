@@ -115,17 +115,17 @@ float toRad(float a)
 Ray generateCameraRay(uint2 pixelIndex)
 {
     float2 pixelPos = float2(pixelIndex) + 0.5f;
-    float2 pixelNDC = (pixelPos / ubo.dimension) * 2.0f - 1.0f;
+    float2 pixelNDC = (pixelPos / float2(ubo.dimension)) * 2.0f - 1.0f;
 
-    float4 clip = float4(pixelNDC, 1.0, 1.0);
+    float4 clip = float4(pixelNDC, 1.0f, 1.0f);
     float4 viewSpace = mul(ubo.clipToView, clip);
 
-    float4 wpos = mul(ubo.viewToWorld, float4(viewSpace.xyz, 0.0f));
+    float4 wdir = mul(ubo.viewToWorld, float4(viewSpace.xyz, 0.0f));
 
     Ray ray = (Ray) 0;
     ray.o = ubo.camPos; // mul to view to world
-    ray.o.w = 1e9;
-    ray.d.xyz = normalize(wpos.xyz);
+    ray.o.w = 100.0;
+    ray.d.xyz = normalize(wdir.xyz);
 
     return ray;
 }
@@ -176,8 +176,8 @@ float3 pathTrace1(uint2 pixelIndex)
     while (depth < maxDepth)
     {
         Hit hit;
-        hit.t = 0.0;
-        if (closestHit(accel, ray, hit))
+        hit.t = -1000.0;
+        if (closestHit1(accel, ray, hit, ubo.len))
         {
             InstanceConstants instConst = accel.instanceConstants[hit.instId];
             Material material = materials[instConst.materialId];
@@ -222,7 +222,8 @@ float3 pathTrace1(uint2 pixelIndex)
 
                 MdlMaterial currMdlMaterial = mdlMaterials[instConst.materialId];
 
-                    return world_normal;
+                //return float3(bcoords.x, bcoords.y, 1.0 - bcoords.x - bcoords.y);
+                return float3(hit.t);
 
                 // setup MDL state
                 Shading_state_material mdlState;

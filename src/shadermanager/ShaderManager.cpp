@@ -96,7 +96,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     int targetIndex = spAddCodeGenTarget(slangRequest, SLANG_SPIRV);
     SlangProfileID profileID = spFindProfile(mSlangSession, "sm_6_3");
     spSetTargetProfile(slangRequest, targetIndex, profileID);
-    SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
+    SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_DEFAULT;
     spSetOptimizationLevel(slangRequest, optLevel);
     spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(compDir).c_str());
     //spAddPreprocessorDefine(slangRequest, "MDL_NUM_TEXTURE_RESULTS", "0");
