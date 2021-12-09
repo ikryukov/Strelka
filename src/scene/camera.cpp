@@ -127,7 +127,7 @@ void Camera::setPerspective(float _fov, float _aspect, float _znear, float _zfar
     znear = _znear;
     zfar = _zfar;
     // swap near and far plane for reverse z
-    matrices.perspective = perspective(fov, _aspect,znear, zfar, &matrices.invPerspective);
+    matrices.perspective = perspective(fov, _aspect, zfar, znear, &matrices.invPerspective);
 }
 
 glm::float4x4& Camera::getPerspective()

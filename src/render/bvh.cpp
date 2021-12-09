@@ -191,7 +191,6 @@ void BvhBuilder::repackEmbree(const Node* current, const std::vector<BVHInputPos
         primUint = ((LeafNode*)current)->mTriangleId;
         curr.instId = ((LeafNode*)current)->mInstId;
         curr.minBounds.x = primFloat;
-        curr.primitiveId = primUint;
     }
     else
     {

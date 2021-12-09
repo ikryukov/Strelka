@@ -3,8 +3,7 @@
 #include "random.h"
 #include "ray.h"
 
-//#define INVALID_INDEX 0xFFFFFFFF
-#define INVALID_INDEX -1u
+#define INVALID_INDEX 0xFFFFFFFF
 #define PI 3.1415926535897
 
 #ifdef __cplusplus
@@ -32,10 +31,6 @@ struct BVHNode
     int instId; // instance id
     float3 maxBounds;
     int nodeOffset;
-    int primitiveId;
-    int pad0;
-    int pad1;
-    int pad2;
  };
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection
@@ -214,20 +209,18 @@ bool closestHit(in Accel accel, in Ray ray, out Hit hit)
         BVHNode node = accel.bvhNodes[NonUniformResourceIndex(nodeIndex)];
         const uint32_t instanceIndex = node.instId;
         float boxT = 1e9f;
-        //hit.t = 0.0;
         if (instanceIndex != INVALID_INDEX) // leaf
         {
-            //const uint primitiveIndex = asuint(node.minBounds.x); // triangle index
-            const uint primitiveIndex = node.primitiveId;
+            const uint primitiveIndex = asuint(node.minBounds.x); // triangle index
 
             BVHTriangle triangle = getTriangle(instanceIndex, primitiveIndex, accel);
 
-            float2 bary = float2(0.0);
-            float currT = 0.0;
+            float2 bary = float2(0.0f);
+            float currT = 0.0f;
             bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, triangle.v0, triangle.e0, triangle.e1, currT, bary);
             if (isIntersected && (currT < ray.o.w) && (currT < minHit))
             {
-                minHit = hit.t;
+                minHit = currT;
                 hit.t = currT;
                 hit.bary = bary;
                 hit.instId = instanceIndex;
@@ -239,11 +232,11 @@ bool closestHit(in Accel accel, in Ray ray, out Hit hit)
         }
         else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
         {
-            // if (boxT > ray.o.w) // check max ray trace distance: skip this node if collision far away
-            // {
-            //     nodeIndex = node.nodeOffset;
-            //     continue;
-            // }
+            if (boxT > ray.o.w) // check max ray trace distance: skip this node if collision far away
+            {
+                nodeIndex = node.nodeOffset;
+                continue;
+            }
             ++nodeIndex;
             continue;
         }
