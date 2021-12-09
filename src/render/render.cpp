@@ -251,8 +251,8 @@ void Render::initPasses()
     // generate code for PT
     assert(materials.size() != 0);
     const MaterialManager::TargetCode* code = mMaterialManager->generateTargetCode(materials);
-    const char* hlsl = mMaterialManager->getShaderCode(code);
-    std::cout << hlsl << std::endl;
+    //const char* hlsl = mMaterialManager->getShaderCode(code);
+    //std::cout << hlsl << std::endl;
 
     // MTLX
     //    uint32_t texSize = mMaterialManager->getTextureCount(code);
@@ -274,11 +274,12 @@ void Render::initPasses()
     //    }
     // MTLX
 
-    std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+    //std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+    std::string newPTCode = ptcode.str();
 
-    std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
-    std::ofstream outHLSLShaderFile(ptFile.c_str());
-    outHLSLShaderFile << newPTCode;
+    //std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
+    //std::ofstream outHLSLShaderFile(ptFile.c_str());
+    //outHLSLShaderFile << newPTCode;
 
     mPathTracer = new PathTracer(mSharedCtx, newPTCode);
     mPathTracer->initialize();
@@ -615,7 +616,7 @@ void Render::createInstance()
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "NoErrorVulkan Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_1;
+    appInfo.apiVersion = VK_API_VERSION_1_2;
 
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
