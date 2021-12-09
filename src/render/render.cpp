@@ -1702,15 +1702,15 @@ void Render::loadScene(const std::string& modelPath)
     }
     else
     {
-        // for pica pica
-        Scene::RectLightDesc desc{};
-        desc.position = glm::float3{ 0, 30, 10 };
-        desc.orientation = glm::float3{ 0, 90, 0 };
-        desc.width = 50.f;
-        desc.height = 50.f;
-        desc.color = glm::float3{ 1.0, 1.0, 1.0 };
-        desc.intensity = 1.0;
-        mScene->createLight(desc);
+        //// for pica pica
+        //Scene::RectLightDesc desc{};
+        //desc.position = glm::float3{ 0, 30, 10 };
+        //desc.orientation = glm::float3{ 0, 90, 0 };
+        //desc.width = 50.f;
+        //desc.height = 50.f;
+        //desc.color = glm::float3{ 1.0, 1.0, 1.0 };
+        //desc.intensity = 1.0;
+        //mScene->createLight(desc);
     }
     if (!mScene->mAnimations.empty())
     {

@@ -174,27 +174,51 @@ float3 pathTrace2(uint2 pixelIndex)
     const int maxDepth = ubo.maxDepth;
 
     Ray ray = generateCameraRay(pixelIndex);
+    const float3 invdir = float3(1.0f / ray.d.x, 1.0f / ray.d.y, 1.0f / ray.d.z);
 
-    while (depth < maxDepth)
+    Hit hit;
+    uint32_t nodeIndex = 0;
+    bool isFound = false;
+    
+    float minHit = 1e9f;
+    while (nodeIndex != INVALID_INDEX)
     {
-        Hit hit;
-        if (closestHit(accel, ray, hit))
+        BVHNode node = accel.bvhNodes[NonUniformResourceIndex(nodeIndex)];
+        const uint32_t instanceIndex = node.instId;
+        float boxT = 1e9f;
+        if (instanceIndex != INVALID_INDEX)
         {
-            // InstanceConstants instConst = accel.instanceConstants[NonUniformResourceIndex(hit.instId)];
-            // Material material = materials[NonUniformResourceIndex(instConst.materialId)];
+            const uint primitiveIndex = node.primitiveId;
 
-            // if (material.isLight)
-            // {
-            //     finalColor += throughput * float3(1.0f);
-            //     break;
-            // }
-            // else
+            BVHTriangle triangle = getTriangle(instanceIndex, primitiveIndex, accel);
+            float2 bary = float2(0.0);
+            float currT = 0.0;
+            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, triangle.v0, triangle.e0, triangle.e1, currT, bary);
+            if (isIntersected && (currT < ray.o.w) && (currT < minHit))
             {
-                return float3(hit.t);
+                minHit = hit.t;
+                hit.t = currT;
+                hit.bary = bary;
+                hit.instId = instanceIndex;
+                hit.primId = primitiveIndex;
+                isFound = true;
             }
+            nodeIndex = node.nodeOffset;
+            continue;
         }
-        ++depth;
+        else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
+        {
+            ++nodeIndex;
+            continue;
+        }
+        nodeIndex = node.nodeOffset;
     }
+
+    if (isFound)
+    {
+        finalColor = float3(hit.t);
+    }
+
     return finalColor;
 }
 
