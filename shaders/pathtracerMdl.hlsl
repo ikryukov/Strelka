@@ -287,6 +287,12 @@ float3 pathTrace1(uint2 pixelIndex)
 
                 float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
 
+                if (ubo.debug == 1)
+                {
+                    float3 debugN = (world_normal + 1.0) * 0.5;
+                    return debugN;
+                }
+
                 MdlMaterial currMdlMaterial = mdlMaterials[NonUniformResourceIndex(instConst.materialId)];
 
                 // setup MDL state
@@ -322,7 +328,7 @@ float3 pathTrace1(uint2 pixelIndex)
 
                 if (evalData.pdf > 0.0f)
                 {
-                    const float mis_weight = lightPdf / (lightPdf + evalData.pdf + 1e-5);
+                    const float mis_weight = lightPdf / (lightPdf + evalData.pdf);
                     const float3 w = throughput * radianceOverPdf * mis_weight;
                     finalColor += w * evalData.bsdf_diffuse;
                     finalColor += w * evalData.bsdf_glossy;
@@ -338,6 +344,12 @@ float3 pathTrace1(uint2 pixelIndex)
 
                 mdl_bsdf_scattering_sample(scatteringFunctionIndex, sampleData, mdlState);
 
+                if (sampleData.event_type == BSDF_EVENT_ABSORB)
+                {
+                    // stop on absorb
+                    break;
+                }
+
                 throughput *= sampleData.bsdf_over_pdf;
 
                 if (depth > 3)
@@ -345,8 +357,7 @@ float3 pathTrace1(uint2 pixelIndex)
                     float p = max(throughput.r, max(throughput.g, throughput.b));
                     if (rand(rngState) > p)
                     {
-                        // break
-                        depth = maxDepth;
+                        break;
                     }
                     throughput *= 1.0 / (p + 1e-5);
                 }
@@ -362,8 +373,7 @@ float3 pathTrace1(uint2 pixelIndex)
             // miss - add background color and exit
             finalColor += throughput * cubeMap.Sample(cubeMapSampler, ray.d.xyz).rgb;
 
-            //break;
-            depth = maxDepth;
+            break;
         }
         ++depth;
     }
