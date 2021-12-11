@@ -121,7 +121,6 @@ public:
     void cleanup();
 
 private:
-    int32_t lenBVH;
     GLFWwindow* mWindow;
 
     VkInstance mInstance;
@@ -170,6 +169,8 @@ private:
     Upscalepassparam mUpscalePassParam;
     Compositionparam mCompositionParam;
     Debugviewparam mDebugParams;
+
+    BVH sceneBvh;
 
     struct ViewData
     {
@@ -380,6 +381,8 @@ private:
     void loadScene(const std::string& modelPath);
 
     void createDefaultScene();
+
+    void renderCPU();
 
     void setDescriptors(uint32_t imageIndex);
 

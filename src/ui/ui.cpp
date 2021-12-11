@@ -487,7 +487,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO", "Variance", "Reflection", "Ref Final", "Path Tracer", "PT Normals"};
+    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO", "Variance", "Reflection", "Ref Final", "Path Tracer", "PT Normals" };
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();
@@ -723,7 +723,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     }
     // Common for bilateral filters
     ImGui::Checkbox("Use swizzle threads in filters", &renderConfig.useSwizzleTid);
-    
+
     ImGui::Checkbox("Enable Shadows", &renderConfig.enableShadows);
     if (renderConfig.enableShadows)
     {
@@ -784,15 +784,11 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
         renderConfig.upscaleFactor = 1.0f;
     }
 
-    bool isClicked = ImGui::Button("Recreate BVH");
-    if (isClicked)
-    {
-        renderConfig.recreateBVH = true;
-    }
-    else
-    {
-        renderConfig.recreateBVH = false;
-    }
+    bool isRecreate = ImGui::Button("Recreate BVH");
+    renderConfig.recreateBVH = isRecreate ? true : false;
+
+    bool isCPU = ImGui::Button("Render CPU");
+    renderConfig.renderCPU = isCPU ? true : false;
 
     ImGui::End(); // end window
 }

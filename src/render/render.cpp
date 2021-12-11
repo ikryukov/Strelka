@@ -1195,329 +1195,58 @@ void Render::createBvhBuffer(nevk::Scene& scene)
     uint32_t currInstId = 0;
     for (const Instance& currInstance : instances)
     {
-        //if (currInstId == 0)
+        const uint32_t currentMeshId = currInstance.mMeshId;
+        const Mesh& mesh = meshes[currentMeshId];
+        const uint32_t indexOffset = mesh.mIndex;
+        const uint32_t indexCount = mesh.mCount;
+        assert(indexCount % 3 == 0);
+        const uint32_t triangleCount = indexCount / 3;
+        const glm::float4x4 m = currInstance.transform;
+
+        for (uint32_t i = 0; i < triangleCount; ++i)
         {
-            const uint32_t currentMeshId = currInstance.mMeshId;
-            const Mesh& mesh = meshes[currentMeshId];
-            const uint32_t indexOffset = mesh.mIndex;
-            const uint32_t indexCount = mesh.mCount;
-            assert(indexCount % 3 == 0);
-            const uint32_t triangleCount = indexCount / 3;
-            const glm::float4x4 m = currInstance.transform;
+            uint32_t i0 = indices[indexOffset + i * 3 + 0];
+            uint32_t i1 = indices[indexOffset + i * 3 + 1];
+            uint32_t i2 = indices[indexOffset + i * 3 + 2];
 
-            for (uint32_t i = 0; i < triangleCount; ++i)
-            {
-                uint32_t i0 = indices[indexOffset + i * 3 + 0];
-                uint32_t i1 = indices[indexOffset + i * 3 + 1];
-                uint32_t i2 = indices[indexOffset + i * 3 + 2];
+            glm::float3 v0 = m * glm::float4(vertices[i0].pos, 1.0);
+            glm::float3 v1 = m * glm::float4(vertices[i1].pos, 1.0);
+            glm::float3 v2 = m * glm::float4(vertices[i2].pos, 1.0);
 
-                glm::float3 v0 = m * glm::float4(vertices[i0].pos, 1.0);
-                glm::float3 v1 = m * glm::float4(vertices[i1].pos, 1.0);
-                glm::float3 v2 = m * glm::float4(vertices[i2].pos, 1.0);
+            BVHInputPosition p0;
+            p0.pos = v0;
+            p0.instId = currInstId;
+            p0.primId = i;
+            positions.push_back(p0);
 
-                BVHInputPosition p0;
-                p0.pos = v0;
-                p0.instId = currInstId;
-                p0.primId = i;
-                positions.push_back(p0);
+            BVHInputPosition p1;
+            p1.pos = v1;
+            p1.instId = currInstId;
+            p1.primId = i;
+            positions.push_back(p1);
 
-                BVHInputPosition p1;
-                p1.pos = v1;
-                p1.instId = currInstId;
-                p1.primId = i;
-                positions.push_back(p1);
-
-                BVHInputPosition p2;
-                p2.pos = v2;
-                p2.instId = currInstId;
-                p2.primId = i;
-                positions.push_back(p2);
-            }
+            BVHInputPosition p2;
+            p2.pos = v2;
+            p2.instId = currInstId;
+            p2.primId = i;
+            positions.push_back(p2);
         }
         ++currInstId;
     }
 
-    BVH sceneBvh = mBvhBuilder.build(positions);
+    sceneBvh = mBvhBuilder.build(positions);
+
+    VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.nodes.size();
+    if (bufferSize == 0)
     {
-        std::cout << sceneBvh.nodes.size() << std::endl;
-        std::cout << sceneBvh.nodes[0].minBounds.x << " " << sceneBvh.nodes[0].minBounds.y << " " << sceneBvh.nodes[0].minBounds.z << " " << sceneBvh.nodes[0].maxBounds.x << " " << sceneBvh.nodes[0].maxBounds.y << " " << sceneBvh.nodes[0].maxBounds.z << std::endl;
-
-        //for (uint32_t i = 0; i < sceneBvh.nodes.size(); ++i)
-        //{
-        //    BVHNode& currNode = sceneBvh.nodes[i];
-        //    if (currNode.instId != -1) // leaf
-        //    {
-        //        union
-        //        {
-        //            uint32_t primUint;
-        //            float primFloat;
-        //        } leaf;
-        //        leaf.primFloat = sceneBvh.nodes[i].minBounds.x;
-        //        //std::cout << i << " " << sceneBvh.nodes[i].instId << " "  << leaf.primUint << " " << sceneBvh.nodes[i].nodeOffset  <<std::endl;
-        //        printf("index: %d \t instId: %d \t triNum: %d \t offset: %d \t \n", i, sceneBvh.nodes[i].instId, leaf.primUint, sceneBvh.nodes[i].nodeOffset);
-        //    }
-        //    else
-        //    {
-        //        printf("index: %d \t instId: %d \t minBounds: (%f, %f, %f) \t maxBounds: (%f, %f, %f) \t offset: %d \t \n", i, sceneBvh.nodes[i].instId, sceneBvh.nodes[i].minBounds.x, sceneBvh.nodes[i].minBounds.y, sceneBvh.nodes[i].minBounds.z, sceneBvh.nodes[i].maxBounds.x, sceneBvh.nodes[i].maxBounds.y, sceneBvh.nodes[i].maxBounds.z, sceneBvh.nodes[i].nodeOffset);
-        //    }
-        //}
-        if (0)
-        {
-
-            int32_t image_width = 200;
-            int32_t image_height = 150;
-            std::vector<uint8_t> colorData;
-            colorData.resize(image_width * image_height * 3);
-            int index = 0;
-
-            Camera tmpCam;
-            tmpCam = mScene->getCamera(0);
-
-            tmpCam.updateViewMatrix();
-            tmpCam.setPerspective(45, (float)image_width / image_height, 0.1f, 1000.f);
-
-            std::vector<BVHNode>& nodesBvh = sceneBvh.nodes;
-            for (int32_t y = 0; y < image_height; ++y)
-            {
-                for (int32_t x = 0; x < image_width; ++x)
-                {
-                    glm::float3 color = glm::float3(0.0);
-
-                    auto rayGen = [&](glm::int2 pixelIndex, Camera& cam, glm::int2 dimension) {
-                        glm::float2 pixelPos = glm::float2(pixelIndex) + 0.5f;
-                        glm::float2 pixelNDC = (pixelPos / glm::float2(dimension)) * 2.0f - 1.0f;
-
-                        glm::float4 clip = glm::float4(pixelNDC, 1.0, 1.0);
-                        glm::float4 viewSpace = glm::inverse(cam.matrices.perspective) * clip;
-
-                        glm::float4 wpos = glm::inverse(cam.matrices.view) * glm::float4(viewSpace.x, viewSpace.y, viewSpace.z, 0.0f);
-
-                        Ray ray;
-                        ray.o = glm::float4(cam.getPosition(), 0.0f);
-                        ray.o.w = 1e9;
-                        glm::float3 normDir = glm::normalize(wpos);
-                        ray.d.x = normDir.x;
-                        ray.d.y = normDir.y;
-                        ray.d.z = normDir.z;
-
-                        return ray;
-                    };
-
-                    auto getTriangleCPU = [&](uint32_t instId, uint32_t primitiveId) {
-                        const nevk::Instance instConst = mScene->getInstances()[instId];
-                        const std::vector<Mesh>& meshes = mScene->getMeshes();
-
-                        const uint32_t currentMeshId = instConst.mMeshId;
-                        int offset = meshes[currentMeshId].mIndex;
-                        uint32_t i0 = mScene->mIndices[offset + primitiveId * 3 + 0];
-                        uint32_t i1 = mScene->mIndices[offset + primitiveId * 3 + 1];
-                        uint32_t i2 = mScene->mIndices[offset + primitiveId * 3 + 2];
-
-                        // read and transform vertices, calculate edges
-                        glm::float4x4 objectToWorld = instConst.transform;
-                        glm::float4 tmpv0 = (objectToWorld * glm::float4(mScene->mVertices[i0].pos, 1.0));
-                        glm::float3 v0 = { tmpv0.x, tmpv0.y, tmpv0.z };
-                        glm::float4 tmpe0 = (objectToWorld * glm::float4(mScene->mVertices[i1].pos, 1.0)) - tmpv0;
-                        glm::float3 e0 = { tmpe0.x, tmpe0.y, tmpe0.z };
-                        glm::float4 tmpe1 = (objectToWorld * glm::float4(mScene->mVertices[i2].pos, 1.0)) - tmpv0;
-                        glm::float3 e1 = { tmpe1.x, tmpe1.y, tmpe1.z };
-
-                        BVHTriangle res;
-                        res.v0 = v0;
-                        res.e0 = e0;
-                        res.e1 = e1;
-
-                        return res;
-                    };
-
-                    auto interpolateAttrib = [](glm::float3 attr1, glm::float3 attr2, glm::float3 attr3, glm::float2 bary) {
-                        return attr1 * (1 - bary.x - bary.y) + attr2 * bary.x + attr3 * bary.y;
-                    };
-
-                    //  valid range of coordinates [-1; 1]
-                    auto unpackNormal = [](uint32_t val) {
-                        glm::float3 normal;
-                        normal.z = ((val & 0xfff00000) >> 20) / 511.99999f * 2.0f - 1.0f;
-                        normal.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 2.0f - 1.0f;
-                        normal.x = (val & 0x000003ff) / 511.99999f * 2.0f - 1.0f;
-
-                        return normal;
-                    };
-
-                    auto rayTriangleIntersectCPU = [&](const glm::float3 orig,
-                                                       const glm::float3 dir,
-                                                       glm::float3 v0,
-                                                       glm::float3 e0,
-                                                       glm::float3 e1,
-                                                       float& t,
-                                                       glm::float2& bCoord) {
-                        const glm::float3 pvec = cross(dir, e1);
-
-                        float det = glm::dot(e0, pvec);
-
-                        // Backface culling
-                        ///if (det < 1e-6)
-                        //{
-                        //    return false;
-                        //}
-
-                        if (abs(det) < 1e-6)
-                        {
-                            return false;
-                        }
-
-                        float invDet = 1.0f / det;
-
-                        glm::float3 tvec = orig - v0;
-                        float u = glm::dot(tvec, pvec) * invDet;
-                        if (u < 0.0 || u > 1.0)
-                        {
-                            return false;
-                        }
-
-                        glm::float3 qvec = glm::cross(tvec, e0);
-                        float v = glm::dot(dir, qvec) * invDet;
-                        if (v < 0.0 || (u + v) > 1.0)
-                        {
-                            return false;
-                        }
-
-                        t = glm::dot(e1, qvec) * invDet;
-
-                        if (t < 1e-6)
-                        {
-                            return false;
-                        }
-
-                        bCoord.x = u;
-                        bCoord.y = v;
-
-                        return true;
-                    };
-
-                    auto closestHit = [&](std::vector<BVHNode>& bvhNodes, Ray& ray, Hit& hit) {
-                        const glm::float3 invdir = glm::float3(1.0 / ray.d.x, 1.0 / ray.d.y, 1.0 / ray.d.z);
-
-                        float minHit = 1e9f;
-                        bool isFound = false;
-
-                        uint32_t nodeIndex = 0;
-                        while (nodeIndex != -1)
-                        {
-                            BVHNode& node = bvhNodes[nodeIndex];
-                            const uint32_t instanceIndex = node.instId;
-                            float boxT = 1e9f;
-                            hit.t = 0.0;
-                            if (instanceIndex != -1) // leaf
-                            {
-                                union
-                                {
-                                    uint32_t primUint;
-                                    float primFloat;
-                                } leaf;
-                                leaf.primFloat = node.minBounds.x;
-                                const uint32_t primitiveIndex = leaf.primUint; // triangle index
-
-                                BVHTriangle triangle = getTriangleCPU(instanceIndex, primitiveIndex);
-                                float curT = 0;
-                                glm::float2 bary = glm::float2(0.0);
-                                const glm::float3 origin = { ray.o.x, ray.o.y, ray.o.z };
-                                const glm::float3 dir = { ray.d.x, ray.d.y, ray.d.z };
-                                bool isIntersected = rayTriangleIntersectCPU(origin, dir, triangle.v0, triangle.e0, triangle.e1, curT, bary);
-                                if (isIntersected && (curT < ray.o.w) && (curT < minHit))
-                                {
-                                    minHit = curT;
-                                    hit.t = curT;
-                                    hit.bary = bary;
-                                    hit.instId = instanceIndex;
-                                    hit.primId = primitiveIndex;
-                                    isFound = true;
-                                }
-                                nodeIndex = node.nodeOffset;
-                                continue;
-                            }
-                            else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
-                            {
-                                if (boxT > ray.o.w) // check max ray trace distance: skip this node if collision far away
-                                {
-                                    nodeIndex = node.nodeOffset;
-                                    continue;
-                                }
-                                ++nodeIndex;
-                                continue;
-                            }
-
-                            nodeIndex = node.nodeOffset;
-                        }
-
-                        return isFound;
-                    };
-                    // rayGen = [&](glm::int2& pixelIndex, Camera& cam, glm::int2 dimension)
-                    Ray ray = rayGen(glm::int2(x, y), tmpCam, glm::int2(image_width, image_height));
-                    // auto closestHit = [&](std::vector<BVHNode>& bvhNodes, Ray& ray, Hit& hit) {
-                    Hit hit;
-                    bool f = closestHit(nodesBvh, ray, hit);
-                    if (f)
-                    {
-                        InstanceConstants instConst = {};
-
-                        const uint32_t currentMeshId = mScene->mInstances[hit.instId].mMeshId;
-
-                        instConst.objectToWorld = mScene->mInstances[hit.instId].transform;
-                        instConst.indexOffset = mScene->mMeshes[currentMeshId].mIndex;
-                        instConst.normalMatrix = glm::inverse(glm::transpose(instConst.objectToWorld));
-
-                        uint32_t i0 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 0];
-                        uint32_t i1 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 1];
-                        uint32_t i2 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 2];
-
-                        glm::float3 p0 = glm::float3(instConst.objectToWorld * glm::float4(mScene->mVertices[i0].pos, 1.0f));
-                        glm::float3 p1 = glm::float3(instConst.objectToWorld * glm::float4(mScene->mVertices[i1].pos, 1.0f));
-                        glm::float3 p2 = glm::float3(instConst.objectToWorld * glm::float4(mScene->mVertices[i2].pos, 1.0f));
-
-                        glm::float3 geom_normal = normalize(cross(p1 - p0, p2 - p0));
-
-                        glm::float3 n0 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i0].normal));
-                        glm::float3 n1 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i1].normal));
-                        glm::float3 n2 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i2].normal));
-
-                        glm::float3 world_normal = normalize(interpolateAttrib(n0, n1, n2, hit.bary));
-
-                        color = world_normal;
-                    }
-                    else
-                    {
-                        color = glm::float3(0.0f);
-                    }
-
-                    auto r = color.x;
-                    auto g = color.y;
-                    auto b = color.z;
-
-                    int ir = static_cast<int>(256 * glm::clamp(r, 0.0f, 0.999f)), ig = static_cast<int>(256 * glm::clamp(g, 0.0f, 0.999f)),
-                        ib = static_cast<int>(256 * glm::clamp(b, 0.0f, 0.999f));
-
-                    colorData[index++] = (uint8_t)ir;
-                    colorData[index++] = (uint8_t)ig;
-                    colorData[index++] = (uint8_t)ib;
-                }
-            }
-            mTexManager->savePNG(image_width, image_height, (uint8_t*)colorData.data());
-        }
-
-        VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.nodes.size();
-        lenBVH = (int32_t) sceneBvh.nodes.size();
-        if (bufferSize == 0)
-        {
-            return;
-        }
-        Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-        memcpy(stagingBufferMemory, sceneBvh.nodes.data(), (size_t)bufferSize);
-        mCurrentSceneRenderData->mBvhNodeBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
-        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), bufferSize);
-        mResManager->destroyBuffer(stagingBuffer);
+        return;
     }
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    memcpy(stagingBufferMemory, sceneBvh.nodes.data(), (size_t)bufferSize);
+    mCurrentSceneRenderData->mBvhNodeBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), bufferSize);
+    mResManager->destroyBuffer(stagingBuffer);
 }
 
 void Render::createIndexBuffer(nevk::Scene& scene)
@@ -1918,6 +1647,244 @@ void Render::createDefaultScene()
     createVertexBuffer(*mScene);
 }
 
+void Render::renderCPU()
+{
+    int32_t image_width = 200;
+    int32_t image_height = 150;
+    std::vector<uint8_t> colorData;
+    colorData.resize(image_width * image_height * 3);
+    int index = 0;
+
+    Camera tmpCam;
+    tmpCam = mScene->getCamera(0);
+
+    tmpCam.updateViewMatrix();
+    tmpCam.setPerspective(45, (float)image_width / image_height, 0.1f, 1000.f);
+
+    std::vector<BVHNode>& nodesBvh = sceneBvh.nodes;
+    for (int32_t y = 0; y < image_height; ++y)
+    {
+        for (int32_t x = 0; x < image_width; ++x)
+        {
+            glm::float3 color = glm::float3(0.0);
+
+            auto rayGen = [&](glm::int2 pixelIndex, Camera& cam, glm::int2 dimension) {
+                glm::float2 pixelPos = glm::float2(pixelIndex) + 0.5f;
+                glm::float2 pixelNDC = (pixelPos / glm::float2(dimension)) * 2.0f - 1.0f;
+
+                glm::float4 clip = glm::float4(pixelNDC, 1.0, 1.0);
+                glm::float4 viewSpace = glm::inverse(cam.matrices.perspective) * clip;
+
+                glm::float4 wpos = glm::inverse(cam.matrices.view) * glm::float4(viewSpace.x, viewSpace.y, viewSpace.z, 0.0f);
+
+                Ray ray;
+                ray.o = glm::float4(cam.getPosition(), 0.0f);
+                ray.o.w = 1e9;
+                glm::float3 normDir = glm::normalize(wpos);
+                ray.d.x = normDir.x;
+                ray.d.y = normDir.y;
+                ray.d.z = normDir.z;
+
+                return ray;
+            };
+
+            auto getTriangleCPU = [&](uint32_t instId, uint32_t primitiveId) {
+                const nevk::Instance instConst = mScene->getInstances()[instId];
+                const std::vector<Mesh>& meshes = mScene->getMeshes();
+
+                const uint32_t currentMeshId = instConst.mMeshId;
+                int offset = meshes[currentMeshId].mIndex;
+                uint32_t i0 = mScene->mIndices[offset + primitiveId * 3 + 0];
+                uint32_t i1 = mScene->mIndices[offset + primitiveId * 3 + 1];
+                uint32_t i2 = mScene->mIndices[offset + primitiveId * 3 + 2];
+
+                // read and transform vertices, calculate edges
+                glm::float4x4 objectToWorld = instConst.transform;
+                glm::float4 tmpv0 = (objectToWorld * glm::float4(mScene->mVertices[i0].pos, 1.0));
+                glm::float3 v0 = { tmpv0.x, tmpv0.y, tmpv0.z };
+                glm::float4 tmpe0 = (objectToWorld * glm::float4(mScene->mVertices[i1].pos, 1.0)) - tmpv0;
+                glm::float3 e0 = { tmpe0.x, tmpe0.y, tmpe0.z };
+                glm::float4 tmpe1 = (objectToWorld * glm::float4(mScene->mVertices[i2].pos, 1.0)) - tmpv0;
+                glm::float3 e1 = { tmpe1.x, tmpe1.y, tmpe1.z };
+
+                BVHTriangle res;
+                res.v0 = v0;
+                res.e0 = e0;
+                res.e1 = e1;
+
+                return res;
+            };
+
+            auto interpolateAttrib = [](glm::float3 attr1, glm::float3 attr2, glm::float3 attr3, glm::float2 bary) {
+                return attr1 * (1 - bary.x - bary.y) + attr2 * bary.x + attr3 * bary.y;
+            };
+
+            //  valid range of coordinates [-1; 1]
+            auto unpackNormal = [](uint32_t val) {
+                glm::float3 normal;
+                normal.z = ((val & 0xfff00000) >> 20) / 511.99999f * 2.0f - 1.0f;
+                normal.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 2.0f - 1.0f;
+                normal.x = (val & 0x000003ff) / 511.99999f * 2.0f - 1.0f;
+
+                return normal;
+            };
+
+            auto rayTriangleIntersectCPU = [&](const glm::float3 orig,
+                                               const glm::float3 dir,
+                                               glm::float3 v0,
+                                               glm::float3 e0,
+                                               glm::float3 e1,
+                                               float& t,
+                                               glm::float2& bCoord) {
+                const glm::float3 pvec = cross(dir, e1);
+
+                float det = glm::dot(e0, pvec);
+
+                // Backface culling
+                ///if (det < 1e-6)
+                //{
+                //    return false;
+                //}
+
+                if (abs(det) < 1e-6)
+                {
+                    return false;
+                }
+
+                float invDet = 1.0f / det;
+
+                glm::float3 tvec = orig - v0;
+                float u = glm::dot(tvec, pvec) * invDet;
+                if (u < 0.0 || u > 1.0)
+                {
+                    return false;
+                }
+
+                glm::float3 qvec = glm::cross(tvec, e0);
+                float v = glm::dot(dir, qvec) * invDet;
+                if (v < 0.0 || (u + v) > 1.0)
+                {
+                    return false;
+                }
+
+                t = glm::dot(e1, qvec) * invDet;
+
+                if (t < 1e-6)
+                {
+                    return false;
+                }
+
+                bCoord.x = u;
+                bCoord.y = v;
+
+                return true;
+            };
+
+            auto closestHit = [&](std::vector<BVHNode>& bvhNodes, Ray& ray, Hit& hit) {
+                const glm::float3 invdir = glm::float3(1.0 / ray.d.x, 1.0 / ray.d.y, 1.0 / ray.d.z);
+
+                float minHit = 1e9f;
+                bool isFound = false;
+
+                uint32_t nodeIndex = 0;
+                while (nodeIndex != -1)
+                {
+                    BVHNode& node = bvhNodes[nodeIndex];
+                    const uint32_t instanceIndex = node.instId;
+                    float boxT = 1e9f;
+                    hit.t = 0.0;
+                    if (instanceIndex != -1) // leaf
+                    {
+                        union
+                        {
+                            uint32_t primUint;
+                            float primFloat;
+                        } leaf;
+                        leaf.primFloat = node.minBounds.x;
+                        const uint32_t primitiveIndex = leaf.primUint; // triangle index
+
+                        BVHTriangle triangle = getTriangleCPU(instanceIndex, primitiveIndex);
+                        float curT = 0;
+                        glm::float2 bary = glm::float2(0.0);
+                        const glm::float3 origin = { ray.o.x, ray.o.y, ray.o.z };
+                        const glm::float3 dir = { ray.d.x, ray.d.y, ray.d.z };
+                        bool isIntersected = rayTriangleIntersectCPU(origin, dir, triangle.v0, triangle.e0, triangle.e1, curT, bary);
+                        if (isIntersected && (curT < ray.o.w) && (curT < minHit))
+                        {
+                            minHit = curT;
+                            hit.t = curT;
+                            hit.bary = bary;
+                            hit.instId = instanceIndex;
+                            hit.primId = primitiveIndex;
+                            isFound = true;
+                        }
+                        nodeIndex = node.nodeOffset;
+                        continue;
+                    }
+                    else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
+                    {
+                        if (boxT > ray.o.w) // check max ray trace distance: skip this node if collision far away
+                        {
+                            nodeIndex = node.nodeOffset;
+                            continue;
+                        }
+                        ++nodeIndex;
+                        continue;
+                    }
+
+                    nodeIndex = node.nodeOffset;
+                }
+
+                return isFound;
+            };
+
+            Ray ray = rayGen(glm::int2(x, y), tmpCam, glm::int2(image_width, image_height));
+
+            Hit hit;
+            bool f = closestHit(nodesBvh, ray, hit);
+
+            if (f)
+            {
+                InstanceConstants instConst = {};
+
+                const uint32_t currentMeshId = mScene->mInstances[hit.instId].mMeshId;
+
+                instConst.objectToWorld = mScene->mInstances[hit.instId].transform;
+                instConst.indexOffset = mScene->mMeshes[currentMeshId].mIndex;
+                instConst.normalMatrix = glm::inverse(glm::transpose(instConst.objectToWorld));
+
+                uint32_t i0 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 0];
+                uint32_t i1 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 1];
+                uint32_t i2 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 2];
+
+                glm::float3 n0 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i0].normal));
+                glm::float3 n1 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i1].normal));
+                glm::float3 n2 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i2].normal));
+
+                glm::float3 world_normal = normalize(interpolateAttrib(n0, n1, n2, hit.bary));
+
+                color = world_normal;
+            }
+            else
+            {
+                color = glm::float3(0.0f);
+            }
+
+            auto r = color.x;
+            auto g = color.y;
+            auto b = color.z;
+
+            int ir = static_cast<int>(256 * glm::clamp(r, 0.0f, 0.999f)), ig = static_cast<int>(256 * glm::clamp(g, 0.0f, 0.999f)),
+                ib = static_cast<int>(256 * glm::clamp(b, 0.0f, 0.999f));
+
+            colorData[index++] = (uint8_t)ir;
+            colorData[index++] = (uint8_t)ig;
+            colorData[index++] = (uint8_t)ib;
+        }
+    }
+    mTexManager->savePNG(image_width, image_height, (uint8_t*)colorData.data());
+}
+
 void Render::drawFrame()
 {
     ZoneScoped;
@@ -1978,6 +1945,10 @@ void Render::drawFrame()
         releaseBVHAfterFrames = MAX_FRAMES_IN_FLIGHT;
 
         createBvhBuffer(*mScene); // need to update descriptors after it
+    }
+    if (mRenderConfig.renderCPU)
+    {
+        renderCPU();
     }
 
     if (!mSceneConfig.newModelPath.empty() && fs::exists(mSceneConfig.newModelPath) && mSceneConfig.newModelPath != MODEL_PATH)
@@ -2085,7 +2056,7 @@ void Render::drawFrame()
     pathTracerParam.worldToView = cam.matrices.view; //
     pathTracerParam.clipToView = cam.matrices.invPerspective;
     pathTracerParam.viewToClip = cam.matrices.perspective; //
-    pathTracerParam.len = lenBVH;
+    pathTracerParam.len = sceneBvh.nodes.size();
     pathTracerParam.numLights = (uint32_t)scene->getLights().size();
     pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
     pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
