@@ -252,8 +252,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex)
             if (material.isLight)
             {
                 finalColor += throughput * float3(1.0f);
-                //break;
-                depth = maxDepth;
+                break;
             }
             else
             {
