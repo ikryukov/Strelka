@@ -223,7 +223,7 @@ float3 pathTrace2(uint2 pixelIndex)
     return finalColor;
 }
 
-float3 pathTrace1(uint2 pixelIndex)
+float3 pathTraceCameraRays(uint2 pixelIndex)
 {
     Accel accel;
     accel.bvhNodes = bvhNodes;
@@ -380,7 +380,7 @@ float3 pathTrace1(uint2 pixelIndex)
     return finalColor;
 }
 
-float3 pathTrace(uint2 pixelIndex)
+float3 pathTraceGBuffer(uint2 pixelIndex)
 {
     float4 gbWorldPos = gbWPos[pixelIndex];
     // early out - miss on camera ray
@@ -635,12 +635,12 @@ float3 pathTrace(uint2 pixelIndex)
 [shader("compute")]
 void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 {
-    if (pixelIndex.x >= ubo.dimension.x || pixelIndex.y >= ubo.dimension.y)
+    if (any(pixelIndex >= ubo.dimension))
     {
         return;
     }
 
-    float3 color = pathTrace1(pixelIndex);
+    float3 color = pathTraceCameraRays(pixelIndex);
 
     output[pixelIndex] = float4(color, 1.0);
 }
