@@ -30,17 +30,22 @@ if (MINGW)
             )
 endif ()
 
+if(WIN32)
+  add_compile_definitions(NOMINMAX)
+  add_compile_definitions(_USE_MATH_DEFINES)
+endif()
+
 ######## Packages
 # Vulkan
 if (NOT DEFINED VULKAN_SDK)
     find_package(Vulkan REQUIRED)
 else ()
-# Workaround for CI
-if (APPLE)
-    set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/libvulkan.dylib)
-elseif (MSVC)
-    set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/vulkan-1.lib)
-endif ()
+    # Workaround for CI
+    if (APPLE)
+        set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/libvulkan.dylib)
+    elseif (MSVC)
+        set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/vulkan-1.lib)
+    endif ()
     set(Vulkan_INCLUDE_DIR ${VULKAN_SDK}/include)
     message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
     message(STATUS "VULKAN INCLUDE: ${Vulkan_INCLUDE_DIR}")
@@ -68,6 +73,40 @@ elseif (APPLE)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib")
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib")
 endif ()
+
+set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
+set(USD_ROOT /Users/jswark/school/USD_Build)
+find_package(MaterialX REQUIRED)
+
+# Material Manager
+set(MATERIALMANAGER_SOURCES
+       include/materialmanager/materialmanager.h
+       include/materialmanager/mdlNeurayLoader.h
+       include/materialmanager/mdlRuntime.h
+       include/materialmanager/mdlHlslCodeGen.h
+       include/materialmanager/mtlxMdlCodeGen.h
+       include/materialmanager/mdlLogger.h
+       include/materialmanager/mdlMaterialCompiler.h
+
+       src/materialmanager/materialmanager.cpp
+       src/materialmanager/mdlNeurayLoader.cpp
+       src/materialmanager/mdlMaterialCompiler.cpp
+       src/materialmanager/mdlRuntime.cpp
+       src/materialmanager/mdlHlslCodeGen.cpp
+       src/materialmanager/mtlxMdlCodeGen.cpp
+       src/materialmanager/mdlLogger.cpp
+        )
+set(MATERIALLIB_NAME materialmanager)
+add_library(${MATERIALLIB_NAME} OBJECT ${MATERIALMANAGER_SOURCES})
+target_include_directories(${MATERIALLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ ${PROJECT_SOURCE_DIR}/include/materialmanager)
+target_include_directories(${MATERIALLIB_NAME} PUBLIC  shaders/ external/glm)
+target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${SHADERLIB_NAME})
+target_link_libraries(${MATERIALLIB_NAME} PRIVATE #hdMtlx )
+        MaterialXCore
+        MaterialXFormat
+        MaterialXGenMdl)
+# MDL ( $MDL_SDK_ROOT refer to the installation root of the MDL SDK.)
+target_include_directories(${MATERIALLIB_NAME} PUBLIC external/mdl-sdk/include) # $ENV{MDL_SDK_ROOT}
 
 # Scene
 set(SCENE_SOURCES
@@ -152,15 +191,9 @@ set(RENDER_SOURCES
         include/render/gbufferpass.h
         include/render/shaderparameters.h
         include/render/computepass.h
-        include/render/rtshadowpass.h
         include/render/pathtracer.h
-        include/render/reflection.h
-        include/render/aopass.h
         include/render/upscalepass.h
-        include/render/ltcpass.h
-        include/render/bilateralfilter.h
         include/render/tonemap.h
-        include/render/composition.h
         include/render/accumulation.h
         include/render/debugview.h
         include/render/depthpass.h
@@ -171,15 +204,8 @@ set(RENDER_SOURCES
         src/render/gbufferpass.cpp
         src/render/bvh.cpp
         src/render/upscalepass.cpp
-        src/render/rtshadowpass.cpp
         src/render/pathtracer.cpp
-        src/render/reflection.cpp
-        src/render/aopass.cpp
-        src/render/ltcpass.cpp
-        src/render/bilateralfilter.cpp
-        src/render/ltc_data.h
         src/render/tonemap.cpp
-        src/render/composition.cpp
         src/render/accumulation.cpp
         src/render/debugview.cpp
         src/render/depthpass.cpp
@@ -218,6 +244,8 @@ target_include_directories(${RENDERLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 target_include_directories(${MODELLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 target_link_libraries(${MODELLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
+target_include_directories(${MATERIALLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
@@ -255,11 +283,29 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${UILIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${TEXTURELIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC embree)
+target_link_libraries(${RENDERLIB_NAME} PRIVATE 
+    ${MATERIALLIB_NAME}
+    MaterialXCore
+    MaterialXFormat
+    MaterialXGenMdl)
+
 target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
 add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB})  # Link the executable to library (if it uses it).
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+    ${RESMNGR_NAME} 
+    ${SHADERLIB_NAME} 
+    ${MATERIALLIB_NAME}
+    MaterialXCore
+    MaterialXFormat
+    MaterialXGenMdl
+    ${SCENELIB_NAME} 
+    ${RENDERLIB_NAME} 
+    ${UILIB_NAME} 
+    ${MODELLIB_NAME} 
+    ${TEXTURELIB_NAME} 
+    ${TRACY_LIB})  # Link the executable to library (if it uses it).
 target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 # Hydra plugin
@@ -442,8 +488,28 @@ if (MSVC)
             "${EMBREE_ROOT_DIR}/bin/embree3.dll"
             "${OUTPUT_DIRECTORY}"
             )
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/nt-x86-64/lib/libmdl_sdk.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/nt-x86-64/lib/nv_freeimage.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
+elseif(APPLE)
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/macosx-x86-64/lib/libmdl_sdk.so"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/macosx-x86-64/lib/nv_freeimage.so"
+            "${OUTPUT_DIRECTORY}"
+            )
 endif ()
-
 ##########################################
 # External 3rd-party libraries
 

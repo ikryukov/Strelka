@@ -15,6 +15,7 @@ protected:
     ResourceManager* mResManager = nullptr;
     std::array<T, MAX_FRAMES_IN_FLIGHT> mConstants = {};
     Buffer* mConstantBuffer = nullptr;
+    uint32_t mCbBinding = 0;
 
     VkDescriptorSetLayout mDescriptorSetLayout = VK_NULL_HANDLE;
     std::array<VkDescriptorSet, MAX_FRAMES_IN_FLIGHT> mDescriptorSets;
@@ -78,7 +79,7 @@ protected:
             VkWriteDescriptorSet descWrite{};
             descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descWrite.dstSet = dstDescSet;
-            descWrite.dstBinding = 0; // TODO: do we need to support others binding for cbuffers?
+            descWrite.dstBinding = mCbBinding; // TODO: do we need to support others binding for cbuffers?
             descWrite.dstArrayElement = 0;
             descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             descWrite.descriptorCount = 1; // TODO:
@@ -94,6 +95,7 @@ protected:
     {
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         bindings.reserve(mResourcesDescs.size());
+        uint32_t bindingIdx = 0;
         for (const auto& desc : mResourcesDescs)
         {
             VkDescriptorType descType = VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -101,6 +103,7 @@ protected:
             {
             case ShaderManager::ResourceType::eConstantBuffer: {
                 descType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                mCbBinding = bindingIdx;
                 break;
             }
             case ShaderManager::ResourceType::eTexture2D: {
@@ -115,8 +118,22 @@ protected:
                 descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 break;
             }
+            case ShaderManager::ResourceType::eByteAddressBuffer: {
+                descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                break;
+            }
             case ShaderManager::ResourceType::eSampler: {
                 descType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                break;
+            }
+            case ShaderManager::ResourceType::eCubeMap:
+            case ShaderManager::ResourceType::eTexture3D: {
+                descType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                break;
+            }
+            case ShaderManager::ResourceType::eRWCubeMap:
+            case ShaderManager::ResourceType::eRWTexture3D: {
+                descType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
                 break;
             }
             default:
@@ -129,6 +146,7 @@ protected:
             layoutBinding.descriptorType = descType;
             layoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT; // TODO: fix for graphics
             bindings.push_back(layoutBinding);
+            ++bindingIdx;
         }
 
         VkDescriptorSetLayoutCreateInfo layoutInfo{};
@@ -180,10 +198,15 @@ protected:
                 switch (currRes.second.type)
                 {
                 case ShaderManager::ResourceType::eConstantBuffer:
+                case ShaderManager::ResourceType::eByteAddressBuffer:
                 case ShaderManager::ResourceType::eStructuredBuffer: {
                     buffCount += currRes.second.isArray ? resDesc.arraySize : 1;
                     break;
                 }
+                case ShaderManager::ResourceType::eTexture3D:
+                case ShaderManager::ResourceType::eRWTexture3D:
+                case ShaderManager::ResourceType::eCubeMap:
+                case ShaderManager::ResourceType::eRWCubeMap:
                 case ShaderManager::ResourceType::eTexture2D:
                 case ShaderManager::ResourceType::eRWTexture2D:
                 case ShaderManager::ResourceType::eSampler: {
@@ -258,13 +281,58 @@ protected:
                     descriptorWrites.push_back(descWrite);
                     break;
                 }
+                case ShaderManager::ResourceType::eCubeMap:
+                case ShaderManager::ResourceType::eTexture3D: {
+                    for (uint32_t i = 0; i < descriptorCount; ++i)
+                    {
+                        imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                        imageInfos[imageInfosOffset + i].imageView = (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
+                        imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
+                    }
+
+                    VkWriteDescriptorSet descWrite{};
+                    descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                    descWrite.dstSet = dstDescSet;
+                    descWrite.dstBinding = resDesc.binding;
+                    descWrite.dstArrayElement = 0;
+                    descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                    descWrite.descriptorCount = descriptorCount;
+                    descWrite.pImageInfo = &imageInfos[imageInfosOffset];
+
+                    imageInfosOffset += descriptorCount;
+
+                    descriptorWrites.push_back(descWrite);
+                    break;
+                }
+                case ShaderManager::ResourceType::eRWTexture3D: {
+                    for (uint32_t i = 0; i < descriptorCount; ++i)
+                    {
+                        imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+                        imageInfos[imageInfosOffset + i].imageView = descriptor.handles[i].imageView;
+                        imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
+                    }
+
+                    VkWriteDescriptorSet descWrite{};
+                    descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                    descWrite.dstSet = dstDescSet;
+                    descWrite.dstBinding = resDesc.binding;
+                    descWrite.dstArrayElement = 0;
+                    descWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                    descWrite.descriptorCount = descriptorCount;
+                    descWrite.pImageInfo = &imageInfos[imageInfosOffset];
+
+                    imageInfosOffset += descriptorCount;
+
+                    descriptorWrites.push_back(descWrite);
+                    break;
+                }
                 case ShaderManager::ResourceType::eSampler: {
                     //for (uint32_t i = 0; i < descriptorCount; ++i)
                     //{
                     //    imageInfos[imageInfosOffset + i].sampler = (i < descriptor.handles.size()) ? descriptor.handles[i].sampler : VK_NULL_HANDLE;
                     //}
                     assert(descriptor.handles.size() > 0);
-                    for (uint32_t i = 0; i < (uint32_t) descriptor.handles.size(); ++i)
+                    for (uint32_t i = 0; i < (uint32_t)descriptor.handles.size(); ++i)
                     {
                         imageInfos[imageInfosOffset + i].imageView = VK_NULL_HANDLE;
                         imageInfos[imageInfosOffset + i].sampler = descriptor.handles[i].sampler;
@@ -276,7 +344,7 @@ protected:
                     descWrite.dstArrayElement = 0;
                     descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
                     //descWrite.descriptorCount = descriptorCount;
-                    descWrite.descriptorCount = (uint32_t) descriptor.handles.size();
+                    descWrite.descriptorCount = (uint32_t)descriptor.handles.size();
                     descWrite.pImageInfo = &imageInfos[imageInfosOffset];
 
                     imageInfosOffset += descriptorCount;
@@ -284,6 +352,7 @@ protected:
                     descriptorWrites.push_back(descWrite);
                     break;
                 }
+                case ShaderManager::ResourceType::eByteAddressBuffer:
                 case ShaderManager::ResourceType::eStructuredBuffer: {
                     for (uint32_t i = 0; i < descriptorCount; ++i)
                     {
@@ -439,6 +508,37 @@ public:
             {
                 resDescriptor.handles[j].imageView = mResManager->getView(images[j]);
             }
+            mResUpdate[i][name] = resDescriptor;
+            needDesciptorSetUpdate[i] = true;
+        }
+    }
+
+    void setTextures3d(const std::string& name, std::vector<Image*>& images)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            ResourceDescriptor resDescriptor{};
+            resDescriptor.type = ShaderManager::ResourceType::eTexture3D;
+            resDescriptor.isArray = true;
+            resDescriptor.handles.resize(images.size());
+            for (uint32_t j = 0; j < images.size(); ++j)
+            {
+                resDescriptor.handles[j].imageView = mResManager->getView(images[j]);
+            }
+            mResUpdate[i][name] = resDescriptor;
+            needDesciptorSetUpdate[i] = true;
+        }
+    }
+
+    void setCubeMap(const std::string& name, VkImageView view)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            ResourceDescriptor resDescriptor{};
+            resDescriptor.type = ShaderManager::ResourceType::eCubeMap;
+            resDescriptor.isArray = false;
+            resDescriptor.handles.resize(1);
+            resDescriptor.handles[0].imageView = view;
             mResUpdate[i][name] = resDescriptor;
             needDesciptorSetUpdate[i] = true;
         }

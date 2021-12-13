@@ -4,7 +4,6 @@
 // This file provides a simple vertex and fragment shader that can be compiled
 // using Slang. This code should also be valid as HLSL, and thus it does not
 // use any of the new language features supported by Slang.
-//
 
 // Uniform data to be passed from application -> shader.
 cbuffer Uniforms
@@ -39,6 +38,22 @@ struct VertexStageOutput
     CoarseVertex    coarseVertex    : CoarseVertex;
     float4          sv_position     : SV_Position;
 };
+
+
+  struct structtype0 {
+  float3 m_0;
+  float3 m_1;
+  float3 m_2;
+  };
+
+  structtype0 constr_structtype0(float3 m_0, float3 m_1, float3 m_2)
+  {
+  structtype0 res;
+  res.m_0 = m_0;
+  res.m_1 = m_1;
+  res.m_2 = m_2;
+  return res;
+  }
 
 [shader("vertex")]
 VertexStageOutput vertexMain(

@@ -1,6 +1,7 @@
 #include "render.h"
 
 #include "debugUtils.h"
+#include "instanceconstants.h"
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -8,6 +9,8 @@
 
 #include <chrono>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 
 // profiler
 #include "Tracy.hpp"
@@ -79,67 +82,19 @@ void Render::initVulkan()
     createCommandBuffers();
     createSyncObjects();
 
+    mView[0] = createView(swapChainExtent.width, swapChainExtent.height);
+    mView[1] = createView(swapChainExtent.width, swapChainExtent.height);
+    mView[2] = createView(swapChainExtent.width, swapChainExtent.height);
+
     mSharedCtx.mDescriptorPool = mDescriptorPool;
     mSharedCtx.mDevice = mDevice;
     mSharedCtx.mResManager = mResManager;
     mSharedCtx.mShaderManager = &mShaderManager;
     mSharedCtx.mTextureManager = mTexManager;
 
-    mView[0] = createView(swapChainExtent.width, swapChainExtent.height);
-    mView[1] = createView(swapChainExtent.width, swapChainExtent.height);
-    mView[2] = createView(swapChainExtent.width, swapChainExtent.height);
-
-    mDebugView = new DebugView(mSharedCtx);
-    mDebugView->initialize();
-
-    mTonemap = new Tonemap(mSharedCtx);
-    mTonemap->initialize();
-
-    mUpscalePass = new UpscalePass(mSharedCtx);
-    mUpscalePass->initialize();
-
-    mComposition = new Composition(mSharedCtx);
-    mComposition->initialize();
-
-    mLtcPass = new LtcPass(mSharedCtx);
-    mLtcPass->initialize();
-
-    mBilateralFilter = new BilateralFilter(mSharedCtx);
-    mBilateralFilter->initialize();
-
-    mAOBilateralFilter = new BilateralFilter(mSharedCtx);
-    mAOBilateralFilter->initialize();
-
-    mRtShadow = new RtShadowPass(mSharedCtx);
-    mRtShadow->initialize();
-
-    mPathTracer = new PathTracer(mSharedCtx);
-    mPathTracer->initialize();
-
-    mReflection = new Reflection(mSharedCtx);
-    mReflection->initialize();
-
-    mAO = new AOPass(mSharedCtx);
-    mAO->initialize();
-
-    mAccumulationShadows = new Accumulation(mSharedCtx);
-    mAccumulationShadows->initialize();
-
-    mAccumulationAO = new Accumulation(mSharedCtx);
-    mAccumulationAO->initialize();
-
-    mAccumulationPathTracer = new Accumulation(mSharedCtx);
-    mAccumulationPathTracer->initialize();
-
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     mTexManager->createTextureSampler(defSamplerDesc);
     modelLoader = new nevk::ModelLoader(mTexManager);
-    createDefaultScene();
-    if (!MODEL_PATH.empty())
-    {
-        mTexManager->saveTexturesInDelQueue();
-        loadScene(MODEL_PATH);
-    }
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -147,11 +102,6 @@ void Render::initVulkan()
     }
 
     mTexManager->createShadowSampler();
-
-    createGbufferPass();
-
-    setDescriptors(0);
-
     QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
 
     ImGui_ImplVulkan_InitInfo init_info{};
@@ -166,6 +116,114 @@ void Render::initVulkan()
 
     mUi.init(init_info, swapChainImageFormat, mWindow, mFramesData[0].cmdPool, mFramesData[0].cmdBuffer, swapChainExtent.width, swapChainExtent.height);
     mUi.createFrameBuffers(mDevice, swapChainImageViews, swapChainExtent.width, swapChainExtent.height);
+}
+
+void Render::initPasses()
+{
+    mDebugView = new DebugView(mSharedCtx);
+    mDebugView->initialize();
+
+    mTonemap = new Tonemap(mSharedCtx);
+    mTonemap->initialize();
+
+    mUpscalePass = new UpscalePass(mSharedCtx);
+    mUpscalePass->initialize();
+
+    mAccumulationPathTracer = new Accumulation(mSharedCtx);
+    mAccumulationPathTracer->initialize();
+
+    mMaterialManager = new MaterialManager();
+    const char* paths[3] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
+                             "./misc/vespa" };
+    bool res = mMaterialManager->addMdlSearchPath(paths, 3);
+    if (!res)
+    {
+        // failed to load MDL
+        return;
+    }
+    gltfModule = mMaterialManager->createModule("gltf_support.mdl");
+    std::vector<MaterialManager::CompiledMaterial*> materials;
+
+    createDefaultScene();
+    if (!MODEL_PATH.empty())
+    {
+        // Workaround:
+        //mTexManager->saveTexturesInDelQueue();
+        loadScene(MODEL_PATH);
+        materials = loadMaterials();
+    }
+
+    // Material manager
+    const fs::path cwd = fs::current_path();
+    std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
+    std::stringstream ptcode;
+    ptcode << pt.rdbuf();
+
+
+    // MTLX
+    //    const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" };
+    //    bool res = mMaterialManager->addMdlSearchPath(path, 2);
+    //    assert(res);
+    //
+    //    std::string file = "misc/test_data/mtlx/standard_surface_wood_tiled.mtlx";
+    //    MaterialManager::Module* currModule = mMaterialManager->createMtlxModule(file.c_str());
+    //    assert(currModule);
+    //    MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "");
+    //    assert(materialInst1);
+    //    MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
+    //    assert(materialComp1);
+    //
+    //    MaterialManager::CompiledMaterial* materials;
+    //    materials.push_back(materialComp1);
+    // MTLX
+
+    // generate code for PT
+    assert(materials.size() != 0);
+    const MaterialManager::TargetCode* gltfModuleCode = mMaterialManager->generateTargetCode(materials);
+    const char* hlsl = mMaterialManager->getShaderCode(gltfModuleCode);
+    // for (MaterialManager::CompiledMaterial* material : materials)
+    // {
+    //     mMaterialManager->destroyCompiledMaterial(material);
+    // }
+    //std::cout << hlsl << std::endl;
+
+    // MTLX
+    //    uint32_t texSize = mMaterialManager->getTextureCount(code);
+    //    for (uint32_t i = 1; i < texSize; ++i)
+    //    {
+    //        const float* data = mMaterialManager->getTextureData(code, i);
+    //        uint32_t width = mMaterialManager->getTextureWidth(code, i);
+    //        uint32_t height = mMaterialManager->getTextureHeight(code, i);
+    //        const char* type = mMaterialManager->getTextureType(code, i);
+    //        std::string name = mMaterialManager->getTextureName(code, i);
+    //        if (data != NULL) // todo: for bsdf_text it is NULL ?? in COMPILATION_CLASS. in default class there is no bsdf_tex, so it is ok
+    //        {
+    //            mTexManager->loadTextureMdl(data, width, height, type, name);
+    //        }
+    //        else
+    //        {
+    //            std::cout << "tiled " << name << std::endl;
+    //        }
+    //    }
+    // MTLX
+
+    std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+    //std::string newPTCode = ptcode.str();
+
+    //std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
+    //std::ofstream outHLSLShaderFile(ptFile.c_str());
+    //outHLSLShaderFile << newPTCode;
+
+    mPathTracer = new PathTracer(mSharedCtx, newPTCode);
+    mPathTracer->initialize();
+
+    // Workaround:
+    mCurrentSceneRenderData->mMaterialTargetCode = gltfModuleCode;
+
+    createMdlBuffers();
+    createMdlTextures();
+
+    createGbufferPass();
 }
 
 void Render::framebufferResizeCallback(GLFWwindow* window, int width, int height)
@@ -352,6 +410,8 @@ void Render::cleanup()
 {
     cleanupSwapChain();
 
+    mMaterialManager->destroyModule(gltfModule);
+
     // mDepthPass.onDestroy();
     mGbufferPass.onDestroy();
 
@@ -368,17 +428,9 @@ void Render::cleanup()
 
     delete mTonemap;
     delete mUpscalePass;
-    delete mComposition;
+
     delete mDebugView;
-    delete mLtcPass;
-    delete mBilateralFilter;
-    delete mAOBilateralFilter;
-    delete mRtShadow;
     delete mPathTracer;
-    delete mReflection;
-    delete mAO;
-    delete mAccumulationShadows;
-    delete mAccumulationAO;
     delete mAccumulationPathTracer;
 
     delete mDefaultSceneRenderData;
@@ -437,6 +489,61 @@ void Render::initWindow()
     glfwSetScrollCallback(mWindow, scrollCallback);
 }
 
+std::vector<MaterialManager::CompiledMaterial*> Render::loadMaterials()
+{
+    std::vector<MaterialManager::CompiledMaterial*> materials;
+    bool res = false;
+    {
+        std::vector<Material> gltfMaterials = mScene->getMaterials();
+        for (int i = 0; i < gltfMaterials.size(); ++i)
+        {
+            const Material& gltfMaterial = gltfMaterials[i];
+
+            // create MDL mat instance
+            MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(gltfModule, "gltf_material");
+
+            // create Textures for MDL from gltf
+            auto createTexture = [&](int32_t id, const char* paramName) {
+                auto texIter = mScene->mTexIdToTexName.find(id);
+                if (texIter != mScene->mTexIdToTexName.end())
+                {
+                    std::string texName = texIter->second;
+                    MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texName.c_str(), "linear");
+                    if (texDesc != nullptr)
+                    {
+                        res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
+                        assert(res);
+                    }
+                }
+            };
+
+            createTexture(gltfMaterial.texBaseColor, "base_color_texture");
+            createTexture(gltfMaterial.texNormalId, "normal_texture");
+            createTexture(gltfMaterial.texEmissive, "emissive_texture");
+            createTexture(gltfMaterial.texOcclusion, "occlusion_texture");
+            createTexture(gltfMaterial.texMetallicRoughness, "metallic_roughness_texture");
+
+            // set params: colors, floats... textures
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eColor, "base_color_factor", &gltfMaterial.baseColorFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "metallic_factor", &gltfMaterial.metallicFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eColor, "emissive_factor", &gltfMaterial.emissiveFactor);
+            assert(res);
+
+            // compile Materials
+            MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
+            materials.push_back(materialComp1);
+
+            // destroy current material data
+            mMaterialManager->destroyMaterialInstance(materialInst1);
+        }
+    }
+    return materials;
+}
+
 void Render::recreateSwapChain()
 {
     int width = 0, height = 0;
@@ -468,8 +575,6 @@ void Render::recreateSwapChain()
     mGbufferPass.onResize(mView[1]->gbuffer, 1);
     mGbufferPass.onResize(mView[2]->gbuffer, 2);
 
-    setDescriptors(0);
-
     mUi.onResize(swapChainImageViews, width, height);
 
     // update all cameras
@@ -489,7 +594,7 @@ void Render::createInstance()
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "NoErrorVulkan Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_2;
+    appInfo.apiVersion = VK_API_VERSION_1_1;
 
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -736,8 +841,8 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height) // swapcha
     ViewData* view = new ViewData();
     view->finalWidth = width;
     view->finalHeight = height;
-    view->renderWidth = (uint32_t) (width * mRenderConfig.upscaleFactor);
-    view->renderHeight = (uint32_t) (height * mRenderConfig.upscaleFactor);
+    view->renderWidth = (uint32_t)(width * mRenderConfig.upscaleFactor);
+    view->renderHeight = (uint32_t)(height * mRenderConfig.upscaleFactor);
     view->mResManager = mResManager;
     view->gbuffer = createGbuffer(view->renderWidth, view->renderHeight);
     view->prevDepth = mResManager->createImage(view->renderWidth, view->renderHeight, view->gbuffer->depthFormat, VK_IMAGE_TILING_OPTIMAL,
@@ -760,64 +865,13 @@ Render::ViewData* Render::createView(uint32_t width, uint32_t height) // swapcha
                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Upscale Output");
     mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureUpscaleImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
-    view->textureCompositionImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                             VK_IMAGE_TILING_OPTIMAL,
-                                                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Composition result");
-    mTexManager->transitionImageLayout(mResManager->getVkImage(view->textureCompositionImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    view->mLtcOutputImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                     VK_IMAGE_TILING_OPTIMAL,
-                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Ltc Output");
-    view->mBilateralOutputImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                                           VK_IMAGE_TILING_OPTIMAL,
-                                                           VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Bilateral Output");
-    view->mBilateralVarianceOutputImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                                                   VK_IMAGE_TILING_OPTIMAL,
-                                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Bilateral Variance Output");
-    view->mAOBilateralOutputImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                                             VK_IMAGE_TILING_OPTIMAL,
-                                                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "AO Bilateral Output");
-    view->mAOBilateralVarianceOutputImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                                                     VK_IMAGE_TILING_OPTIMAL,
-                                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "AO Bilateral Variance Output");
-    view->mRtShadowImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                                    VK_IMAGE_TILING_OPTIMAL,
-                                                    VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "RT Shadow");
     view->mPathTracerImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                       VK_IMAGE_TILING_OPTIMAL,
                                                       VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
 
-    view->mReflectionImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                      VK_IMAGE_TILING_OPTIMAL,
-                                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Reflection Output");
-    view->mAOImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                              VK_IMAGE_TILING_OPTIMAL,
-                                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "AO Output");
 
     const std::string imageName = "Accumulation Image";
-    view->mAccumulationImages = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                                            VK_IMAGE_TILING_OPTIMAL,
-                                                            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
-    mTexManager->transitionImageLayout(mResManager->getVkImage(view->mAccumulationImages), VK_FORMAT_R16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    view->mAccumulationAOImages = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R16_SFLOAT,
-                                                              VK_IMAGE_TILING_OPTIMAL,
-                                                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
-    mTexManager->transitionImageLayout(mResManager->getVkImage(view->mAccumulationAOImages), VK_FORMAT_R16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-
     view->mAccumulationPathTracerImage = mResManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                                   VK_IMAGE_TILING_OPTIMAL,
                                                                   VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -941,6 +995,54 @@ void Render::setCamera()
     camera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 }
 
+void nevk::Render::createMdlTextures()
+{
+    const MaterialManager::TargetCode* code = mCurrentSceneRenderData->mMaterialTargetCode;
+
+    uint32_t texSize = mMaterialManager->getTextureCount(code);
+    for (uint32_t i = 1; i < texSize; ++i)
+    {
+        const float* data = mMaterialManager->getTextureData(code, i);
+        uint32_t width = mMaterialManager->getTextureWidth(code, i);
+        uint32_t height = mMaterialManager->getTextureHeight(code, i);
+        const char* type = mMaterialManager->getTextureType(code, i);
+        std::string name = mMaterialManager->getTextureName(code, i);
+
+        std::cout << "Load MDL texture: " << name << std::endl;
+
+        mTexManager->loadTextureMdl(data, width, height, type, name);
+    }
+}
+
+void nevk::Render::createMdlBuffers()
+{
+    const MaterialManager::TargetCode* code = mCurrentSceneRenderData->mMaterialTargetCode;
+    mMaterialManager->getArgBufferData(code);
+
+    const uint32_t argSize = mMaterialManager->getArgBufferSize(code);
+    const uint32_t roSize = mMaterialManager->getReadOnlyBlockSize(code);
+    const uint32_t infoSize = mMaterialManager->getResourceInfoSize(code);
+    const uint32_t mdlMaterialSize = mMaterialManager->getMdlMaterialSize(code);
+
+    VkDeviceSize stagingSize = std::max(std::max(roSize, mdlMaterialSize), std::max(argSize, infoSize));
+
+    Buffer* stagingBuffer = mResManager->createBuffer(stagingSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, "Staging MDL");
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+
+    auto createGpuBuffer = [&](Buffer*& dest, const uint8_t* src, uint32_t size, const char* name) {
+        memcpy(stagingBufferMemory, src, size);
+        dest = mResManager->createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, name);
+        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(dest), size);
+    };
+
+    createGpuBuffer(mCurrentSceneRenderData->mMdlArgBuffer, mMaterialManager->getArgBufferData(code), argSize, "MDL args");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlInfoBuffer, mMaterialManager->getResourceInfoData(code), infoSize, "MDL info");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlRoBuffer, mMaterialManager->getReadOnlyBlockData(code), roSize, "MDL read only");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlMaterialBuffer, mMaterialManager->getMdlMaterialData(code), mdlMaterialSize, "MDL mdl material");
+
+    mResManager->destroyBuffer(stagingBuffer);
+}
+
 void Render::createVertexBuffer(nevk::Scene& scene)
 {
     std::vector<nevk::Scene::Vertex>& sceneVertices = scene.getVertices();
@@ -985,11 +1087,28 @@ void Render::createLightsBuffer(nevk::Scene& scene)
     }
     Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    memcpy(stagingBufferMemory, sceneLights.data(), (size_t)bufferSize);
+    memcpy(stagingBufferMemory, sceneLights.data(), sizeof(nevk::Scene::Light) * sceneLights.size());
     mCurrentSceneRenderData->mLightsBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Lights");
     mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), bufferSize);
     mResManager->destroyBuffer(stagingBuffer);
 }
+
+#include "ray.h"
+
+struct Hit
+{
+    glm::float2 bary;
+    float t;
+    uint32_t instId;
+    uint32_t primId;
+};
+
+struct BVHTriangle
+{
+    glm::float3 v0;
+    glm::float3 e0;
+    glm::float3 e1;
+};
 
 void Render::createBvhBuffer(nevk::Scene& scene)
 {
@@ -1042,20 +1161,19 @@ void Render::createBvhBuffer(nevk::Scene& scene)
         ++currInstId;
     }
 
-    BVH sceneBvh = mBvhBuilder.build(positions);
+    sceneBvh = mBvhBuilder.build(positions);
+
+    VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.nodes.size();
+    if (bufferSize == 0)
     {
-        VkDeviceSize bufferSize = sizeof(BVHNode) * sceneBvh.nodes.size();
-        if (bufferSize == 0)
-        {
-            return;
-        }
-        Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-        memcpy(stagingBufferMemory, sceneBvh.nodes.data(), (size_t)bufferSize);
-        mCurrentSceneRenderData->mBvhNodeBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
-        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), bufferSize);
-        mResManager->destroyBuffer(stagingBuffer);
+        return;
     }
+    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+    memcpy(stagingBufferMemory, sceneBvh.nodes.data(), (size_t)bufferSize);
+    mCurrentSceneRenderData->mBvhNodeBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), bufferSize);
+    mResManager->destroyBuffer(stagingBuffer);
 }
 
 void Render::createIndexBuffer(nevk::Scene& scene)
@@ -1078,17 +1196,6 @@ void Render::createIndexBuffer(nevk::Scene& scene)
 
 void Render::createInstanceBuffer(nevk::Scene& scene)
 {
-    // This struct should match shader's version
-    struct InstanceConstants
-    {
-        glm::float4x4 model;
-        glm::float4x4 normalMatrix;
-        int32_t materialId;
-        int32_t indexOffset;
-        int32_t indexCount;
-        int32_t pad2;
-    };
-
     const std::vector<Mesh>& meshes = scene.getMeshes();
     const std::vector<nevk::Instance>& sceneInstances = scene.getInstances();
     mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
@@ -1102,7 +1209,8 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
     for (int i = 0; i < sceneInstances.size(); ++i)
     {
         instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
-        instanceConsts[i].model = sceneInstances[i].transform;
+        instanceConsts[i].objectToWorld = sceneInstances[i].transform;
+        instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
         instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
 
         const uint32_t currentMeshId = sceneInstances[i].mMeshId;
@@ -1110,11 +1218,11 @@ void Render::createInstanceBuffer(nevk::Scene& scene)
         instanceConsts[i].indexCount = meshes[currentMeshId].mCount;
     }
 
-    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    Buffer* stagingBuffer = mResManager->createBuffer(sizeof(InstanceConstants) * sceneInstances.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    memcpy(stagingBufferMemory, instanceConsts.data(), (size_t)bufferSize);
+    memcpy(stagingBufferMemory, instanceConsts.data(), sizeof(InstanceConstants) * sceneInstances.size());
     mCurrentSceneRenderData->mInstanceBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), bufferSize);
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), sizeof(InstanceConstants) * sceneInstances.size());
     mResManager->destroyBuffer(stagingBuffer);
 }
 
@@ -1276,154 +1384,6 @@ void Render::loadScene(const std::string& modelPath)
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
-
-    setDescriptors(0);
-}
-
-void Render::setDescriptors(uint32_t imageIndex)
-{
-    ViewData* currView = mView[imageIndex];
-
-    {
-        mGbufferPass.setTextureImageView(mTexManager->textureImageView);
-        mGbufferPass.setTextureSamplers(mTexManager->texSamplers);
-        mGbufferPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
-        mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-    }
-    {
-        RtShadowPassDesc desc{};
-        desc.result = currView->mRtShadowImage;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        desc.gbuffer = currView->gbuffer;
-        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.instanceConstants = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
-        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
-
-        mRtShadow->setResources(desc);
-    }
-    {
-        PathTracerDesc desc{};
-        desc.result = currView->mPathTracerImage;
-        desc.gbuffer = currView->gbuffer;
-        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
-        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
-        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-        desc.matSampler = mTexManager->texSamplers;
-        desc.matTextures = mTexManager->textureImages;
-        mPathTracer->setResources(desc);
-    }
-    {
-        ReflectionDesc desc{};
-        desc.result = currView->mReflectionImage;
-        desc.gbuffer = currView->gbuffer;
-        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
-        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
-        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-        desc.matSampler = mTexManager->texSamplers;
-        desc.matTextures = mTexManager->textureImages;
-        mReflection->setResources(desc);
-    }
-    {
-        AOPassDesc desc{};
-        desc.result = currView->mAOImage;
-        desc.gbuffer = currView->gbuffer;
-        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-        desc.instanceConstants = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
-        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
-
-        mAO->setResources(desc);
-    }
-    {
-        mAccumulationShadows->setInputTexture1(currView->mRtShadowImage);
-        mAccumulationShadows->setMotionTexture(currView->gbuffer->motion);
-        mAccumulationShadows->setPrevDepthTexture(currView->prevDepth);
-        mAccumulationShadows->setWposTexture(currView->gbuffer->wPos);
-        mAccumulationShadows->setCurrDepthTexture(currView->gbuffer->depth);
-    }
-    {
-        mAccumulationAO->setInputTexture1(currView->mAOImage);
-        mAccumulationAO->setMotionTexture(currView->gbuffer->motion);
-        mAccumulationAO->setPrevDepthTexture(currView->prevDepth);
-        mAccumulationAO->setWposTexture(currView->gbuffer->wPos);
-        mAccumulationAO->setCurrDepthTexture(currView->gbuffer->depth);
-    }
-    {
-        mAccumulationPathTracer->setInputTexture4(currView->mPathTracerImage);
-        mAccumulationPathTracer->setMotionTexture(currView->gbuffer->motion);
-        mAccumulationPathTracer->setPrevDepthTexture(currView->prevDepth);
-        mAccumulationPathTracer->setWposTexture(currView->gbuffer->wPos);
-        mAccumulationPathTracer->setCurrDepthTexture(currView->gbuffer->depth);
-    }
-    {
-        LtcResourceDesc desc{};
-        desc.gbuffer = currView->gbuffer;
-        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
-        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-        desc.result = currView->mLtcOutputImage;
-        desc.matSampler = mTexManager->texSamplers;
-        desc.matTextures = mTexManager->textureImages;
-        mLtcPass->setResources(desc);
-    }
-    {
-        mDebugImages.shadow = currView->mRtShadowImage;
-        mDebugImages.LTC = currView->mLtcOutputImage;
-        mDebugImages.normal = currView->gbuffer->normal;
-        mDebugImages.debug = currView->gbuffer->debug;
-        mDebugImages.AO = currView->mAOImage;
-        mDebugImages.motion = currView->gbuffer->motion;
-        mDebugImages.reflection = currView->mReflectionImage;
-        mDebugImages.variance = currView->mBilateralVarianceOutputImage;
-        mDebugImages.pathTracer = currView->mPathTracerImage;
-    }
-    {
-        BilateralResourceDesc desc{};
-        desc.gbuffer = currView->gbuffer;
-        desc.result = currView->mBilateralOutputImage;
-        desc.variance = currView->mBilateralVarianceOutputImage;
-        desc.input = currView->mRtShadowImage;
-        mBilateralFilter->setResources(desc);
-    }
-    {
-        BilateralResourceDesc desc{};
-        desc.gbuffer = currView->gbuffer;
-        desc.result = currView->mAOBilateralOutputImage;
-        desc.variance = currView->mAOBilateralVarianceOutputImage;
-        desc.input = currView->mRtShadowImage;
-        mAOBilateralFilter->setResources(desc);
-    }
-    {
-        mDebugView->setParams(mDebugParams);
-        mDebugView->setInputTexture(mDebugImages);
-        mDebugView->setOutputTexture(mResManager->getView(currView->textureDebugViewImage));
-    }
-    {
-        mTonemap->setParams(mToneParams);
-        mTonemap->setInputTexture(mResManager->getView(currView->textureCompositionImage));
-        mTonemap->setOutputTexture(mResManager->getView(currView->textureTonemapImage));
-    }
-    {
-        mUpscalePass->setParams(mUpscalePassParam);
-        mUpscalePass->setInputTexture(mResManager->getView(currView->mPathTracerImage));
-        mUpscalePass->setOutputTexture(mResManager->getView(currView->textureUpscaleImage));
-    }
-    {
-        mCompositionImages.shadow = currView->mRtShadowImage;
-        mCompositionImages.LTC = currView->mLtcOutputImage;
-        mCompositionImages.AO = currView->mAOImage;
-        mCompositionImages.reflections = currView->mReflectionImage;
-
-        mComposition->setParams(mCompositionParam);
-        mComposition->setInputTexture(mCompositionImages);
-        mComposition->setOutputTexture(mResManager->getView(currView->textureCompositionImage));
-    }
 }
 
 // set default scene
@@ -1454,10 +1414,248 @@ void Render::createDefaultScene()
     createMaterialBuffer(*mScene);
     createInstanceBuffer(*mScene);
     createLightsBuffer(*mScene);
-    createBvhBuffer(*mScene);
+    //createBvhBuffer(*mScene);
 
     createIndexBuffer(*mScene);
     createVertexBuffer(*mScene);
+}
+
+void Render::renderCPU()
+{
+    int32_t image_width = 200;
+    int32_t image_height = 150;
+    std::vector<uint8_t> colorData;
+    colorData.resize(image_width * image_height * 3);
+    int index = 0;
+
+    Camera tmpCam;
+    tmpCam = mScene->getCamera(0);
+
+    tmpCam.updateViewMatrix();
+    tmpCam.setPerspective(45, (float)image_width / image_height, 0.1f, 1000.f);
+
+    std::vector<BVHNode>& nodesBvh = sceneBvh.nodes;
+    for (int32_t y = 0; y < image_height; ++y)
+    {
+        for (int32_t x = 0; x < image_width; ++x)
+        {
+            glm::float3 color = glm::float3(0.0);
+
+            auto rayGen = [&](glm::int2 pixelIndex, Camera& cam, glm::int2 dimension) {
+                glm::float2 pixelPos = glm::float2(pixelIndex) + 0.5f;
+                glm::float2 pixelNDC = (pixelPos / glm::float2(dimension)) * 2.0f - 1.0f;
+
+                glm::float4 clip = glm::float4(pixelNDC, 1.0, 1.0);
+                glm::float4 viewSpace = glm::inverse(cam.matrices.perspective) * clip;
+
+                glm::float4 wpos = glm::inverse(cam.matrices.view) * glm::float4(viewSpace.x, viewSpace.y, viewSpace.z, 0.0f);
+
+                Ray ray;
+                ray.o = glm::float4(cam.getPosition(), 0.0f);
+                ray.o.w = 1e9;
+                glm::float3 normDir = glm::normalize(wpos);
+                ray.d.x = normDir.x;
+                ray.d.y = normDir.y;
+                ray.d.z = normDir.z;
+
+                return ray;
+            };
+
+            auto getTriangleCPU = [&](uint32_t instId, uint32_t primitiveId) {
+                const nevk::Instance instConst = mScene->getInstances()[instId];
+                const std::vector<Mesh>& meshes = mScene->getMeshes();
+
+                const uint32_t currentMeshId = instConst.mMeshId;
+                int offset = meshes[currentMeshId].mIndex;
+                uint32_t i0 = mScene->mIndices[offset + primitiveId * 3 + 0];
+                uint32_t i1 = mScene->mIndices[offset + primitiveId * 3 + 1];
+                uint32_t i2 = mScene->mIndices[offset + primitiveId * 3 + 2];
+
+                // read and transform vertices, calculate edges
+                glm::float4x4 objectToWorld = instConst.transform;
+                glm::float4 tmpv0 = (objectToWorld * glm::float4(mScene->mVertices[i0].pos, 1.0));
+                glm::float3 v0 = { tmpv0.x, tmpv0.y, tmpv0.z };
+                glm::float4 tmpe0 = (objectToWorld * glm::float4(mScene->mVertices[i1].pos, 1.0)) - tmpv0;
+                glm::float3 e0 = { tmpe0.x, tmpe0.y, tmpe0.z };
+                glm::float4 tmpe1 = (objectToWorld * glm::float4(mScene->mVertices[i2].pos, 1.0)) - tmpv0;
+                glm::float3 e1 = { tmpe1.x, tmpe1.y, tmpe1.z };
+
+                BVHTriangle res;
+                res.v0 = v0;
+                res.e0 = e0;
+                res.e1 = e1;
+
+                return res;
+            };
+
+            auto interpolateAttrib = [](glm::float3 attr1, glm::float3 attr2, glm::float3 attr3, glm::float2 bary) {
+                return attr1 * (1 - bary.x - bary.y) + attr2 * bary.x + attr3 * bary.y;
+            };
+
+            //  valid range of coordinates [-1; 1]
+            auto unpackNormal = [](uint32_t val) {
+                glm::float3 normal;
+                normal.z = ((val & 0xfff00000) >> 20) / 511.99999f * 2.0f - 1.0f;
+                normal.y = ((val & 0x000ffc00) >> 10) / 511.99999f * 2.0f - 1.0f;
+                normal.x = (val & 0x000003ff) / 511.99999f * 2.0f - 1.0f;
+
+                return normal;
+            };
+
+            auto rayTriangleIntersectCPU = [&](const glm::float3 orig,
+                                               const glm::float3 dir,
+                                               glm::float3 v0,
+                                               glm::float3 e0,
+                                               glm::float3 e1,
+                                               float& t,
+                                               glm::float2& bCoord) {
+                const glm::float3 pvec = cross(dir, e1);
+
+                float det = glm::dot(e0, pvec);
+
+                // Backface culling
+                ///if (det < 1e-6)
+                //{
+                //    return false;
+                //}
+
+                if (abs(det) < 1e-6)
+                {
+                    return false;
+                }
+
+                float invDet = 1.0f / det;
+
+                glm::float3 tvec = orig - v0;
+                float u = glm::dot(tvec, pvec) * invDet;
+                if (u < 0.0 || u > 1.0)
+                {
+                    return false;
+                }
+
+                glm::float3 qvec = glm::cross(tvec, e0);
+                float v = glm::dot(dir, qvec) * invDet;
+                if (v < 0.0 || (u + v) > 1.0)
+                {
+                    return false;
+                }
+
+                t = glm::dot(e1, qvec) * invDet;
+
+                if (t < 1e-6)
+                {
+                    return false;
+                }
+
+                bCoord.x = u;
+                bCoord.y = v;
+
+                return true;
+            };
+
+            auto closestHit = [&](std::vector<BVHNode>& bvhNodes, Ray& ray, Hit& hit) {
+                const glm::float3 invdir = glm::float3(1.0 / ray.d.x, 1.0 / ray.d.y, 1.0 / ray.d.z);
+
+                float minHit = 1e9f;
+                bool isFound = false;
+
+                uint32_t nodeIndex = 0;
+                while (nodeIndex != -1)
+                {
+                    BVHNode& node = bvhNodes[nodeIndex];
+                    const uint32_t instanceIndex = node.instId;
+                    float boxT = 1e9f;
+                    hit.t = 0.0;
+                    if (instanceIndex != -1) // leaf
+                    {
+                        union
+                        {
+                            uint32_t primUint;
+                            float primFloat;
+                        } leaf;
+                        leaf.primFloat = node.minBounds.x;
+                        const uint32_t primitiveIndex = leaf.primUint; // triangle index
+
+                        BVHTriangle triangle = getTriangleCPU(instanceIndex, primitiveIndex);
+                        float curT = 0;
+                        glm::float2 bary = glm::float2(0.0);
+                        const glm::float3 origin = { ray.o.x, ray.o.y, ray.o.z };
+                        const glm::float3 dir = { ray.d.x, ray.d.y, ray.d.z };
+                        bool isIntersected = rayTriangleIntersectCPU(origin, dir, triangle.v0, triangle.e0, triangle.e1, curT, bary);
+                        if (isIntersected && (curT < ray.o.w) && (curT < minHit))
+                        {
+                            minHit = curT;
+                            hit.t = curT;
+                            hit.bary = bary;
+                            hit.instId = instanceIndex;
+                            hit.primId = primitiveIndex;
+                            isFound = true;
+                        }
+                        nodeIndex = node.nodeOffset;
+                        continue;
+                    }
+                    else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
+                    {
+                        if (boxT > ray.o.w) // check max ray trace distance: skip this node if collision far away
+                        {
+                            nodeIndex = node.nodeOffset;
+                            continue;
+                        }
+                        ++nodeIndex;
+                        continue;
+                    }
+
+                    nodeIndex = node.nodeOffset;
+                }
+
+                return isFound;
+            };
+
+            Ray ray = rayGen(glm::int2(x, y), tmpCam, glm::int2(image_width, image_height));
+
+            Hit hit;
+            bool f = closestHit(nodesBvh, ray, hit);
+
+            if (f)
+            {
+                InstanceConstants instConst = {};
+
+                const uint32_t currentMeshId = mScene->mInstances[hit.instId].mMeshId;
+
+                instConst.objectToWorld = mScene->mInstances[hit.instId].transform;
+                instConst.indexOffset = mScene->mMeshes[currentMeshId].mIndex;
+                instConst.normalMatrix = glm::inverse(glm::transpose(instConst.objectToWorld));
+
+                uint32_t i0 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 0];
+                uint32_t i1 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 1];
+                uint32_t i2 = mScene->mIndices[instConst.indexOffset + hit.primId * 3 + 2];
+
+                glm::float3 n0 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i0].normal));
+                glm::float3 n1 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i1].normal));
+                glm::float3 n2 = ((glm::float3x3)instConst.normalMatrix, unpackNormal(mScene->mVertices[i2].normal));
+
+                glm::float3 world_normal = normalize(interpolateAttrib(n0, n1, n2, hit.bary));
+
+                color = world_normal;
+            }
+            else
+            {
+                color = glm::float3(0.0f);
+            }
+
+            auto r = color.x;
+            auto g = color.y;
+            auto b = color.z;
+
+            int ir = static_cast<int>(256 * glm::clamp(r, 0.0f, 0.999f)), ig = static_cast<int>(256 * glm::clamp(g, 0.0f, 0.999f)),
+                ib = static_cast<int>(256 * glm::clamp(b, 0.0f, 0.999f));
+
+            colorData[index++] = (uint8_t)ir;
+            colorData[index++] = (uint8_t)ig;
+            colorData[index++] = (uint8_t)ib;
+        }
+    }
+    mTexManager->savePNG(image_width, image_height, (uint8_t*)colorData.data());
 }
 
 void Render::drawFrame()
@@ -1521,6 +1719,10 @@ void Render::drawFrame()
 
         createBvhBuffer(*mScene); // need to update descriptors after it
     }
+    if (mRenderConfig.renderCPU)
+    {
+        renderCPU();
+    }
 
     if (!mSceneConfig.newModelPath.empty() && fs::exists(mSceneConfig.newModelPath) && mSceneConfig.newModelPath != MODEL_PATH)
     {
@@ -1533,6 +1735,11 @@ void Render::drawFrame()
         }
         mTexManager->saveTexturesInDelQueue();
         loadScene(mSceneConfig.newModelPath);
+
+        std::vector<MaterialManager::CompiledMaterial*> materials = loadMaterials();
+        mCurrentSceneRenderData->mMaterialTargetCode = mMaterialManager->generateTargetCode(materials);
+        createMdlBuffers();
+        createMdlTextures();
     }
 
     scene = getScene();
@@ -1597,10 +1804,7 @@ void Render::drawFrame()
 
         needResetPt = true;
         needImageViewUpdate[imageIndex] = false;
-        setDescriptors(imageIndex);
     }
-
-    setDescriptors(imageIndex);
 
     uint32_t renderWidth = mView[imageIndex]->renderWidth;
     uint32_t renderHeight = mView[imageIndex]->renderHeight;
@@ -1612,32 +1816,21 @@ void Render::drawFrame()
 
     mGbufferPass.updateUniformBuffer(frameIndex, *scene, getActiveCameraIndex());
 
-    RtShadowParam rtShadowParam{};
-    rtShadowParam.dimension = glm::int2(renderWidth, renderHeight);
-    rtShadowParam.frameNumber = (uint32_t)mFrameNumber;
-    mRtShadow->setParams(rtShadowParam);
-
     PathTracerParam pathTracerParam{};
     pathTracerParam.dimension = glm::int2(renderWidth, renderHeight);
     pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
     pathTracerParam.maxDepth = mRenderConfig.maxDepth;
     pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
     pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
-    pathTracerParam.numLights = (uint32_t) scene->getLights().size();
+    pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);
+    pathTracerParam.worldToView = cam.matrices.view; //
+    pathTracerParam.clipToView = cam.matrices.invPerspective;
+    pathTracerParam.viewToClip = cam.matrices.perspective; //
+    pathTracerParam.len = sceneBvh.nodes.size();
+    pathTracerParam.numLights = (uint32_t)scene->getLights().size();
+    pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
+    pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
     mPathTracer->setParams(pathTracerParam);
-
-    ReflectionParam reflectionParam{};
-    reflectionParam.camPos = cam.getPosition();
-    reflectionParam.dimension = glm::int2(renderWidth,renderHeight);
-    reflectionParam.frameNumber = (uint32_t)mFrameNumber;
-    mReflection->setParams(reflectionParam);
-
-    AOParam aoParam{};
-    aoParam.dimension = glm::int2(renderWidth, renderHeight);
-    aoParam.frameNumber = (uint32_t)mFrameNumber;
-    aoParam.samples = (uint32_t)mSamples;
-    aoParam.rayLen = mRenderConfig.rayLen;
-    mAO->setParams(aoParam);
 
     AccumulationParam accParam{};
     accParam.alpha = mRenderConfig.accAlpha;
@@ -1656,8 +1849,6 @@ void Render::drawFrame()
     accParam.isPt = 0;
 
     AccumulationParam accParamPT = accParam;
-    AccumulationParam accParamAO = accParam;
-    accParamAO.alpha = mRenderConfig.accAOAlpha;
 
     accParamPT.isPt = 1;
     if (needResetPt)
@@ -1670,42 +1861,7 @@ void Render::drawFrame()
     }
     accParamPT.iteration = mView[imageIndex]->mPtIteration;
 
-    mAccumulationShadows->setParams(accParam);
-    mAccumulationAO->setParams(accParamAO);
     mAccumulationPathTracer->setParams(accParamPT);
-
-    LtcParam ltcparams{};
-    ltcparams.CameraPos = cam.getPosition();
-    ltcparams.dimension = glm::int2(renderWidth, renderHeight);
-    ltcparams.frameNumber = (uint32_t)mFrameNumber;
-    ltcparams.lightsCount = (uint32_t)scene->getLights().size();
-    mLtcPass->setParams(ltcparams);
-
-    BilateralParam bilateralparams{};
-    bilateralparams.dimension = glm::int2(renderWidth, renderHeight);
-    bilateralparams.dipatchGridDim = (bilateralparams.dimension + glm::int2(15, 15)) / glm::int2(16, 16);
-    bilateralparams.useSwizzleTid = (int)mRenderConfig.useSwizzleTid;
-    bilateralparams.sigma = mRenderConfig.sigma;
-    bilateralparams.sigmaNormal = mRenderConfig.sigmaNormal;
-    bilateralparams.radius = mRenderConfig.radius;
-    bilateralparams.zfar = cam.zfar;
-    bilateralparams.znear = cam.znear;
-    bilateralparams.maxR = mRenderConfig.maxR;
-    bilateralparams.invProj = glm::inverse(cam.getPerspective());
-    mBilateralFilter->setParams(bilateralparams);
-
-    BilateralParam bilateralAOparams{};
-    bilateralAOparams.dipatchGridDim = (bilateralparams.dimension + glm::int2(15, 15)) / glm::int2(16, 16);
-    bilateralAOparams.useSwizzleTid = (int)mRenderConfig.useSwizzleTid;
-    bilateralAOparams.dimension = glm::int2(renderWidth, renderHeight);
-    bilateralAOparams.sigma = mRenderConfig.sigmaAO;
-    bilateralAOparams.sigmaNormal = mRenderConfig.sigmaAONormal;
-    bilateralAOparams.radius = mRenderConfig.radiusAO;
-    bilateralAOparams.zfar = cam.zfar;
-    bilateralAOparams.znear = cam.znear;
-    bilateralAOparams.maxR = mRenderConfig.maxRAO;
-    bilateralAOparams.invProj = glm::inverse(cam.getPerspective());
-    mAOBilateralFilter->setParams(bilateralAOparams);
 
     if (needReloadScene && releaseSceneAfterFrames == 0)
     {
@@ -1752,22 +1908,13 @@ void Render::drawFrame()
         bool needBarrier = false;
         if (!sceneInstances.empty())
         {
-            // This struct must match shader's version
-            struct InstanceConstants
-            {
-                glm::float4x4 model;
-                glm::float4x4 normalMatrix;
-                int32_t materialId;
-                int32_t indexOffset;
-                int32_t indexCount;
-                int32_t pad2;
-            };
             std::vector<InstanceConstants> instanceConsts;
             instanceConsts.resize(sceneInstances.size());
             for (uint32_t i = 0; i < sceneInstances.size(); ++i)
             {
                 instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
-                instanceConsts[i].model = sceneInstances[i].transform;
+                instanceConsts[i].objectToWorld = sceneInstances[i].transform;
+                instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
                 instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
 
                 const uint32_t currentMeshId = sceneInstances[i].mMeshId;
@@ -1790,7 +1937,7 @@ void Render::drawFrame()
         if (!lights.empty())
         {
             size_t bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
-            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
+            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), lights.size() * sizeof(nevk::Scene::Light));
 
             VkBufferCopy copyRegion{};
             copyRegion.size = bufferSize;
@@ -1806,7 +1953,7 @@ void Render::drawFrame()
         if (!materials.empty())
         {
             size_t bufferSize = sizeof(Material) * MAX_LIGHT_COUNT;
-            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), materials.data(), bufferSize);
+            memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), materials.data(), materials.size() * sizeof(Material));
 
             VkBufferCopy copyRegion{};
             copyRegion.size = bufferSize;
@@ -1817,7 +1964,6 @@ void Render::drawFrame()
             stagingBufferOffset += bufferSize;
             needBarrier = true;
         }
-
 
         if (needBarrier)
         {
@@ -1842,6 +1988,13 @@ void Render::drawFrame()
 
     const GBuffer& gbuffer = *mView[imageIndex]->gbuffer;
 
+    {
+        mGbufferPass.setTextureImageView(mTexManager->textureImageView);
+        mGbufferPass.setTextureSamplers(mTexManager->texSamplers);
+        mGbufferPass.setMaterialBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+        mGbufferPass.setInstanceBuffer(mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
+    }
+
     // barriers
     {
         recordBarrier(cmd, mResManager->getVkImage(gbuffer.wPos), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -1862,180 +2015,82 @@ void Render::drawFrame()
                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     }
 
-    Image* finalAOImage = mView[imageIndex]->mAOImage;
-    Image* finalRtImage = mView[imageIndex]->mRtShadowImage;
-    Image* finalPathTracerImage = mView[imageIndex]->mPathTracerImage;
-    Image* finalImage = nullptr;
+    Image* finalImage = mView[imageIndex]->mPathTracerImage;
 
     // Path Tracer
-    if (mRenderConfig.enablePathTracer)
     {
-        recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        mPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
-        recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        PathTracerDesc desc{};
+        desc.result = mView[imageIndex]->mPathTracerImage;
+        desc.gbuffer = mView[imageIndex]->gbuffer;
+        desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+        desc.vb = mCurrentSceneRenderData->mVertexBuffer;
+        desc.ib = mCurrentSceneRenderData->mIndexBuffer;
+        desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+        desc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+        desc.matSampler = mTexManager->mMdlSampler;
+        desc.matTextures = mTexManager->textureImages;
+
+        desc.mdl_argument_block = mCurrentSceneRenderData->mMdlArgBuffer;
+        desc.mdl_ro_data_segment = mCurrentSceneRenderData->mMdlRoBuffer;
+        desc.mdl_resource_infos = mCurrentSceneRenderData->mMdlInfoBuffer;
+        desc.mdl_mdlMaterial = mCurrentSceneRenderData->mMdlMaterialBuffer;
+
+        mPathTracer->setResources(desc);
+    }
+    recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
+    recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+    finalImage = mView[imageIndex]->mPathTracerImage;
+
+    if (mRenderConfig.enablePathTracerAcc && mPrevView)
+    {
+        {
+            mAccumulationPathTracer->setInputTexture4(mView[imageIndex]->mPathTracerImage);
+            mAccumulationPathTracer->setMotionTexture(mView[imageIndex]->gbuffer->motion);
+            mAccumulationPathTracer->setPrevDepthTexture(mView[imageIndex]->prevDepth);
+            mAccumulationPathTracer->setWposTexture(mView[imageIndex]->gbuffer->wPos);
+            mAccumulationPathTracer->setCurrDepthTexture(mView[imageIndex]->gbuffer->depth);
+        }
+
+        // Accumulation pass
+        Image* accHist = mPrevView->mAccumulationPathTracerImage;
+        Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
+
+        mAccumulationPathTracer->setHistoryTexture4(accHist);
+        mAccumulationPathTracer->setOutputTexture4(accOut);
+
+        recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        finalPathTracerImage = mView[imageIndex]->mPathTracerImage;
-
-        if (mRenderConfig.enablePathTracerAcc && mPrevView)
-        {
-            // Accumulation pass
-            Image* accHist = mPrevView->mAccumulationPathTracerImage;
-            Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
-
-            mAccumulationPathTracer->setHistoryTexture4(accHist);
-            mAccumulationPathTracer->setOutputTexture4(accOut);
-
-            recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
-            recordBarrier(cmd, mResManager->getVkImage(accOut),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-            finalPathTracerImage = accOut;
-        }
+        finalImage = accOut;
     }
-    else
-    {
-        // LTC
-        recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mLtcOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        mLtcPass->execute(cmd, renderWidth, renderHeight, imageIndex);
-        recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mLtcOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        // Reflections
-        if (mRenderConfig.enableReflections)
-        {
-            recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mReflectionImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            mReflection->execute(cmd, renderWidth, renderHeight, imageIndex);
-            recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mReflectionImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        }
-
-        // Shadows
-        if (mRenderConfig.enableShadows)
-        {
-            recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mRtShadowImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            mRtShadow->execute(cmd, renderWidth, renderHeight, imageIndex);
-            recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mRtShadowImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-            finalRtImage = mView[imageIndex]->mRtShadowImage;
-
-            if (mRenderConfig.enableShadowsAcc && mPrevView)
-            {
-                // Accumulation pass
-                Image* accHist = mPrevView->mAccumulationImages;
-                Image* accOut = mView[imageIndex]->mAccumulationImages;
-
-                mAccumulationShadows->setHistoryTexture1(accHist);
-                mAccumulationShadows->setOutputTexture1(accOut);
-
-                recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-                mAccumulationShadows->execute(cmd, renderWidth, renderHeight, imageIndex);
-                recordBarrier(cmd, mResManager->getVkImage(accOut),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-                finalRtImage = accOut;
-            }
-
-            if (mRenderConfig.enableFilter)
-            {
-                // Bilateral Filter
-                BilateralResourceDesc desc{};
-                desc.gbuffer = mView[imageIndex]->gbuffer;
-                desc.result = mView[imageIndex]->mBilateralOutputImage;
-                desc.variance = mView[imageIndex]->mBilateralVarianceOutputImage;
-                desc.input = finalRtImage;
-                mBilateralFilter->setResources(desc);
-
-                recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                              VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-                recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                              VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-                mBilateralFilter->execute(cmd, renderWidth, renderHeight, imageIndex);
-
-                recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-                recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mBilateralOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-                finalRtImage = mView[imageIndex]->mBilateralOutputImage;
-            }
-        }
-
-        // Ambient occlusion
-        if (mRenderConfig.enableAO)
-        {
-            recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mAOImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            mAO->execute(cmd, renderWidth, renderHeight, imageIndex);
-            recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mAOImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-            finalAOImage = mView[imageIndex]->mAOImage;
-
-            if (mRenderConfig.enableAOAcc && mPrevView)
-            {
-                // Accumulation AO pass
-                Image* accHistAO = mPrevView->mAccumulationAOImages;
-                Image* accOutAO = mView[imageIndex]->mAccumulationAOImages;
-
-                mAccumulationAO->setHistoryTexture1(accHistAO);
-                mAccumulationAO->setOutputTexture1(accOutAO);
-
-                recordBarrier(cmd, mResManager->getVkImage(accOutAO), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-                mAccumulationAO->execute(cmd, renderWidth, renderHeight, imageIndex);
-                recordBarrier(cmd, mResManager->getVkImage(accOutAO),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-                finalAOImage = accOutAO;
-            }
-            if (mRenderConfig.enableAOFilter)
-            {
-                // Bilateral Filter AO
-                BilateralResourceDesc desc{};
-                desc.gbuffer = mView[imageIndex]->gbuffer;
-                desc.result = mView[imageIndex]->mAOBilateralOutputImage;
-                desc.variance = mView[imageIndex]->mAOBilateralVarianceOutputImage;
-                desc.input = finalAOImage;
-                mAOBilateralFilter->setResources(desc);
-
-                recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mAOBilateralOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                              VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-                recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mAOBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                              VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-                mAOBilateralFilter->execute(cmd, renderWidth, renderHeight, imageIndex);
-
-                recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mAOBilateralVarianceOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-                recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mAOBilateralOutputImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-                finalAOImage = mView[imageIndex]->mAOBilateralOutputImage;
-            }
-        }
-    }
 
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone && !mRenderConfig.enablePathTracer)
     {
-        mDebugImages.shadow = finalRtImage;
-        mDebugImages.LTC = mView[imageIndex]->mLtcOutputImage;
+        {
+            mDebugImages.normal = mView[imageIndex]->gbuffer->normal;
+            mDebugImages.debug = mView[imageIndex]->gbuffer->debug;
+            mDebugImages.motion = mView[imageIndex]->gbuffer->motion;
+            mDebugImages.pathTracer = mView[imageIndex]->mPathTracerImage;
+        }
+        {
+            mDebugView->setParams(mDebugParams);
+            mDebugView->setInputTexture(mDebugImages);
+            mDebugView->setOutputTexture(mResManager->getView(mView[imageIndex]->textureDebugViewImage));
+        }
+
         mDebugImages.normal = mView[imageIndex]->gbuffer->normal;
         mDebugImages.debug = mView[imageIndex]->gbuffer->debug;
-        mDebugImages.AO = finalAOImage;
         mDebugImages.motion = mView[imageIndex]->gbuffer->motion;
-        mDebugImages.variance = mView[imageIndex]->mBilateralVarianceOutputImage;
-        mDebugImages.reflection = mView[imageIndex]->mReflectionImage;
-        mDebugImages.pathTracer = finalPathTracerImage;
+        mDebugImages.pathTracer = finalImage;
 
         mDebugParams.dimension.x = renderWidth;
         mDebugParams.dimension.y = renderHeight;
@@ -2047,61 +2102,21 @@ void Render::drawFrame()
     }
     else
     {
-        Image* tmpImage = nullptr;
-        if (mRenderConfig.enablePathTracer)
-        {
-            tmpImage = finalPathTracerImage;
-        }
-        else
-        {
-            if (!mRenderConfig.enableShadows)
-            {
-                recordBarrier(cmd, mResManager->getVkImage(finalRtImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            }
-            if (!mRenderConfig.enableAO)
-            {
-                recordBarrier(cmd, mResManager->getVkImage(finalAOImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            }
-            if (!mRenderConfig.enableReflections)
-            {
-                recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mReflectionImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                              VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            }
-
-            mCompositionImages.shadow = finalRtImage;
-            mCompositionImages.LTC = mView[imageIndex]->mLtcOutputImage;
-            mCompositionImages.AO = finalAOImage;
-            mCompositionImages.reflections = mView[imageIndex]->mReflectionImage;
-
-            // compose final image ltc + reflections + rtshadow + ao
-            recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->textureCompositionImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-            mCompositionParam.dimension.x = renderWidth;
-            mCompositionParam.dimension.y = renderHeight;
-            mCompositionParam.enableShadows = (int32_t)mRenderConfig.enableShadows;
-            mCompositionParam.enableAO = (int32_t)mRenderConfig.enableAO;
-            mCompositionParam.enableReflections = (int32_t)mRenderConfig.enableReflections;
-            mComposition->setParams(mCompositionParam);
-            mComposition->setInputTexture(mCompositionImages);
-            mComposition->execute(cmd, renderWidth, renderHeight, imageIndex);
-            recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->textureCompositionImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            tmpImage = mView[imageIndex]->textureCompositionImage;
-        }
-
         // Tonemap
         {
+            {
+                mTonemap->setParams(mToneParams);
+                mTonemap->setInputTexture(mResManager->getView(mView[imageIndex]->mPathTracerImage));
+                mTonemap->setOutputTexture(mResManager->getView(mView[imageIndex]->textureTonemapImage));
+            }
             recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->textureTonemapImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-           // recordBarrier(cmd, mResManager->getVkImage(tmpImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-             //             VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            // recordBarrier(cmd, mResManager->getVkImage(tmpImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            //             VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mToneParams.dimension.x = renderWidth;
             mToneParams.dimension.y = renderHeight;
             mTonemap->setParams(mToneParams);
-            mTonemap->setInputTexture(mResManager->getView(tmpImage));
+            mTonemap->setInputTexture(mResManager->getView(finalImage));
             mTonemap->execute(cmd, renderWidth, renderHeight, imageIndex);
             finalImage = mView[imageIndex]->textureTonemapImage;
         }
@@ -2109,12 +2124,18 @@ void Render::drawFrame()
         // Upscale
         if (mRenderConfig.enableUpscale)
         {
+            {
+                mUpscalePass->setParams(mUpscalePassParam);
+                mUpscalePass->setInputTexture(mResManager->getView(mView[imageIndex]->mPathTracerImage));
+                mUpscalePass->setOutputTexture(mResManager->getView(mView[imageIndex]->textureUpscaleImage));
+            }
+
             recordBarrier(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mUpscalePassParam.dimension.x = finalWidth;
             mUpscalePassParam.dimension.y = finalHeight;
-            mUpscalePassParam.invDimension.x =  1.0f / (float) finalWidth;
-            mUpscalePassParam.invDimension.y = 1.0f / (float) finalHeight;
+            mUpscalePassParam.invDimension.x = 1.0f / (float)finalWidth;
+            mUpscalePassParam.invDimension.y = 1.0f / (float)finalHeight;
             mUpscalePass->setParams(mUpscalePassParam);
             mUpscalePass->setInputTexture(mResManager->getView(finalImage));
             mUpscalePass->execute(cmd, finalWidth, finalHeight, imageIndex);

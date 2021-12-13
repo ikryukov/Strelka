@@ -67,6 +67,13 @@ glm::float4x4 perspective(float fov, float aspect_ratio, float n, float f, glm::
     float A = n / (f - n);
     float B = f * A;
 
+    //glm::float4x4 projection = glm::perspective(fov, aspect_ratio, n, f);
+    //if (inverse)
+    //{
+    //    *inverse = glm::inverse(projection);
+    //}
+
+
     glm::float4x4 projection({
         x,
         0.0f,
@@ -91,7 +98,7 @@ glm::float4x4 perspective(float fov, float aspect_ratio, float n, float f, glm::
 
     if (inverse)
     {
-        *inverse = glm::transpose(glm::float4x4({
+        *inverse = glm::transpose(glm::float4x4({ // glm inverse
             1 / x,
             0.0f,
             0.0f,
@@ -161,6 +168,11 @@ void Camera::rotate(float rightAngle, float upAngle)
     glm::quat b = glm::angleAxis(glm::radians(rightAngle) * rotationSpeed, glm::float3(0.0f, 1.0f, 0.0f));
     mOrientation = glm::normalize(a * mOrientation * b);
     updateViewMatrix();
+}
+
+glm::quat Camera::getOrientation()
+{
+    return mOrientation;
 }
 
 void Camera::setTranslation(glm::float3 translation)

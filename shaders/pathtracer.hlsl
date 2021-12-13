@@ -5,6 +5,7 @@
 #include "helper.h"
 #include "raytracing.h"
 #include "pathtracerparam.h"
+#include "instanceconstants.h"
 
 ConstantBuffer<PathTracerParam> ubo;
 

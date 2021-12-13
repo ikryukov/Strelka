@@ -4,4 +4,5 @@ build/
 .idea/s
 .DS_Store
 misc/
-external/mdl-sdk/
+external/mdl-sdk
+shaders/newPT.hlsl

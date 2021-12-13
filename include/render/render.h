@@ -1,5 +1,10 @@
 #pragma once
 
+#define GLFW_INCLUDE_NONE
+#ifdef _WIN32
+#    define GLFW_EXPOSE_NATIVE_WIN32
+#    undef APIENTRY
+#endif
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -14,28 +19,26 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "accumulation.h"
-#include "aopass.h"
-#include "bilateralfilter.h"
 #include "bvh.h"
 #include "common.h"
-#include "composition.h"
 #include "debugview.h"
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
-#include "ltcpass.h"
 #include "pathtracer.h"
-#include "reflection.h"
 #include "renderpass.h"
-#include "rtshadowpass.h"
 #include "tonemap.h"
 #include "upscalepass.h"
+
+//#include "debugUtils.h"
 
 #include <modelloader/modelloader.h>
 #include <resourcemanager/resourcemanager.h>
 #include <scene/scene.h>
 #include <shadermanager/ShaderManager.h>
 #include <ui/ui.h>
+
+#include <materialmanager/materialmanager.h>
 
 #include <array>
 #include <chrono>
@@ -97,6 +100,7 @@ public:
     {
         initWindow();
         initVulkan();
+        initPasses();
         mainLoop();
         cleanup();
     }
@@ -107,6 +111,7 @@ public:
 
     void initWindow();
     void initVulkan();
+    void initPasses();
     void cleanup();
 
 private:
@@ -129,9 +134,12 @@ private:
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
+    MaterialManager::Module* gltfModule;
+    std::vector<MaterialManager::CompiledMaterial*> loadMaterials();
+
     ResourceManager* mResManager = nullptr;
     TextureManager* mTexManager = nullptr;
-
+    MaterialManager* mMaterialManager = nullptr;
     BvhBuilder mBvhBuilder;
 
     GbufferPass mGbufferPass;
@@ -140,24 +148,16 @@ private:
     //DepthPass mDepthPass;
 
     SharedContext mSharedCtx;
-    RtShadowPass* mRtShadow;
     PathTracer* mPathTracer;
-    Reflection* mReflection;
-    AOPass* mAO;
-    Accumulation* mAccumulationShadows;
-    Accumulation* mAccumulationAO;
     Accumulation* mAccumulationPathTracer;
     Tonemap* mTonemap;
     UpscalePass* mUpscalePass;
-    Composition* mComposition;
     DebugView* mDebugView;
-    LtcPass* mLtcPass;
-    BilateralFilter* mBilateralFilter;
-    BilateralFilter* mAOBilateralFilter;
     Tonemapparam mToneParams;
     Upscalepassparam mUpscalePassParam;
-    Compositionparam mCompositionParam;
     Debugviewparam mDebugParams;
+
+    BVH sceneBvh;
 
     struct ViewData
     {
@@ -171,19 +171,8 @@ private:
         Image* prevDepth;
         Image* textureTonemapImage;
         Image* textureUpscaleImage;
-        Image* textureCompositionImage;
         Image* textureDebugViewImage;
-        Image* mRtShadowImage;
         Image* mPathTracerImage;
-        Image* mReflectionImage;
-        Image* mAOImage;
-        Image* mLtcOutputImage;
-        Image* mBilateralOutputImage;
-        Image* mBilateralVarianceOutputImage;
-        Image* mAOBilateralOutputImage;
-        Image* mAOBilateralVarianceOutputImage;
-        Image* mAccumulationImages = nullptr;
-        Image* mAccumulationAOImages = nullptr;
         Image* mAccumulationPathTracerImage = nullptr;
         ResourceManager* mResManager = nullptr;
         uint32_t mPtIteration = 0;
@@ -206,57 +195,13 @@ private:
             {
                 mResManager->destroyImage(textureUpscaleImage);
             }
-            if (textureCompositionImage)
-            {
-                mResManager->destroyImage(textureCompositionImage);
-            }
             if (textureDebugViewImage)
             {
                 mResManager->destroyImage(textureDebugViewImage);
             }
-            if (mReflectionImage)
-            {
-                mResManager->destroyImage(mReflectionImage);
-            }
-            if (mRtShadowImage)
-            {
-                mResManager->destroyImage(mRtShadowImage);
-            }
             if (mPathTracerImage)
             {
                 mResManager->destroyImage(mPathTracerImage);
-            }
-            if (mAOImage)
-            {
-                mResManager->destroyImage(mAOImage);
-            }
-            if (mLtcOutputImage)
-            {
-                mResManager->destroyImage(mLtcOutputImage);
-            }
-            if (mBilateralOutputImage)
-            {
-                mResManager->destroyImage(mBilateralOutputImage);
-            }
-            if (mBilateralVarianceOutputImage)
-            {
-                mResManager->destroyImage(mBilateralVarianceOutputImage);
-            }
-            if (mAOBilateralOutputImage)
-            {
-                mResManager->destroyImage(mAOBilateralOutputImage);
-            }
-            if (mAOBilateralVarianceOutputImage)
-            {
-                mResManager->destroyImage(mAOBilateralVarianceOutputImage);
-            }
-            if (mAccumulationImages)
-            {
-                mResManager->destroyImage(mAccumulationImages);
-            }
-            if (mAccumulationAOImages)
-            {
-                mResManager->destroyImage(mAccumulationAOImages);
             }
             if (mAccumulationPathTracerImage)
             {
@@ -271,7 +216,6 @@ private:
     Ui::SceneConfig mSceneConfig{};
     Ui::RenderStats mRenderStats{};
     DebugView::DebugImages mDebugImages{};
-    Composition::CompositionImages mCompositionImages{};
 
     struct SceneRenderData
     {
@@ -285,6 +229,13 @@ private:
         Buffer* mInstanceBuffer = nullptr;
         Buffer* mLightsBuffer = nullptr;
         Buffer* mBvhNodeBuffer = nullptr;
+
+        const MaterialManager::TargetCode* mMaterialTargetCode = nullptr;
+        
+        Buffer* mMdlArgBuffer = nullptr;
+        Buffer* mMdlRoBuffer = nullptr;
+        Buffer* mMdlInfoBuffer = nullptr;
+        Buffer* mMdlMaterialBuffer = nullptr;
 
         ResourceManager* mResManager = nullptr;
         explicit SceneRenderData(ResourceManager* resManager)
@@ -362,7 +313,7 @@ private:
 
     void createDefaultScene();
 
-    void setDescriptors(uint32_t imageIndex);
+    void renderCPU();
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
@@ -411,6 +362,9 @@ private:
     bool hasStencilComponent(VkFormat format);
 
     void setCamera();
+
+    void createMdlBuffers();
+    void createMdlTextures();
 
     void createVertexBuffer(nevk::Scene& scene);
     void createMaterialBuffer(nevk::Scene& scene);

@@ -8,10 +8,14 @@ set(TESTFILES
         modelloader/test_model.cpp
         ui/tests_ui.cpp
         intersection/aabb.cpp
+        materialmanager/test_materialmanager.cpp
         )
 
 set(TEST_MAIN unit_tests)
 set(TEST_RUNNER_PARAMS "")
+
+set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
+find_package(MaterialX REQUIRED)
 
 add_executable(${TEST_MAIN} ${TESTFILES})
 target_link_libraries(${TEST_MAIN} 
@@ -26,6 +30,9 @@ target_link_libraries(${TEST_MAIN}
     ${TRACY_LIB} 
     usdImaging
     hdMtlx
+    MaterialXCore
+    MaterialXFormat
+    MaterialXGenMdl
     doctest
     PUBLIC
     hd
