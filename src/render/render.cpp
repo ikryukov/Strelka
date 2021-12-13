@@ -1826,7 +1826,7 @@ void Render::drawFrame()
     pathTracerParam.worldToView = cam.matrices.view; //
     pathTracerParam.clipToView = cam.matrices.invPerspective;
     pathTracerParam.viewToClip = cam.matrices.perspective; //
-    pathTracerParam.len = sceneBvh.nodes.size();
+    pathTracerParam.len = (int) sceneBvh.nodes.size();
     pathTracerParam.numLights = (uint32_t)scene->getLights().size();
     pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
     pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;

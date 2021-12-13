@@ -1,6 +1,7 @@
 #include "ptrender.h"
 
 //#include "debugUtils.h"
+#include "instanceconstants.h"
 
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -8,6 +9,8 @@
 
 #include <chrono>
 #include <filesystem>
+#include <fstream>
+#include <sstream>
 
 // profiler
 //#include "Tracy.hpp"
@@ -76,7 +79,39 @@ void PtRender::initVulkan()
     mUpscalePass = new UpscalePass(mSharedCtx);
     mUpscalePass->initialize();
 
-    mPathTracer = new PathTracer(mSharedCtx);
+    mMaterialManager = new MaterialManager();
+    const char* paths[3] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
+                             "./misc/vespa" };
+    bool res = mMaterialManager->addMdlSearchPath(paths, 3);
+    if (!res)
+    {
+        // failed to load MDL
+        return;
+    }
+
+    MaterialManager::Module* mdlModule = mMaterialManager->createModule("tutorials.mdl");
+    MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "example_material");
+
+    std::vector<MaterialManager::CompiledMaterial*> materials;
+    MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+    materials.push_back(materialComp);
+
+    const fs::path cwd = fs::current_path();
+    std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
+    std::stringstream ptcode;
+    ptcode << pt.rdbuf();
+
+    assert(materials.size() != 0);
+    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials);
+    const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
+    
+    mCurrentSceneRenderData = new SceneRenderData(mResManager);
+
+    mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
+    
+    std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+
+    mPathTracer = new PathTracer(mSharedCtx, newPTCode);
     mPathTracer->initialize();
 
     mAccumulationPathTracer = new Accumulation(mSharedCtx);
@@ -614,17 +649,6 @@ void PtRender::createIndexBuffer(nevk::Scene& scene)
 
 void PtRender::createInstanceBuffer(nevk::Scene& scene)
 {
-    // This struct should match shader's version
-    struct InstanceConstants
-    {
-        glm::float4x4 model;
-        glm::float4x4 normalMatrix;
-        int32_t materialId;
-        int32_t indexOffset;
-        int32_t indexCount;
-        int32_t pad2;
-    };
-
     const std::vector<Mesh>& meshes = scene.getMeshes();
     const std::vector<nevk::Instance>& sceneInstances = scene.getInstances();
     mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
@@ -638,7 +662,8 @@ void PtRender::createInstanceBuffer(nevk::Scene& scene)
     for (int i = 0; i < sceneInstances.size(); ++i)
     {
         instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
-        instanceConsts[i].model = sceneInstances[i].transform;
+        instanceConsts[i].objectToWorld = sceneInstances[i].transform;
+        instanceConsts[i].worldToObject = glm::inverse(sceneInstances[i].transform);
         instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
 
         const uint32_t currentMeshId = sceneInstances[i].mMeshId;
@@ -646,11 +671,40 @@ void PtRender::createInstanceBuffer(nevk::Scene& scene)
         instanceConsts[i].indexCount = meshes[currentMeshId].mCount;
     }
 
-    Buffer* stagingBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    Buffer* stagingBuffer = mResManager->createBuffer(sizeof(InstanceConstants) * sceneInstances.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    memcpy(stagingBufferMemory, instanceConsts.data(), instanceConsts.size() * sizeof(InstanceConstants));
+    memcpy(stagingBufferMemory, instanceConsts.data(), sizeof(InstanceConstants) * sceneInstances.size());
     mCurrentSceneRenderData->mInstanceBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
-    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), bufferSize);
+    mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), sizeof(InstanceConstants) * sceneInstances.size());
+    mResManager->destroyBuffer(stagingBuffer);
+}
+
+void nevk::PtRender::createMdlBuffers()
+{
+    const MaterialManager::TargetCode* code = mCurrentSceneRenderData->mMaterialTargetCode;
+    mMaterialManager->getArgBufferData(code);
+
+    const uint32_t argSize = mMaterialManager->getArgBufferSize(code);
+    const uint32_t roSize = mMaterialManager->getReadOnlyBlockSize(code);
+    const uint32_t infoSize = mMaterialManager->getResourceInfoSize(code);
+    const uint32_t mdlMaterialSize = mMaterialManager->getMdlMaterialSize(code);
+
+    VkDeviceSize stagingSize = std::max(std::max(roSize, mdlMaterialSize), std::max(argSize, infoSize));
+
+    Buffer* stagingBuffer = mResManager->createBuffer(stagingSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, "Staging MDL");
+    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
+
+    auto createGpuBuffer = [&](Buffer*& dest, const uint8_t* src, uint32_t size, const char* name) {
+        memcpy(stagingBufferMemory, src, size);
+        dest = mResManager->createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, name);
+        mResManager->copyBuffer(mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(dest), size);
+    };
+
+    createGpuBuffer(mCurrentSceneRenderData->mMdlArgBuffer, mMaterialManager->getArgBufferData(code), argSize, "MDL args");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlInfoBuffer, mMaterialManager->getResourceInfoData(code), infoSize, "MDL info");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlRoBuffer, mMaterialManager->getReadOnlyBlockData(code), roSize, "MDL read only");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlMaterialBuffer, mMaterialManager->getMdlMaterialData(code), mdlMaterialSize, "MDL mdl material");
+
     mResManager->destroyBuffer(stagingBuffer);
 }
 
@@ -794,12 +848,16 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     
     FrameData& currFrame = getCurrentFrameData();
     const uint32_t imageIndex = 0;
-    mCurrentSceneRenderData = new SceneRenderData(mResManager);
+    
+
+
+
     createVertexBuffer(*mScene);
     createIndexBuffer(*mScene);
     createInstanceBuffer(*mScene);
     createLightsBuffer(*mScene);
     createMaterialBuffer(*mScene);
+    createMdlBuffers();
     createBvhBuffer(*mScene); // need to update descriptors after it
 
     ViewData* currView = mView[imageIndex];
@@ -808,7 +866,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     uint32_t finalWidth = currView->finalWidth;
     uint32_t finalHeight = currView->finalHeight;
 
-    //mScene->updateCamerasParams(renderWidth, renderHeight);
+    mScene->updateCamerasParams(renderWidth, renderHeight);
 
     Camera& cam = mScene->getCamera(getActiveCameraIndex());
     cam.updateViewMatrix();
@@ -825,7 +883,15 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     pathTracerParam.maxDepth = 2;
     pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
     pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
-    pathTracerParam.numLights = (uint32_t) mScene->getLights().size();
+    pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);
+    pathTracerParam.worldToView = cam.matrices.view; //
+    //pathTracerParam.clipToView = glm::inverse(cam.matrices.perspective);
+    pathTracerParam.clipToView = cam.matrices.invPerspective;
+    pathTracerParam.viewToClip = cam.matrices.perspective; //
+    pathTracerParam.len = (int) 0;
+    pathTracerParam.numLights = (uint32_t) 1;
+    pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
+    pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
     mPathTracer->setParams(pathTracerParam);
 
     AccumulationParam accParam{};
@@ -983,16 +1049,22 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     {
         {
             PathTracerDesc desc{};
-            desc.result = currView->mPathTracerImage;
-            desc.gbuffer = currView->gbuffer;
+            desc.result = mView[imageIndex]->mPathTracerImage;
+            desc.gbuffer = mView[imageIndex]->gbuffer;
             desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
             desc.vb = mCurrentSceneRenderData->mVertexBuffer;
             desc.ib = mCurrentSceneRenderData->mIndexBuffer;
             desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
             desc.lights = mCurrentSceneRenderData->mLightsBuffer;
             desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-            desc.matSampler = mTexManager->texSamplers;
+            desc.matSampler = mTexManager->mMdlSampler;
             desc.matTextures = mTexManager->textureImages;
+
+            desc.mdl_argument_block = mCurrentSceneRenderData->mMdlArgBuffer;
+            desc.mdl_ro_data_segment = mCurrentSceneRenderData->mMdlRoBuffer;
+            desc.mdl_resource_infos = mCurrentSceneRenderData->mMdlInfoBuffer;
+            desc.mdl_mdlMaterial = mCurrentSceneRenderData->mMdlMaterialBuffer;
+
             mPathTracer->setResources(desc);
         }
         recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
@@ -1221,11 +1293,12 @@ QueueFamilyIndices PtRender::findQueueFamilies(VkPhysicalDevice device)
 
 std::vector<const char*> PtRender::getRequiredExtensions()
 {
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    //uint32_t glfwExtensionCount = 0;
+    //const char** glfwExtensions;
+    ///glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    //std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    std::vector<const char*> extensions;
 
     if (enableValidationLayers)
     {

@@ -111,7 +111,8 @@ int main(int argc, const char* argv[])
 
     //ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     //std::string usdPath = "C:/work/Kitchen_set/Kitchen_set.usd";
-    std::string usdPath = "C:/work/cornell.usdc";
+    //std::string usdPath = "C:/work/cornell.usdc";
+    std::string usdPath = "C:/work/directLightTest.usd";
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
 
     timerLoad.Stop();
@@ -219,7 +220,7 @@ int main(int argc, const char* argv[])
     storage.height = (int)renderBuffer->GetHeight();
     storage.depth = (int)renderBuffer->GetDepth();
     storage.format = HioFormat::HioFormatFloat32Vec4;
-    storage.flipped = true;
+    storage.flipped = false;
     storage.data = mappedMem;
 
     VtDictionary metadata;

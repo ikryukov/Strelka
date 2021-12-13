@@ -380,10 +380,10 @@ target_include_directories(${HD_PLUGIN_NAME} PRIVATE
 target_link_libraries(
   ${HD_PLUGIN_NAME}
   PRIVATE
-    # ${Boost_LIBRARIES}
     usdImaging
     hdMtlx
     ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB}
+    ${MATERIALLIB_NAME}
   PUBLIC
     hd
 )

@@ -23,6 +23,7 @@
 #include <resourcemanager/resourcemanager.h>
 #include <scene/scene.h>
 #include <shadermanager/ShaderManager.h>
+#include <materialmanager/materialmanager.h>
 
 #include <array>
 #include <chrono>
@@ -104,6 +105,7 @@ private:
 
     ResourceManager* mResManager = nullptr;
     TextureManager* mTexManager = nullptr;
+    MaterialManager* mMaterialManager = nullptr;
 
     BvhBuilder mBvhBuilder;
 
@@ -187,6 +189,13 @@ private:
         Buffer* mInstanceBuffer = nullptr;
         Buffer* mLightsBuffer = nullptr;
         Buffer* mBvhNodeBuffer = nullptr;
+
+        const MaterialManager::TargetCode* mMaterialTargetCode = nullptr;
+
+        Buffer* mMdlArgBuffer = nullptr;
+        Buffer* mMdlRoBuffer = nullptr;
+        Buffer* mMdlInfoBuffer = nullptr;
+        Buffer* mMdlMaterialBuffer = nullptr;
 
         ResourceManager* mResManager = nullptr;
         explicit SceneRenderData(ResourceManager* resManager)
@@ -288,6 +297,8 @@ private:
     void createBvhBuffer(nevk::Scene& scene);
     void createIndexBuffer(nevk::Scene& scene);
     void createInstanceBuffer(nevk::Scene& scene);
+
+    void createMdlBuffers();
 
     void createDescriptorPool();
 

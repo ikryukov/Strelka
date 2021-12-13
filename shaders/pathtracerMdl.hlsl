@@ -125,7 +125,8 @@ Ray generateCameraRay(uint2 pixelIndex)
     float4 wdir = mul(ubo.viewToWorld, float4(viewSpace.xyz, 0.0f));
 
     Ray ray = (Ray) 0;
-    ray.o = ubo.camPos; // mul to view to world
+    //ray.o = ubo.camPos; // mul to view to world
+    ray.o = mul(ubo.viewToWorld, float4(0.0f, 0.0f, 0.0f, 1.0f));
     ray.o.w = 1e9f;
     ray.d.xyz = normalize(wdir.xyz);
 
@@ -240,7 +241,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex)
     const int maxDepth = ubo.maxDepth;
 
     Ray ray = generateCameraRay(pixelIndex);
-
+    
     while (depth < maxDepth)
     {
         Hit hit;
@@ -288,7 +289,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex)
 
                 if (ubo.debug == 1)
                 {
-                    float3 debugN = (world_normal + 1.0) * 0.5;
+                    float3 debugN = (geom_normal + 1.0) * 0.5;
                     return debugN;
                 }
 
@@ -370,7 +371,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex)
         else
         {
             // miss - add background color and exit
-            finalColor += throughput * cubeMap.Sample(cubeMapSampler, ray.d.xyz).rgb;
+            float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
+            finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
 
             break;
         }
@@ -435,22 +437,10 @@ float3 pathTraceGBuffer(uint2 pixelIndex)
     accel.vb = vb;
     accel.ib = ib;
 
-    if (ubo.debug == 1)
+    //if (ubo.debug == 1)
     {
-        //float3 debugN = (world_normal + 1.0) * 0.5;
-        if (scatteringFunctionIndex == 0)
-        {
-            return float3(1.0, 0.0, 0.0);
-        }
-        else if (scatteringFunctionIndex == 1)
-        {
-            return float3(0.0, 1.0, 0.0);
-        }
-        else
-        {
-            return float3(0.0, 0.0, 1.0);
-        }
-        //return debugN;
+        float3 debugN = (world_normal + 1.0) * 0.5;
+        return debugN;
     }
 
     float3 V = normalize(wpos - ubo.camPos.xyz);
@@ -549,7 +539,7 @@ float3 pathTraceGBuffer(uint2 pixelIndex)
 
                 float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
 
-               currMdlMaterial = mdlMaterials[instConst.materialId];
+                currMdlMaterial = mdlMaterials[instConst.materialId];
 
                 // setup MDL state
                 mdlState.normal = world_normal;
@@ -640,6 +630,7 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     }
 
     float3 color = pathTraceCameraRays(pixelIndex);
+    //float3 color = pathTraceGBuffer(pixelIndex);
 
     output[pixelIndex] = float4(color, 1.0);
 }

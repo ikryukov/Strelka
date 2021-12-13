@@ -4,8 +4,8 @@
 #    define GLFW_EXPOSE_NATIVE_WIN32
 #endif
 
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
+//#define GLFW_INCLUDE_VULKAN
+//#include <GLFW/glfw3.h>
 #define GLM_FORCE_SILENT_WARNINGS
 #include <glm/glm.hpp>
 #include <glm/gtx/compatibility.hpp>
