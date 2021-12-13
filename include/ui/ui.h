@@ -35,23 +35,15 @@ public:
 
     struct RenderConfig
     {
-        bool enableShadowsAcc = false;
-        bool enableAO = false;
-        bool enableAOAcc = false;
         bool enableUpscale = true;
         bool enablePathTracerAcc = true;
-        bool enableFilter = false;
-        bool enableAOFilter = false;
-        bool enableShadows = false;
         bool enablePathTracer = true;
-        bool enableReflections = false;
         bool recreateBVH = false;
         bool useSwizzleTid = false;
         bool renderCPU = false;
         float upscaleFactor = enableUpscale ? 0.5f : 1.0f; // 1 -- w/o upscaling, 0.5 -- render in half size
         float rayLen = 0.2f;
         float accAlpha = 0.125f;
-        float accAOAlpha = 0.125f;
         float animTime = 0.f;
         float sigma = 2.9f;
         float sigmaNormal = 1.5f;

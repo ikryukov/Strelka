@@ -19,20 +19,14 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "accumulation.h"
-#include "aopass.h"
-#include "bilateralfilter.h"
 #include "bvh.h"
 #include "common.h"
-#include "composition.h"
 #include "debugview.h"
 #include "depthpass.h"
 #include "gbuffer.h"
 #include "gbufferpass.h"
-#include "ltcpass.h"
 #include "pathtracer.h"
-#include "reflection.h"
 #include "renderpass.h"
-#include "rtshadowpass.h"
 #include "tonemap.h"
 #include "upscalepass.h"
 
@@ -154,23 +148,13 @@ private:
     //DepthPass mDepthPass;
 
     SharedContext mSharedCtx;
-    RtShadowPass* mRtShadow;
     PathTracer* mPathTracer;
-    Reflection* mReflection;
-    AOPass* mAO;
-    Accumulation* mAccumulationShadows;
-    Accumulation* mAccumulationAO;
     Accumulation* mAccumulationPathTracer;
     Tonemap* mTonemap;
     UpscalePass* mUpscalePass;
-    Composition* mComposition;
     DebugView* mDebugView;
-    LtcPass* mLtcPass;
-    BilateralFilter* mBilateralFilter;
-    BilateralFilter* mAOBilateralFilter;
     Tonemapparam mToneParams;
     Upscalepassparam mUpscalePassParam;
-    Compositionparam mCompositionParam;
     Debugviewparam mDebugParams;
 
     BVH sceneBvh;
@@ -187,19 +171,8 @@ private:
         Image* prevDepth;
         Image* textureTonemapImage;
         Image* textureUpscaleImage;
-        Image* textureCompositionImage;
         Image* textureDebugViewImage;
-        Image* mRtShadowImage;
         Image* mPathTracerImage;
-        Image* mReflectionImage;
-        Image* mAOImage;
-        Image* mLtcOutputImage;
-        Image* mBilateralOutputImage;
-        Image* mBilateralVarianceOutputImage;
-        Image* mAOBilateralOutputImage;
-        Image* mAOBilateralVarianceOutputImage;
-        Image* mAccumulationImages = nullptr;
-        Image* mAccumulationAOImages = nullptr;
         Image* mAccumulationPathTracerImage = nullptr;
         ResourceManager* mResManager = nullptr;
         uint32_t mPtIteration = 0;
@@ -222,57 +195,13 @@ private:
             {
                 mResManager->destroyImage(textureUpscaleImage);
             }
-            if (textureCompositionImage)
-            {
-                mResManager->destroyImage(textureCompositionImage);
-            }
             if (textureDebugViewImage)
             {
                 mResManager->destroyImage(textureDebugViewImage);
             }
-            if (mReflectionImage)
-            {
-                mResManager->destroyImage(mReflectionImage);
-            }
-            if (mRtShadowImage)
-            {
-                mResManager->destroyImage(mRtShadowImage);
-            }
             if (mPathTracerImage)
             {
                 mResManager->destroyImage(mPathTracerImage);
-            }
-            if (mAOImage)
-            {
-                mResManager->destroyImage(mAOImage);
-            }
-            if (mLtcOutputImage)
-            {
-                mResManager->destroyImage(mLtcOutputImage);
-            }
-            if (mBilateralOutputImage)
-            {
-                mResManager->destroyImage(mBilateralOutputImage);
-            }
-            if (mBilateralVarianceOutputImage)
-            {
-                mResManager->destroyImage(mBilateralVarianceOutputImage);
-            }
-            if (mAOBilateralOutputImage)
-            {
-                mResManager->destroyImage(mAOBilateralOutputImage);
-            }
-            if (mAOBilateralVarianceOutputImage)
-            {
-                mResManager->destroyImage(mAOBilateralVarianceOutputImage);
-            }
-            if (mAccumulationImages)
-            {
-                mResManager->destroyImage(mAccumulationImages);
-            }
-            if (mAccumulationAOImages)
-            {
-                mResManager->destroyImage(mAccumulationAOImages);
             }
             if (mAccumulationPathTracerImage)
             {
@@ -287,7 +216,6 @@ private:
     Ui::SceneConfig mSceneConfig{};
     Ui::RenderStats mRenderStats{};
     DebugView::DebugImages mDebugImages{};
-    Composition::CompositionImages mCompositionImages{};
 
     struct SceneRenderData
     {
@@ -386,8 +314,6 @@ private:
     void createDefaultScene();
 
     void renderCPU();
-
-    void setDescriptors(uint32_t imageIndex);
 
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
