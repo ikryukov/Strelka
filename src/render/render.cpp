@@ -504,17 +504,17 @@ std::vector<MaterialManager::CompiledMaterial*> Render::loadMaterials()
 
             // create Textures for MDL from gltf
             auto createTexture = [&](int32_t id, const char* paramName) {
-              auto texIter = mScene->mTexIdToTexName.find(id);
-              if (texIter != mScene->mTexIdToTexName.end())
-              {
-                  std::string texName = texIter->second;
-                  MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texName.c_str(), "linear");
-                  if (texDesc != nullptr)
-                  {
-                      res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
-                      assert(res);
-                  }
-              }
+                auto texIter = mScene->mTexIdToTexName.find(id);
+                if (texIter != mScene->mTexIdToTexName.end())
+                {
+                    std::string texName = texIter->second;
+                    MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texName.c_str(), "linear");
+                    if (texDesc != nullptr)
+                    {
+                        res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
+                        assert(res);
+                    }
+                }
             };
 
             createTexture(gltfMaterial.texBaseColor, "base_color_texture");
@@ -1735,6 +1735,11 @@ void Render::drawFrame()
         }
         mTexManager->saveTexturesInDelQueue();
         loadScene(mSceneConfig.newModelPath);
+
+        std::vector<MaterialManager::CompiledMaterial*> materials = loadMaterials();
+        mCurrentSceneRenderData->mMaterialTargetCode = mMaterialManager->generateTargetCode(materials);
+        createMdlBuffers();
+        createMdlTextures();
     }
 
     scene = getScene();
@@ -2033,39 +2038,39 @@ void Render::drawFrame()
 
         mPathTracer->setResources(desc);
     }
-        recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
-                      VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        mPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
-        recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+                  VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    mPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
+    recordBarrier(cmd, mResManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+    finalImage = mView[imageIndex]->mPathTracerImage;
+
+    if (mRenderConfig.enablePathTracerAcc && mPrevView)
+    {
+        {
+            mAccumulationPathTracer->setInputTexture4(mView[imageIndex]->mPathTracerImage);
+            mAccumulationPathTracer->setMotionTexture(mView[imageIndex]->gbuffer->motion);
+            mAccumulationPathTracer->setPrevDepthTexture(mView[imageIndex]->prevDepth);
+            mAccumulationPathTracer->setWposTexture(mView[imageIndex]->gbuffer->wPos);
+            mAccumulationPathTracer->setCurrDepthTexture(mView[imageIndex]->gbuffer->depth);
+        }
+
+        // Accumulation pass
+        Image* accHist = mPrevView->mAccumulationPathTracerImage;
+        Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
+
+        mAccumulationPathTracer->setHistoryTexture4(accHist);
+        mAccumulationPathTracer->setOutputTexture4(accOut);
+
+        recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+                      VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
+        recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        finalImage = mView[imageIndex]->mPathTracerImage;
-
-        if (mRenderConfig.enablePathTracerAcc && mPrevView)
-        {
-            {
-                mAccumulationPathTracer->setInputTexture4(mView[imageIndex]->mPathTracerImage);
-                mAccumulationPathTracer->setMotionTexture(mView[imageIndex]->gbuffer->motion);
-                mAccumulationPathTracer->setPrevDepthTexture(mView[imageIndex]->prevDepth);
-                mAccumulationPathTracer->setWposTexture(mView[imageIndex]->gbuffer->wPos);
-                mAccumulationPathTracer->setCurrDepthTexture(mView[imageIndex]->gbuffer->depth);
-            }
-
-            // Accumulation pass
-            Image* accHist = mPrevView->mAccumulationPathTracerImage;
-            Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
-
-            mAccumulationPathTracer->setHistoryTexture4(accHist);
-            mAccumulationPathTracer->setOutputTexture4(accOut);
-
-            recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
-            recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                          VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-            finalImage = accOut;
-        }
+        finalImage = accOut;
+    }
 
 
     if (mScene->mDebugViewSettings != Scene::DebugView::eNone && !mRenderConfig.enablePathTracer)
