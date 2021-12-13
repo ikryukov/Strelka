@@ -140,6 +140,9 @@ private:
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
+    MaterialManager::Module* gltfModule;
+    std::vector<MaterialManager::CompiledMaterial*> loadMaterials();
+
     ResourceManager* mResManager = nullptr;
     TextureManager* mTexManager = nullptr;
     MaterialManager* mMaterialManager = nullptr;

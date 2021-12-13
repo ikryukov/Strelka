@@ -159,20 +159,6 @@ void Render::initPasses()
     mAccumulationPathTracer = new Accumulation(mSharedCtx);
     mAccumulationPathTracer->initialize();
 
-    createDefaultScene();
-    if (!MODEL_PATH.empty())
-    {
-        // Workaround:
-        //mTexManager->saveTexturesInDelQueue();
-        loadScene(MODEL_PATH);
-    }
-
-    // Material manager
-    const fs::path cwd = fs::current_path();
-    std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
-    std::stringstream ptcode;
-    ptcode << pt.rdbuf();
-
     mMaterialManager = new MaterialManager();
     const char* paths[3] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
                              "./misc/vespa" };
@@ -182,58 +168,24 @@ void Render::initPasses()
         // failed to load MDL
         return;
     }
-
-    MaterialManager::Module* currModule = mMaterialManager->createModule("gltf_support.mdl");
-
+    gltfModule = mMaterialManager->createModule("gltf_support.mdl");
     std::vector<MaterialManager::CompiledMaterial*> materials;
+
+    createDefaultScene();
+    if (!MODEL_PATH.empty())
     {
-        std::vector<Material> gltfMaterials = mScene->getMaterials();
-        for (int i = 0; i < gltfMaterials.size(); ++i)
-        {
-            const Material& gltfMaterial = gltfMaterials[i];
-            // create MDL mat instance
-            MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule, "gltf_material");
-
-            // create Textures for MDL from gltf
-            auto createTexture = [&](int32_t id, const char* paramName) {
-                auto texIter = mScene->mTexIdToTexName.find(id);
-                if (texIter != mScene->mTexIdToTexName.end())
-                {
-                    std::string texName = texIter->second;
-                    MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texName.c_str(), "linear");
-                    if (texDesc != nullptr)
-                    {
-                        res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
-                        assert(res);
-                    }
-                }
-            };
-
-            createTexture(gltfMaterial.texBaseColor, "base_color_texture");
-            createTexture(gltfMaterial.texNormalId, "normal_texture");
-            createTexture(gltfMaterial.texEmissive, "emissive_texture");
-            createTexture(gltfMaterial.texOcclusion, "occlusion_texture");
-            createTexture(gltfMaterial.texMetallicRoughness, "metallic_roughness_texture");
-
-            // set params: colors, floats... textures
-            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eColor, "base_color_factor", &gltfMaterial.baseColorFactor);
-            assert(res);
-            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "metallic_factor", &gltfMaterial.metallicFactor);
-            assert(res);
-            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
-            assert(res);
-            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eColor, "emissive_factor", &gltfMaterial.emissiveFactor);
-            assert(res);
-
-            // compile Materials
-            MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
-            materials.push_back(materialComp1);
-
-            // destroy current material data
-            mMaterialManager->destroyMaterialInstance(materialInst1);
-        }
-        mMaterialManager->destroyModule(currModule);
+        // Workaround:
+        //mTexManager->saveTexturesInDelQueue();
+        loadScene(MODEL_PATH);
+        materials = loadMaterials();
     }
+
+    // Material manager
+    const fs::path cwd = fs::current_path();
+    std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
+    std::stringstream ptcode;
+    ptcode << pt.rdbuf();
+
 
     // MTLX
     //    const char* path[2] = { "/Users/jswark/school/USD_Build/mdl/", "misc/test_data/mtlx" };
@@ -254,11 +206,12 @@ void Render::initPasses()
 
     // generate code for PT
     assert(materials.size() != 0);
-    const MaterialManager::TargetCode* code = mMaterialManager->generateTargetCode(materials);
-    const char* hlsl = mMaterialManager->getShaderCode(code);
-    for (MaterialManager::CompiledMaterial* material : materials) {
-        mMaterialManager->destroyCompiledMaterial(material);
-    }
+    const MaterialManager::TargetCode* gltfModuleCode = mMaterialManager->generateTargetCode(materials);
+    const char* hlsl = mMaterialManager->getShaderCode(gltfModuleCode);
+    // for (MaterialManager::CompiledMaterial* material : materials)
+    // {
+    //     mMaterialManager->destroyCompiledMaterial(material);
+    // }
     //std::cout << hlsl << std::endl;
 
     // MTLX
@@ -292,7 +245,7 @@ void Render::initPasses()
     mPathTracer->initialize();
 
     // Workaround:
-    mCurrentSceneRenderData->mMaterialTargetCode = code;
+    mCurrentSceneRenderData->mMaterialTargetCode = gltfModuleCode;
 
     createMdlBuffers();
     createMdlTextures();
@@ -486,6 +439,8 @@ void Render::cleanup()
 {
     cleanupSwapChain();
 
+    mMaterialManager->destroyModule(gltfModule);
+
     // mDepthPass.onDestroy();
     mGbufferPass.onDestroy();
 
@@ -569,6 +524,61 @@ void Render::initWindow()
     glfwSetMouseButtonCallback(mWindow, mouseButtonCallback);
     glfwSetCursorPosCallback(mWindow, handleMouseMoveCallback);
     glfwSetScrollCallback(mWindow, scrollCallback);
+}
+
+std::vector<MaterialManager::CompiledMaterial*> Render::loadMaterials()
+{
+    std::vector<MaterialManager::CompiledMaterial*> materials;
+    bool res = false;
+    {
+        std::vector<Material> gltfMaterials = mScene->getMaterials();
+        for (int i = 0; i < gltfMaterials.size(); ++i)
+        {
+            const Material& gltfMaterial = gltfMaterials[i];
+
+            // create MDL mat instance
+            MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(gltfModule, "gltf_material");
+
+            // create Textures for MDL from gltf
+            auto createTexture = [&](int32_t id, const char* paramName) {
+              auto texIter = mScene->mTexIdToTexName.find(id);
+              if (texIter != mScene->mTexIdToTexName.end())
+              {
+                  std::string texName = texIter->second;
+                  MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texName.c_str(), "linear");
+                  if (texDesc != nullptr)
+                  {
+                      res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
+                      assert(res);
+                  }
+              }
+            };
+
+            createTexture(gltfMaterial.texBaseColor, "base_color_texture");
+            createTexture(gltfMaterial.texNormalId, "normal_texture");
+            createTexture(gltfMaterial.texEmissive, "emissive_texture");
+            createTexture(gltfMaterial.texOcclusion, "occlusion_texture");
+            createTexture(gltfMaterial.texMetallicRoughness, "metallic_roughness_texture");
+
+            // set params: colors, floats... textures
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eColor, "base_color_factor", &gltfMaterial.baseColorFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "metallic_factor", &gltfMaterial.metallicFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
+            assert(res);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eColor, "emissive_factor", &gltfMaterial.emissiveFactor);
+            assert(res);
+
+            // compile Materials
+            MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
+            materials.push_back(materialComp1);
+
+            // destroy current material data
+            mMaterialManager->destroyMaterialInstance(materialInst1);
+        }
+    }
+    return materials;
 }
 
 void Render::recreateSwapChain()

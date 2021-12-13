@@ -186,11 +186,17 @@ public:
             return false;
         }
 
+
+
         mMtlxCodeGen = std::make_unique<nevk::MtlxMdlCodeGen>(mtlxLibPath.c_str());
 
         mMatCompiler = std::make_unique<nevk::MdlMaterialCompiler>(*mRuntime);
         mTransaction = mi::base::Handle<mi::neuraylib::ITransaction>(mRuntime->getTransaction());
         mNeuray = mRuntime->getNeuray();
+
+        mCodeGen = std::make_unique<MdlHlslCodeGen>();
+        mCodeGen->init(*mRuntime);
+
         return true;
     }
 
@@ -366,9 +372,6 @@ public:
     const TargetCode* generateTargetCode(std::vector<CompiledMaterial*>& materials)
     {
         TargetCode* targetCode = new TargetCode;
-
-        mCodeGen = std::make_unique<MdlHlslCodeGen>();
-        mCodeGen->init(*mRuntime);
 
         targetCode->mdlMaterials.resize(materials.size());
 
@@ -612,22 +615,27 @@ bool MaterialManager::addMdlSearchPath(const char* paths[], uint32_t numPaths)
 {
     return mContext->addMdlSearchPath(paths, numPaths);
 }
+
 MaterialManager::Module* MaterialManager::createModule(const char* file)
 {
     return mContext->createModule(file);
 }
+
 MaterialManager::Module* MaterialManager::createMtlxModule(const char* file)
 {
     return mContext->createMtlxModule(file);
 }
+
 void MaterialManager::destroyModule(MaterialManager::Module* module)
 {
     return mContext->destroyModule(module);
 }
+
 MaterialManager::MaterialInstance* MaterialManager::createMaterialInstance(MaterialManager::Module* module, const char* materialName)
 {
     return mContext->createMaterialInstance(module, materialName);
 }
+
 void MaterialManager::destroyMaterialInstance(MaterialManager::MaterialInstance* matInst)
 {
     return mContext->destroyMaterialInstance(matInst);
@@ -652,14 +660,17 @@ MaterialManager::CompiledMaterial* MaterialManager::compileMaterial(MaterialMana
 {
     return mContext->compileMaterial(matInstance);
 }
+
 void MaterialManager::destroyCompiledMaterial(MaterialManager::CompiledMaterial* material)
 {
     return mContext->destroyCompiledMaterial(material);
 }
+
 const MaterialManager::TargetCode* MaterialManager::generateTargetCode(std::vector<CompiledMaterial*>& materials)
 {
     return mContext->generateTargetCode(materials);
 }
+
 const char* MaterialManager::getShaderCode(const TargetCode* targetCode) // get shader code
 {
     return mContext->getShaderCode(targetCode);
@@ -739,10 +750,12 @@ uint32_t MaterialManager::getTextureBytesPerTexel(const TargetCode* targetCode, 
 {
     return mContext->getTextureBytesPerTexel(targetCode, index);
 }
+
 inline size_t round_to_power_of_two(size_t value, size_t power_of_two_factor)
 {
     return (value + (power_of_two_factor - 1)) & ~(power_of_two_factor - 1);
 }
+
 std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(TargetCode* targetCode)
 {
     std::vector<uint8_t> res;
