@@ -183,16 +183,16 @@ void Render::initPasses()
         return;
     }
 
-    std::unique_ptr<MaterialManager::Module> currModule = mMaterialManager->createModule("gltf_support.mdl");
+    MaterialManager::Module* currModule = mMaterialManager->createModule("gltf_support.mdl");
 
-    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
+    std::vector<MaterialManager::CompiledMaterial*> materials;
     {
         std::vector<Material> gltfMaterials = mScene->getMaterials();
         for (int i = 0; i < gltfMaterials.size(); ++i)
         {
             const Material& gltfMaterial = gltfMaterials[i];
             // create MDL mat instance
-            std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "gltf_material");
+            MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule, "gltf_material");
 
             // create Textures for MDL from gltf
             auto createTexture = [&](int32_t id, const char* paramName) {
@@ -203,7 +203,7 @@ void Render::initPasses()
                     MaterialManager::TextureDescription* texDesc = mMaterialManager->createTextureDescription(texName.c_str(), "linear");
                     if (texDesc != nullptr)
                     {
-                        res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
+                        res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eTexture, paramName, (const void*)texDesc);
                         assert(res);
                     }
                 }
@@ -216,19 +216,23 @@ void Render::initPasses()
             createTexture(gltfMaterial.texMetallicRoughness, "metallic_roughness_texture");
 
             // set params: colors, floats... textures
-            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "base_color_factor", &gltfMaterial.baseColorFactor);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eColor, "base_color_factor", &gltfMaterial.baseColorFactor);
             assert(res);
-            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "metallic_factor", &gltfMaterial.metallicFactor);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "metallic_factor", &gltfMaterial.metallicFactor);
             assert(res);
-            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eFloat, "roughness_factor", &gltfMaterial.roughnessFactor);
             assert(res);
-            res = mMaterialManager->changeParam(materialInst1.get(), MaterialManager::ParamType::eColor, "emissive_factor", &gltfMaterial.emissiveFactor);
+            res = mMaterialManager->changeParam(materialInst1, MaterialManager::ParamType::eColor, "emissive_factor", &gltfMaterial.emissiveFactor);
             assert(res);
 
             // compile Materials
-            std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(materialInst1.get());
-            materials.push_back(std::move(materialComp1));
+            MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
+            materials.push_back(materialComp1);
+
+            // destroy current material data
+            mMaterialManager->destroyMaterialInstance(materialInst1);
         }
+        mMaterialManager->destroyModule(currModule);
     }
 
     // MTLX
@@ -237,21 +241,24 @@ void Render::initPasses()
     //    assert(res);
     //
     //    std::string file = "misc/test_data/mtlx/standard_surface_wood_tiled.mtlx";
-    //    std::unique_ptr<MaterialManager::Module> currModule = mMaterialManager->createMtlxModule(file.c_str());
+    //    MaterialManager::Module* currModule = mMaterialManager->createMtlxModule(file.c_str());
     //    assert(currModule);
-    //    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "");
+    //    MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(currModule.get(), "");
     //    assert(materialInst1);
-    //    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = mMaterialManager->compileMaterial(materialInst1.get());
+    //    MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
     //    assert(materialComp1);
     //
-    //    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
-    //    materials.push_back(std::move(materialComp1));
+    //    MaterialManager::CompiledMaterial* materials;
+    //    materials.push_back(materialComp1);
     // MTLX
 
     // generate code for PT
     assert(materials.size() != 0);
     const MaterialManager::TargetCode* code = mMaterialManager->generateTargetCode(materials);
     const char* hlsl = mMaterialManager->getShaderCode(code);
+    for (MaterialManager::CompiledMaterial* material : materials) {
+        mMaterialManager->destroyCompiledMaterial(material);
+    }
     //std::cout << hlsl << std::endl;
 
     // MTLX
@@ -616,7 +623,7 @@ void Render::createInstance()
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "NoErrorVulkan Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_2;
+    appInfo.apiVersion = VK_API_VERSION_1_1;
 
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

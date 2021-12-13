@@ -35,12 +35,12 @@ public:
 
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths);
 
-    std::unique_ptr<Module> createModule(const char* file);
-    std::unique_ptr<Module> createMtlxModule(const char* file);
-    void destroyModule(std::unique_ptr<Module> module);
+    Module* createModule(const char* file);
+    Module* createMtlxModule(const char* file);
+    void destroyModule(Module* module);
 
-    std::unique_ptr<MaterialInstance> createMaterialInstance(Module* module, const char* materialName);
-    void destroyMaterialInstance(std::unique_ptr<MaterialInstance> material);
+    MaterialInstance* createMaterialInstance(Module* module, const char* materialName);
+    void destroyMaterialInstance(MaterialInstance* material);
 
     enum class ParamType: uint32_t
     {
@@ -54,10 +54,10 @@ public:
     TextureDescription* createTextureDescription(const char* name, const char* gamma);
     const char* getTextureDbName(TextureDescription* texDesc);
 
-    std::unique_ptr<CompiledMaterial> compileMaterial(MaterialInstance* matInstance);
-    void destroyCompiledMaterial(std::unique_ptr<CompiledMaterial> compMaterial);
+    CompiledMaterial* compileMaterial(MaterialInstance* matInstance);
+    void destroyCompiledMaterial(CompiledMaterial* compMaterial);
 
-    const TargetCode* generateTargetCode(std::vector<std::unique_ptr<CompiledMaterial>>& material);
+    const TargetCode* generateTargetCode(std::vector<CompiledMaterial*>& material);
     const char* getShaderCode(const TargetCode* targetCode);
 
     uint32_t getReadOnlyBlockSize(const TargetCode* targetCode);

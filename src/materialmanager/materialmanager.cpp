@@ -194,7 +194,7 @@ public:
         return true;
     }
 
-    std::unique_ptr<Module> createMtlxModule(const char* file)
+    Module* createMtlxModule(const char* file)
     {
         std::unique_ptr<Module> module = std::make_unique<Module>();
 
@@ -210,10 +210,10 @@ public:
             return nullptr;
         }
 
-        return module;
+        return module.release();
     };
 
-    std::unique_ptr<Module> createModule(const char* file)
+    Module* createModule(const char* file)
     {
         std::unique_ptr<Module> module = std::make_unique<Module>();
 
@@ -225,16 +225,16 @@ public:
             return nullptr;
         }
 
-        return module;
+        return module.release();
     };
 
-    void destroyModule(std::unique_ptr<Module> module)
+    void destroyModule(Module* module)
     {
         assert(module);
-        //delete module;
+        delete module;
     };
 
-    std::unique_ptr<MaterialInstance> createMaterialInstance(MaterialManager::Module* module, const char* materialName)
+    MaterialInstance* createMaterialInstance(MaterialManager::Module* module, const char* materialName)
     {
         assert(module);
         assert(materialName);
@@ -252,13 +252,13 @@ public:
             return nullptr;
         }
 
-        return material;
+        return material.release();
     }
 
-    void destroyMaterialInstance(std::unique_ptr<MaterialInstance> matInst)
+    void destroyMaterialInstance(MaterialInstance* matInst)
     {
         assert(matInst);
-        //delete matInst;
+        delete matInst;
     }
 
     bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, const void* paramData)
@@ -345,7 +345,7 @@ public:
         return texDesc->dbName.c_str();
     }
 
-    std::unique_ptr<CompiledMaterial> compileMaterial(MaterialInstance* matInstance)
+    CompiledMaterial* compileMaterial(MaterialInstance* matInstance)
     {
         assert(matInstance);
         std::unique_ptr<CompiledMaterial> material = std::make_unique<CompiledMaterial>();
@@ -354,16 +354,16 @@ public:
             return nullptr;
         }
 
-        return material;
+        return material.release();
     };
 
-    void destroyCompiledMaterial(std::unique_ptr<CompiledMaterial> materials)
+    void destroyCompiledMaterial(CompiledMaterial* materials)
     {
         assert(materials);
-        // delete materials;
+        delete materials;
     }
 
-    const TargetCode* generateTargetCode(std::vector<std::unique_ptr<CompiledMaterial>>& materials)
+    const TargetCode* generateTargetCode(std::vector<CompiledMaterial*>& materials)
     {
         TargetCode* targetCode = new TargetCode;
 
@@ -612,25 +612,25 @@ bool MaterialManager::addMdlSearchPath(const char* paths[], uint32_t numPaths)
 {
     return mContext->addMdlSearchPath(paths, numPaths);
 }
-std::unique_ptr<MaterialManager::Module> MaterialManager::createModule(const char* file)
+MaterialManager::Module* MaterialManager::createModule(const char* file)
 {
     return mContext->createModule(file);
 }
-std::unique_ptr<MaterialManager::Module> MaterialManager::createMtlxModule(const char* file)
+MaterialManager::Module* MaterialManager::createMtlxModule(const char* file)
 {
     return mContext->createMtlxModule(file);
 }
-void MaterialManager::destroyModule(std::unique_ptr<MaterialManager::Module> module)
+void MaterialManager::destroyModule(MaterialManager::Module* module)
 {
-    return mContext->destroyModule(std::move(module));
+    return mContext->destroyModule(module);
 }
-std::unique_ptr<MaterialManager::MaterialInstance> MaterialManager::createMaterialInstance(MaterialManager::Module* module, const char* materialName)
+MaterialManager::MaterialInstance* MaterialManager::createMaterialInstance(MaterialManager::Module* module, const char* materialName)
 {
     return mContext->createMaterialInstance(module, materialName);
 }
-void MaterialManager::destroyMaterialInstance(std::unique_ptr<MaterialManager::MaterialInstance> matInst)
+void MaterialManager::destroyMaterialInstance(MaterialManager::MaterialInstance* matInst)
 {
-    return mContext->destroyMaterialInstance(std::move(matInst));
+    return mContext->destroyMaterialInstance(matInst);
 }
 
 MaterialManager::TextureDescription* MaterialManager::createTextureDescription(const char* name, const char* gamma)
@@ -648,15 +648,15 @@ bool MaterialManager::changeParam(MaterialManager::MaterialInstance* matInst, Pa
     return mContext->changeParam(matInst, type, paramName, paramData);
 }
 
-std::unique_ptr<MaterialManager::CompiledMaterial> MaterialManager::compileMaterial(MaterialManager::MaterialInstance* matInstance)
+MaterialManager::CompiledMaterial* MaterialManager::compileMaterial(MaterialManager::MaterialInstance* matInstance)
 {
-    return mContext->compileMaterial(std::move(matInstance));
+    return mContext->compileMaterial(matInstance);
 }
-void MaterialManager::destroyCompiledMaterial(std::unique_ptr<MaterialManager::CompiledMaterial> material)
+void MaterialManager::destroyCompiledMaterial(MaterialManager::CompiledMaterial* material)
 {
-    return mContext->destroyCompiledMaterial(std::move(material));
+    return mContext->destroyCompiledMaterial(material);
 }
-const MaterialManager::TargetCode* MaterialManager::generateTargetCode(std::vector<std::unique_ptr<CompiledMaterial>>& materials)
+const MaterialManager::TargetCode* MaterialManager::generateTargetCode(std::vector<CompiledMaterial*>& materials)
 {
     return mContext->generateTargetCode(materials);
 }
