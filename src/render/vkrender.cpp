@@ -1,24 +1,13 @@
 #include "vkrender.h"
 
 //#include "debugUtils.h"
-#include "instanceconstants.h"
-
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 
 #include <chrono>
-#include <filesystem>
-#include <fstream>
-#include <sstream>
 #include <string>
 #include <set>
 
 // profiler
 //#include "Tracy.hpp"
-
-namespace fs = std::filesystem;
-const uint32_t MAX_LIGHT_COUNT = 100;
 
 [[maybe_unused]] static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
