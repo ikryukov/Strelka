@@ -253,7 +253,7 @@ void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
     }
     
     nevkCamera.matrices.perspective = persp;
-    nevkCamera.matrices.view = xform;
+    nevkCamera.matrices.invPerspective = glm::inverse(persp);
 
     //GfQuatd orient = relViewMatrix.ExtractRotationQuat().GetConjugate();
     //const double* im = orient.GetImaginary().data();
