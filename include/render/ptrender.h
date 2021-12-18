@@ -11,6 +11,11 @@
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
 #include "common.h"
+
+#include "vkrender.h"
+
+#include <materialmanager/materialmanager.h>
+
 #include "accumulation.h"
 #include "bvh.h"
 #include "debugview.h"
@@ -20,10 +25,7 @@
 #include "tonemap.h"
 #include "upscalepass.h"
 
-#include <resourcemanager/resourcemanager.h>
 #include <scene/scene.h>
-#include <shadermanager/ShaderManager.h>
-#include <materialmanager/materialmanager.h>
 
 #include <array>
 #include <chrono>
@@ -35,58 +37,17 @@
 #include <stdexcept>
 #include <vector>
 
-const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
-
-const std::vector<const char*> deviceExtensions = {
-    //VK_KHR_SWAPCHAIN_EXTENSION_NAME
-#ifdef __APPLE__
-    ,
-    "VK_KHR_portability_subset"
-#endif
-};
-
-#ifdef NDEBUG
-const bool enableValidationLayers = true; // Enable validation in release
-#else
-const bool enableValidationLayers = true;
-#endif
-
-struct QueueFamilyIndices
-{
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool isComplete()
-    {
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails
-{
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
 namespace nevk
 {
 
-class PtRender
+class PtRender : public VkRender
 {
 public:
 
-    void initVulkan();
+    void init();
     void cleanup();
 
     void drawFrame(const uint8_t* outPixels);
-
-    SharedContext& getSharedContext()
-    {
-        return mSharedCtx;
-    }
 
     void setScene(Scene* scene)
     {
@@ -95,21 +56,9 @@ public:
 
 private:
 
-    VkInstance mInstance;
-    VkDebugUtilsMessengerEXT debugMessenger;
-
-    VkPhysicalDevice mPhysicalDevice = VK_NULL_HANDLE;
-    VkDevice mDevice;
-
-    VkQueue mGraphicsQueue;
-
-    ResourceManager* mResManager = nullptr;
-    TextureManager* mTexManager = nullptr;
     MaterialManager* mMaterialManager = nullptr;
 
     BvhBuilder mBvhBuilder;
-
-    SharedContext mSharedCtx;
 
     GbufferPass mGbufferPass;
     PathTracer* mPathTracer;
@@ -235,61 +184,20 @@ private:
     SceneRenderData* mCurrentSceneRenderData = nullptr;
     SceneRenderData* mDefaultSceneRenderData = nullptr;
 
-    static constexpr size_t MAX_UPLOAD_SIZE = 1 << 24; // 16mb
-    Buffer* mUploadBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
-    VkDescriptorPool mDescriptorPool;
-
-    struct FrameData
-    {
-        VkCommandBuffer cmdBuffer;
-        VkCommandPool cmdPool;
-        VkFence inFlightFence;
-        VkFence imagesInFlight;
-        VkSemaphore renderFinished;
-        VkSemaphore imageAvailable;
-    };
-    FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
-
-    FrameData& getFrameData(uint32_t idx)
-    {
-        return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
-    }
-
     std::array<bool, MAX_FRAMES_IN_FLIGHT> needImageViewUpdate = { false, false, false };
 
-    size_t mFrameNumber = 0;
     int32_t mSamples = 1;
-    double msPerFrame = 33.33; // fps counter
 
     bool framebufferResized = false;
     bool prevState = true;
 
-    nevk::ShaderManager mShaderManager;
     nevk::Scene* mScene = nullptr;
 
     void setDescriptors(uint32_t imageIndex);
 
-    void createInstance();
-
-    void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-
-    void setupDebugMessenger();
-
-    void pickPhysicalDevice();
-
-    void createLogicalDevice();
-
     ViewData* createView(uint32_t width, uint32_t height);
     GBuffer* createGbuffer(uint32_t width, uint32_t height);
     void createGbufferPass();
-
-    void createCommandPool();
-
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
-
-    VkFormat findDepthFormat();
-
-    bool hasStencilComponent(VkFormat format);
 
     void createVertexBuffer(nevk::Scene& scene);
     void createMaterialBuffer(nevk::Scene& scene);
@@ -299,84 +207,12 @@ private:
     void createInstanceBuffer(nevk::Scene& scene);
 
     void createMdlBuffers();
-
-    void createDescriptorPool();
-
-    void recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
-
-    void createCommandBuffers();
-
-    void createSyncObjects();
-
-    bool isDeviceSuitable(VkPhysicalDevice device);
-
-    bool checkDeviceExtensionSupport(VkPhysicalDevice device);
-
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-
-    std::vector<const char*> getRequiredExtensions();
-
-    bool checkValidationLayerSupport();
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, [[maybe_unused]] void* pUserData)
-    {
-        if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-        {
-            std::cout << "Warning: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
-        }
-        else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-        {
-            std::cerr << "Error: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
-        }
-        else
-        {
-            std::cerr << "Validation: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
-        }
-        return VK_FALSE;
-    }
-
+    
 public:
-    VkPhysicalDevice getPhysicalDevice()
-    {
-        return mPhysicalDevice;
-    }
-    QueueFamilyIndices getQueueFamilies(VkPhysicalDevice mdevice)
-    {
-        return findQueueFamilies(mdevice);
-    }
-    VkDescriptorPool getDescriptorPool()
-    {
-        return mDescriptorPool;
-    }
-    VkDevice getDevice()
-    {
-        return mDevice;
-    }
-    VkInstance getInstance()
-    {
-        return mInstance;
-    }
-    VkQueue getGraphicsQueue()
-    {
-        return mGraphicsQueue;
-    }
-    FrameData* getFramesData()
-    {
-        return mFramesData;
-    }
-
-    size_t getCurrentFrameIndex()
-    {
-        return mFrameNumber % MAX_FRAMES_IN_FLIGHT;
-    }
-    FrameData& getCurrentFrameData()
-    {
-        return mFramesData[mFrameNumber % MAX_FRAMES_IN_FLIGHT];
-    }
 
     nevk::ResourceManager* getResManager()
     {
-        return mResManager;
+        return mSharedCtx.mResManager;
     }
 
     nevk::Scene* getScene()
@@ -391,7 +227,7 @@ public:
 
     nevk::TextureManager* getTexManager()
     {
-        return mTexManager;
+        return mSharedCtx.mTextureManager;
     }
 
     SceneRenderData* getSceneData()

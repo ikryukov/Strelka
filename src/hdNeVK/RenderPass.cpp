@@ -253,7 +253,7 @@ void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
     }
     
     nevkCamera.matrices.perspective = persp;
-    //nevkCamera.matrices.view = xform;
+    nevkCamera.matrices.view = xform;
 
     //GfQuatd orient = relViewMatrix.ExtractRotationQuat().GetConjugate();
     //const double* im = orient.GetImaginary().data();
@@ -344,7 +344,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     _ConstructNeVKCamera(*camera);
 
     mRender = new nevk::PtRender();
-    mRender->initVulkan();
+    mRender->init();
     mRender->setScene(&mScene);
 
     nevk::Scene::RectLightDesc desc{};

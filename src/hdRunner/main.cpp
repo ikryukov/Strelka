@@ -112,7 +112,7 @@ int main(int argc, const char* argv[])
     //ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     //std::string usdPath = "C:/work/Kitchen_set/Kitchen_set.usd";
     //std::string usdPath = "C:/work/cornell.usdc";
-    std::string usdPath = "C:/work/directLightTest.usd";
+    std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
 
     timerLoad.Stop();

@@ -186,6 +186,7 @@ set(RENDER_SOURCES
         include/render/gbuffer.h
         include/render/bvh.h
         include/render/render.h
+        include/render/vkrender.h
         include/render/ptrender.h
         include/render/renderpass.h
         include/render/gbufferpass.h
@@ -199,6 +200,7 @@ set(RENDER_SOURCES
         include/render/depthpass.h
         include/render/debugUtils.h
         src/render/render.cpp
+        src/render/vkrender.cpp
         src/render/ptrender.cpp
         src/render/renderpass.cpp
         src/render/gbufferpass.cpp
