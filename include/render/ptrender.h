@@ -69,7 +69,6 @@ private:
 
     Tonemapparam mToneParams;
     Upscalepassparam mUpscalePassParam;
-    Debugviewparam mDebugParams;
 
     struct ViewData
     {
@@ -183,13 +182,6 @@ private:
 
     SceneRenderData* mCurrentSceneRenderData = nullptr;
     SceneRenderData* mDefaultSceneRenderData = nullptr;
-
-    std::array<bool, MAX_FRAMES_IN_FLIGHT> needImageViewUpdate = { false, false, false };
-
-    int32_t mSamples = 1;
-
-    bool framebufferResized = false;
-    bool prevState = true;
 
     nevk::Scene* mScene = nullptr;
 
