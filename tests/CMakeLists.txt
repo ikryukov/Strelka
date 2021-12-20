@@ -28,6 +28,7 @@ target_link_libraries(${TEST_MAIN}
     ${MODELLIB_NAME} 
     ${TEXTURELIB_NAME} 
     ${TRACY_LIB} 
+    ${MATERIALLIB_NAME}
     usdImaging
     hdMtlx
     MaterialXCore
