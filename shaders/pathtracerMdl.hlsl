@@ -224,7 +224,7 @@ float3 pathTrace2(uint2 pixelIndex)
     return finalColor;
 }
 
-float3 pathTraceCameraRays(uint2 pixelIndex)
+float3 pathTraceCameraRays(uint2 pixelIndex, int sample)
 {
     Accel accel;
     accel.bvhNodes = bvhNodes;
@@ -232,7 +232,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex)
     accel.vb = vb;
     accel.ib = ib;
 
-    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
+    uint rngState = initRNG(pixelIndex * (sample + 1), ubo.dimension, ubo.frameNumber);
 
     float3 finalColor = float3(0.0f);
     float3 throughput = float3(1.0f);
@@ -318,6 +318,11 @@ float3 pathTraceCameraRays(uint2 pixelIndex)
                 float lightPdf = 0.0f; //return value for sampleLights()
                 float3 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
                 
+                if (any(isnan(radianceOverPdf)) || isnan(lightPdf))
+                {
+                    break;
+                }
+
                 Bsdf_evaluate_data evalData = (Bsdf_evaluate_data) 0;
                 evalData.ior1 = 1.5;       // IOR current medium // 1.2
                 evalData.ior2 = 1.5;       // IOR other side
@@ -325,6 +330,11 @@ float3 pathTraceCameraRays(uint2 pixelIndex)
                 evalData.k2 = toLight;     // incoming direction
 
                 mdl_bsdf_scattering_evaluate(scatteringFunctionIndex, evalData, mdlState);
+
+                if (any(isnan(evalData.bsdf_diffuse)) || any(isnan(evalData.bsdf_glossy)) )
+                {
+                    break;
+                }
 
                 if (evalData.pdf > 0.0f)
                 {
@@ -629,8 +639,12 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
         return;
     }
 
-    float3 color = pathTraceCameraRays(pixelIndex);
+    float3 color = float3(0.0f);
     //float3 color = pathTraceGBuffer(pixelIndex);
+    for (int sample = 0; sample < ubo.spp; ++sample)
+    {
+        color += 1.0f / ubo.spp * pathTraceCameraRays(pixelIndex, sample);
+    }
 
     output[pixelIndex] = float4(color, 1.0);
 }
