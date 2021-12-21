@@ -35,7 +35,7 @@ struct PathTracerParam
     uint numLights;
 
     int len;
-    int pad0;
+    int spp;
     int2 pad1;
 };
 

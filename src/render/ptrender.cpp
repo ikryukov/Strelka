@@ -499,7 +499,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     PathTracerParam pathTracerParam{};
     pathTracerParam.dimension = glm::int2(renderWidth, renderHeight);
     pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
-    pathTracerParam.maxDepth = 2;
+    pathTracerParam.maxDepth = 4;
     pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
     pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
     pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);
@@ -508,6 +508,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     pathTracerParam.clipToView = cam.matrices.invPerspective;
     pathTracerParam.viewToClip = cam.matrices.perspective; //
     pathTracerParam.len = (int) 0;
+    pathTracerParam.spp = 32;
     pathTracerParam.numLights = (uint32_t) 1;
     pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
     pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
