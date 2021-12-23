@@ -131,7 +131,7 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
     defaultMaterial.texNormalId = -1;
     defaultMaterial.texEmissive = -1;
 
-    mScene.addMaterial(defaultMaterial);
+   // mScene.addMaterial(defaultMaterial);
 
     //materials.push_back(m_defaultMaterial);
 
@@ -165,7 +165,7 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
 
         const SdfPath& materialId = mesh->GetMaterialId();
         uint32_t materialIndex = 0;
-
+        std::cout << "runner" << std::endl;
         if (materialMapping.find(materialId) != materialMapping.end())
         {
             materialIndex = materialMapping[materialId];
@@ -177,14 +177,11 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
 
             if (material)
             {
-                //const gi_material* giMat = material->GetGiMaterial();
-
-                //if (giMat)
-                //{
-                //    materialIndex = materials.size();
-                //    materials.push_back(giMat);
-                //    materialMapping[materialId] = materialIndex;
-                //}
+                std::string code = material->GetNeVKMaterial();
+                std::cout << code << std::endl;
+                nevk::Scene::MaterialX material;
+                material.code = code;
+                mScene.materialsCode.push_back(material);
             }
         }
 

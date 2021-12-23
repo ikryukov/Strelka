@@ -47,6 +47,13 @@ private:
     uint32_t mLigthMeshId = (uint32_t) -1;
 
 public:
+    struct MaterialX
+    {
+        std::string code;
+    };
+
+    std::vector<MaterialX> materialsCode;
+
     struct Vertex
     {
         glm::float3 pos;

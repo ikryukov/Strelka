@@ -18,8 +18,8 @@ class MaterialNetworkTranslator
 public:
   MaterialNetworkTranslator(const std::string& mtlxLibPath);
 
-  //Material* ParseNetwork(const SdfPath& id,
-  //                          const HdMaterialNetwork2& network) const;
+  std::string ParseNetwork(const SdfPath& id,
+                            const HdMaterialNetwork2& network) const;
 
 private:
   MaterialX::DocumentPtr CreateMaterialXDocumentFromNetwork(const SdfPath& id,

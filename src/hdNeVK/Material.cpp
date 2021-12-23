@@ -55,12 +55,12 @@ void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
         return;
     }
 
-    //mMaterial = m_translator.ParseNetwork(id, network);
+    mMaterialXCode = m_translator.ParseNetwork(id, network);
 }
 
-//const Material* HdNeVKMaterial::GetGiMaterial() const
-//{
-//    return m_Material;
-//}
+const std::string& HdNeVKMaterial::GetNeVKMaterial() const
+{
+    return mMaterialXCode;
+}
 
 PXR_NAMESPACE_CLOSE_SCOPE

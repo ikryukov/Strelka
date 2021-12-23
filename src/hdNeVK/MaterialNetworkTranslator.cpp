@@ -160,25 +160,25 @@ MaterialNetworkTranslator::MaterialNetworkTranslator(const std::string& mtlxLibP
     mx::loadLibraries(libFolders, folderSearchPath, m_nodeLib);
 }
 
-//Material* MaterialNetworkTranslator::ParseNetwork(const SdfPath& id,
-//                                                     const HdMaterialNetwork2& network) const
-//{
-//  HdMaterialNetwork2 mtlxNetwork;
-//  if (!_ConvertNodesToMaterialXNodes(network, mtlxNetwork))
-//  {
-//    return nullptr;
-//  }
-//
-//  mx::DocumentPtr doc = CreateMaterialXDocumentFromNetwork(id, mtlxNetwork);
-//  if (!doc)
-//  {
-//    return nullptr;
-//  }
-//
-//  mx::string docStr = mx::writeToXmlString(doc);
-//
-//  return CreateMaterialFromMtlx(docStr.c_str());
-//}
+std::string MaterialNetworkTranslator::ParseNetwork(const SdfPath& id,
+                                                     const HdMaterialNetwork2& network) const
+{
+  HdMaterialNetwork2 mtlxNetwork;
+  if (!_ConvertNodesToMaterialXNodes(network, mtlxNetwork))
+  {
+    return nullptr;
+  }
+
+  mx::DocumentPtr doc = CreateMaterialXDocumentFromNetwork(id, mtlxNetwork);
+  if (!doc)
+  {
+    return nullptr;
+  }
+
+  mx::string docStr = mx::writeToXmlString(doc);
+
+  return std::string(docStr.c_str());
+}
 
 mx::DocumentPtr MaterialNetworkTranslator::CreateMaterialXDocumentFromNetwork(const SdfPath& id,
                                                                               const HdMaterialNetwork2& network) const

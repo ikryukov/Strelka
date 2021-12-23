@@ -45,12 +45,25 @@ void PtRender::init()
         return;
     }
 
-    MaterialManager::Module* mdlModule = mMaterialManager->createModule("tutorials.mdl");
-    MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "example_material");
+    // MaterialManager::Module* mdlModule = mMaterialManager->createModule("tutorials.mdl");
+    // MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "example_material");
 
     std::vector<MaterialManager::CompiledMaterial*> materials;
-    MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
-    materials.push_back(materialComp);
+    //MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+    //materials.push_back(materialComp);
+
+    for (uint32_t i = 0; i < mScene->materialsCode.size(); ++i)
+    {
+        MaterialManager::Module* mdlModule1 = mMaterialManager->createMtlxModule(mScene->materialsCode[i].code.c_str());
+
+        assert(mdlModule1);
+        MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(mdlModule1, "");
+        assert(materialInst1);
+        MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
+        assert(materialComp1);
+
+        materials.push_back(materialComp1);
+    }
 
     const fs::path cwd = fs::current_path();
     std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
@@ -60,11 +73,11 @@ void PtRender::init()
     assert(materials.size() != 0);
     const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials);
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
-    
+
     mCurrentSceneRenderData = new SceneRenderData(mSharedCtx.mResManager);
 
     mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
-    
+
     std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
 
     mPathTracer = new PathTracer(mSharedCtx, newPTCode);
@@ -109,41 +122,41 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height)
     ViewData* view = new ViewData();
     view->finalWidth = width;
     view->finalHeight = height;
-    view->renderWidth = (uint32_t) (width * 1.0f); //mRenderConfig.upscaleFactor
-    view->renderHeight = (uint32_t) (height * 1.0f); //mRenderConfig.upscaleFactor
+    view->renderWidth = (uint32_t)(width * 1.0f); //mRenderConfig.upscaleFactor
+    view->renderHeight = (uint32_t)(height * 1.0f); //mRenderConfig.upscaleFactor
     view->mResManager = resManager;
     view->gbuffer = createGbuffer(view->renderWidth, view->renderHeight);
     view->prevDepth = resManager->createImage(view->renderWidth, view->renderHeight, view->gbuffer->depthFormat, VK_IMAGE_TILING_OPTIMAL,
-                                               VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Prev depth");
+                                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Prev depth");
     texManager->transitionImageLayout(resManager->getVkImage(view->prevDepth), view->gbuffer->depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     view->textureDebugViewImage = resManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                           VK_IMAGE_TILING_OPTIMAL,
-                                                           VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
+                                                          VK_IMAGE_TILING_OPTIMAL,
+                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
     texManager->transitionImageLayout(resManager->getVkImage(view->textureDebugViewImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
     view->textureTonemapImage = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                         VK_IMAGE_TILING_OPTIMAL,
-                                                         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
+                                                        VK_IMAGE_TILING_OPTIMAL,
+                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
     view->textureUpscaleImage = resManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                         VK_IMAGE_TILING_OPTIMAL,
-                                                         VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Upscale Output");
+                                                        VK_IMAGE_TILING_OPTIMAL,
+                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Upscale Output");
     texManager->transitionImageLayout(resManager->getVkImage(view->textureUpscaleImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
-    
+
     view->mPathTracerImage = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                      VK_IMAGE_TILING_OPTIMAL,
-                                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
+                                                     VK_IMAGE_TILING_OPTIMAL,
+                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
 
     const std::string imageName = "Accumulation Image";
     view->mAccumulationPathTracerImage = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                                  VK_IMAGE_TILING_OPTIMAL,
-                                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "PT accumulation");
+                                                                 VK_IMAGE_TILING_OPTIMAL,
+                                                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "PT accumulation");
     texManager->transitionImageLayout(resManager->getVkImage(view->mAccumulationPathTracerImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     return view;
 }
@@ -160,28 +173,28 @@ GBuffer* PtRender::createGbuffer(uint32_t width, uint32_t height)
     // Depth
     res->depthFormat = findDepthFormat();
     res->depth = resManager->createImage(width, height, res->depthFormat, VK_IMAGE_TILING_OPTIMAL,
-                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
+                                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
     // Normals
     res->normal = resManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
     // Tangent
     res->tangent = resManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
+                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
     // wPos
     res->wPos = resManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
+                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
     // UV
     res->uv = resManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
+                                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
     // InstId
     res->instId = resManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
-                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
     // Motion
     res->motion = resManager->createImage(width, height, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
     // Debug
     res->debug = resManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Debug");
+                                         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Debug");
     return res;
 }
 
@@ -198,8 +211,8 @@ void PtRender::createGbufferPass()
 
     mGbufferPass.setTextureSamplers(mSharedCtx.mTextureManager->texSamplers);
     assert(mView[0]);
-    mGbufferPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize, 
-        mSharedCtx.mDescriptorPool, mSharedCtx.mResManager, mView[0]->gbuffer);
+    mGbufferPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize,
+                      mSharedCtx.mDescriptorPool, mSharedCtx.mResManager, mView[0]->gbuffer);
     mGbufferPass.createFrameBuffers(*mView[0]->gbuffer, 0);
 }
 
@@ -248,7 +261,7 @@ void PtRender::createLightsBuffer(nevk::Scene& scene)
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
     mCurrentSceneRenderData->mLightsBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Lights");
-    
+
     if (!sceneLights.empty())
     {
         Buffer* stagingBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -467,7 +480,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
     assert(mScene);
     //ZoneScoped;
-    
+
     FrameData& currFrame = getCurrentFrameData();
     const uint32_t imageIndex = 0;
 
@@ -491,7 +504,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     cam.updateViewMatrix();
 
     setDescriptors(imageIndex);
-    
+
 
     mGbufferPass.onResize(currView->gbuffer, 0);
     mGbufferPass.updateUniformBuffer(imageIndex, *mScene, getActiveCameraIndex());
@@ -507,9 +520,9 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     //pathTracerParam.clipToView = glm::inverse(cam.matrices.perspective);
     pathTracerParam.clipToView = cam.matrices.invPerspective;
     pathTracerParam.viewToClip = cam.matrices.perspective; //
-    pathTracerParam.len = (int) 0;
+    pathTracerParam.len = (int)0;
     pathTracerParam.spp = 32;
-    pathTracerParam.numLights = (uint32_t) 1;
+    pathTracerParam.numLights = (uint32_t)1;
     pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
     pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
     mPathTracer->setParams(pathTracerParam);
@@ -716,13 +729,13 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
     {
         Image* tmpImage = finalPathTracerImage;
-  
+
         // Tonemap
         {
             recordBarrier(cmd, resManager->getVkImage(mView[imageIndex]->textureTonemapImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-           // recordBarrier(cmd, mResManager->getVkImage(tmpImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-             //             VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            // recordBarrier(cmd, mResManager->getVkImage(tmpImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            //             VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mToneParams.dimension.x = renderWidth;
             mToneParams.dimension.y = renderHeight;
             mTonemap->setParams(mToneParams);
@@ -738,8 +751,8 @@ void PtRender::drawFrame(const uint8_t* outPixels)
                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mUpscalePassParam.dimension.x = finalWidth;
             mUpscalePassParam.dimension.y = finalHeight;
-            mUpscalePassParam.invDimension.x =  1.0f / (float) finalWidth;
-            mUpscalePassParam.invDimension.y = 1.0f / (float) finalHeight;
+            mUpscalePassParam.invDimension.x = 1.0f / (float)finalWidth;
+            mUpscalePassParam.invDimension.y = 1.0f / (float)finalHeight;
             mUpscalePass->setParams(mUpscalePassParam);
             mUpscalePass->setInputTexture(resManager->getView(finalImage));
             mUpscalePass->execute(cmd, finalWidth, finalHeight, imageIndex);
