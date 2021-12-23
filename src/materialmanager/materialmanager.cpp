@@ -204,19 +204,23 @@ public:
     {
         std::unique_ptr<Module> module = std::make_unique<Module>();
 
-        mMtlxCodeGen->translate(file, mMdlSrc, module->identifier);
-
-        std::string mdlFile = "misc/test_data/mtlx/" + module->identifier + ".mdl";
-        std::ofstream material(mdlFile.c_str());
-        material << mMdlSrc;
-        material.close();
-
-        if (!mMatCompiler->createModule(module->identifier, module->moduleName))
+        bool res = mMtlxCodeGen->translate(file, mMdlSrc, module->identifier);
+        if (res)
+        {
+            std::string mdlFile = "misc/test_data/mtlx/" + module->identifier + ".mdl";
+            std::ofstream material(mdlFile.c_str());
+            material << mMdlSrc;
+            material.close();
+            if (!mMatCompiler->createModule(module->identifier, module->moduleName))
+            {
+                return nullptr;
+            }
+            return module.release();
+        }
+        else
         {
             return nullptr;
-        }
-
-        return module.release();
+        }        
     };
 
     Module* createModule(const char* file)
@@ -576,7 +580,8 @@ private:
     {
         using namespace std;
         const fs::path cwd = fs::current_path();
-        mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
+        //mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
+        mtlxLibPath = "C:/work/USD_build_debug/libraries";
         mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
 
 #ifdef MI_PLATFORM_WINDOWS

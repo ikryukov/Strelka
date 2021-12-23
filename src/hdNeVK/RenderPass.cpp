@@ -181,7 +181,9 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
                 std::cout << code << std::endl;
                 nevk::Scene::MaterialX material;
                 material.code = code;
+                materialIndex = mScene.materialsCode.size();
                 mScene.materialsCode.push_back(material);
+                mScene.addMaterial(defaultMaterial);
             }
         }
 
@@ -225,7 +227,8 @@ void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
         }
     }
 
-    GfMatrix4d perspMatrix = camera.ComputeProjectionMatrix();
+    //GfMatrix4d perspMatrix = camera.ComputeProjectionMatrix();
+    GfMatrix4d perspMatrix = camera.GetProjectionMatrix();
     glm::float4x4 persp;
     for (int i = 0; i < 4; ++i)
     {
@@ -341,8 +344,8 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     _ConstructNeVKCamera(*camera);
 
     mRender = new nevk::PtRender();
-    mRender->init();
     mRender->setScene(&mScene);
+    mRender->init();
 
     nevk::Scene::RectLightDesc desc{};
     desc.color = glm::float3(1.0f);

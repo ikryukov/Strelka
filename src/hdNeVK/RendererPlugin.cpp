@@ -22,7 +22,8 @@ HdNeVKRendererPlugin::HdNeVKRendererPlugin()
     std::string mtlxmdlPath = resourcePath + "/mtlxmdl";
     std::string mtlxlibPath = resourcePath + "/mtlxlib";
 
-    m_translator = std::make_unique<MaterialNetworkTranslator>(mtlxlibPath);
+    //m_translator = std::make_unique<MaterialNetworkTranslator>(mtlxlibPath);
+    m_translator = std::make_unique<MaterialNetworkTranslator>("C:/work/USD_build_debug/libraries");
     m_isSupported = true;
 }
 
