@@ -172,7 +172,7 @@ class MaterialManager::Context
 public:
     Context()
     {
-        configurePaths(true);
+        configurePaths();
     };
 
     ~Context(){};
@@ -185,8 +185,6 @@ public:
         {
             return false;
         }
-
-
 
         mMtlxCodeGen = std::make_unique<nevk::MtlxMdlCodeGen>(mtlxLibPath.c_str());
 
@@ -202,23 +200,26 @@ public:
 
     Module* createMtlxModule(const char* file)
     {
+        assert(mMtlxCodeGen);
         std::unique_ptr<Module> module = std::make_unique<Module>();
 
         bool res = mMtlxCodeGen->translate(file, mMdlSrc, module->identifier);
         if (res)
         {
-            std::string mdlFile = "misc/test_data/mtlx/" + module->identifier + ".mdl";
+            std::string mdlFile = "./misc/test_data/mtlx/" + module->identifier + ".mdl";
             std::ofstream material(mdlFile.c_str());
             material << mMdlSrc;
             material.close();
             if (!mMatCompiler->createModule(module->identifier, module->moduleName))
             {
+                printf("Error: failed to create MDL module\n");
                 return nullptr;
             }
             return module.release();
         }
         else
         {
+            printf("Error: failed to translate MaterialX -> MDL\n");
             return nullptr;
         }        
     };
@@ -576,12 +577,12 @@ private:
 
     std::unordered_map<uint32_t, mi::base::Handle<const mi::neuraylib::ICanvas>> m_indexToCanvas;
 
-    void configurePaths(bool isMtlx)
+    void configurePaths()
     {
         using namespace std;
         const fs::path cwd = fs::current_path();
-        //mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
-        mtlxLibPath = "C:/work/USD_build_debug/libraries";
+        mtlxLibPath = "/Users/ilya/work/usd_build/libraries/";
+        // mtlxLibPath = "C:/work/USD_build_debug/libraries";
         mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
 
 #ifdef MI_PLATFORM_WINDOWS

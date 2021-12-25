@@ -1,6 +1,6 @@
 #pragma once
 
-#include "MaterialManager.h"
+#include "materialmanager.h"
 #include "MaterialNetworkTranslator.h"
 
 #include <pxr/imaging/hd/material.h>

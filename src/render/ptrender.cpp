@@ -37,7 +37,7 @@ void PtRender::init()
 
     mMaterialManager = new MaterialManager();
     const char* paths[3] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/resources/",
-                             "C:/work/USD_build_debug/mdl" };
+                             "/Users/ilya/work/usd_build/mdl" };
     bool res = mMaterialManager->addMdlSearchPath(paths, 3);
     if (!res)
     {

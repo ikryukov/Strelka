@@ -227,8 +227,8 @@ void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
         }
     }
 
-    //GfMatrix4d perspMatrix = camera.ComputeProjectionMatrix();
-    GfMatrix4d perspMatrix = camera.GetProjectionMatrix();
+    GfMatrix4d perspMatrix = camera.ComputeProjectionMatrix();
+    // GfMatrix4d perspMatrix = camera.GetProjectionMatrix();
     glm::float4x4 persp;
     for (int i = 0; i < 4; ++i)
     {
