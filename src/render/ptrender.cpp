@@ -512,7 +512,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     pathTracerParam.clipToView = cam.matrices.invPerspective;
     pathTracerParam.viewToClip = cam.matrices.perspective; //
     pathTracerParam.len = (int)0;
-    pathTracerParam.spp = 32;
+    pathTracerParam.spp = 320;
     pathTracerParam.numLights = (uint32_t) mScene->getLights().size();
     pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
     pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
