@@ -128,15 +128,13 @@ Ray generateCameraRay(uint2 pixelIndex)
     return ray;
 }
 
-float3 pathTraceCameraRays(uint2 pixelIndex, int sample)
+float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 {
     Accel accel;
     accel.bvhNodes = bvhNodes;
     accel.instanceConstants = instanceConstants;
     accel.vb = vb;
     accel.ib = ib;
-
-    uint rngState = initRNG(pixelIndex * (sample + 1), ubo.dimension, ubo.frameNumber);
 
     float3 finalColor = float3(0.0f);
     float3 throughput = float3(1.0f);
@@ -195,7 +193,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, int sample)
 
                 if (ubo.debug == 1)
                 {
-                    float3 debugN = (geom_normal + 1.0) * 0.5;
+                    // float3 debugN = (world_normal + 1.0) * 0.5;
+                    float3 debugN = (world_normal);
                     return debugN;
                 }
 
@@ -287,8 +286,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, int sample)
         else
         {
             // miss - add background color and exit
-            float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
-            finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
+            // float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
+            // finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
 
             break;
         }
@@ -547,9 +546,10 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
 
     float3 color = float3(0.0f);
     //float3 color = pathTraceGBuffer(pixelIndex);
+    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
     for (int sample = 0; sample < ubo.spp; ++sample)
     {
-        color += 1.0f / ubo.spp * pathTraceCameraRays(pixelIndex, sample);
+        color += 1.0f / ubo.spp * pathTraceCameraRays(pixelIndex, rngState);
     }
 
     output[pixelIndex] = float4(color, 1.0);
