@@ -63,7 +63,7 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     inst->mMeshId = meshId;
     inst->transform = transform;
     inst->massCenter = massCenter;
-    inst->isLight = mMaterials[materialId].isLight;
+    inst->isLight = mMaterials[materialId].isLight != -1;
 
     if (mMaterials[materialId].isTransparent())
     {
@@ -190,7 +190,7 @@ void Scene::updateAnimation(const float time)
 
 uint32_t Scene::createLight(const RectLightDesc& desc)
 {
-    const glm::float4x4 localTransform = getTransform(desc);
+    const glm::float4x4 localTransform = desc.useXform ? desc.xform : getTransform(desc);
 
     Light l;
     l.points[0] = localTransform * glm::float4(0.0f, 0.5f, 0.5f, 1.0f);
@@ -199,20 +199,12 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     l.points[3] = localTransform * glm::float4(0.0f, 0.5f, -0.5f, 1.0f);
     l.color = glm::float4(desc.color, 1.0f) * desc.intensity;
 
-    RectLightDesc lightDesc{};
-    lightDesc.position = desc.position;
-    lightDesc.orientation = desc.orientation;
-    lightDesc.width = desc.width;
-    lightDesc.height = desc.height;
-    lightDesc.color = desc.color;
-    lightDesc.intensity = desc.intensity;
-
     uint32_t lightId = (uint32_t)mLights.size();
     mLights.push_back(l);
     mLightDesc.push_back(desc);
 
     Material light;
-    light.isLight = 1;
+    light.isLight = lightId;
     light.baseColorFactor = glm::float4(desc.color, 1.0f) * desc.intensity;
     light.texBaseColor = -1;
     light.texMetallicRoughness = -1;

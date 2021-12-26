@@ -11,6 +11,8 @@ PXR_NAMESPACE_OPEN_SCOPE
 class HdNeVKMaterial final : public HdMaterial
 {
 public:
+    HF_MALLOC_TAG_NEW("new HdNeVKMaterial");
+
     HdNeVKMaterial(const SdfPath& id,
                    const MaterialNetworkTranslator& translator);
 

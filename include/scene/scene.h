@@ -129,8 +129,10 @@ public:
     // CPU side structure
     struct RectLightDesc
     {
+        glm::float4x4 xform;
         glm::float3 position; // world position
         glm::float3 orientation; // euler angles in degrees
+        bool useXform;
         // OX - axis of light or normal
         float width; // OY
         float height; // OZ

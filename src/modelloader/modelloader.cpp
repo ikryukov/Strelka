@@ -408,7 +408,7 @@ void loadMaterials(const tinygltf::Model& model, nevk::Scene& scene, nevk::Textu
         currMaterial.d = (float)material.pbrMetallicRoughness.baseColorFactor[3];
 
         currMaterial.illum = material.alphaMode == "OPAQUE" ? 2 : 1;
-        currMaterial.isLight = 0;
+        currMaterial.isLight = -1;
 
         scene.addMaterial(currMaterial);
     }

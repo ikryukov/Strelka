@@ -39,7 +39,7 @@ struct Material
     int32_t sampBaseId = -1;
 
     int32_t sampNormalId = -1;
-    int32_t isLight = 0;
+    int32_t isLight = -1;
     float extIOR = 1.0f;
     float intIOR = 1.5f;
 

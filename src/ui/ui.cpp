@@ -474,7 +474,13 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     currLightDesc.height = matrixScale[2];
 
     // update in scene
-    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
+    Scene::RectLightDesc desc{};
+    desc.position = currLightDesc.position;
+    desc.orientation = currLightDesc.orientation;
+    desc.width = currLightDesc.width;
+    desc.height = currLightDesc.height;
+    desc.color = currLightDesc.color;
+    desc.intensity = currLightDesc.intensity;
     scene.updateLight(lightId, desc);
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
@@ -629,7 +635,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
                 {
                     for (uint32_t i = 0; i < instances.size(); i++)
                     {
-                        if (instances[i].isLight == 0)
+                        if (instances[i].isLight == -1)
                         {
                             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
                             if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", instances[i].mMeshId))

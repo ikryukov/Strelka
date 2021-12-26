@@ -108,11 +108,6 @@ float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId
     return NewNormal;
 }
 
-float toRad(float a)
-{
-    return a * PI / 180;
-}
-
 // Matrices version
 Ray generateCameraRay(uint2 pixelIndex)
 {
@@ -131,97 +126,6 @@ Ray generateCameraRay(uint2 pixelIndex)
     ray.d.xyz = normalize(wdir.xyz);
 
     return ray;
-}
-
-// // Generates a primary ray for pixel given in NDC space using pinhole camera
-// Ray generateCameraRays(uint2 pixelIndex)
-// {
-//     float2 pixelPos = float2(pixelIndex) + 0.5;
-//     float2 pixelNDC = pixelPos / ubo.dimension * 2.0 - 1.0;
-
-//     // Setup the ray
-//     Ray ray;
-//     ray.o.xyz = ubo.worldToView[3].xyz;
-
-//     // Extract the aspect ratio and field of view from the projection matrix
-//     float aspect = ubo.viewToClip[1][1] / ubo.viewToClip[0][0];
-//     float tanHalfFovY = 1.0f / ubo.viewToClip[1][1];
-
-//     // Compute the ray direction for this pixel
-//     ray.d.xyz = normalize(
-//         (pixelNDC.x * ubo.worldToView[0].xyz * tanHalfFovY * aspect) -
-//             (pixelNDC.y * ubo.worldToView[1].xyz * tanHalfFovY) +
-//             ubo.worldToView[2].xyz);
-
-//     ray.o.w = 1e9;
-
-//     return ray;
-// }
-
-float3 pathTrace2(uint2 pixelIndex)
-{
-    Accel accel;
-    accel.bvhNodes = bvhNodes;
-    accel.instanceConstants = instanceConstants;
-    accel.vb = vb;
-    accel.ib = ib;
-
-    //uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-
-    float3 finalColor = float3(0.0f);
-    float3 throughput = float3(1.0f);
-
-    int depth = 0;
-    const int maxDepth = ubo.maxDepth;
-
-    Ray ray = generateCameraRay(pixelIndex);
-    const float3 invdir = float3(1.0f / ray.d.x, 1.0f / ray.d.y, 1.0f / ray.d.z);
-
-    Hit hit;
-    uint32_t nodeIndex = 0;
-    bool isFound = false;
-    
-    float minHit = 1e9f;
-    while (nodeIndex < ubo.len)
-    {
-        BVHNode node = bvhNodes[NonUniformResourceIndex(nodeIndex)];
-        const uint32_t instanceIndex = node.instId;
-        float boxT = 1e9f;
-        if (instanceIndex != INVALID_INDEX)
-        {
-            const uint primitiveIndex = asuint(node.minBounds.x); // triangle index
-
-            BVHTriangle triangle = getTriangle(instanceIndex, primitiveIndex, accel);
-            float2 bary = float2(0.0f);
-            float currT = 0.0f;
-            bool isIntersected = RayTriangleIntersect(ray.o.xyz, ray.d.xyz, triangle.v0, triangle.e0, triangle.e1, currT, bary);
-            if (isIntersected && (currT < ray.o.w) && (currT < minHit))
-            {
-                minHit = currT;
-                hit.t = currT;
-                hit.bary = bary;
-                hit.instId = instanceIndex;
-                hit.primId = primitiveIndex;
-                isFound = true;
-            }
-            //nodeIndex = node.nodeOffset;
-            // continue;
-        }
-        ++nodeIndex;
-        // else if (intersectRayBox(ray, invdir, node.minBounds, node.maxBounds, boxT))
-        // {
-        //     ++nodeIndex;
-        //     continue;
-        // }
-        // nodeIndex = node.nodeOffset;
-    }
-
-    if (isFound)
-    {
-        finalColor = float3(hit.t);
-    }
-
-    return finalColor;
 }
 
 float3 pathTraceCameraRays(uint2 pixelIndex, int sample)
@@ -250,9 +154,11 @@ float3 pathTraceCameraRays(uint2 pixelIndex, int sample)
             InstanceConstants instConst = accel.instanceConstants[NonUniformResourceIndex(hit.instId)];
             Material material = materials[NonUniformResourceIndex(instConst.materialId)];
 
-            if (material.isLight)
+            if (material.isLight != -1)
             {
-                finalColor += throughput * float3(1.0f);
+                // finalColor += throughput * float3(1.0f);
+                RectLight currLight = lights[material.isLight];
+                finalColor += throughput * currLight.color.rgb;
                 break;
             }
             else
@@ -401,7 +307,7 @@ float3 pathTraceGBuffer(uint2 pixelIndex)
     InstanceConstants instConst = instanceConstants[gbInstId[pixelIndex]];
     Material material = materials[instConst.materialId];
     float2 matUV = gbUV[pixelIndex];
-    if (material.isLight)
+    if (material.isLight != -1)
     {
         return getBaseColor(material, matUV, mdl_textures_2d, mdl_sampler_tex);
     }
@@ -511,7 +417,7 @@ float3 pathTraceGBuffer(uint2 pixelIndex)
             instConst = accel.instanceConstants[hit.instId];
             material = materials[instConst.materialId];
 
-            if (material.isLight)
+            if (material.isLight != -1)
             {
                 finalColor += throughput * float3(1.0f);
                 //break;

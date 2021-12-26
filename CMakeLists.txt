@@ -328,6 +328,8 @@ set(HD_PLUGIN_SOURCES
     src/HdNeVK/Camera.cpp
     src/HdNeVK/Mesh.h
     src/HdNeVK/Mesh.cpp
+    src/HdNeVK/Light.h
+    src/HdNeVK/Light.cpp
     src/HdNeVK/Tokens.h
     src/HdNeVK/Tokens.cpp
     src/HdNeVK/MaterialNetworkTranslator.h

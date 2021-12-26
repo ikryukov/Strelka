@@ -5,6 +5,7 @@
 #include "Instancer.h"
 #include "RenderBuffer.h"
 #include "Material.h"
+#include "Light.h"
 #include "Tokens.h"
 
 #include <pxr/imaging/hd/resourceRegistry.h>
@@ -109,7 +110,9 @@ void HdNeVKRenderDelegate::DestroyRprim(HdRprim* rprim)
 
 const TfTokenVector SUPPORTED_SPRIM_TYPES = {
     HdPrimTypeTokens->camera,
-    HdPrimTypeTokens->material
+    HdPrimTypeTokens->material,
+    HdPrimTypeTokens->light,
+    HdPrimTypeTokens->rectLight
 };
 
 const TfTokenVector& HdNeVKRenderDelegate::GetSupportedSprimTypes() const
@@ -127,6 +130,11 @@ HdSprim* HdNeVKRenderDelegate::CreateSprim(const TfToken& typeId,
     else if (typeId == HdPrimTypeTokens->material)
     {
         return new HdNeVKMaterial(sprimId, m_translator);
+    }
+    else if (typeId == HdPrimTypeTokens->rectLight)
+    {
+        // unified light, but currently only rect light supported
+        return new HdNeVKLight(sprimId, typeId);
     }
 
     return nullptr;

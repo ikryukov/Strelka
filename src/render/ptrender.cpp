@@ -45,24 +45,16 @@ void PtRender::init()
         return;
     }
 
-    // MaterialManager::Module* mdlModule = mMaterialManager->createModule("tutorials.mdl");
-    // MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "example_material");
-
     std::vector<MaterialManager::CompiledMaterial*> materials;
-    //MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
-    //materials.push_back(materialComp);
-
     for (uint32_t i = 0; i < mScene->materialsCode.size(); ++i)
     {
-        MaterialManager::Module* mdlModule1 = mMaterialManager->createMtlxModule(mScene->materialsCode[i].code.c_str());
-
-        assert(mdlModule1);
-        MaterialManager::MaterialInstance* materialInst1 = mMaterialManager->createMaterialInstance(mdlModule1, "");
-        assert(materialInst1);
-        MaterialManager::CompiledMaterial* materialComp1 = mMaterialManager->compileMaterial(materialInst1);
-        assert(materialComp1);
-
-        materials.push_back(materialComp1);
+        MaterialManager::Module* mdlModule = mMaterialManager->createMtlxModule(mScene->materialsCode[i].code.c_str());
+        assert(mdlModule);
+        MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "");
+        assert(materialInst);
+        MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+        assert(materialComp);
+        materials.push_back(materialComp);
     }
 
     const fs::path cwd = fs::current_path();
@@ -505,7 +497,6 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
     setDescriptors(imageIndex);
 
-
     mGbufferPass.onResize(currView->gbuffer, 0);
     mGbufferPass.updateUniformBuffer(imageIndex, *mScene, getActiveCameraIndex());
 
@@ -522,7 +513,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     pathTracerParam.viewToClip = cam.matrices.perspective; //
     pathTracerParam.len = (int)0;
     pathTracerParam.spp = 32;
-    pathTracerParam.numLights = (uint32_t)1;
+    pathTracerParam.numLights = (uint32_t) mScene->getLights().size();
     pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
     pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
     mPathTracer->setParams(pathTracerParam);

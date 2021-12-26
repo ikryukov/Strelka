@@ -4,6 +4,7 @@
 #include "Instancer.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "Light.h"
 #include "RenderBuffer.h"
 #include "Tokens.h"
 
@@ -99,7 +100,6 @@ void HdNeVKRenderPass::_BakeMeshInstance(const HdNeVKMesh* mesh,
         sum += vertex.pos;
     }
     const glm::float3 massCenter = sum / (float)vertexCount;
-    int matId = 0;
 
     glm::float4x4 glmTransform;
     for (int i = 0; i < 4; ++i)
@@ -112,7 +112,7 @@ void HdNeVKRenderPass::_BakeMeshInstance(const HdNeVKMesh* mesh,
 
     uint32_t meshId = mScene.createMesh(vertices, indices);
     assert(meshId != -1);
-    uint32_t instId = mScene.createInstance(meshId, matId, glmTransform, massCenter);
+    uint32_t instId = mScene.createInstance(meshId, materialIndex, glmTransform, massCenter);
     assert(instId != -1);
 }
 
@@ -130,10 +130,6 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
     defaultMaterial.texBaseColor = -1; 
     defaultMaterial.texNormalId = -1;
     defaultMaterial.texEmissive = -1;
-
-   // mScene.addMaterial(defaultMaterial);
-
-    //materials.push_back(m_defaultMaterial);
 
     for (const auto& rprimId : renderIndex->GetRprimIds())
     {
@@ -178,7 +174,6 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
             if (material)
             {
                 std::string code = material->GetNeVKMaterial();
-                std::cout << code << std::endl;
                 nevk::Scene::MaterialX material;
                 material.code = code;
                 materialIndex = mScene.materialsCode.size();
@@ -333,7 +328,6 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     m_lastSceneStateVersion = sceneStateVersion;
     m_lastRenderSettingsVersion = renderSettingsStateVersion;
 
-
     // Transform scene into camera space to increase floating point precision.
     GfMatrix4d viewMatrix = camera->GetTransform().GetInverse();
 
@@ -355,7 +349,30 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     desc.orientation = glm::float3(179.68, 29.77, -89.97);
     desc.intensity = 160.0f;
 
-    mScene.createLight(desc);
+    static const TfTokenVector lightTypes = { HdPrimTypeTokens->domeLight,
+                                              HdPrimTypeTokens->simpleLight,
+                                              HdPrimTypeTokens->sphereLight,
+                                              HdPrimTypeTokens->rectLight,
+                                              HdPrimTypeTokens->diskLight,
+                                              HdPrimTypeTokens->cylinderLight,
+                                              HdPrimTypeTokens->distantLight };
+    size_t count = 0;
+    // TF_FOR_ALL(it, lightTypes)
+    {
+        if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->rectLight))
+        {
+            SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->rectLight,
+                                                                    SdfPath::AbsoluteRootPath());
+            for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
+            {
+                HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->rectLight, sprimPaths[lightIdx]);
+                HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
+                mScene.createLight(light->getLightDesc());
+            }
+        }
+    }
+
+    // mScene.createLight(desc);
 
     float* img_data = (float*)renderBuffer->Map();
 
