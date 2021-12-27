@@ -161,7 +161,6 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
 
         const SdfPath& materialId = mesh->GetMaterialId();
         uint32_t materialIndex = 0;
-        std::cout << "runner" << std::endl;
         if (materialMapping.find(materialId) != materialMapping.end())
         {
             materialIndex = materialMapping[materialId];
@@ -173,7 +172,7 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
 
             if (material)
             {
-                std::string code = material->GetNeVKMaterial();
+                const std::string& code = material->GetNeVKMaterial();
                 nevk::Scene::MaterialX material;
                 material.code = code;
                 materialIndex = mScene.materialsCode.size();
@@ -258,8 +257,8 @@ void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
     //nevkCamera.position = glm::float3(0.0f, 0.0f, 15.0f);
 
     //TODO: debug:
-    //nevkCamera.setPerspective(45.0f, (float)800 / (float)600, 0.1f, 10000.0f);
-    //nevkCamera.fov = glm::degrees(camera.GetVFov());
+    // nevkCamera.setPerspective(45.0f, (float)800 / (float)600, 0.1f, 10000.0f);
+    nevkCamera.fov = glm::degrees(camera.GetVFov());
     //nevkCamera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 
     mScene.addCamera(nevkCamera);
