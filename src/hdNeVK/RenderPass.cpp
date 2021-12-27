@@ -179,6 +179,7 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
                 materialIndex = mScene.materialsCode.size();
                 mScene.materialsCode.push_back(material);
                 mScene.addMaterial(defaultMaterial);
+                materialMapping[materialId] = materialIndex;
             }
         }
 
