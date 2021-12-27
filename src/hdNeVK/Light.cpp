@@ -7,10 +7,8 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/compatibility.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -207,13 +205,6 @@ void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
 HdDirtyBits HdNeVKLight::GetInitialDirtyBitsMask() const
 {
     return (DirtyParams | DirtyTransform);
-    // return HdChangeTracker::DirtyPoints |
-    //        HdChangeTracker::DirtyNormals |
-    //        HdChangeTracker::DirtyTopology |
-    //        HdChangeTracker::DirtyInstancer |
-    //        HdChangeTracker::DirtyInstanceIndex |
-    //        HdChangeTracker::DirtyTransform |
-    //        HdChangeTracker::DirtyMaterialId;
 }
 
 nevk::Scene::RectLightDesc HdNeVKLight::getLightDesc()
