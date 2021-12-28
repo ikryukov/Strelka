@@ -24,6 +24,7 @@
 #include "pathtracer.h"
 #include "tonemap.h"
 #include "upscalepass.h"
+#include "reduction.h"
 
 #include <scene/scene.h>
 
@@ -65,6 +66,8 @@ private:
     Accumulation* mAccumulationPathTracer;
     Tonemap* mTonemap;
     UpscalePass* mUpscalePass;
+    ReductionPass* mReductionPass;
+
     DebugView* mDebugView;
 
     Tonemapparam mToneParams;
@@ -78,6 +81,7 @@ private:
         // swapchain size
         uint32_t finalWidth; // = swapChainExtent.width;
         uint32_t finalHeight; // = swapChainExtent.height;
+        uint32_t spp;
         GBuffer* gbuffer;
         Image* prevDepth;
         Image* textureTonemapImage;
@@ -85,6 +89,8 @@ private:
         Image* textureDebugViewImage;
         Image* mPathTracerImage;
         Image* mAccumulationPathTracerImage = nullptr;
+        Buffer* mSampleBuffer = nullptr;
+        Buffer* mCompositingBuffer = nullptr;
         ResourceManager* mResManager = nullptr;
         uint32_t mPtIteration = 0;
         ~ViewData()
@@ -187,7 +193,7 @@ private:
 
     void setDescriptors(uint32_t imageIndex);
 
-    ViewData* createView(uint32_t width, uint32_t height);
+    ViewData* createView(uint32_t width, uint32_t height, uint32_t spp);
     GBuffer* createGbuffer(uint32_t width, uint32_t height);
     void createGbufferPass();
 

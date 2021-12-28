@@ -20,9 +20,11 @@
 #include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/camera.h>
+#include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usdImaging/usdImaging/delegate.h>
 
 #include <algorithm>
+#include <iostream>
 
 #include "SimpleRenderTask.h"
 
@@ -111,8 +113,8 @@ int main(int argc, const char* argv[])
 
     //ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
-    // std::string usdPath = "./misc/cornell.usdc";
-    std::string usdPath = "./misc/test1.usdc";
+    std::string usdPath = "./misc/violetcube.usdc";
+    // std::string usdPath = "./misc/pica.usdc";
     // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
@@ -128,6 +130,12 @@ int main(int argc, const char* argv[])
     printf("USD scene loaded (%.3fs)\n", timerLoad.GetSeconds());
     fflush(stdout);
 
+    // Print the up-axis
+    std::cout << "Stage up-axis: " << UsdGeomGetStageUpAxis(stage) << std::endl;
+
+    // Print the stage's linear units, or "meters per unit"
+    std::cout << "Meters per unit: " << UsdGeomGetStageMetersPerUnit(stage) << std::endl;
+
     HdRenderIndex* renderIndex = HdRenderIndex::New(renderDelegate, HdDriverVector());
     TF_VERIFY(renderIndex);
 
@@ -135,6 +143,8 @@ int main(int argc, const char* argv[])
     sceneDelegate.Populate(stage->GetPseudoRoot());
     sceneDelegate.SetTime(0);
     sceneDelegate.SetRefineLevelFallback(4);
+
+    double meterPerUnit = UsdGeomGetStageMetersPerUnit(stage);
 
     std::string cameraPath = "";
 

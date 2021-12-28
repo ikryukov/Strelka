@@ -381,6 +381,27 @@ void VkRender::recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout 
         1, &barrier);
 }
 
+void VkRender::recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage)
+{
+    VkBufferMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.buffer = mSharedCtx.mResManager->getVkBuffer(buff);
+    barrier.offset = 0;
+    barrier.size = mSharedCtx.mResManager->getSize(buff);
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.srcAccessMask = srcAccess;
+    barrier.dstAccessMask = dstAccess;
+
+    vkCmdPipelineBarrier(
+        cmd,
+        sourceStage, destinationStage,
+        0,
+        0, nullptr,
+        1, &barrier,
+        0, nullptr);
+}
+
 void VkRender::createCommandBuffers()
 {
     for (FrameData& fd : mFramesData)

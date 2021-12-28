@@ -194,6 +194,7 @@ set(RENDER_SOURCES
         include/render/computepass.h
         include/render/pathtracer.h
         include/render/upscalepass.h
+        include/render/reduction.h
         include/render/tonemap.h
         include/render/accumulation.h
         include/render/debugview.h
@@ -206,6 +207,7 @@ set(RENDER_SOURCES
         src/render/gbufferpass.cpp
         src/render/bvh.cpp
         src/render/upscalepass.cpp
+        src/render/reduction.cpp
         src/render/pathtracer.cpp
         src/render/tonemap.cpp
         src/render/accumulation.cpp

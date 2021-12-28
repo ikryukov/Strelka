@@ -321,6 +321,10 @@ ShaderManager::ResourceType getType(const char* resourceType)
     {
         return ShaderManager::ResourceType::eStructuredBuffer;
     }
+    else if (strcmp(resourceType, "RWStructuredBuffer") == 0)
+    {
+        return ShaderManager::ResourceType::eRWStructuredBuffer;
+    }
     else if (strcmp(resourceType, "SamplerState") == 0)
     {
         return ShaderManager::ResourceType::eSampler;

@@ -19,6 +19,8 @@ struct PathTracerDesc
     Buffer* lights = VK_NULL_HANDLE;
     Buffer* vb = VK_NULL_HANDLE;
     Buffer* ib = VK_NULL_HANDLE;
+    Buffer* sampleBuffer = VK_NULL_HANDLE;
+    Buffer* compositingBuffer = VK_NULL_HANDLE;
     Image* result = VK_NULL_HANDLE;
     Buffer* materials = VK_NULL_HANDLE;
     Buffer* instanceConst = VK_NULL_HANDLE;

@@ -18,6 +18,7 @@ public:
         eUnknown,
         eConstantBuffer,
         eStructuredBuffer,
+        eRWStructuredBuffer,
         eByteAddressBuffer,
         eTexture2D,
         eRWTexture2D,

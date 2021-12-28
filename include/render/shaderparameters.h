@@ -114,7 +114,8 @@ protected:
                 descType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
                 break;
             }
-            case ShaderManager::ResourceType::eStructuredBuffer: {
+            case ShaderManager::ResourceType::eStructuredBuffer:
+            case ShaderManager::ResourceType::eRWStructuredBuffer: {
                 descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 break;
             }
@@ -353,6 +354,7 @@ protected:
                     break;
                 }
                 case ShaderManager::ResourceType::eByteAddressBuffer:
+                case ShaderManager::ResourceType::eRWStructuredBuffer:
                 case ShaderManager::ResourceType::eStructuredBuffer: {
                     for (uint32_t i = 0; i < descriptorCount; ++i)
                     {

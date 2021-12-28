@@ -2,7 +2,6 @@
 #include "materials.h"
 #include "pack.h"
 #include "lights.h"
-#include "helper.h"
 #include "raytracing.h"
 #include "pathtracerparam.h"
 #include "instanceconstants.h"
@@ -28,7 +27,8 @@ StructuredBuffer<Material> materials;
 StructuredBuffer<MdlMaterial> mdlMaterials;
 StructuredBuffer<RectLight> lights;
 
-RWTexture2D<float4> output;
+RWStructuredBuffer<float> sampleBuffer;
+// RWTexture2D<float4> output;
 
 float3 UniformSampleRect(in RectLight l, float2 u)
 {
@@ -286,8 +286,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
         else
         {
             // miss - add background color and exit
-            // float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
-            // finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
+            float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
+            finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
 
             break;
         }
@@ -537,20 +537,18 @@ float3 pathTraceGBuffer(uint2 pixelIndex)
 
 [numthreads(16, 16, 1)]
 [shader("compute")]
-void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
+void computeMain(uint2 dispatchIndex : SV_DispatchThreadID)
 {
-    if (any(pixelIndex >= ubo.dimension))
+    if (dispatchIndex.x >= ubo.dimension.x * ubo.dimension.y * ubo.spp)
     {
         return;
     }
+    uint2 pixelIndex = uint2(dispatchIndex.x / ubo.spp % ubo.dimension.x, dispatchIndex.x / ubo.spp / ubo.dimension.x);
+    uint sampleNum = dispatchIndex.x % ubo.spp;
 
-    float3 color = float3(0.0f);
-    //float3 color = pathTraceGBuffer(pixelIndex);
-    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber);
-    for (int sample = 0; sample < ubo.spp; ++sample)
-    {
-        color += 1.0f / ubo.spp * pathTraceCameraRays(pixelIndex, rngState);
-    }
-
-    output[pixelIndex] = float4(color, 1.0);
+    uint rngState = initRNG(pixelIndex, ubo.dimension, (ubo.frameNumber + 1) * (sampleNum + 1));
+    float3 color = pathTraceCameraRays(pixelIndex, rngState);
+    sampleBuffer[dispatchIndex.x * 3 + 0] = color.r;
+    sampleBuffer[dispatchIndex.x * 3 + 1] = color.g;
+    sampleBuffer[dispatchIndex.x * 3 + 2] = color.b;
 }

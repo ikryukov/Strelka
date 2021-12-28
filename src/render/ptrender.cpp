@@ -24,7 +24,7 @@ void PtRender::init()
 {
     VkRender::initVulkan();
 
-    mView[0] = createView(800, 600);
+    mView[0] = createView(800, 600, 8);
 
     mDebugView = new DebugView(mSharedCtx);
     mDebugView->initialize();
@@ -34,6 +34,9 @@ void PtRender::init()
 
     mUpscalePass = new UpscalePass(mSharedCtx);
     mUpscalePass->initialize();
+
+    mReductionPass = new ReductionPass(mSharedCtx);
+    mReductionPass->initialize();
 
     mMaterialManager = new MaterialManager();
     const char* paths[3] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/resources/",
@@ -93,6 +96,7 @@ void PtRender::cleanup()
     delete mView[2];
 
     delete mTonemap;
+    delete mReductionPass;
     delete mUpscalePass;
     delete mDebugView;
     delete mPathTracer;
@@ -105,13 +109,14 @@ void PtRender::cleanup()
     }
 }
 
-PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height)
+PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32_t spp)
 {
     assert(mSharedCtx.mResManager);
     assert(mSharedCtx.mTextureManager);
     ResourceManager* resManager = mSharedCtx.mResManager;
     TextureManager* texManager = mSharedCtx.mTextureManager;
     ViewData* view = new ViewData();
+    view->spp = spp;
     view->finalWidth = width;
     view->finalHeight = height;
     view->renderWidth = (uint32_t)(width * 1.0f); //mRenderConfig.upscaleFactor
@@ -138,6 +143,10 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height)
                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Upscale Output");
     texManager->transitionImageLayout(resManager->getVkImage(view->textureUpscaleImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
 
+    const size_t compositingBufferSize = view->renderWidth * view->renderHeight *  3 * sizeof(float); // 3 - rgb
+    const size_t sampleBufferSize = compositingBufferSize * spp;
+    view->mSampleBuffer = resManager->createBuffer(sampleBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Sample buffer");
+    view->mCompositingBuffer = resManager->createBuffer(compositingBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Compositing buffer");
 
     view->mPathTracerImage = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                      VK_IMAGE_TILING_OPTIMAL,
@@ -512,7 +521,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     pathTracerParam.clipToView = cam.matrices.invPerspective;
     pathTracerParam.viewToClip = cam.matrices.perspective; //
     pathTracerParam.len = (int)0;
-    pathTracerParam.spp = 320;
+    pathTracerParam.spp = currView->spp;
     pathTracerParam.numLights = (uint32_t) mScene->getLights().size();
     pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
     pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
@@ -666,15 +675,15 @@ void PtRender::drawFrame(const uint8_t* outPixels)
                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
     }
 
-    Image* finalPathTracerImage = mView[imageIndex]->mPathTracerImage;
+    Image* finalPathTracerImage = currView->mPathTracerImage;
     Image* finalImage = nullptr;
 
     // Path Tracer
     {
         {
             PathTracerDesc desc{};
-            desc.result = mView[imageIndex]->mPathTracerImage;
-            desc.gbuffer = mView[imageIndex]->gbuffer;
+            // desc.result = mView[imageIndex]->mPathTracerImage;
+            desc.gbuffer = currView->gbuffer;
             desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
             desc.vb = mCurrentSceneRenderData->mVertexBuffer;
             desc.ib = mCurrentSceneRenderData->mIndexBuffer;
@@ -684,6 +693,9 @@ void PtRender::drawFrame(const uint8_t* outPixels)
             desc.matSampler = texManager->mMdlSampler;
             desc.matTextures = texManager->textureImages;
 
+            desc.sampleBuffer = currView->mSampleBuffer;
+            // desc.compositingBuffer = currView->mCompositingBuffer;
+
             desc.mdl_argument_block = mCurrentSceneRenderData->mMdlArgBuffer;
             desc.mdl_ro_data_segment = mCurrentSceneRenderData->mMdlRoBuffer;
             desc.mdl_resource_infos = mCurrentSceneRenderData->mMdlInfoBuffer;
@@ -691,13 +703,28 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
             mPathTracer->setResources(desc);
         }
-        recordBarrier(cmd, resManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+        mPathTracer->execute(cmd, renderWidth * renderHeight * pathTracerParam.spp, 1, imageIndex);
+        {
+            mReductionPass->setParams(pathTracerParam);
+            ReductionDesc desc{};
+            // desc.compositingBuffer = currView->mCompositingBuffer;
+            desc.result = currView->mPathTracerImage;
+            desc.sampleBuffer = currView->mSampleBuffer;
+            mReductionPass->setResources(desc);
+        }
+        // buffer barrier
+        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT,
+                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordBarrier(cmd, resManager->getVkImage(currView->mPathTracerImage), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
                       VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        mPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
-        recordBarrier(cmd, resManager->getVkImage(mView[imageIndex]->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        mReductionPass->execute(cmd, renderWidth * renderHeight, 1, imageIndex);
+        recordBarrier(cmd, resManager->getVkImage(currView->mPathTracerImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        finalPathTracerImage = mView[imageIndex]->mPathTracerImage;
+        finalPathTracerImage = currView->mPathTracerImage;
 
         //if (0)
         //{

@@ -56,7 +56,9 @@ void PathTracer::setResources(const PathTracerDesc& desc)
 {
     mMdlSampler = desc.matSampler;
     mMatTextures = desc.matTextures;
-    mShaderParams.setTexture("output", mSharedCtx.mResManager->getView(desc.result));
+
+    mShaderParams.setBuffer("sampleBuffer", mSharedCtx.mResManager->getVkBuffer(desc.sampleBuffer));
+    // mShaderParams.setBuffer("compositingBuffer", mSharedCtx.mResManager->getVkBuffer(desc.compositingBuffer));
 
     // mdl_ro_data_segment, mdl_argument_block, mdl_resource_infos, mdl_textures_2d, mdl_sampler_tex
     mShaderParams.setBuffer("mdl_ro_data_segment", mSharedCtx.mResManager->getVkBuffer(desc.mdl_ro_data_segment));
