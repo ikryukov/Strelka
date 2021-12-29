@@ -402,7 +402,7 @@ void VkRender::recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessF
         0, nullptr);
 }
 
-void VkRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage)
+void VkRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask)
 {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -411,10 +411,14 @@ void VkRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLay
     barrier.newLayout = newLayout;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.subresourceRange.aspectMask = aspectMask;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+
     barrier.srcAccessMask = srcAccess;
     barrier.dstAccessMask = dstAccess;
-
-    mSharedCtx.mResManager->setImageLayout(image, newLayout);
 
     vkCmdPipelineBarrier(
         cmd,
