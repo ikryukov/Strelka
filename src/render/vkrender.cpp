@@ -420,6 +420,8 @@ void VkRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLay
     barrier.srcAccessMask = srcAccess;
     barrier.dstAccessMask = dstAccess;
 
+    mSharedCtx.mResManager->setImageLayout(image, newLayout);
+
     vkCmdPipelineBarrier(
         cmd,
         sourceStage, destinationStage,
