@@ -36,6 +36,8 @@ public:
     Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr);
     void destroyImage(Image* image);
     VkImage getVkImage(const Image* image);
+    VkImageLayout getImageLayout(Image* image);
+    void setImageLayout(Image* image, VkImageLayout newLayout);
     VkImageView getView(Image* image);
 
     VkImageView createImageView(const Image* image, VkImageAspectFlags aspectFlags);

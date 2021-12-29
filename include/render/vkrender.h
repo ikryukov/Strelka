@@ -30,7 +30,7 @@ const std::vector<const char*> validationLayers = {
 };
 
 const std::vector<const char*> deviceExtensions = {
-    //VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+// VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 #ifdef __APPLE__
     "VK_KHR_portability_subset"
 #endif
@@ -66,7 +66,6 @@ namespace nevk
 class VkRender
 {
 public:
-
     void initVulkan();
     void cleanup();
 
@@ -78,7 +77,6 @@ public:
     }
 
 protected:
-
     VkInstance mInstance;
     VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -135,6 +133,7 @@ protected:
 
     void recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
     void recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage);
+    void recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newlayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage);
 
     void createCommandBuffers();
 

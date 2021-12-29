@@ -19,6 +19,7 @@ struct Image
     VkImageView view = VK_NULL_HANDLE;
     VkFormat format;
     VmaAllocation allocation = VK_NULL_HANDLE;
+    VkImageLayout currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 };
 
 class ResourceManager::Context
@@ -282,6 +283,16 @@ public:
         return image->handle;
     }
 
+    VkImageLayout getImageLayout(Image* image)
+    {
+        return image->currentLayout;
+    }
+
+    void setImageLayout(Image* image, VkImageLayout newLayout)
+    {
+        image->currentLayout = newLayout;
+    }
+
     void getStats()
     {
         char* stats = nullptr;
@@ -303,7 +314,7 @@ ResourceManager::ResourceManager(VkDevice device, VkPhysicalDevice physicalDevic
 ResourceManager::~ResourceManager()
 {
     // Uncomment this line to debug memory leak
-    //mContext->getStats();
+    // mContext->getStats();
     mContext.reset(nullptr);
 }
 
@@ -350,6 +361,16 @@ void ResourceManager::destroyImage(Image* image)
 VkImage ResourceManager::getVkImage(const Image* image)
 {
     return mContext->getVkImage(image);
+}
+
+VkImageLayout ResourceManager::getImageLayout(Image* image)
+{
+    return mContext->getImageLayout(image);
+}
+
+void ResourceManager::setImageLayout(Image* image, VkImageLayout newLayout)
+{
+    mContext->setImageLayout(image, newLayout);
 }
 
 VkImageView ResourceManager::getView(Image* image)

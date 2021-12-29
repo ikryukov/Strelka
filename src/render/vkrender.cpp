@@ -3,8 +3,8 @@
 //#include "debugUtils.h"
 
 #include <chrono>
-#include <string>
 #include <set>
+#include <string>
 
 // profiler
 //#include "Tracy.hpp"
@@ -39,7 +39,7 @@ void VkRender::initVulkan()
     setupDebugMessenger();
     if (enableValidationLayers)
     {
-        //nevk::debug::setupDebug(mInstance);
+        // nevk::debug::setupDebug(mInstance);
     }
     pickPhysicalDevice();
     createLogicalDevice();
@@ -402,6 +402,29 @@ void VkRender::recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessF
         0, nullptr);
 }
 
+void VkRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage)
+{
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.image = mSharedCtx.mResManager->getVkImage(image);
+    barrier.oldLayout = mSharedCtx.mResManager->getImageLayout(image);
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.srcAccessMask = srcAccess;
+    barrier.dstAccessMask = dstAccess;
+
+    mSharedCtx.mResManager->setImageLayout(image, newLayout);
+
+    vkCmdPipelineBarrier(
+        cmd,
+        sourceStage, destinationStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier);
+}
+
 void VkRender::createCommandBuffers()
 {
     for (FrameData& fd : mFramesData)
@@ -504,11 +527,11 @@ QueueFamilyIndices VkRender::findQueueFamilies(VkPhysicalDevice device)
 
 std::vector<const char*> VkRender::getRequiredExtensions()
 {
-    //uint32_t glfwExtensionCount = 0;
-    //const char** glfwExtensions;
-    ///glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    // uint32_t glfwExtensionCount = 0;
+    // const char** glfwExtensions;
+    /// glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-    //std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+    // std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
     std::vector<const char*> extensions;
 
     if (enableValidationLayers)
