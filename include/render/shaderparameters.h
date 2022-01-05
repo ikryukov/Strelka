@@ -454,7 +454,6 @@ public:
 
         res = createConstantBuffers();
         // Now we support only 1 constant buffer per shader
-        // it must be bound to 0
         writeConstantBufferDescriptors();
 
         return res;
