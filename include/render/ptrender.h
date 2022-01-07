@@ -88,7 +88,7 @@ private:
         Image* textureUpscaleImage;
         Image* textureDebugViewImage;
         Image* mPathTracerImage;
-        Image* mAccumulationPathTracerImage = nullptr;
+        Image* mAccumulationPathTracerImage[2] = {};
         Buffer* mSampleBuffer = nullptr;
         Buffer* mCompositingBuffer = nullptr;
         ResourceManager* mResManager = nullptr;
@@ -120,9 +120,12 @@ private:
             {
                 mResManager->destroyImage(mPathTracerImage);
             }
-            if (mAccumulationPathTracerImage)
+            for (int i = 0; i < 2; ++i)
             {
-                mResManager->destroyImage(mAccumulationPathTracerImage);
+                if (mAccumulationPathTracerImage[i])
+                {
+                    mResManager->destroyImage(mAccumulationPathTracerImage[i]);
+                }
             }
         }
     };

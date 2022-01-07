@@ -164,15 +164,16 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32
                                                      VK_IMAGE_TILING_OPTIMAL,
                                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
-
-    const std::string imageName = "Accumulation Image";
-    view->mAccumulationPathTracerImage = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                                 VK_IMAGE_TILING_OPTIMAL,
-                                                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "PT accumulation");
-    texManager->transitionImageLayout(resManager->getVkImage(view->mAccumulationPathTracerImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    resManager->setImageLayout(view->mAccumulationPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
+    for (int i = 0; i < 2; ++i)
+    {
+        const std::string imageName = "Accumulation Image: " + std::to_string(i);
+        view->mAccumulationPathTracerImage[i] = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                                        VK_IMAGE_TILING_OPTIMAL,
+                                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        texManager->transitionImageLayout(resManager->getVkImage(view->mAccumulationPathTracerImage[i]), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        resManager->setImageLayout(view->mAccumulationPathTracerImage[i], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
     return view;
 }
 
@@ -693,6 +694,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     Image* finalImage = nullptr;
 
     // Path Tracer
+    for (int i = 0; i < 10; ++i)
     {
         {
             PathTracerDesc desc{};
@@ -745,23 +747,23 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
         finalPathTracerImage = currView->mPathTracerImage;
 
-        // if (0)
-        //{
-        //     // Accumulation pass
-        //     Image* accHist = mPrevView->mAccumulationPathTracerImage;
-        //     Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
+        {
+            // Accumulation pass
+            Image* accHist = mView[imageIndex]->mAccumulationPathTracerImage[i % 2];
+            Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage[i % 2 + 1];
+            
+            mAccumulationPathTracer->setInputTexture4(finalPathTracerImage);
+            mAccumulationPathTracer->setHistoryTexture4(accHist);
+            mAccumulationPathTracer->setOutputTexture4(accOut);
 
-        //    mAccumulationPathTracer->setHistoryTexture4(accHist);
-        //    mAccumulationPathTracer->setOutputTexture4(accOut);
+            recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL,
+                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
+            recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        //    recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-        //                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        //    mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
-        //    recordBarrier(cmd, mResManager->getVkImage(accOut),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        //                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-        //    finalPathTracerImage = accOut;
-        //}
+            finalPathTracerImage = accOut;
+        }
     }
 
     {
