@@ -33,6 +33,10 @@
                 {
                     "name": "DYLD_LIBRARY_PATH",
                     "value": "/Users/ilya/work/NeVK/external/slang/:$DYLD_LIBRARY_PATH"
+                },
+                {
+                    "name": "USD_PATH",
+                    "value": "/Users/ilya/work/usd_build/"
                 }
 
             ],
