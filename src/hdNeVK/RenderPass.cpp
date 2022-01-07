@@ -222,8 +222,12 @@ void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
         }
     }
 
+#ifdef __APPLE__
     GfMatrix4d perspMatrix = camera.ComputeProjectionMatrix();
-    // GfMatrix4d perspMatrix = camera.GetProjectionMatrix();
+#else
+    GfMatrix4d perspMatrix = camera.GetProjectionMatrix();
+#endif // __APPLE__
+    
     glm::float4x4 persp;
     for (int i = 0; i < 4; ++i)
     {
