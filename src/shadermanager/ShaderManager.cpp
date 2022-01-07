@@ -405,7 +405,7 @@ void print(slang::VariableLayoutReflection* var)
 void fillResDesc(slang::VariableLayoutReflection* var, ShaderManager::ResourceDesc& desc)
 {
     const char* name = var->getName();
-    printf("name: %s\t", name);
+    //printf("name: %s\t", name);
     desc.name = std::string(name);
     slang::TypeLayoutReflection* typeLayout = var->getTypeLayout();
     auto categoryCount = var->getCategoryCount();
@@ -419,11 +419,11 @@ void fillResDesc(slang::VariableLayoutReflection* var, ShaderManager::ResourceDe
             auto count = typeLayout->getSize(category);
             if (category == SLANG_PARAMETER_CATEGORY_UNIFORM)
             {
-                printf("offset=%d, size=%d\n", (uint32_t)index, (uint32_t)count);
+                //printf("offset=%d, size=%d\n", (uint32_t)index, (uint32_t)count);
             }
             else
             {
-                printf("binding=%d, set=%d\n", (uint32_t)index, (uint32_t)space);
+                //printf("binding=%d, set=%d\n", (uint32_t)index, (uint32_t)space);
                 desc.binding = index;
                 desc.set = space;
             }
@@ -460,8 +460,7 @@ std::vector<ShaderManager::ResourceDesc> ShaderManager::getResourcesDesc(uint32_
 
         fillResDesc(parameter, descs[i]);
 
-        printf("name = %s, binding=%d, set=%d\n", name, index, space);
-        //print(parameter);
+        //printf("name = %s, binding=%d, set=%d\n", name, index, space);
     }
     return descs;
 }
