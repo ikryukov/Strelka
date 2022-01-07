@@ -39,8 +39,17 @@ void PtRender::init()
     mReductionPass->initialize();
 
     mMaterialManager = new MaterialManager();
+
+    const char* envUSDPath = std::getenv("USD_PATH");
+    if (!envUSDPath)
+    {
+        printf("Please, set USD_PATH variable\n");
+        assert(0);
+    }
+    const std::string usdMdlLibPath = std::string(envUSDPath) + "/mdl";
+
     const char* paths[3] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/resources/",
-                             "/Users/jswark/school/USD_Build/mdl/" };
+                             usdMdlLibPath.c_str() };
     bool res = mMaterialManager->addMdlSearchPath(paths, 3);
     if (!res)
     {

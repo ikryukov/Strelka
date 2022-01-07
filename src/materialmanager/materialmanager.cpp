@@ -581,8 +581,17 @@ private:
     {
         using namespace std;
         const fs::path cwd = fs::current_path();
-        mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
-        // mtlxLibPath = "C:/work/USD_build_debug/libraries";
+        mtlxLibPath = "";
+        const char* envUSDPath = std::getenv("USD_PATH");
+        if (!envUSDPath)
+        {
+            printf("Please, set USD_PATH variable\n");
+            assert(0);
+        }
+        else
+        {
+            mtlxLibPath = std::string(envUSDPath) + "./libraries/";
+        }
         mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
 
 #ifdef MI_PLATFORM_WINDOWS

@@ -43,6 +43,7 @@ Use vscode with preset env variable
 
 ## USD
     USD env:
+        export USD_PATH=/Users/ilya/work/usd_build/
         export PATH=/Users/ilya/work/usd_build/bin:$PATH
         export PYTHONPATH=/Users/ilya/work/usd_build/lib/python:$PYTHONPATH
 

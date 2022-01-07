@@ -23,8 +23,19 @@ HdNeVKRendererPlugin::HdNeVKRendererPlugin()
     std::string mtlxlibPath = resourcePath + "/mtlxlib";
 
     //m_translator = std::make_unique<MaterialNetworkTranslator>(mtlxlibPath);
-    m_translator = std::make_unique<MaterialNetworkTranslator>("/Users/jswark/school/USD_Build/libraries");
-    m_isSupported = true;
+    const char* envUSDPath = std::getenv("USD_PATH");
+    if (!envUSDPath)
+    {
+        printf("Please, set USD_PATH variable\n");
+        assert(0);
+        m_isSupported = false;
+    }
+    else
+    {
+        std::string USDPath(envUSDPath);
+        m_translator = std::make_unique<MaterialNetworkTranslator>(USDPath + "./libraries");
+        m_isSupported = true;
+    }
 }
 
 HdNeVKRendererPlugin::~HdNeVKRendererPlugin()
