@@ -130,10 +130,59 @@ void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
     const SdfPath& id = GetId();
     const VtValue& resource = sceneDelegate->GetMaterialResource(id);
 
+    // Get the color of the light
+    GfVec3f hdc = sceneDelegate->GetLightParamValue(id, HdLightTokens->color)
+                      .Get<GfVec3f>();
+
+    // Color temperature
+    VtValue enableColorTemperatureVal = sceneDelegate->GetLightParamValue(id,
+                                                                          HdLightTokens->enableColorTemperature);
+    if (enableColorTemperatureVal.GetWithDefault<bool>(false))
+    {
+        VtValue colorTemperatureVal = sceneDelegate->GetLightParamValue(id,
+                                                                        HdLightTokens->colorTemperature);
+        if (colorTemperatureVal.IsHolding<float>())
+        {
+            float colorTemperature = colorTemperatureVal.Get<float>();
+            hdc = GfCompMult(hdc,
+                             _BlackbodyTemperatureAsRgb(colorTemperature));
+        }
+    }
+
+    // Intensity
+    float intensity =
+        sceneDelegate->GetLightParamValue(id, HdLightTokens->intensity)
+            .Get<float>();
+
+    // Exposure
+    float exposure =
+        sceneDelegate->GetLightParamValue(id, HdLightTokens->exposure)
+            .Get<float>();
+    intensity *= powf(2.0f, GfClamp(exposure, -50.0f, 50.0f));
+
+    // Transform
+    {
+        GfMatrix4d transform = sceneDelegate->GetTransform(id);
+        glm::float4x4 xform;
+        for (int i = 0; i < 4; ++i)
+        {
+            for (int j = 0; j < 4; ++j)
+            {
+                xform[i][j] = (float)transform[i][j];
+            }
+        }
+        mLightDesc.xform = xform;
+        mLightDesc.useXform = true;
+    }
+    mLightDesc.color = glm::float3(hdc[0], hdc[1], hdc[2]);
+    mLightDesc.intensity = intensity;
+
     if (mLightType == HdPrimTypeTokens->rectLight)
     {
+        mLightDesc.type = 0;
         float width = 0.0f;
         float height = 0.0f;
+
         VtValue widthVal =
             sceneDelegate->GetLightParamValue(id, HdLightTokens->width);
         if (widthVal.IsHolding<float>())
@@ -146,60 +195,21 @@ void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
         {
             height = heightVal.Get<float>();
         }
-        // Get the color of the light
-        GfVec3f hdc = sceneDelegate->GetLightParamValue(id, HdLightTokens->color)
-                          .Get<GfVec3f>();
 
-        // Color temperature
-        VtValue enableColorTemperatureVal = sceneDelegate->GetLightParamValue(id,
-                                                                              HdLightTokens->enableColorTemperature);
-        if (enableColorTemperatureVal.GetWithDefault<bool>(false))
-        {
-            VtValue colorTemperatureVal = sceneDelegate->GetLightParamValue(id,
-                                                                            HdLightTokens->colorTemperature);
-            if (colorTemperatureVal.IsHolding<float>())
-            {
-                float colorTemperature = colorTemperatureVal.Get<float>();
-                hdc = GfCompMult(hdc,
-                                 _BlackbodyTemperatureAsRgb(colorTemperature));
-            }
-        }
-
-        // Intensity
-        float intensity =
-            sceneDelegate->GetLightParamValue(id, HdLightTokens->intensity)
-                .Get<float>();
-
-        // Exposure
-        float exposure =
-            sceneDelegate->GetLightParamValue(id, HdLightTokens->exposure)
-                .Get<float>();
-        intensity *= powf(2.0f, GfClamp(exposure, -50.0f, 50.0f));
-
-        // Transform
-        {
-            GfMatrix4d transform = sceneDelegate->GetTransform(id);
-            glm::float4x4 xform;
-            for (int i = 0; i < 4; ++i)
-            {
-                for (int j = 0; j < 4; ++j)
-                {
-                    xform[i][j] = (float)transform[i][j];
-                }
-            }
-            mLightDesc.xform = xform;
-            mLightDesc.useXform = true;
-        }
-        mLightDesc.color = glm::float3(hdc[0], hdc[1], hdc[2]);
-        mLightDesc.intensity = intensity;
         mLightDesc.height = height;
         mLightDesc.width = width;
     }
-    else
+    else if (mLightType == HdPrimTypeTokens->diskLight)
     {
-        // TODO:
+        mLightDesc.type = 1;
+        float radius = 0.0;
+        VtValue radiusVal =
+            sceneDelegate->GetLightParamValue(id, HdLightTokens->radius);
+        if (radiusVal.IsHolding<float>()) {
+            radius = radiusVal.Get<float>();
+        }
+        mLightDesc.radius = radius;
     }
-
 }
 
 HdDirtyBits HdNeVKLight::GetInitialDirtyBitsMask() const

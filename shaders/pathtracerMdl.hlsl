@@ -44,11 +44,11 @@ float3 calcLightNormal(in RectLight l)
     return normalize(cross(e1, e2));
 }
 
-float calcLightArea(in RectLight l)
+float calcLightArea(in RectLight l) // тут трактовать по-разному значения
 {
     float3 e1 = l.points[1].xyz - l.points[0].xyz;
     float3 e2 = l.points[3].xyz - l.points[0].xyz;
-    return length(cross(e1, e2));    
+    return length(cross(e1, e2));
 }
 
 float3 estimateDirectLighting(inout uint rngState, in Accel accel, in RectLight light, in Shading_state_material state, out float3 toLight, out float lightPdf)

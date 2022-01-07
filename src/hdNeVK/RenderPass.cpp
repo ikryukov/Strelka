@@ -370,6 +370,18 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
                 mScene.createLight(light->getLightDesc());
             }
         }
+
+        if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->diskLight))
+        {
+            SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->diskLight,
+                                                                    SdfPath::AbsoluteRootPath());
+            for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
+            {
+                HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->diskLight, sprimPaths[lightIdx]);
+                HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
+                mScene.createLight(light->getLightDesc());
+            }
+        }
     }
 
     // mScene.createLight(desc);

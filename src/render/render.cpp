@@ -133,8 +133,8 @@ void Render::initPasses()
     mAccumulationPathTracer->initialize();
 
     mMaterialManager = new MaterialManager();
-    const char* paths[3] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
-                             "./misc/vespa" };
+    const char* paths[3] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/resources/",
+                             "/Users/jswark/school/USD_Build/mdl" };
     bool res = mMaterialManager->addMdlSearchPath(paths, 3);
     if (!res)
     {

@@ -212,8 +212,10 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     {
         mLigthMeshId = createLightMesh();
     }
-    const glm::float4x4 localTransform = desc.useXform ? desc.xform : getTransform(desc);
-    uint32_t instId = createInstance(mLigthMeshId, matId, localTransform, desc.position);
+
+    const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.width, desc.height, 1.0f));
+    const glm::float4x4 transform = desc.useXform ? scaleMatrix * desc.xform : getTransform(desc);
+    uint32_t instId = createInstance(mLigthMeshId, matId, transform, desc.position);
     assert(instId != -1);
 
     mLightIdToInstanceId[lightId] = instId;
@@ -223,12 +225,13 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
 
 void Scene::updateLight(const uint32_t lightId, const RectLightDesc& desc)
 {
-    const glm::float4x4 localTransform = desc.useXform ? desc.xform : getTransform(desc);
+    const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, desc.width, desc.height));
+    const glm::float4x4 localTransform = desc.useXform ? scaleMatrix * desc.xform  : getTransform(desc);
 
     // transform to GPU light
-    mLights[lightId].points[1] = localTransform * glm::float4(-0.5f, 0.5f, 0.0f, 1.0f);
+    mLights[lightId].points[1] = localTransform * glm::float4(-0.5f, 0.5f, 0.0f, desc.width);
     mLights[lightId].points[2] = localTransform * glm::float4(-0.5f, -0.5f, 0.0f, 1.0f);
-    mLights[lightId].points[0] = localTransform * glm::float4(0.5f, 0.5f, 0.0f, 1.0f);
+    mLights[lightId].points[0] = localTransform * glm::float4(0.5f, 0.5f, 0.0f, desc.height);
     mLights[lightId].points[3] = localTransform * glm::float4(0.5f, -0.5f, 0.0f, 1.0f);
     mLights[lightId].color = glm::float4(desc.color, 1.0f) * desc.intensity;
 }

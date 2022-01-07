@@ -126,18 +126,34 @@ public:
         glm::float4 color = glm::float4(1.0f);
     };
 
+    // GPU side structure
+    struct UniLight
+    {
+        int type; // 0 -- rect, 1 -- disc
+        glm::float4 params[4];
+        // rectangle light: type == 1; params[0] -- v0, params[1] -- v1, params[2] -- v3, params[3][0] -- height, params[3][1] -- width
+        // disc light: type == 1; params[0] -- v0, params[1] -- v1, params[2] -- v3, params[3][0] -- radius
+    };
+
     // CPU side structure
     struct RectLightDesc
     {
+        int32_t type;
         glm::float4x4 xform;
         glm::float3 position; // world position
         glm::float3 orientation; // euler angles in degrees
         bool useXform;
+
         // OX - axis of light or normal
-        float width; // OY
-        float height; // OZ
         glm::float3 color;
         float intensity;
+
+        // rectangle light
+        float width; // OY
+        float height; // OZ
+
+        // disc/sphere light
+        float radius;
     };
 
     std::vector<RectLightDesc> mLightDesc;
@@ -254,7 +270,7 @@ public:
         const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
         glm::quat rotation = glm::quat(glm::radians(desc.orientation)); // to quaternion
         const glm::float4x4 rotationMatrix{ rotation };
-        glm::float3 scale = { 1.0f, desc.width, desc.height };
+        glm::float3 scale = {  desc.width, desc.height, 1.0f };
         const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
 
         const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;

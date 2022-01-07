@@ -581,7 +581,7 @@ private:
     {
         using namespace std;
         const fs::path cwd = fs::current_path();
-        mtlxLibPath = "/Users/ilya/work/usd_build/libraries/";
+        mtlxLibPath = "/Users/jswark/school/USD_Build/libraries";
         // mtlxLibPath = "C:/work/USD_build_debug/libraries";
         mMdlSrc = cwd.string() + "/misc/test_data/mdl/"; // path to the material
 
