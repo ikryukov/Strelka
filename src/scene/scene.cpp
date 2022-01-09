@@ -149,7 +149,7 @@ uint32_t Scene::createDiscLightMesh()
     for (int i = 0; i < 16; ++i)
     {
         indices.push_back(0); // each triangle have central point
-        indices.push_back(vertices.size()); // prev vertex
+        indices.push_back(vertices.size() - 1); // prev vertex
 
         angle += step;
         const float x = cos(angle) * diskRadius;
@@ -160,7 +160,7 @@ uint32_t Scene::createDiscLightMesh()
         v.normal = packNormals(normal);
         vertices.push_back(v);
 
-        indices.push_back(vertices.size()); // added vertex
+        indices.push_back(vertices.size() - 1); // added vertex
     }
 
     uint32_t meshId = createMesh(vertices, indices);
@@ -263,7 +263,7 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
 
     //const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.width, desc.height, 1.0f));
     const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.radius, desc.radius, desc.radius));
-    const glm::float4x4 transform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc); // scale for rect light
+    const glm::float4x4 transform = desc.useXform ? desc.xform /** scaleMatrix*/ : getTransform(desc); // scale for rect light
     uint32_t instId = createInstance(currentLightId, matId, transform, desc.position);
     assert(instId != -1);
 
@@ -292,7 +292,7 @@ void Scene::updateLight(const uint32_t lightId, const RectLightDesc& desc)
         const glm::float4x4 localTransform = desc.useXform ? desc.xform  : getTransform(desc);
 
         mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
-        mLights[lightId].points[1] = glm::float4(1.f, 1.f, 1.f, 0.f) * localTransform;// save O ?
+        mLights[lightId].points[1] = glm::float4(0.f, 0.f, 0.f, 1.f) * localTransform;// save O ?
         mLights[lightId].points[2] = glm::float4(1.f, 0.f, 0.f, 0.f) * localTransform; // OXws
         mLights[lightId].points[3] = glm::float4(0.f, 1.f, 0.f, 0.f) * localTransform; // OYws
 
