@@ -135,7 +135,7 @@ uint32_t Scene::createDiscLightMesh()
 
     Scene::Vertex v1, v2;
     v1.pos = glm::float4(0.f, 0.f, 0.f, 1.f);
-    v2.pos = glm::float4(0.5f, 0.f, 0.f, 1.f);
+    v2.pos = glm::float4(1.0f, 0.f, 0.f, 1.f);
 
     glm::float3 normal = glm::float3(0.f, 0.f, 1.f);
     v1.normal = v2.normal = packNormals(normal);
@@ -143,7 +143,7 @@ uint32_t Scene::createDiscLightMesh()
     vertices.push_back(v1); // central point
     vertices.push_back(v2); // first point
 
-    const float diskRadius = 0.5f; // param
+    const float diskRadius = 1.0f; // param
     const float step = 2.0f * M_PI / 16;
     float angle = 0;
     for (int i = 0; i < 16; ++i)
@@ -263,7 +263,7 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
 
     //const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.width, desc.height, 1.0f));
     const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.radius, desc.radius, desc.radius));
-    const glm::float4x4 transform = desc.useXform ? desc.xform /** scaleMatrix*/ : getTransform(desc); // scale for rect light
+    const glm::float4x4 transform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc); // scale for rect light
     uint32_t instId = createInstance(currentLightId, matId, transform, desc.position);
     assert(instId != -1);
 

@@ -128,7 +128,7 @@ void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
     }
 
     const SdfPath& id = GetId();
-    const VtValue& resource = sceneDelegate->GetMaterialResource(id);
+    //const VtValue& resource = sceneDelegate->GetMaterialResource(id);
 
     // Get the color of the light
     GfVec3f hdc = sceneDelegate->GetLightParamValue(id, HdLightTokens->color)
@@ -208,7 +208,7 @@ void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
         if (radiusVal.IsHolding<float>()) {
             radius = radiusVal.Get<float>();
         }
-        mLightDesc.radius = radius;
+        mLightDesc.radius = radius * mLightDesc.xform[0][0]; // uniform scale
     }
 }
 
