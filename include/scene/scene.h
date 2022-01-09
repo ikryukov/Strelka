@@ -44,7 +44,8 @@ private:
 
     std::set<uint32_t> mDirtyInstances;
 
-    uint32_t mLigthMeshId = (uint32_t) -1;
+    uint32_t mRectLigthMeshId = (uint32_t) -1;
+    uint32_t mDiskLigthMeshId = (uint32_t) -1;
 
 public:
     struct MaterialX

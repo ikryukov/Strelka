@@ -42,10 +42,10 @@ float3 UniformSampleRect(in RectLight l, float2 u)
     }
     else if (l.type == 1)
     {
-        float x = l.points[1].x * cos(u.x);
-        float y = l.points[1].x * sin(u.x);
+        float x = l.points[0].x * cos(u.x);
+        float y = l.points[0].x * sin(u.x);
 
-        uniformSample = {x, y, 0.0f};
+        uniformSample = l.points[1].xyz + x * l.points[2].xyz + y * l.points[3].xyz;
     }
 
     return uniformSample;
@@ -67,7 +67,7 @@ float3 calcLightNormal(in RectLight l)
         norm = l.normal.xyz;
     }
 
-     return norm;
+    return norm;
 }
 
 float calcLightArea(in RectLight l)
@@ -82,7 +82,7 @@ float calcLightArea(in RectLight l)
     }
     else if (l.type == 1) // disc area
     {
-        area = PI * l.points[1].x * l.points[1].x; // pi * radius^2
+        area = PI * l.points[0].x * l.points[0].x; // pi * radius^2
     }
 
     return area;
@@ -180,7 +180,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
     const int maxDepth = ubo.maxDepth;
 
     Ray ray = generateCameraRay(pixelIndex);
-    
+
     while (depth < maxDepth)
     {
         Hit hit;
@@ -259,7 +259,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 float3 toLight; //return value for sampleLights()
                 float lightPdf = 0.0f; //return value for sampleLights()
                 float3 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
-                
+
                 if (any(isnan(radianceOverPdf)) || isnan(lightPdf))
                 {
                     break;
@@ -323,8 +323,9 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
         else
         {
             // miss - add background color and exit
-            float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
-            finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
+            //float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
+            //finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
+             finalColor += throughput * float3(0.f);
 
             break;
         }
@@ -377,7 +378,7 @@ float3 pathTraceGBuffer(uint2 pixelIndex)
     //fill from MDL material struct
     mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
     mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
-    
+
     mdlState.text_coords[0] = float3(matUV, 0);
 
     int scatteringFunctionIndex = currMdlMaterial.functionId;
@@ -409,7 +410,7 @@ float3 pathTraceGBuffer(uint2 pixelIndex)
     evalData.ior2 = ior2;    // IOR other side
     evalData.k1 = -V;        // outgoing direction
     evalData.k2 = toLight;   // incoming direction
-    
+
     mdl_bsdf_scattering_evaluate(scatteringFunctionIndex, evalData, mdlState);
 
     float3 finalColor = float3(0.0f);
@@ -440,9 +441,9 @@ float3 pathTraceGBuffer(uint2 pixelIndex)
 
     Hit hit;
     hit.t = 0.0;
-    
+
     float3 throughput = sampleData.bsdf_over_pdf;
-    
+
     int depth = 1;
     int maxDepth = ubo.maxDepth;
     while (depth < maxDepth)
@@ -518,7 +519,7 @@ float3 pathTraceGBuffer(uint2 pixelIndex)
                 evalData.ior2 = ior2;       // IOR other side
                 evalData.k1 = -ray.d.xyz; // outgoing direction
                 evalData.k2 = toLight;      // incoming direction
-                
+
                 mdl_bsdf_scattering_evaluate(scatteringFunctionIndex, evalData, mdlState);
 
                 if (evalData.pdf > 0.0f)

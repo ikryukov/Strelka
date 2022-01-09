@@ -135,18 +135,18 @@ uint32_t Scene::createDiscLightMesh()
 
     Scene::Vertex v1, v2;
     v1.pos = glm::float4(0.f, 0.f, 0.f, 1.f);
-    v2.pos = glm::float4(1.f, 0.f, 0.f, 1.f);
+    v2.pos = glm::float4(0.5f, 0.f, 0.f, 1.f);
 
-    glm::float3 normal = glm::float3(1.f, 0.f, 0.f);
+    glm::float3 normal = glm::float3(0.f, 0.f, 1.f);
     v1.normal = v2.normal = packNormals(normal);
 
     vertices.push_back(v1); // central point
     vertices.push_back(v2); // first point
 
-    const float diskRadius = 5.0f; // param
+    const float diskRadius = 0.5f; // param
     const float step = 2.0f * M_PI / 16;
     float angle = 0;
-    for (int i = 2; i < 16; ++i)
+    for (int i = 0; i < 16; ++i)
     {
         indices.push_back(0); // each triangle have central point
         indices.push_back(vertices.size()); // prev vertex
@@ -249,21 +249,22 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
 
     // TODO: only for rect light
     // Lazy init light mesh
-    if (mLigthMeshId == -1)
+    uint32_t currentLightId = 0;
+    if (mRectLigthMeshId == -1 && desc.type == 0)
     {
-        if (desc.type == 0)
-        {
-            mLigthMeshId = createLightMesh();
-        }
-        else if (desc.type == 1)
-        {
-            mLigthMeshId = createDiscLightMesh();
-        }
+        mRectLigthMeshId = createLightMesh();
+        currentLightId = mRectLigthMeshId;
+    }
+    else if (mRectLigthMeshId == -1 && desc.type == 1)
+    {
+        mDiskLigthMeshId = createDiscLightMesh();
+        currentLightId = mDiskLigthMeshId;
     }
 
-    const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.width, desc.height, 1.0f));
-    const glm::float4x4 transform = desc.useXform ? scaleMatrix * desc.xform : getTransform(desc);
-    uint32_t instId = createInstance(mLigthMeshId, matId, transform, desc.position);
+    //const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.width, desc.height, 1.0f));
+    const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.radius, desc.radius, desc.radius));
+    const glm::float4x4 transform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc); // scale for rect light
+    uint32_t instId = createInstance(currentLightId, matId, transform, desc.position);
     assert(instId != -1);
 
     mLightIdToInstanceId[lightId] = instId;
@@ -288,24 +289,14 @@ void Scene::updateLight(const uint32_t lightId, const RectLightDesc& desc)
     }
     else if (desc.type == 1)
     {
-        const glm::float4x4 localTransform = desc.useXform ?  desc.xform  : getTransform(desc);
-        // generate 16 points
+        const glm::float4x4 localTransform = desc.useXform ? desc.xform  : getTransform(desc);
 
-        mLights[lightId].points[0] = localTransform * glm::float4(0.f, 0.f, 0.f, 0.f);
-        mLights[lightId].points[1] = localTransform * glm::float4(1.f, 0.f, 0.f, 0.f);
+        mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
+        mLights[lightId].points[1] = glm::float4(1.f, 1.f, 1.f, 0.f) * localTransform;// save O ?
+        mLights[lightId].points[2] = glm::float4(1.f, 0.f, 0.f, 0.f) * localTransform; // OXws
+        mLights[lightId].points[3] = glm::float4(0.f, 1.f, 0.f, 0.f) * localTransform; // OYws
 
-        const float diskRadius = desc.radius; // param
-        const float step = 2.0f * M_PI / 16;
-        float angle = 0;
-        for (int i = 2; i < 16; ++i)
-        {
-            angle += step;
-            const float x = cos(angle) * diskRadius;
-            const float y = sin(angle) * diskRadius;
-
-            mLights[lightId].points[i] = localTransform * glm::float4(x, y, 0.0f, 0.0f);
-        }
-        glm::float4 normal = glm::float4(0, 0, 0, 1.0f) * localTransform;
+        glm::float4 normal = glm::float4(0, 0, 1.f, 0.0f) * localTransform;
         mLights[lightId].normal = normal;
         mLights[lightId].type = 1;
     }
