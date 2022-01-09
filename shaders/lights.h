@@ -17,8 +17,13 @@ struct Light
 
 struct RectLight
 {
-    float4 points[4];
+    float4 points[16];
     float4 color;
+    float4 normal;
+    int type;
+    float pad0;
+    float pad2;
+    float pad3;
 };
 
 struct UniformLight

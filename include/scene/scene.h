@@ -122,8 +122,10 @@ public:
     // GPU side structure
     struct Light
     {
-        glm::float4 points[4];
+        glm::float4 points[16];
         glm::float4 color = glm::float4(1.0f);
+        glm::float4 normal;
+        int32_t type;
     };
 
     // GPU side structure
@@ -157,7 +159,7 @@ public:
     };
 
     std::vector<RectLightDesc> mLightDesc;
-
+    uint32_t createDiscLightMesh();
     enum class DebugView: uint32_t
     {
         eNone = 0,

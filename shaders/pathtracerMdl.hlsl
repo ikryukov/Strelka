@@ -32,23 +32,60 @@ RWStructuredBuffer<float> sampleBuffer;
 
 float3 UniformSampleRect(in RectLight l, float2 u)
 {
-    float3 e1 = l.points[1].xyz - l.points[0].xyz;
-    float3 e2 = l.points[3].xyz - l.points[0].xyz;
-    return l.points[0].xyz + e1 * u.x + e2 * u.y;
+    float3 uniformSample = float3(0.0);
+
+    if (l.type == 0) {
+        float3 e1 = l.points[1].xyz - l.points[0].xyz;
+        float3 e2 = l.points[3].xyz - l.points[0].xyz;
+
+        uniformSample = l.points[0].xyz + e1 * u.x + e2 * u.y;
+    }
+    else if (l.type == 1)
+    {
+        float x = l.points[1].x * cos(u.x);
+        float y = l.points[1].x * sin(u.x);
+
+        uniformSample = {x, y, 0.0f};
+    }
+
+    return uniformSample;
 }
 
 float3 calcLightNormal(in RectLight l)
 {
-    float3 e1 = l.points[1].xyz - l.points[0].xyz;
-    float3 e2 = l.points[3].xyz - l.points[0].xyz;
-    return normalize(cross(e1, e2));
+    float3 norm = float3(0.0);
+
+    if (l.type == 0)
+    {
+        float3 e1 = l.points[1].xyz - l.points[0].xyz;
+        float3 e2 = l.points[3].xyz - l.points[0].xyz;
+
+        norm = normalize(cross(e1, e2));
+    }
+    else if (l.type == 1)
+    {
+        norm = l.normal.xyz;
+    }
+
+     return norm;
 }
 
-float calcLightArea(in RectLight l) // тут трактовать по-разному значения
+float calcLightArea(in RectLight l)
 {
-    float3 e1 = l.points[1].xyz - l.points[0].xyz;
-    float3 e2 = l.points[3].xyz - l.points[0].xyz;
-    return length(cross(e1, e2));
+    float area = 0.0f;
+
+    if (l.type == 0) // rectangle area
+    {
+        float3 e1 = l.points[1].xyz - l.points[0].xyz;
+        float3 e2 = l.points[3].xyz - l.points[0].xyz;
+        area = length(cross(e1, e2));
+    }
+    else if (l.type == 1) // disc area
+    {
+        area = PI * l.points[1].x * l.points[1].x; // pi * radius^2
+    }
+
+    return area;
 }
 
 float3 estimateDirectLighting(inout uint rngState, in Accel accel, in RectLight light, in Shading_state_material state, out float3 toLight, out float lightPdf)
