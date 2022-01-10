@@ -229,7 +229,7 @@ void Scene::updateAnimation(const float time)
     mCameras[0].matrices.view = getTransform(mCameras[0].node);
 }
 
-uint32_t Scene::createLight(const RectLightDesc& desc)
+uint32_t Scene::createLight(const UniformLightDesc& desc)
 {
     uint32_t lightId = (uint32_t)mLights.size();
     Light l;
@@ -272,7 +272,7 @@ uint32_t Scene::createLight(const RectLightDesc& desc)
     return lightId;
 }
 
-void Scene::updateLight(const uint32_t lightId, const RectLightDesc& desc)
+void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
 {
     // transform to GPU light
     if (desc.type == 0)

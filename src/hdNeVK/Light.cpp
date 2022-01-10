@@ -217,7 +217,7 @@ HdDirtyBits HdNeVKLight::GetInitialDirtyBitsMask() const
     return (DirtyParams | DirtyTransform);
 }
 
-nevk::Scene::RectLightDesc HdNeVKLight::getLightDesc()
+nevk::Scene::UniformLightDesc HdNeVKLight::getLightDesc()
 {
     return mLightDesc;
 }

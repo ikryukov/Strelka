@@ -25,12 +25,12 @@ StructuredBuffer<uint> ib;
 StructuredBuffer<InstanceConstants> instanceConstants;
 StructuredBuffer<Material> materials;
 StructuredBuffer<MdlMaterial> mdlMaterials;
-StructuredBuffer<RectLight> lights;
+StructuredBuffer<UniformLight> lights;
 
 RWStructuredBuffer<float> sampleBuffer;
 // RWTexture2D<float4> output;
 
-float3 UniformSampleRect(in RectLight l, float2 u)
+float3 UniformSampleLight(in UniformLight l, float2 u)
 {
     float3 uniformSample = float3(0.0);
 
@@ -51,7 +51,7 @@ float3 UniformSampleRect(in RectLight l, float2 u)
     return uniformSample;
 }
 
-float3 calcLightNormal(in RectLight l)
+float3 calcLightNormal(in UniformLight l)
 {
     float3 norm = float3(0.0);
 
@@ -70,7 +70,7 @@ float3 calcLightNormal(in RectLight l)
     return norm;
 }
 
-float calcLightArea(in RectLight l)
+float calcLightArea(in UniformLight l)
 {
     float area = 0.0f;
 
@@ -88,9 +88,9 @@ float calcLightArea(in RectLight l)
     return area;
 }
 
-float3 estimateDirectLighting(inout uint rngState, in Accel accel, in RectLight light, in Shading_state_material state, out float3 toLight, out float lightPdf)
+float3 estimateDirectLighting(inout uint rngState, in Accel accel, in UniformLight light, in Shading_state_material state, out float3 toLight, out float lightPdf)
 {
-    const float3 pointOnLight = UniformSampleRect(light, float2(rand(rngState), rand(rngState)));
+    const float3 pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
     float3 L = normalize(pointOnLight - state.position);
     toLight = L;
     float3 lightNormal = calcLightNormal(light);
@@ -122,7 +122,7 @@ float3 sampleLights(inout uint rngState, in Accel accel, in Shading_state_materi
 {
     uint lightId = (uint) (ubo.numLights * rand(rngState));
     float lightSelectionPdf = 1.0f / (ubo.numLights + 1e-6);
-    RectLight currLight = lights[lightId];
+    UniformLight currLight = lights[lightId];
     float3 r = estimateDirectLighting(rngState, accel, currLight, state, toLight, lightPdf);
     lightPdf *= lightSelectionPdf;
 
@@ -192,7 +192,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
             if (material.isLight != -1)
             {
                 // finalColor += throughput * float3(1.0f);
-                RectLight currLight = lights[material.isLight];
+                UniformLight currLight = lights[material.isLight];
                 finalColor += throughput * currLight.color.rgb;
                 break;
             }

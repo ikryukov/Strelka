@@ -351,9 +351,9 @@ void showGizmo(Camera& cam, float camDistance, float* matrix, ImGuizmo::OPERATIO
     ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, mCurrentGizmoMode, matrix, NULL, nullptr, nullptr, nullptr);
 }
 
-Scene::RectLightDesc parseFromJson(json light, uint32_t j)
+Scene::UniformLightDesc parseFromJson(json light, uint32_t j)
 {
-    Scene::RectLightDesc desc;
+    Scene::UniformLightDesc desc;
     desc.position = glm::float3(light["lights"][j]["position"][0], light["lights"][j]["position"][1], light["lights"][j]["position"][2]);
     desc.orientation = glm::float3(light["lights"][j]["orientation"][0], light["lights"][j]["orientation"][1], light["lights"][j]["orientation"][2]);
     desc.width = float(light["lights"][j]["width"]);
@@ -366,7 +366,7 @@ Scene::RectLightDesc parseFromJson(json light, uint32_t j)
 
 void saveToJson(Scene& scene)
 {
-    std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
+    std::vector<Scene::UniformLightDesc>& lightDescs = scene.getLightsDesc();
     std::vector<json> lightSettings;
     lightSettings.resize(lightDescs.size());
 
@@ -409,7 +409,7 @@ void Ui::loadFromJson(Scene& scene)
 
         for (uint32_t j = 0; j < light["lights"].size(); ++j)
         {
-            Scene::RectLightDesc desc = parseFromJson(light, j);
+            Scene::UniformLightDesc desc = parseFromJson(light, j);
             scene.createLight(desc);
         }
     }
@@ -421,8 +421,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     glm::float3 camPos = cam.getPosition();
 
     // get CPU light
-    std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
-    Scene::RectLightDesc& currLightDesc = lightDescs[lightId];
+    std::vector<Scene::UniformLightDesc>& lightDescs = scene.getLightsDesc();
+    Scene::UniformLightDesc& currLightDesc = lightDescs[lightId];
 
     if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
         mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
@@ -474,7 +474,7 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     currLightDesc.height = matrixScale[2];
 
     // update in scene
-    Scene::RectLightDesc desc{};
+    Scene::UniformLightDesc desc{};
     desc.position = currLightDesc.position;
     desc.orientation = currLightDesc.orientation;
     desc.width = currLightDesc.width;
@@ -539,7 +539,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
             {
                 if (ImGui::MenuItem("Light"))
                 {
-                    Scene::RectLightDesc desc{};
+                    Scene::UniformLightDesc desc{};
                     desc.color = glm::float4(1.0f);
                     desc.height = 1.0f;
                     desc.width = 1.0f;

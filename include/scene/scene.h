@@ -129,17 +129,8 @@ public:
         int32_t type;
     };
 
-    // GPU side structure
-    struct UniLight
-    {
-        int type; // 0 -- rect, 1 -- disc
-        glm::float4 params[4];
-        // rectangle light: type == 1; params[0] -- v0, params[1] -- v1, params[2] -- v3, params[3][0] -- height, params[3][1] -- width
-        // disc light: type == 1; params[0] -- v0, params[1] -- v1, params[2] -- v3, params[3][0] -- radius
-    };
-
     // CPU side structure
-    struct RectLightDesc
+    struct UniformLightDesc
     {
         int32_t type;
         glm::float4x4 xform;
@@ -159,7 +150,7 @@ public:
         float radius;
     };
 
-    std::vector<RectLightDesc> mLightDesc;
+    std::vector<UniformLightDesc> mLightDesc;
     uint32_t createDiscLightMesh();
     enum class DebugView: uint32_t
     {
@@ -222,7 +213,7 @@ public:
         return mLights;
     }
 
-    std::vector<RectLightDesc>& getLightsDesc()
+    std::vector<UniformLightDesc>& getLightsDesc()
     {
         return mLightDesc;
     }
@@ -268,7 +259,7 @@ public:
     
     uint32_t createLightMesh();
 
-    glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
+    glm::float4x4 getTransform(const Scene::UniformLightDesc& desc)
     {
         const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
         glm::quat rotation = glm::quat(glm::radians(desc.orientation)); // to quaternion
@@ -322,7 +313,7 @@ public:
 
     void updateAnimation(const float dt);
 
-    void updateLight(uint32_t lightId, const RectLightDesc& desc);
+    void updateLight(uint32_t lightId, const UniformLightDesc& desc);
     /// <summary>
     /// Create Mesh geometry
     /// </summary>
@@ -341,7 +332,7 @@ public:
 
     uint32_t addMaterial(const Material& material);
 
-    uint32_t createLight(const RectLightDesc& desc);
+    uint32_t createLight(const UniformLightDesc& desc);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>

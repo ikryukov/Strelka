@@ -341,7 +341,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     mRender->setScene(&mScene);
     mRender->init();
 
-    nevk::Scene::RectLightDesc desc{};
+    nevk::Scene::UniformLightDesc desc{};
     desc.color = glm::float3(1.0f);
     desc.height = 0.4f;
     desc.width = 0.4f;
