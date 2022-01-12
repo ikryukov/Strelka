@@ -30,6 +30,27 @@ StructuredBuffer<UniformLight> lights;
 RWStructuredBuffer<float> sampleBuffer;
 // RWTexture2D<float4> output;
 
+float2 concentricSampleDisk(float2 u) {
+    // map uniform random numbers to [-1,1]^2
+    float2 uOffset = 2.f * u - float2(1, 1);
+
+    // handle degeneracy at the origin
+    if (uOffset.x == 0 && uOffset.y == 0)
+        return float2(0, 0);
+
+    // apply concentric mapping to point
+    float theta, r;
+    if (abs(uOffset.x) > abs(uOffset.y)) {
+       r = uOffset.x;
+       theta = PiOver4 * (uOffset.y / uOffset.x);
+    } else {
+        r = uOffset.y;
+        theta = PiOver2 - PiOver4 * (uOffset.x / uOffset.y);
+    }
+
+    return r * float2(cos(theta), sin(theta));
+}
+
 float3 UniformSampleLight(in UniformLight l, float2 u)
 {
     float3 uniformSample = float3(0.0);
@@ -42,8 +63,10 @@ float3 UniformSampleLight(in UniformLight l, float2 u)
     }
     else if (l.type == 1)
     {
-        float x = l.points[0].x * cos(u.x);
-        float y = l.points[0].x * sin(u.x);
+        float2 pd = concentricSampleDisk(u);
+
+        float x = l.points[0].x * pd.x;
+        float y = l.points[0].x * pd.y;
 
         uniformSample = l.points[1].xyz + x * l.points[2].xyz + y * l.points[3].xyz;
     }
