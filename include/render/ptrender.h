@@ -70,9 +70,6 @@ private:
 
     DebugView* mDebugView;
 
-    Tonemapparam mToneParams;
-    Upscalepassparam mUpscalePassParam;
-
     struct ViewData
     {
         // could be scaled
@@ -132,7 +129,6 @@ private:
 
     ViewData* mPrevView = nullptr;
     std::array<ViewData*, MAX_FRAMES_IN_FLIGHT> mView;
-    DebugView::DebugImages mDebugImages{};
 
     struct SceneRenderData
     {
@@ -193,8 +189,6 @@ private:
     SceneRenderData* mDefaultSceneRenderData = nullptr;
 
     nevk::Scene* mScene = nullptr;
-
-    void setDescriptors(uint32_t imageIndex);
 
     ViewData* createView(uint32_t width, uint32_t height, uint32_t spp);
     GBuffer* createGbuffer(uint32_t width, uint32_t height);

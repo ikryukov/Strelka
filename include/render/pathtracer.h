@@ -8,6 +8,8 @@ namespace nevk
 {
 struct PathTracerDesc
 {
+    PathTracerParam constants;
+
     // mdl_ro_data_segment, mdl_argument_block, mdl_resource_infos, mdl_textures_2d, mdl_sampler_tex
     Buffer* mdl_ro_data_segment = VK_NULL_HANDLE;
     Buffer* mdl_argument_block = VK_NULL_HANDLE;
@@ -42,7 +44,8 @@ public:
     PathTracer(const SharedContext& ctx, std::string& shaderCode);
     ~PathTracer();
 
+    void execute(VkCommandBuffer& cmd, const PathTracerDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex);
+
     void initialize();
-    void setResources(const PathTracerDesc& desc);
 };
 } // namespace nevk
