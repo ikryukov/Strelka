@@ -120,5 +120,8 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         output4[pixelIndex] = float4(accPt(pixelIndex), 0.0);
     }
-    output1[pixelIndex] = acc1(pixelIndex);
+    else
+    {
+        output1[pixelIndex] = acc1(pixelIndex);
+    }
 }
