@@ -475,6 +475,8 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     Camera& cam = mScene->getCamera(getActiveCameraIndex());
     cam.updateViewMatrix();
 
+    cam.prevMatrices = cam.matrices; // TODO:
+
     mGbufferPass.onResize(currView->gbuffer, 0);
     mGbufferPass.updateUniformBuffer(imageIndex, *mScene, getActiveCameraIndex());
 
@@ -522,7 +524,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     Image* finalImage = nullptr;
 
     // Path Tracer
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 200; ++i)
     {
         PathTracerDesc ptDesc{};
         // desc.result = mView[imageIndex]->mPathTracerImage;
@@ -561,7 +563,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
         pathTracerParam.numLights = (uint32_t)mScene->getLights().size();
         pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
         pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
-        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         mPathTracer->execute(cmd, ptDesc, renderWidth * renderHeight * pathTracerParam.spp, 1, frameIndex);
@@ -572,11 +574,10 @@ void PtRender::drawFrame(const uint8_t* outPixels)
         reductionDesc.sampleBuffer = currView->mSampleBuffer;
 
         // buffer barrier
-        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT,
+        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         // image barrier
-
         recordImageBarrier(cmd, currView->mPathTracerImage, VK_IMAGE_LAYOUT_GENERAL,
                            VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
