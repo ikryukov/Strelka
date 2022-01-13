@@ -245,6 +245,7 @@ public:
             aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
         }
         ret->view = createImageView(ret, aspectFlags);
+        ret->currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         return ret;
     }
