@@ -102,15 +102,15 @@ public:
 
         createComputePipeline(mCS);
     }
-    void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
-    {
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
-        VkDescriptorSet descSet = mShaderParams.getDescriptorSet(imageIndex);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
-        const uint32_t dispX = (width + 15) / 16;
-        const uint32_t dispY = (height + 15) / 16;
-        vkCmdDispatch(cmd, dispX, dispY, 1);
-    }
+    // void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
+    // {
+    //     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
+    //     VkDescriptorSet descSet = mShaderParams.getDescriptorSet(imageIndex);
+    //     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
+    //     const uint32_t dispX = (width + 15) / 16;
+    //     const uint32_t dispY = (height + 15) / 16;
+    //     vkCmdDispatch(cmd, dispX, dispY, 1);
+    // }
     void onDestroy()
     {
         vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
@@ -118,10 +118,10 @@ public:
         vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
     }
 
-    void setParams(const T& params)
-    {
-        mShaderParams.setParams(params);
-    }
+    // void setParams(const T& params)
+    // {
+    //     mShaderParams.setParams(params);
+    // }
 
 };
 } // namespace nevk

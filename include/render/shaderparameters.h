@@ -330,7 +330,7 @@ public:
                      std::vector<ShaderManager::ResourceDesc>& resourcesDescs,
                      std::unordered_map<std::string, ShaderManager::ResourceDesc>& nameToDesc,
                      int cbBinding)
-        : mDescriptorSetLayout(descriptorSetLayout), mNameToDesc(nameToDesc), mResourcesDescs(resourcesDescs), mCbBinding(cbBinding)
+        :  mCbBinding(cbBinding), mDescriptorSetLayout(descriptorSetLayout), mResourcesDescs(resourcesDescs), mNameToDesc(nameToDesc)
     {
     }
 
