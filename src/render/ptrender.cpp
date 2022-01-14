@@ -24,7 +24,7 @@ void PtRender::init()
 {
     VkRender::initVulkan();
 
-    mView[0] = createView(800, 600, 8);
+    mView[0] = createView(800, 600, 1);
 
     mDebugView = new DebugView(mSharedCtx);
     mDebugView->initialize();
@@ -524,7 +524,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     Image* finalImage = nullptr;
 
     // Path Tracer
-    for (int i = 0; i < 200; ++i)
+    for (int i = 0; i < 10; ++i)
     {
         PathTracerDesc ptDesc{};
         // desc.result = mView[imageIndex]->mPathTracerImage;
