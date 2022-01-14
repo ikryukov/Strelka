@@ -186,7 +186,7 @@ float3 calcLightNormal(in UniformLight l)
         float3 e1 = l.points[1].xyz - l.points[0].xyz;
         float3 e2 = l.points[3].xyz - l.points[0].xyz;
 
-        norm = normalize(cross(e1, e2));
+        norm = -normalize(cross(e1, e2));
     }
     else if (l.type == 1)
     {
@@ -255,7 +255,6 @@ float3 sampleLights(inout uint rngState, in Accel accel, in Shading_state_materi
     UniformLight currLight = lights[lightId];
     float3 r = estimateDirectLighting(rngState, accel, currLight, state, toLight, lightPdf);
     lightPdf *= lightSelectionPdf;
-
     return r / (lightPdf + 1e-5);
 }
 
@@ -389,6 +388,9 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 float3 toLight; //return value for sampleLights()
                 float lightPdf = 0.0f; //return value for sampleLights()
                 float3 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
+
+                // TODO: remove after debug
+                return radianceOverPdf;
 
                 if (any(isnan(radianceOverPdf)) || isnan(lightPdf))
                 {
