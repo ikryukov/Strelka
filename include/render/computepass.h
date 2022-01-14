@@ -15,7 +15,7 @@ protected:
     VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
     VkShaderModule mCS = VK_NULL_HANDLE;
 
-    ShaderParameters<T> mShaderParams;
+    ShaderParametersFactory<T> mShaderParamFactory;
 
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize)
     {
@@ -43,7 +43,7 @@ protected:
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
-        VkDescriptorSetLayout layout = mShaderParams.getDescriptorSetLayout();
+        VkDescriptorSetLayout layout = mShaderParamFactory.getDescriptorSetLayout();
         pipelineLayoutInfo.pSetLayouts = &layout;
 
         if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
@@ -65,7 +65,8 @@ protected:
 
 public:
     ComputePass(const SharedContext& ctx)
-        : mSharedCtx(ctx)
+        : mSharedCtx(ctx),
+          mShaderParamFactory(ctx)
     {
     }
     virtual ~ComputePass()
@@ -84,7 +85,7 @@ public:
         mSharedCtx.mShaderManager->getShaderCode(csId, csShaderCode, csShaderCodeSize);
         mCS = createShaderModule(csShaderCode, csShaderCodeSize);
 
-        mShaderParams.create(mSharedCtx, csId);
+        mShaderParamFactory.initialize(csId);
 
         createComputePipeline(mCS);
     }
@@ -97,19 +98,19 @@ public:
         mSharedCtx.mShaderManager->getShaderCode(csId, csShaderCode, csShaderCodeSize);
         mCS = createShaderModule(csShaderCode, csShaderCodeSize);
 
-        mShaderParams.create(mSharedCtx, csId);
+        mShaderParamFactory.initialize(csId);
 
         createComputePipeline(mCS);
     }
-    void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
-    {
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
-        VkDescriptorSet descSet = mShaderParams.getDescriptorSet(imageIndex);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
-        const uint32_t dispX = (width + 15) / 16;
-        const uint32_t dispY = (height + 15) / 16;
-        vkCmdDispatch(cmd, dispX, dispY, 1);
-    }
+    // void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
+    // {
+    //     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
+    //     VkDescriptorSet descSet = mShaderParams.getDescriptorSet(imageIndex);
+    //     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
+    //     const uint32_t dispX = (width + 15) / 16;
+    //     const uint32_t dispY = (height + 15) / 16;
+    //     vkCmdDispatch(cmd, dispX, dispY, 1);
+    // }
     void onDestroy()
     {
         vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
@@ -117,10 +118,10 @@ public:
         vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
     }
 
-    void setParams(const T& params)
-    {
-        mShaderParams.setParams(params);
-    }
+    // void setParams(const T& params)
+    // {
+    //     mShaderParams.setParams(params);
+    // }
 
 };
 } // namespace nevk

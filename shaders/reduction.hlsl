@@ -6,7 +6,7 @@ StructuredBuffer<float> sampleBuffer;
 // StructuredBuffer<float> compositingBuffer;
 RWTexture2D<float4> output;
 
-[numthreads(16, 16, 1)]
+[numthreads(256, 1, 1)]
 [shader("compute")]
 void computeMain(uint2 dispatchIndex : SV_DispatchThreadID)
 {

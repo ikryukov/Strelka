@@ -70,9 +70,6 @@ private:
 
     DebugView* mDebugView;
 
-    Tonemapparam mToneParams;
-    Upscalepassparam mUpscalePassParam;
-
     struct ViewData
     {
         // could be scaled
@@ -88,7 +85,7 @@ private:
         Image* textureUpscaleImage;
         Image* textureDebugViewImage;
         Image* mPathTracerImage;
-        Image* mAccumulationPathTracerImage = nullptr;
+        Image* mAccumulationPathTracerImage[2] = {};
         Buffer* mSampleBuffer = nullptr;
         Buffer* mCompositingBuffer = nullptr;
         ResourceManager* mResManager = nullptr;
@@ -120,16 +117,18 @@ private:
             {
                 mResManager->destroyImage(mPathTracerImage);
             }
-            if (mAccumulationPathTracerImage)
+            for (int i = 0; i < 2; ++i)
             {
-                mResManager->destroyImage(mAccumulationPathTracerImage);
+                if (mAccumulationPathTracerImage[i])
+                {
+                    mResManager->destroyImage(mAccumulationPathTracerImage[i]);
+                }
             }
         }
     };
 
     ViewData* mPrevView = nullptr;
     std::array<ViewData*, MAX_FRAMES_IN_FLIGHT> mView;
-    DebugView::DebugImages mDebugImages{};
 
     struct SceneRenderData
     {
@@ -190,8 +189,6 @@ private:
     SceneRenderData* mDefaultSceneRenderData = nullptr;
 
     nevk::Scene* mScene = nullptr;
-
-    void setDescriptors(uint32_t imageIndex);
 
     ViewData* createView(uint32_t width, uint32_t height, uint32_t spp);
     GBuffer* createGbuffer(uint32_t width, uint32_t height);

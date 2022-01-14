@@ -185,7 +185,7 @@ set(RENDER_SOURCES
         include/render/common.h
         include/render/gbuffer.h
         include/render/bvh.h
-        include/render/render.h
+        #include/render/render.h
         include/render/vkrender.h
         include/render/ptrender.h
         include/render/renderpass.h
@@ -198,9 +198,9 @@ set(RENDER_SOURCES
         include/render/tonemap.h
         include/render/accumulation.h
         include/render/debugview.h
-        include/render/depthpass.h
+        #include/render/depthpass.h
         include/render/debugUtils.h
-        src/render/render.cpp
+        #src/render/render.cpp
         src/render/vkrender.cpp
         src/render/ptrender.cpp
         src/render/renderpass.cpp
@@ -212,7 +212,7 @@ set(RENDER_SOURCES
         src/render/tonemap.cpp
         src/render/accumulation.cpp
         src/render/debugview.cpp
-        src/render/depthpass.cpp
+        #src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )
 set(RENDERLIB_NAME render)

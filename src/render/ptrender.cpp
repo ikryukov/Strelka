@@ -164,15 +164,16 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32
                                                      VK_IMAGE_TILING_OPTIMAL,
                                                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
-
-    const std::string imageName = "Accumulation Image";
-    view->mAccumulationPathTracerImage = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                                 VK_IMAGE_TILING_OPTIMAL,
-                                                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "PT accumulation");
-    texManager->transitionImageLayout(resManager->getVkImage(view->mAccumulationPathTracerImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    resManager->setImageLayout(view->mAccumulationPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
+    for (int i = 0; i < 2; ++i)
+    {
+        const std::string imageName = "Accumulation Image: " + std::to_string(i);
+        view->mAccumulationPathTracerImage[i] = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                                        VK_IMAGE_TILING_OPTIMAL,
+                                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        texManager->transitionImageLayout(resManager->getVkImage(view->mAccumulationPathTracerImage[i]), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        resManager->setImageLayout(view->mAccumulationPathTracerImage[i], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
     return view;
 }
 
@@ -441,51 +442,6 @@ void nevk::PtRender::createMdlBuffers()
     resManager->destroyBuffer(stagingBuffer);
 }
 
-void PtRender::setDescriptors(uint32_t imageIndex)
-{
-    assert(mSharedCtx.mResManager);
-    assert(mSharedCtx.mTextureManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
-    TextureManager* texManager = mSharedCtx.mTextureManager;
-
-    ViewData* currView = mView[imageIndex];
-
-    {
-        mGbufferPass.setTextureImageView(texManager->textureImageView);
-        mGbufferPass.setTextureSamplers(texManager->texSamplers);
-        mGbufferPass.setMaterialBuffer(resManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
-        mGbufferPass.setInstanceBuffer(resManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
-    }
-
-    {
-        mAccumulationPathTracer->setInputTexture4(currView->mPathTracerImage);
-        mAccumulationPathTracer->setMotionTexture(currView->gbuffer->motion);
-        mAccumulationPathTracer->setPrevDepthTexture(currView->prevDepth);
-        mAccumulationPathTracer->setWposTexture(currView->gbuffer->wPos);
-        mAccumulationPathTracer->setCurrDepthTexture(currView->gbuffer->depth);
-    }
-    //{
-    //    mDebugImages.normal = currView->gbuffer->normal;
-    //    mDebugImages.debug = currView->gbuffer->debug;
-    //    mDebugImages.motion = currView->gbuffer->motion;
-    //    mDebugImages.pathTracer = currView->mPathTracerImage;
-
-    //    mDebugView->setParams(mDebugParams);
-    //    mDebugView->setInputTexture(mDebugImages);
-    //    mDebugView->setOutputTexture(mResManager->getView(currView->textureDebugViewImage));
-    //}
-    {
-        mTonemap->setParams(mToneParams);
-        mTonemap->setInputTexture(resManager->getView(currView->mPathTracerImage));
-        mTonemap->setOutputTexture(resManager->getView(currView->textureTonemapImage));
-    }
-    {
-        mUpscalePass->setParams(mUpscalePassParam);
-        mUpscalePass->setInputTexture(resManager->getView(currView->mPathTracerImage));
-        mUpscalePass->setOutputTexture(resManager->getView(currView->textureUpscaleImage));
-    }
-}
-
 void PtRender::drawFrame(const uint8_t* outPixels)
 {
     assert(mSharedCtx.mResManager);
@@ -498,6 +454,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
     FrameData& currFrame = getCurrentFrameData();
     const uint32_t imageIndex = 0;
+    const uint64_t frameIndex = 0;
 
     createVertexBuffer(*mScene);
     createIndexBuffer(*mScene);
@@ -518,47 +475,10 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     Camera& cam = mScene->getCamera(getActiveCameraIndex());
     cam.updateViewMatrix();
 
-    setDescriptors(imageIndex);
+    cam.prevMatrices = cam.matrices; // TODO:
 
     mGbufferPass.onResize(currView->gbuffer, 0);
     mGbufferPass.updateUniformBuffer(imageIndex, *mScene, getActiveCameraIndex());
-
-    PathTracerParam pathTracerParam{};
-    pathTracerParam.dimension = glm::int2(renderWidth, renderHeight);
-    pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
-    pathTracerParam.maxDepth = 4;
-    pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
-    pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
-    pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);
-    pathTracerParam.worldToView = cam.matrices.view; //
-    // pathTracerParam.clipToView = glm::inverse(cam.matrices.perspective);
-    pathTracerParam.clipToView = cam.matrices.invPerspective;
-    pathTracerParam.viewToClip = cam.matrices.perspective; //
-    pathTracerParam.len = (int)0;
-    pathTracerParam.spp = currView->spp;
-    pathTracerParam.numLights = (uint32_t)mScene->getLights().size();
-    pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
-    pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
-    mPathTracer->setParams(pathTracerParam);
-
-    AccumulationParam accParam{};
-    accParam.alpha = 0.1f;
-    accParam.dimension = glm::int2(renderWidth, renderHeight);
-    // glm::double4x4 persp = cam.prevMatrices.perspective;
-    // accParam.prevClipToView = glm::inverse(persp);
-    accParam.prevClipToView = cam.prevMatrices.invPerspective;
-    accParam.prevViewToClip = cam.prevMatrices.perspective;
-    accParam.prevWorldToView = cam.prevMatrices.view;
-    glm::double4x4 view = cam.prevMatrices.view;
-    accParam.prevViewToWorld = glm::inverse(view);
-    // debug
-    // accParam.clipToView = glm::inverse(cam.matrices.perspective);
-    accParam.clipToView = cam.matrices.invPerspective;
-    accParam.viewToWorld = glm::inverse(cam.matrices.view);
-    accParam.isPt = 1;
-    currView->mPtIteration = 0;
-    accParam.iteration = currView->mPtIteration;
-    mAccumulationPathTracer->setParams(accParam);
 
     VkCommandBuffer& cmd = getFrameData(imageIndex).cmdBuffer;
     vkResetCommandBuffer(cmd, 0);
@@ -571,99 +491,10 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
     vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 
-    // upload data
-    //{
-    //    const std::vector<Mesh>& meshes = mScene->getMeshes();
-    //    const std::vector<nevk::Instance>& sceneInstances = scene->getInstances();
-    //    mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
-    //    Buffer* stagingBuffer = mUploadBuffer[imageIndex];
-    //    void* stagingBufferMemory = mResManager->getMappedMemory(stagingBuffer);
-    //    size_t stagingBufferOffset = 0;
-    //    bool needBarrier = false;
-    //    if (!sceneInstances.empty())
-    //    {
-    //        // This struct must match shader's version
-    //        struct InstanceConstants
-    //        {
-    //            glm::float4x4 model;
-    //            glm::float4x4 normalMatrix;
-    //            int32_t materialId;
-    //            int32_t indexOffset;
-    //            int32_t indexCount;
-    //            int32_t pad2;
-    //        };
-    //        std::vector<InstanceConstants> instanceConsts;
-    //        instanceConsts.resize(sceneInstances.size());
-    //        for (uint32_t i = 0; i < sceneInstances.size(); ++i)
-    //        {
-    //            instanceConsts[i].materialId = sceneInstances[i].mMaterialId;
-    //            instanceConsts[i].model = sceneInstances[i].transform;
-    //            instanceConsts[i].normalMatrix = glm::inverse(glm::transpose(sceneInstances[i].transform));
-
-    //            const uint32_t currentMeshId = sceneInstances[i].mMeshId;
-    //            instanceConsts[i].indexOffset = meshes[currentMeshId].mIndex;
-    //            instanceConsts[i].indexCount = meshes[currentMeshId].mCount;
-    //        }
-    //        size_t bufferSize = sizeof(InstanceConstants) * sceneInstances.size();
-    //        memcpy(stagingBufferMemory, instanceConsts.data(), bufferSize);
-
-    //        VkBufferCopy copyRegion{};
-    //        copyRegion.size = bufferSize;
-    //        copyRegion.dstOffset = 0;
-    //        copyRegion.srcOffset = stagingBufferOffset;
-    //        vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), 1, &copyRegion);
-
-    //        stagingBufferOffset += bufferSize;
-    //        needBarrier = true;
-    //    }
-    //    const std::vector<nevk::Scene::Light>& lights = scene->getLights();
-    //    if (!lights.empty())
-    //    {
-    //        size_t bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
-    //        memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), lights.data(), bufferSize);
-
-    //        VkBufferCopy copyRegion{};
-    //        copyRegion.size = bufferSize;
-    //        copyRegion.dstOffset = 0;
-    //        copyRegion.srcOffset = stagingBufferOffset;
-    //        vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), 1, &copyRegion);
-
-    //        stagingBufferOffset += bufferSize;
-    //        needBarrier = true;
-    //    }
-
-    //    const std::vector<Material>& materials = scene->getMaterials();
-    //    if (!materials.empty())
-    //    {
-    //        size_t bufferSize = sizeof(Material) * MAX_LIGHT_COUNT;
-    //        memcpy((void*)((char*)stagingBufferMemory + stagingBufferOffset), materials.data(), bufferSize);
-
-    //        VkBufferCopy copyRegion{};
-    //        copyRegion.size = bufferSize;
-    //        copyRegion.dstOffset = 0;
-    //        copyRegion.srcOffset = stagingBufferOffset;
-    //        vkCmdCopyBuffer(cmd, mResManager->getVkBuffer(stagingBuffer), mResManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer), 1, &copyRegion);
-
-    //        stagingBufferOffset += bufferSize;
-    //        needBarrier = true;
-    //    }
-
-    //    if (needBarrier)
-    //    {
-    //        VkMemoryBarrier memoryBarrier = {};
-    //        memoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    //        memoryBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
-    //        memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-
-    //        vkCmdPipelineBarrier(cmd,
-    //                             VK_PIPELINE_STAGE_TRANSFER_BIT, // srcStageMask
-    //                             VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, // dstStageMask
-    //                             0,
-    //                             1, // memoryBarrierCount
-    //                             &memoryBarrier, // pMemoryBarriers
-    //                             0, nullptr, 0, nullptr);
-    //    }
-    //}
+    mGbufferPass.setTextureImageView(texManager->textureImageView);
+    mGbufferPass.setTextureSamplers(texManager->texSamplers);
+    mGbufferPass.setMaterialBuffer(resManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
+    mGbufferPass.setInstanceBuffer(resManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
 
     mGbufferPass.record(cmd, resManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), resManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, renderWidth, renderHeight, imageIndex, getActiveCameraIndex());
 
@@ -693,91 +524,126 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     Image* finalImage = nullptr;
 
     // Path Tracer
+    for (int i = 0; i < 200; ++i)
     {
-        {
-            PathTracerDesc desc{};
-            // desc.result = mView[imageIndex]->mPathTracerImage;
-            desc.gbuffer = currView->gbuffer;
-            desc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
-            desc.vb = mCurrentSceneRenderData->mVertexBuffer;
-            desc.ib = mCurrentSceneRenderData->mIndexBuffer;
-            desc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
-            desc.lights = mCurrentSceneRenderData->mLightsBuffer;
-            desc.materials = mCurrentSceneRenderData->mMaterialBuffer;
-            desc.matSampler = texManager->mMdlSampler;
-            desc.matTextures = texManager->textureImages;
+        PathTracerDesc ptDesc{};
+        // desc.result = mView[imageIndex]->mPathTracerImage;
+        ptDesc.gbuffer = currView->gbuffer;
+        ptDesc.bvhNodes = mCurrentSceneRenderData->mBvhNodeBuffer;
+        ptDesc.vb = mCurrentSceneRenderData->mVertexBuffer;
+        ptDesc.ib = mCurrentSceneRenderData->mIndexBuffer;
+        ptDesc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
+        ptDesc.lights = mCurrentSceneRenderData->mLightsBuffer;
+        ptDesc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+        ptDesc.matSampler = texManager->mMdlSampler;
+        ptDesc.matTextures = texManager->textureImages;
 
-            desc.sampleBuffer = currView->mSampleBuffer;
-            // desc.compositingBuffer = currView->mCompositingBuffer;
+        ptDesc.sampleBuffer = currView->mSampleBuffer;
+        // desc.compositingBuffer = currView->mCompositingBuffer;
 
-            desc.mdl_argument_block = mCurrentSceneRenderData->mMdlArgBuffer;
-            desc.mdl_ro_data_segment = mCurrentSceneRenderData->mMdlRoBuffer;
-            desc.mdl_resource_infos = mCurrentSceneRenderData->mMdlInfoBuffer;
-            desc.mdl_mdlMaterial = mCurrentSceneRenderData->mMdlMaterialBuffer;
+        ptDesc.mdl_argument_block = mCurrentSceneRenderData->mMdlArgBuffer;
+        ptDesc.mdl_ro_data_segment = mCurrentSceneRenderData->mMdlRoBuffer;
+        ptDesc.mdl_resource_infos = mCurrentSceneRenderData->mMdlInfoBuffer;
+        ptDesc.mdl_mdlMaterial = mCurrentSceneRenderData->mMdlMaterialBuffer;
 
-            mPathTracer->setResources(desc);
-        }
-        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+        PathTracerParam& pathTracerParam = ptDesc.constants;
+        pathTracerParam.dimension = glm::int2(renderWidth, renderHeight);
+        pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
+        pathTracerParam.maxDepth = 4;
+        pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
+        pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
+        pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);
+        pathTracerParam.worldToView = cam.matrices.view; //
+        // pathTracerParam.clipToView = glm::inverse(cam.matrices.perspective);
+        pathTracerParam.clipToView = cam.matrices.invPerspective;
+        pathTracerParam.viewToClip = cam.matrices.perspective; //
+        pathTracerParam.len = (int)0;
+        pathTracerParam.spp = currView->spp;
+        pathTracerParam.iteration = i;
+        pathTracerParam.numLights = (uint32_t)mScene->getLights().size();
+        pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
+        pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
+        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        mPathTracer->execute(cmd, renderWidth * renderHeight * pathTracerParam.spp, 1, imageIndex);
-        {
-            mReductionPass->setParams(pathTracerParam);
-            ReductionDesc desc{};
-            // desc.compositingBuffer = currView->mCompositingBuffer;
-            desc.result = currView->mPathTracerImage;
-            desc.sampleBuffer = currView->mSampleBuffer;
-            mReductionPass->setResources(desc);
-        }
+        mPathTracer->execute(cmd, ptDesc, renderWidth * renderHeight * pathTracerParam.spp, 1, frameIndex);
+
+        ReductionDesc reductionDesc{};
+        reductionDesc.constants = ptDesc.constants;
+        reductionDesc.result = currView->mPathTracerImage;
+        reductionDesc.sampleBuffer = currView->mSampleBuffer;
+
         // buffer barrier
-        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT,
+        recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         // image barrier
-
         recordImageBarrier(cmd, currView->mPathTracerImage, VK_IMAGE_LAYOUT_GENERAL,
                            VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        mReductionPass->execute(cmd, renderWidth * renderHeight, 1, imageIndex);
+        mReductionPass->execute(cmd, reductionDesc, renderWidth * renderHeight, 1, frameIndex);
 
         recordImageBarrier(cmd, currView->mPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                            VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         finalPathTracerImage = currView->mPathTracerImage;
 
-        // if (0)
-        //{
-        //     // Accumulation pass
-        //     Image* accHist = mPrevView->mAccumulationPathTracerImage;
-        //     Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
+        {
+            // Accumulation pass
+            Image* accHist = mView[imageIndex]->mAccumulationPathTracerImage[i % 2];
+            Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage[(i + 1) % 2];
+            
+            AccumulationDesc accDesc{};
+            AccumulationParam& accParam = accDesc.constants;
+            accParam.alpha = 0.1f;
+            accParam.dimension = glm::int2(renderWidth, renderHeight);
+            // glm::double4x4 persp = cam.prevMatrices.perspective;
+            // accParam.prevClipToView = glm::inverse(persp);
+            accParam.prevClipToView = cam.prevMatrices.invPerspective;
+            accParam.prevViewToClip = cam.prevMatrices.perspective;
+            accParam.prevWorldToView = cam.prevMatrices.view;
+            glm::double4x4 view = cam.prevMatrices.view;
+            accParam.prevViewToWorld = glm::inverse(view);
+            // debug
+            // accParam.clipToView = glm::inverse(cam.matrices.perspective);
+            accParam.clipToView = cam.matrices.invPerspective;
+            accParam.viewToWorld = glm::inverse(cam.matrices.view);
+            accParam.isPt = 1;
+            currView->mPtIteration = i; // TODO: need to recalc properly
+            accParam.iteration = currView->mPtIteration;
 
-        //    mAccumulationPathTracer->setHistoryTexture4(accHist);
-        //    mAccumulationPathTracer->setOutputTexture4(accOut);
+            accDesc.input4 = finalPathTracerImage;
+            accDesc.history4 = accHist;
+            accDesc.output4 = accOut;
+            accDesc.wpos = gbuffer.wPos;
+            accDesc.currDepth = gbuffer.depth;
+            accDesc.motion = gbuffer.motion;
+            accDesc.prevDepth = gbuffer.depth; //TODO: fix
 
-        //    recordBarrier(cmd, mResManager->getVkImage(accOut), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-        //                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        //    mAccumulationPathTracer->execute(cmd, renderWidth, renderHeight, imageIndex);
-        //    recordBarrier(cmd, mResManager->getVkImage(accOut),  VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-        //                  VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL,
+                               VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            mAccumulationPathTracer->execute(cmd, accDesc, renderWidth, renderHeight, frameIndex);
+            recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        //    finalPathTracerImage = accOut;
-        //}
+            finalPathTracerImage = accOut;
+        }
     }
 
     {
-        Image* tmpImage = finalPathTracerImage;
-
         // Tonemap
         {
             recordImageBarrier(cmd, mView[imageIndex]->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             // recordBarrier(cmd, mResManager->getVkImage(tmpImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             //             VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            mToneParams.dimension.x = renderWidth;
-            mToneParams.dimension.y = renderHeight;
-            mTonemap->setParams(mToneParams);
-            mTonemap->setInputTexture(resManager->getView(tmpImage));
-            mTonemap->execute(cmd, renderWidth, renderHeight, imageIndex);
+            TonemapDesc toneDesc{};
+            Tonemapparam& toneParams = toneDesc.constants;
+            toneParams.dimension.x = renderWidth;
+            toneParams.dimension.y = renderHeight;
+            toneDesc.input = finalPathTracerImage;
+            toneDesc.output = mView[imageIndex]->textureTonemapImage;
+            mTonemap->execute(cmd, toneDesc, renderWidth, renderHeight, frameIndex);
             finalImage = mView[imageIndex]->textureTonemapImage;
         }
 
@@ -786,13 +652,18 @@ void PtRender::drawFrame(const uint8_t* outPixels)
         {
             recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            mUpscalePassParam.dimension.x = finalWidth;
-            mUpscalePassParam.dimension.y = finalHeight;
-            mUpscalePassParam.invDimension.x = 1.0f / (float)finalWidth;
-            mUpscalePassParam.invDimension.y = 1.0f / (float)finalHeight;
-            mUpscalePass->setParams(mUpscalePassParam);
-            mUpscalePass->setInputTexture(resManager->getView(finalImage));
-            mUpscalePass->execute(cmd, finalWidth, finalHeight, imageIndex);
+            
+            UpscaleDesc upscaleDesc{};
+            Upscalepassparam& upscalePassParam = upscaleDesc.constants;
+            upscalePassParam.dimension.x = finalWidth;
+            upscalePassParam.dimension.y = finalHeight;
+            upscalePassParam.invDimension.x = 1.0f / (float)finalWidth;
+            upscalePassParam.invDimension.y = 1.0f / (float)finalHeight;
+            
+            upscaleDesc.input = finalImage;
+            upscaleDesc.output = mView[imageIndex]->textureUpscaleImage;
+
+            mUpscalePass->execute(cmd, upscaleDesc, finalWidth, finalHeight, frameIndex);
 
             recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL,
                                VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);

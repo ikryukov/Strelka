@@ -36,7 +36,8 @@ struct PathTracerParam
 
     int len;
     int spp;
-    int2 pad1;
+    int iteration;
+    int pad1;
 };
 
 #ifdef __cplusplus

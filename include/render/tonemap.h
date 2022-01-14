@@ -9,6 +9,13 @@
 
 namespace nevk
 {
+struct TonemapDesc
+{
+    Tonemapparam constants;
+    Image* input;
+    Image* output;
+};
+
 using TonemapBase = ComputePass<Tonemapparam>;
 class Tonemap : public TonemapBase
 {
@@ -16,7 +23,6 @@ public:
     Tonemap(const SharedContext& ctx);
     ~Tonemap();
     void initialize();
-    void setInputTexture(VkImageView compositionImageView);
-    void setOutputTexture(VkImageView imageView);
+    void execute(VkCommandBuffer& cmd, const TonemapDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex);
 };
 } // namespace nevk

@@ -9,6 +9,7 @@ namespace nevk
 
 struct ReductionDesc
 {
+    PathTracerParam constants;
     Buffer* sampleBuffer;
     // Buffer* compositingBuffer;
     Image* result;
@@ -21,6 +22,6 @@ public:
     ReductionPass(const SharedContext& ctx);
     ~ReductionPass();
     void initialize();
-    void setResources(const ReductionDesc& desc);
+    void execute(VkCommandBuffer& cmd, const ReductionDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex);
 };
 } // namespace nevk

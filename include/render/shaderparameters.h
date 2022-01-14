@@ -23,8 +23,8 @@ protected:
     std::array<bool, MAX_FRAMES_IN_FLIGHT> needDesciptorSetUpdate = { false, false, false };
     std::array<bool, MAX_FRAMES_IN_FLIGHT> needConstantsUpdate = { false, false, false };
 
-    std::vector<ShaderManager::ResourceDesc> mResourcesDescs;
-    std::unordered_map<std::string, ShaderManager::ResourceDesc> mNameToDesc;
+    std::vector<ShaderManager::ResourceDesc>& mResourcesDescs;
+    std::unordered_map<std::string, ShaderManager::ResourceDesc>& mNameToDesc;
 
     struct ResourceDescriptor
     {
@@ -43,6 +43,7 @@ protected:
     std::array<std::vector<VkWriteDescriptorSet>, MAX_FRAMES_IN_FLIGHT> mDescriptorWrites = {};
 
     const size_t minUniformBufferOffsetAlignment = 256; // 0x40
+
     size_t getConstantBufferOffset(const uint32_t index)
     {
         const size_t structSize = sizeof(T);
@@ -79,88 +80,16 @@ protected:
             VkWriteDescriptorSet descWrite{};
             descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             descWrite.dstSet = dstDescSet;
-            descWrite.dstBinding = mCbBinding; // TODO: do we need to support others binding for cbuffers?
+            descWrite.dstBinding = mCbBinding;
             descWrite.dstArrayElement = 0;
             descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            descWrite.descriptorCount = 1; // TODO:
+            descWrite.descriptorCount = 1; // support only one const buffer per shader param
             descWrite.pBufferInfo = &bufferInfo;
 
             descriptorWrites.push_back(descWrite);
         }
 
         vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-    }
-
-    NeVkResult createDescriptorSetLayout()
-    {
-        std::vector<VkDescriptorSetLayoutBinding> bindings;
-        bindings.reserve(mResourcesDescs.size());
-        uint32_t bindingIdx = 0;
-        for (const auto& desc : mResourcesDescs)
-        {
-            VkDescriptorType descType = VK_DESCRIPTOR_TYPE_MAX_ENUM;
-            switch (desc.type)
-            {
-            case ShaderManager::ResourceType::eConstantBuffer: {
-                descType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                mCbBinding = bindingIdx;
-                break;
-            }
-            case ShaderManager::ResourceType::eTexture2D: {
-                descType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                break;
-            }
-            case ShaderManager::ResourceType::eRWTexture2D: {
-                descType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                break;
-            }
-            case ShaderManager::ResourceType::eStructuredBuffer:
-            case ShaderManager::ResourceType::eRWStructuredBuffer: {
-                descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                break;
-            }
-            case ShaderManager::ResourceType::eByteAddressBuffer: {
-                descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                break;
-            }
-            case ShaderManager::ResourceType::eSampler: {
-                descType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                break;
-            }
-            case ShaderManager::ResourceType::eCubeMap:
-            case ShaderManager::ResourceType::eTexture3D: {
-                descType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                break;
-            }
-            case ShaderManager::ResourceType::eRWCubeMap:
-            case ShaderManager::ResourceType::eRWTexture3D: {
-                descType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-                break;
-            }
-            default:
-                assert(0);
-                break;
-            }
-            VkDescriptorSetLayoutBinding layoutBinding{};
-            layoutBinding.binding = desc.binding;
-            layoutBinding.descriptorCount = desc.isArray ? desc.arraySize : 1;
-            layoutBinding.descriptorType = descType;
-            layoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT; // TODO: fix for graphics
-            bindings.push_back(layoutBinding);
-            ++bindingIdx;
-        }
-
-        VkDescriptorSetLayoutCreateInfo layoutInfo{};
-        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-        layoutInfo.pBindings = bindings.data();
-
-        VkResult res = vkCreateDescriptorSetLayout(mDevice, &layoutInfo, nullptr, &mDescriptorSetLayout);
-        if (res != VK_SUCCESS)
-        {
-            return NeVkResult::eFail;
-        }
-        return NeVkResult::eOk;
     }
 
     NeVkResult createDescriptorSets(const VkDescriptorPool& descriptorPool)
@@ -397,9 +326,14 @@ protected:
     }
 
 public:
-    ShaderParameters()
+    ShaderParameters(VkDescriptorSetLayout descriptorSetLayout,
+                     std::vector<ShaderManager::ResourceDesc>& resourcesDescs,
+                     std::unordered_map<std::string, ShaderManager::ResourceDesc>& nameToDesc,
+                     int cbBinding)
+        :  mCbBinding(cbBinding), mDescriptorSetLayout(descriptorSetLayout), mResourcesDescs(resourcesDescs), mNameToDesc(nameToDesc)
     {
     }
+
     virtual ~ShaderParameters()
     {
         assert(mResManager);
@@ -407,15 +341,11 @@ public:
         {
             mResManager->destroyBuffer(mConstantBuffer);
         }
-        vkDestroyDescriptorSetLayout(mDevice, mDescriptorSetLayout, nullptr);
     }
 
-    VkDescriptorSetLayout getDescriptorSetLayout()
+    VkDescriptorSet getDescriptorSet(const uint64_t frameIndex)
     {
-        return mDescriptorSetLayout;
-    }
-    VkDescriptorSet getDescriptorSet(const uint32_t index)
-    {
+        const uint32_t index = frameIndex % MAX_FRAMES_IN_FLIGHT;
         if (needDesciptorSetUpdate[index])
         {
             NeVkResult res = updateDescriptorSet(index);
@@ -438,34 +368,26 @@ public:
         return mDescriptorSets[index];
     }
 
-    NeVkResult create(const SharedContext& ctx, const uint32_t shaderId)
+    NeVkResult create(const SharedContext& ctx)
     {
-        mResourcesDescs = ctx.mShaderManager->getResourcesDesc(shaderId);
-        for (auto& desc : mResourcesDescs)
-        {
-            mNameToDesc[desc.name] = desc;
-        }
         mDevice = ctx.mDevice;
         mResManager = ctx.mResManager;
 
-        NeVkResult res = createDescriptorSetLayout();
-
-        res = createDescriptorSets(ctx.mDescriptorPool);
+        NeVkResult res = createDescriptorSets(ctx.mDescriptorPool);
 
         res = createConstantBuffers();
         // Now we support only 1 constant buffer per shader
-        // it must be bound to 0
         writeConstantBufferDescriptors();
 
         return res;
     }
 
     // setters
-    void setParams(const T& param)
+    void setConstants(const T& constants)
     {
         for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
         {
-            mConstants[i] = param;
+            mConstants[i] = constants;
             needConstantsUpdate[i] = true;
         }
     }
@@ -575,6 +497,146 @@ public:
             mResUpdate[i][name] = resDescriptor;
             needDesciptorSetUpdate[i] = true;
         }
+    }
+};
+
+template <typename T, int NumFrames = MAX_FRAMES_IN_FLIGHT>
+class ShaderParametersFactory
+{
+    std::vector<ShaderParameters<T>*> mShaderParams;
+    uint64_t mCurrentFrameIndex = 0;
+    uint64_t mIntraFrameIndex = 0;
+
+    SharedContext mSharedCtx;
+    int mShaderId = -1;
+    int mCbBinding = -1;
+    VkDescriptorSetLayout mDescriptorSetLayout = VK_NULL_HANDLE;
+
+    std::vector<ShaderManager::ResourceDesc> mResourcesDescs;
+    std::unordered_map<std::string, ShaderManager::ResourceDesc> mNameToDesc;
+
+    NeVkResult createDescriptorSetLayout()
+    {
+        std::vector<VkDescriptorSetLayoutBinding> bindings;
+        bindings.reserve(mResourcesDescs.size());
+        uint32_t bindingIdx = 0;
+        for (const auto& desc : mResourcesDescs)
+        {
+            VkDescriptorType descType = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+            switch (desc.type)
+            {
+            case ShaderManager::ResourceType::eConstantBuffer: {
+                descType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                mCbBinding = bindingIdx;
+                break;
+            }
+            case ShaderManager::ResourceType::eTexture2D: {
+                descType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                break;
+            }
+            case ShaderManager::ResourceType::eRWTexture2D: {
+                descType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                break;
+            }
+            case ShaderManager::ResourceType::eStructuredBuffer:
+            case ShaderManager::ResourceType::eRWStructuredBuffer: {
+                descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                break;
+            }
+            case ShaderManager::ResourceType::eByteAddressBuffer: {
+                descType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                break;
+            }
+            case ShaderManager::ResourceType::eSampler: {
+                descType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                break;
+            }
+            case ShaderManager::ResourceType::eCubeMap:
+            case ShaderManager::ResourceType::eTexture3D: {
+                descType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                break;
+            }
+            case ShaderManager::ResourceType::eRWCubeMap:
+            case ShaderManager::ResourceType::eRWTexture3D: {
+                descType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+                break;
+            }
+            default:
+                assert(0);
+                break;
+            }
+            VkDescriptorSetLayoutBinding layoutBinding{};
+            layoutBinding.binding = desc.binding;
+            layoutBinding.descriptorCount = desc.isArray ? desc.arraySize : 1;
+            layoutBinding.descriptorType = descType;
+            layoutBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT; // TODO: fix for graphics
+            bindings.push_back(layoutBinding);
+            ++bindingIdx;
+        }
+
+        VkDescriptorSetLayoutCreateInfo layoutInfo{};
+        layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
+        layoutInfo.pBindings = bindings.data();
+
+        VkResult res = vkCreateDescriptorSetLayout(mSharedCtx.mDevice, &layoutInfo, nullptr, &mDescriptorSetLayout);
+        if (res != VK_SUCCESS)
+        {
+            return NeVkResult::eFail;
+        }
+        return NeVkResult::eOk;
+    }
+
+public:
+    ShaderParametersFactory(const SharedContext& ctx)
+        : mSharedCtx(ctx)
+    {
+    }
+    virtual ~ShaderParametersFactory()
+    {
+        vkDestroyDescriptorSetLayout(mSharedCtx.mDevice, mDescriptorSetLayout, nullptr);
+    }
+
+    VkDescriptorSetLayout getDescriptorSetLayout()
+    {
+        return mDescriptorSetLayout;
+    }
+
+    bool initialize(uint32_t shaderId)
+    {
+        assert(shaderId != (uint32_t)-1);
+        mShaderId = shaderId;
+
+        mResourcesDescs = mSharedCtx.mShaderManager->getResourcesDesc(shaderId);
+        for (auto& desc : mResourcesDescs)
+        {
+            mNameToDesc[desc.name] = desc;
+        }
+
+        NeVkResult res = createDescriptorSetLayout();
+        assert(mCbBinding != -1);
+        return res == NeVkResult::eOk;
+    }
+
+    ShaderParameters<T>& getNextShaderParameters(uint64_t frameIndex)
+    {
+        if (mCurrentFrameIndex < frameIndex)
+        {
+            // reset
+            mCurrentFrameIndex = frameIndex;
+            mIntraFrameIndex = 0;
+        }
+
+        if (mIntraFrameIndex >= mShaderParams.size())
+        {
+            auto param = new ShaderParameters<T>(mDescriptorSetLayout, mResourcesDescs, mNameToDesc, mCbBinding);
+            NeVkResult res = param->create(mSharedCtx);
+            assert(res == NeVkResult::eOk);
+            mShaderParams.push_back(param);
+        }
+        ++mIntraFrameIndex;
+
+        return *(mShaderParams[mIntraFrameIndex - 1]);
     }
 };
 

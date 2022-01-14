@@ -95,7 +95,11 @@ float3 accPt(uint2 pixelIndex)
         // ndc -> screen
         uint2 prevPixel = (ubo.dimension / 2.0) * ndc + ubo.dimension / 2.0;
         float3 prev = prevTex4[prevPixel].rgb;
-        
+        if (any(isnan(prev)))
+        {
+            prev = float3(0.0f);
+        }
+
         float wHistory = float(ubo.iteration) / float(ubo.iteration + 1);
         float wNew = 1.0 / float(ubo.iteration + 1);
 
@@ -116,5 +120,8 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     {
         output4[pixelIndex] = float4(accPt(pixelIndex), 0.0);
     }
-    output1[pixelIndex] = acc1(pixelIndex);
+    else
+    {
+        output1[pixelIndex] = acc1(pixelIndex);
+    }
 }
