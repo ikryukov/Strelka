@@ -95,7 +95,8 @@ SphQuad init(UniformLight l, float3 o)
     float g2 = acos(-dot(n2,n3));
     float g3 = acos(-dot(n3,n0));
 
-    // compute predefined constants squad.b0 = n0.z;
+    // compute predefined constants 
+    squad.b0 = n0.z;
     squad.b1 = n2.z;
     squad.b0sq = squad.b0 * squad.b0;
     squad.k = 2 * PI - g2 - g3;
