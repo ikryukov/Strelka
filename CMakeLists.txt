@@ -316,6 +316,7 @@ target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # 
 set(HD_PLUGIN_SOURCES
     include/HdNeVK/RendererPlugin.h
     src/HdNeVK/RendererPlugin.cpp
+    src/HdNeVK/RenderParam.h
     src/HdNeVK/RenderBuffer.h
     src/HdNeVK/RenderDelegate.h
     src/HdNeVK/RenderPass.h

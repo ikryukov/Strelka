@@ -44,7 +44,7 @@ HdRenderSettingDescriptorList HdNeVKRenderDelegate::GetRenderSettingDescriptors(
 }
 
 HdRenderPassSharedPtr HdNeVKRenderDelegate::CreateRenderPass(HdRenderIndex* index,
-                                                                const HdRprimCollection& collection)
+                                                             const HdRprimCollection& collection)
 {
     return HdRenderPassSharedPtr(new HdNeVKRenderPass(index, collection, _settingsMap));
 }
@@ -62,7 +62,7 @@ void HdNeVKRenderDelegate::CommitResources(HdChangeTracker* tracker)
 }
 
 HdInstancer* HdNeVKRenderDelegate::CreateInstancer(HdSceneDelegate* delegate,
-                                                      const SdfPath& id)
+                                                   const SdfPath& id)
 {
     return new HdNeVKInstancer(delegate, id);
 }
@@ -93,7 +93,7 @@ const TfTokenVector& HdNeVKRenderDelegate::GetSupportedRprimTypes() const
 }
 
 HdRprim* HdNeVKRenderDelegate::CreateRprim(const TfToken& typeId,
-                                              const SdfPath& rprimId)
+                                           const SdfPath& rprimId)
 {
     if (typeId == HdPrimTypeTokens->mesh)
     {
@@ -121,7 +121,7 @@ const TfTokenVector& HdNeVKRenderDelegate::GetSupportedSprimTypes() const
 }
 
 HdSprim* HdNeVKRenderDelegate::CreateSprim(const TfToken& typeId,
-                                              const SdfPath& sprimId)
+                                           const SdfPath& sprimId)
 {
     if (typeId == HdPrimTypeTokens->camera)
     {
@@ -162,7 +162,7 @@ const TfTokenVector& HdNeVKRenderDelegate::GetSupportedBprimTypes() const
 }
 
 HdBprim* HdNeVKRenderDelegate::CreateBprim(const TfToken& typeId,
-                                              const SdfPath& bprimId)
+                                           const SdfPath& bprimId)
 {
     if (typeId == HdPrimTypeTokens->renderBuffer)
     {
