@@ -37,8 +37,8 @@ static const char* DEFAULT_MTLX_DOC =
 PXR_NAMESPACE_OPEN_SCOPE
 
 HdNeVKRenderPass::HdNeVKRenderPass(HdRenderIndex* index,
-                                         const HdRprimCollection& collection,
-                                         const HdRenderSettingsMap& settings)
+                                   const HdRprimCollection& collection,
+                                   const HdRenderSettingsMap& settings)
     : HdRenderPass(index, collection), m_settings(settings), m_isConverged(false), m_lastSceneStateVersion(UINT32_MAX), m_lastRenderSettingsVersion(UINT32_MAX)
 {
 }
@@ -52,7 +52,6 @@ bool HdNeVKRenderPass::IsConverged() const
     return m_isConverged;
 }
 
-
 //  valid range of coordinates [-1; 1]
 uint32_t packNormal(const glm::float3& normal)
 {
@@ -63,8 +62,8 @@ uint32_t packNormal(const glm::float3& normal)
 }
 
 void HdNeVKRenderPass::_BakeMeshInstance(const HdNeVKMesh* mesh,
-                                            GfMatrix4d transform,
-                                            uint32_t materialIndex)
+                                         GfMatrix4d transform,
+                                         uint32_t materialIndex)
 {
     GfMatrix4d normalMatrix = transform.GetInverse().GetTranspose();
 
@@ -121,13 +120,13 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
 {
     TfHashMap<SdfPath, uint32_t, SdfPath::Hash> materialMapping;
     materialMapping[SdfPath::EmptyPath()] = 0;
-    
+
     Material defaultMaterial{};
 
     defaultMaterial.baseColorFactor = glm::float4(1.0f);
     defaultMaterial.diffuse = defaultMaterial.baseColorFactor;
     defaultMaterial.illum = 2; // opaque
-    defaultMaterial.texBaseColor = -1; 
+    defaultMaterial.texBaseColor = -1;
     defaultMaterial.texNormalId = -1;
     defaultMaterial.texEmissive = -1;
 
@@ -227,7 +226,7 @@ void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
 #else
     GfMatrix4d perspMatrix = camera.GetProjectionMatrix();
 #endif // __APPLE__
-    
+
     glm::float4x4 persp;
     for (int i = 0; i < 4; ++i)
     {
@@ -250,7 +249,7 @@ void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
         nevkCamera.position = translation * scale;
         nevkCamera.mOrientation = rotation;
     }
-    
+
     nevkCamera.matrices.perspective = persp;
     nevkCamera.matrices.invPerspective = glm::inverse(persp);
 
