@@ -75,9 +75,7 @@ public:
     }
     virtual ~ComputePass()
     {
-        //vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
-        //vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
-        vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
+        onDestroy();
     }
 
     void initializeFromCode(const char* code)
@@ -133,8 +131,17 @@ public:
 
     void onDestroy()
     {
-        // vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
-        // vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            if (mPipelines[i])
+            {
+                vkDestroyPipeline(mSharedCtx.mDevice, mPipelines[i], nullptr);
+            }
+            if (mPipelineLayouts[i])
+            {
+                vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayouts[i], nullptr);
+            }
+        }
         vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
     }
 };
