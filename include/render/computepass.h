@@ -13,7 +13,7 @@ protected:
 
     VkPipeline mPipelines[MAX_FRAMES_IN_FLIGHT] = { VK_NULL_HANDLE };
     VkPipelineLayout mPipelineLayouts[MAX_FRAMES_IN_FLIGHT] = { VK_NULL_HANDLE };
-    bool mNeedUpdatePipeline[MAX_FRAMES_IN_FLIGHT] = {true, true, true};
+    bool mNeedUpdatePipeline[MAX_FRAMES_IN_FLIGHT] = { true, true, true };
 
     VkShaderModule mCS = VK_NULL_HANDLE;
 
@@ -34,9 +34,9 @@ protected:
 
         return shaderModule;
     }
-    NeVkResult createComputePipeline(VkShaderModule& shaderModule, int frameIndex)
+    NeVkResult createComputePipeline(VkShaderModule& shaderModule, int frameVersion)
     {
-        assert((frameIndex >= 0) && (frameIndex < MAX_FRAMES_IN_FLIGHT));
+        assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
         VkPipelineShaderStageCreateInfo shaderStageInfo{};
         shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -49,7 +49,7 @@ protected:
         VkDescriptorSetLayout layout = mShaderParamFactory.getDescriptorSetLayout();
         pipelineLayoutInfo.pSetLayouts = &layout;
 
-        if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayouts[frameIndex]) != VK_SUCCESS)
+        if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayouts[frameVersion]) != VK_SUCCESS)
         {
             return NeVkResult::eFail;
         }
@@ -57,13 +57,14 @@ protected:
         VkComputePipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
         pipelineInfo.stage = shaderStageInfo;
-        pipelineInfo.layout = mPipelineLayout;
+        pipelineInfo.layout = mPipelineLayouts[frameVersion];
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline[frameIndex]) != VK_SUCCESS)
+        if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[frameVersion]) != VK_SUCCESS)
         {
             return NeVkResult::eFail;
         }
+        return NeVkResult::eOk;
     }
 
 public:
@@ -74,8 +75,8 @@ public:
     }
     virtual ~ComputePass()
     {
-        vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
-        vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
+        //vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
+        //vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
         vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
     }
 
@@ -89,8 +90,6 @@ public:
         mCS = createShaderModule(csShaderCode, csShaderCodeSize);
 
         mShaderParamFactory.initialize(csId);
-
-        createComputePipeline(mCS);
     }
 
     void initialize(const char* shaderFile)
@@ -102,25 +101,32 @@ public:
         mCS = createShaderModule(csShaderCode, csShaderCodeSize);
 
         mShaderParamFactory.initialize(csId);
-
-        createComputePipeline(mCS);
     }
 
-    VkPipeline getPipeline(int frameIndex)
+    NeVkResult updatePipeline(int frameVersion)
+    {
+        assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
+        if (mNeedUpdatePipeline[frameVersion])
+        {
+            vkDestroyPipeline(mSharedCtx.mDevice, mPipelines[frameVersion], nullptr);
+            vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayouts[frameVersion], nullptr);
+            NeVkResult res = createComputePipeline(mCS, frameVersion);
+            mNeedUpdatePipeline[frameVersion] = false;
+            return res;
+        }
+        return NeVkResult::eOk;
+    }
+
+    VkPipeline getPipeline(int frameVersion)
+    {
+        assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
+        return mPipelines[frameVersion];
+    }
+
+    VkPipelineLayout getPipeLineLayout(int frameIndex)
     {
         assert((frameIndex >= 0) && (frameIndex < MAX_FRAMES_IN_FLIGHT));
-        if (mNeedUpdatePipeline[frameIndex])
-        {
-            vkDestroyPipeline(mSharedCtx.mDevice, mPipelines[frameIndex], nullptr);
-            vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayouts[frameIndex], nullptr);
-            NeVkResult res = createComputePipeline(mCS, frameIndex);
-            if (res != NeVkResult::eOk)
-            {
-                return nullptr;
-            }
-            mNeedUpdatePipeline = false;
-        }
-        return mPipelines[frameIndex];
+        return mPipelineLayouts[frameIndex];
     }
 
     // void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)

@@ -22,9 +22,12 @@ void Tonemap::execute(VkCommandBuffer& cmd, const TonemapDesc& desc, uint32_t wi
         param.setTexture("input", mSharedCtx.mResManager->getView(desc.input));
         param.setTexture("output", mSharedCtx.mResManager->getView(desc.output));
     }
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
-    VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
+    int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
+    NeVkResult res = updatePipeline(frameVersion);
+    assert(res == NeVkResult::eOk);
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
+    VkDescriptorSet descSet = param.getDescriptorSet(frameVersion);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);
     const uint32_t dispX = (width + 15) / 16;
     const uint32_t dispY = (height + 15) / 16;
     vkCmdDispatch(cmd, dispX, dispY, 1);

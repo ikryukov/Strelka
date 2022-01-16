@@ -49,9 +49,12 @@ void PathTracer::execute(VkCommandBuffer& cmd, const PathTracerDesc& desc, uint3
         param.setCubeMap("cubeMap", mSharedCtx.mResManager->getView(mCubeMap));
         param.setSampler("cubeMapSampler", mCubeMapSampler);
     }
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
+    int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
+    NeVkResult res = updatePipeline(frameVersion);
+    assert(res == NeVkResult::eOk);
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
     VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);
     const uint32_t dispX = (width + 255) / 256;
     const uint32_t dispY = 1;
     vkCmdDispatch(cmd, dispX, dispY, 1);
