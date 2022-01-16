@@ -11,8 +11,10 @@ class ComputePass
 protected:
     const SharedContext& mSharedCtx;
 
-    VkPipeline mPipeline = VK_NULL_HANDLE;
-    VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
+    VkPipeline mPipelines[MAX_FRAMES_IN_FLIGHT] = { VK_NULL_HANDLE };
+    VkPipelineLayout mPipelineLayouts[MAX_FRAMES_IN_FLIGHT] = { VK_NULL_HANDLE };
+    bool mNeedUpdatePipeline[MAX_FRAMES_IN_FLIGHT] = {true, true, true};
+
     VkShaderModule mCS = VK_NULL_HANDLE;
 
     ShaderParametersFactory<T> mShaderParamFactory;
@@ -32,8 +34,9 @@ protected:
 
         return shaderModule;
     }
-    void createComputePipeline(VkShaderModule& shaderModule)
+    NeVkResult createComputePipeline(VkShaderModule& shaderModule, int frameIndex)
     {
+        assert((frameIndex >= 0) && (frameIndex < MAX_FRAMES_IN_FLIGHT));
         VkPipelineShaderStageCreateInfo shaderStageInfo{};
         shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -46,9 +49,9 @@ protected:
         VkDescriptorSetLayout layout = mShaderParamFactory.getDescriptorSetLayout();
         pipelineLayoutInfo.pSetLayouts = &layout;
 
-        if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
+        if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayouts[frameIndex]) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to create pipeline layout!");
+            return NeVkResult::eFail;
         }
 
         VkComputePipelineCreateInfo pipelineInfo{};
@@ -57,9 +60,9 @@ protected:
         pipelineInfo.layout = mPipelineLayout;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
+        if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline[frameIndex]) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to create compute pipeline!");
+            return NeVkResult::eFail;
         }
     }
 
@@ -102,26 +105,31 @@ public:
 
         createComputePipeline(mCS);
     }
-    // void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
-    // {
-    //     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
-    //     VkDescriptorSet descSet = mShaderParams.getDescriptorSet(imageIndex);
-    //     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
-    //     const uint32_t dispX = (width + 15) / 16;
-    //     const uint32_t dispY = (height + 15) / 16;
-    //     vkCmdDispatch(cmd, dispX, dispY, 1);
-    // }
-    void onDestroy()
+
+    VkPipeline getPipeline(int frameIndex)
     {
-        vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
-        vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
-        vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
+        assert((frameIndex >= 0) && (frameIndex < MAX_FRAMES_IN_FLIGHT));
+        if (mNeedUpdatePipeline[frameIndex])
+        {
+            vkDestroyPipeline(mSharedCtx.mDevice, mPipelines[frameIndex], nullptr);
+            vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayouts[frameIndex], nullptr);
+            NeVkResult res = createComputePipeline(mCS, frameIndex);
+            if (res != NeVkResult::eOk)
+            {
+                return nullptr;
+            }
+            mNeedUpdatePipeline = false;
+        }
+        return mPipelines[frameIndex];
     }
 
-    // void setParams(const T& params)
-    // {
-    //     mShaderParams.setParams(params);
-    // }
+    // void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
 
+    void onDestroy()
+    {
+        // vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
+        // vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
+        vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
+    }
 };
 } // namespace nevk
