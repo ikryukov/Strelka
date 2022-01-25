@@ -112,7 +112,8 @@ const TfTokenVector SUPPORTED_SPRIM_TYPES = {
     HdPrimTypeTokens->camera,
     HdPrimTypeTokens->material,
     HdPrimTypeTokens->light,
-    HdPrimTypeTokens->rectLight
+    HdPrimTypeTokens->rectLight,
+    HdPrimTypeTokens->diskLight
 };
 
 const TfTokenVector& HdNeVKRenderDelegate::GetSupportedSprimTypes() const
@@ -134,6 +135,10 @@ HdSprim* HdNeVKRenderDelegate::CreateSprim(const TfToken& typeId,
     else if (typeId == HdPrimTypeTokens->rectLight)
     {
         // unified light, but currently only rect light supported
+        return new HdNeVKLight(sprimId, typeId);
+    }
+    else if (typeId == HdPrimTypeTokens->diskLight)
+    {
         return new HdNeVKLight(sprimId, typeId);
     }
 

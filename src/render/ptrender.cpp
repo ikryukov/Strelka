@@ -24,7 +24,7 @@ void PtRender::init()
 {
     VkRender::initVulkan();
 
-    mView[0] = createView(800, 600, 8);
+    mView[0] = createView(800, 600, 1);
 
     mDebugView = new DebugView(mSharedCtx);
     mDebugView->initialize();
@@ -524,7 +524,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     Image* finalImage = nullptr;
 
     // Path Tracer
-    for (int i = 0; i < 200; ++i)
+    for (int i = 0; i < 10; ++i)
     {
         PathTracerDesc ptDesc{};
         // desc.result = mView[imageIndex]->mPathTracerImage;
@@ -549,7 +549,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
         PathTracerParam& pathTracerParam = ptDesc.constants;
         pathTracerParam.dimension = glm::int2(renderWidth, renderHeight);
         pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
-        pathTracerParam.maxDepth = 4;
+        pathTracerParam.maxDepth = 1;
         pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
         pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
         pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);

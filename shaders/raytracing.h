@@ -5,6 +5,8 @@
 
 #define INVALID_INDEX 0xFFFFFFFF
 #define PI 3.1415926535897
+#define PiOver2 1.57079632679489661923
+#define PiOver4 0.78539816339744830961
 
 #ifdef __cplusplus
 #define float4 glm::float4

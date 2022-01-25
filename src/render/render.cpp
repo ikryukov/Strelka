@@ -133,8 +133,8 @@ void Render::initPasses()
     mAccumulationPathTracer->initialize();
 
     mMaterialManager = new MaterialManager();
-    const char* paths[3] = { "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
-                             "./misc/vespa" };
+    const char* paths[3] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/resources/",
+                             "/Users/jswark/school/USD_Build/mdl" };
     bool res = mMaterialManager->addMdlSearchPath(paths, 3);
     if (!res)
     {
@@ -1362,7 +1362,7 @@ void Render::loadScene(const std::string& modelPath)
     else
     {
         // for pica pica
-        Scene::RectLightDesc desc{};
+        Scene::UniformLightDesc desc{};
         desc.position = glm::float3{ 0, 30, 10 };
         desc.orientation = glm::float3{ 0, 90, 0 };
         desc.width = 50.f;
@@ -1402,7 +1402,7 @@ void Render::createDefaultScene()
 
     // for pica pica
     mScene->createLightMesh();
-    Scene::RectLightDesc desc{};
+    Scene::UniformLightDesc desc{};
     desc.position = glm::float3{ 0, 30, 10 };
     desc.orientation = glm::float3{ 0, 90, 0 };
     desc.width = 50.f;

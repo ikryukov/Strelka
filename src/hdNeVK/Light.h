@@ -24,11 +24,11 @@ public:
 
     HdDirtyBits GetInitialDirtyBitsMask() const override;
 
-    nevk::Scene::RectLightDesc getLightDesc();
+    nevk::Scene::UniformLightDesc getLightDesc();
 
 private:
     TfToken mLightType;
-    nevk::Scene::RectLightDesc mLightDesc;
+    nevk::Scene::UniformLightDesc mLightDesc;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

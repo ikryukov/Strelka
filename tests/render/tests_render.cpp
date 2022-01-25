@@ -27,7 +27,7 @@ TEST_CASE("render test")
     modelLoader.loadModelGltf("./misc/m4/minbox.gltf", scene);
     //modelLoader.loadModelGltf("./misc/cornell_box/cornell_box.gltf", scene);
 
-    Scene::RectLightDesc desc{};
+    Scene::UniformLightDesc desc{};
     desc.color = glm::float3(1.0f);
     desc.height = 0.4f;
     desc.width = 0.4f;

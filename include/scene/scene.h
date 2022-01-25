@@ -44,7 +44,8 @@ private:
 
     std::set<uint32_t> mDirtyInstances;
 
-    uint32_t mLigthMeshId = (uint32_t) -1;
+    uint32_t mRectLigthMeshId = (uint32_t) -1;
+    uint32_t mDiskLigthMeshId = (uint32_t) -1;
 
 public:
     struct MaterialX
@@ -122,26 +123,35 @@ public:
     // GPU side structure
     struct Light
     {
-        glm::float4 points[4];
+        glm::float4 points[16];
         glm::float4 color = glm::float4(1.0f);
+        glm::float4 normal;
+        int32_t type;
     };
 
     // CPU side structure
-    struct RectLightDesc
+    struct UniformLightDesc
     {
+        int32_t type;
         glm::float4x4 xform;
         glm::float3 position; // world position
         glm::float3 orientation; // euler angles in degrees
         bool useXform;
+
         // OX - axis of light or normal
-        float width; // OY
-        float height; // OZ
         glm::float3 color;
         float intensity;
+
+        // rectangle light
+        float width; // OY
+        float height; // OZ
+
+        // disc/sphere light
+        float radius;
     };
 
-    std::vector<RectLightDesc> mLightDesc;
-
+    std::vector<UniformLightDesc> mLightDesc;
+    uint32_t createDiscLightMesh();
     enum class DebugView: uint32_t
     {
         eNone = 0,
@@ -203,7 +213,7 @@ public:
         return mLights;
     }
 
-    std::vector<RectLightDesc>& getLightsDesc()
+    std::vector<UniformLightDesc>& getLightsDesc()
     {
         return mLightDesc;
     }
@@ -249,12 +259,12 @@ public:
     
     uint32_t createLightMesh();
 
-    glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
+    glm::float4x4 getTransform(const Scene::UniformLightDesc& desc)
     {
         const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
         glm::quat rotation = glm::quat(glm::radians(desc.orientation)); // to quaternion
         const glm::float4x4 rotationMatrix{ rotation };
-        glm::float3 scale = { 1.0f, desc.width, desc.height };
+        glm::float3 scale = {  desc.width, desc.height, 1.0f };
         const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
 
         const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;
@@ -303,7 +313,7 @@ public:
 
     void updateAnimation(const float dt);
 
-    void updateLight(uint32_t lightId, const RectLightDesc& desc);
+    void updateLight(uint32_t lightId, const UniformLightDesc& desc);
     /// <summary>
     /// Create Mesh geometry
     /// </summary>
@@ -322,7 +332,7 @@ public:
 
     uint32_t addMaterial(const Material& material);
 
-    uint32_t createLight(const RectLightDesc& desc);
+    uint32_t createLight(const UniformLightDesc& desc);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>
