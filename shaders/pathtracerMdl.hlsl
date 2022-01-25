@@ -389,9 +389,6 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 float lightPdf = 0.0f; //return value for sampleLights()
                 float3 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
 
-                // TODO: remove after debug
-                return radianceOverPdf;
-
                 if (any(isnan(radianceOverPdf)) || isnan(lightPdf))
                 {
                     break;
