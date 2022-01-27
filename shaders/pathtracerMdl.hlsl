@@ -275,6 +275,8 @@ float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId
     return NewNormal;
 }
 
+static const float DIRAC = -1.0f;
+
 // Matrices version
 Ray generateCameraRay(uint2 pixelIndex)
 {
@@ -295,6 +297,23 @@ Ray generateCameraRay(uint2 pixelIndex)
     return ray;
 }
 
+float3 offset_ray(const float3 p, const float3 n)
+{
+    const float origin = 1.0f / 32.0f;
+    const float float_scale = 1.0f / 65536.0f;
+    const float int_scale = 256.0f;
+
+    const int3 of_i = int3(int_scale * n);
+
+    float3 p_i = float3(asfloat(asint(p.x) + ((p.x < 0.0f) ? -of_i.x : of_i.x)),
+                        asfloat(asint(p.y) + ((p.y < 0.0f) ? -of_i.y : of_i.y)),
+                        asfloat(asint(p.z) + ((p.z < 0.0f) ? -of_i.z : of_i.z)));
+
+    return float3(abs(p.x) < origin ? p.x + float_scale * n.x : p_i.x,
+                  abs(p.y) < origin ? p.y + float_scale * n.y : p_i.y,
+                  abs(p.z) < origin ? p.z + float_scale * n.z : p_i.z);
+}
+
 float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 {
     Accel accel;
@@ -313,6 +332,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
     while (depth < maxDepth)
     {
+        int flag = 0; // 1 - inside
         Hit hit;
         if (closestHit(accel, ray, hit))
         {
@@ -426,11 +446,40 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
                 mdl_bsdf_scattering_sample(scatteringFunctionIndex, sampleData, mdlState);
 
+                float3 ray_direction_next = sampleData.k2;
+                float3 ray_origin_next = float3(0.f);
+                float3 weight = float3(1.f);
+                float last_bsdf_pdf = 0.f;
+
                 if (sampleData.event_type == BSDF_EVENT_ABSORB)
                 {
                     // stop on absorb
-                    break;
+                     break;
                 }
+                else
+                    {
+                        // flip inside/outside on transmission
+                        // setup next path segment
+                        ray_direction_next = sampleData.k2;
+                        weight *= sampleData.bsdf_over_pdf;
+                        if ((sampleData.event_type & BSDF_EVENT_TRANSMISSION) != 0)
+                        {
+                            //toggle_flag(payload.flags, FLAG_INSIDE);
+                            flag = 1;
+                            // continue on the opposite side
+                            ray_origin_next = offset_ray(mdlState.position, -mdlState.geom_normal);
+                        }
+                        else
+                        {
+                            // continue on the current side
+                            ray_origin_next = offset_ray(mdlState.position, mdlState.geom_normal);
+                        }
+
+                        if ((sampleData.event_type & BSDF_EVENT_SPECULAR) != 0)
+                            last_bsdf_pdf = DIRAC;
+                        else
+                            last_bsdf_pdf = sampleData.pdf;
+                    }
 
                 throughput *= sampleData.bsdf_over_pdf;
 
@@ -446,8 +495,11 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
                 const float3 offset = world_normal * 1e-5; // need to add small offset to fix self-collision
                 // add check and flip offset for transmission event
-                ray.o = float4(mdlState.position + offset, 1e9);
-                ray.d = float4(sampleData.k2, 0.0);
+
+                ray.o = float4(offset_ray(mdlState.position + offset, mdlState.geom_normal * (flag == 1 ? -1.0f : 1.0f)), 1e9);
+                ray.d = float4(ray_direction_next, 0.0f);
+                //ray.o = float4(mdlState.position + offset, 1e9);
+                // ray.d = float4(sampleData.k2, 0.0);
             }
         }
         else
