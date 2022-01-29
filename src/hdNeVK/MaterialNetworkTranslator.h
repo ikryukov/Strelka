@@ -2,6 +2,7 @@
 
 #include <pxr/usd/sdf/path.h>
 
+#include <string>
 #include <memory>
 
 namespace MaterialX
@@ -19,14 +20,19 @@ public:
   MaterialNetworkTranslator(const std::string& mtlxLibPath);
 
   std::string ParseNetwork(const SdfPath& id,
-                            const HdMaterialNetwork2& network) const;
+                           const HdMaterialNetwork2& network) const;
+  bool ParseMdlNetwork(const SdfPath& id,
+                       const HdMaterialNetwork2& network,
+                       std::string& fileUri,
+                       std::string& subIdentifier) const;
 
-private:
+  private:
   MaterialX::DocumentPtr CreateMaterialXDocumentFromNetwork(const SdfPath& id,
                                                             const HdMaterialNetwork2& network) const;
 
 private:
   MaterialX::DocumentPtr m_nodeLib;
+
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

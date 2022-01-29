@@ -19,6 +19,7 @@ namespace mx = MaterialX;
 
 PXR_NAMESPACE_OPEN_SCOPE
 
+// clang-format off
 TF_DEFINE_PRIVATE_TOKENS(
   _tokens,
   // USD node types
@@ -47,7 +48,10 @@ TF_DEFINE_PRIVATE_TOKENS(
   (ND_UsdPrimvarReader_vector4)
   (ND_UsdTransform2d)
   (ND_UsdPrimvarReader_matrix44)
+  (mdl)
+  (subIdentifier)
 );
+// clang-format on
 
 bool _ConvertNodesToMaterialXNodes(const HdMaterialNetwork2& network,
                                    HdMaterialNetwork2& mtlxNetwork)
@@ -178,6 +182,39 @@ std::string MaterialNetworkTranslator::ParseNetwork(const SdfPath& id,
   mx::string docStr = mx::writeToXmlString(doc);
 
   return std::string(docStr.c_str());
+}
+
+bool MaterialNetworkTranslator::ParseMdlNetwork(const SdfPath& id,
+                                                const HdMaterialNetwork2& network,
+                                                std::string& fileUri,
+                                                std::string& subIdentifier) const
+{
+    if (network.nodes.size() == 1)
+    {
+        const HdMaterialNode2& node = network.nodes.begin()->second;
+
+        SdrRegistry& sdrRegistry = SdrRegistry::GetInstance();
+        SdrShaderNodeConstPtr sdrNode = sdrRegistry.GetShaderNodeByIdentifier(node.nodeTypeId);
+
+        if (!sdrNode || sdrNode->GetContext() != _tokens->mdl)
+        {
+            return false;
+        }
+
+        const NdrTokenMap& metadata = sdrNode->GetMetadata();
+        const auto& subIdentifierIt = metadata.find(_tokens->subIdentifier);
+        TF_DEV_AXIOM(subIdentifierIt != metadata.end());
+
+        subIdentifier = (*subIdentifierIt).second;
+        fileUri = sdrNode->GetResolvedImplementationURI();
+
+        return true;
+    }
+    else
+    {
+        TF_RUNTIME_ERROR("Unsupported multi-node MDL material!");
+        return false;
+    }
 }
 
 mx::DocumentPtr MaterialNetworkTranslator::CreateMaterialXDocumentFromNetwork(const SdfPath& id,

@@ -99,7 +99,7 @@ HdRprim* HdNeVKRenderDelegate::CreateRprim(const TfToken& typeId,
     {
         return new HdNeVKMesh(rprimId);
     }
-
+    TF_CODING_ERROR("Unknown Rprim Type %s", typeId.GetText());
     return nullptr;
 }
 
@@ -124,6 +124,7 @@ const TfTokenVector& HdNeVKRenderDelegate::GetSupportedSprimTypes() const
 HdSprim* HdNeVKRenderDelegate::CreateSprim(const TfToken& typeId,
                                            const SdfPath& sprimId)
 {
+    TF_STATUS("CreateSprim Type: %s", typeId.GetText());
     if (typeId == HdPrimTypeTokens->camera)
     {
         return new HdNeVKCamera(sprimId);
@@ -141,6 +142,8 @@ HdSprim* HdNeVKRenderDelegate::CreateSprim(const TfToken& typeId,
     {
         return new HdNeVKLight(sprimId, typeId);
     }
+    
+    TF_CODING_ERROR("Unknown Sprim Type %s", typeId.GetText());
 
     return nullptr;
 }
@@ -196,12 +199,12 @@ TfToken HdNeVKRenderDelegate::GetMaterialBindingPurpose() const
 
 TfTokenVector HdNeVKRenderDelegate::GetMaterialRenderContexts() const
 {
-    return TfTokenVector{ HdNeVKRenderContexts->mtlx };
+    return TfTokenVector{ HdNeVKRenderContexts->mtlx, HdNeVKRenderContexts->mdl };
 }
 
 TfTokenVector HdNeVKRenderDelegate::GetShaderSourceTypes() const
 {
-    return TfTokenVector{ HdNeVKSourceTypes->mtlx };
+    return TfTokenVector{ HdNeVKSourceTypes->mtlx, HdNeVKSourceTypes->mdl };
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

@@ -36,7 +36,7 @@ struct Material
     int32_t sampOcclusionId = -1;
 
     float3 emissiveFactor;
-    int32_t sampBaseId = -1;
+    int32_t isMdl = 0;
 
     int32_t sampNormalId = -1;
     int32_t isLight = -1;

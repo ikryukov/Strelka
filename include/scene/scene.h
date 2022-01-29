@@ -51,6 +51,8 @@ public:
     struct MaterialX
     {
         std::string code;
+        std::string file;
+        std::string name;
     };
 
     std::vector<MaterialX> materialsCode;

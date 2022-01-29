@@ -9,6 +9,14 @@
                         ],
                         "displayName": "NeVK",
                         "priority": 99
+                    },
+                    "HdNeVKMdlDiscoveryPlugin": {
+                        "bases": ["NdrDiscoveryPlugin"],
+                        "displayName": "MDL Discovery"
+                    },
+                    "HdNeVKMdlParserPlugin": {
+                        "bases": ["NdrParserPlugin"],
+                        "displayName": "MDL Node Parser"
                     }
                 }
             },

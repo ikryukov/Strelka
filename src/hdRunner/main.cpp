@@ -113,9 +113,9 @@ int main(int argc, const char* argv[])
 
     //ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
-    std::string usdPath = "./misc/rectL.usdc";
+    std::string usdPath = "./misc/glassCube.usda";
     // std::string usdPath = "./misc/pica.usdc";
-    // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
+    //std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
 

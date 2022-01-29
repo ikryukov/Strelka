@@ -159,6 +159,8 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
         }
 
         const SdfPath& materialId = mesh->GetMaterialId();
+        std::string materialNAme = materialId.GetString();
+
         uint32_t materialIndex = 0;
         if (materialMapping.find(materialId) != materialMapping.end())
         {
@@ -169,7 +171,24 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
             HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->material, materialId);
             HdNeVKMaterial* material = dynamic_cast<HdNeVKMaterial*>(sprim);
 
-            if (material)
+            if (material->isMdl())
+            {
+                const std::string& fileUri = material->getFileUri();
+                const std::string& name = material->getSubIdentifier();
+
+                nevk::Scene::MaterialX material;
+                material.file = fileUri;
+                material.name = name;
+
+                materialIndex = mScene.materialsCode.size();
+                mScene.materialsCode.push_back(material);
+                Material mdlMaterial = defaultMaterial;
+                mdlMaterial.isMdl = 1;
+
+                mScene.addMaterial(mdlMaterial);
+                materialMapping[materialId] = materialIndex;
+            }
+            else
             {
                 const std::string& code = material->GetNeVKMaterial();
                 nevk::Scene::MaterialX material;

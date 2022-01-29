@@ -1,5 +1,8 @@
 #include "Material.h"
 
+#include <pxr/usd/sdr/registry.h>
+#include <pxr/usdImaging/usdImaging/tokens.h>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 HdNeVKMaterial::HdNeVKMaterial(const SdfPath& id,
@@ -18,7 +21,8 @@ HdNeVKMaterial::~HdNeVKMaterial()
 
 HdDirtyBits HdNeVKMaterial::GetInitialDirtyBitsMask() const
 {
-    return DirtyBits::DirtyParams;
+    //return DirtyBits::DirtyParams;
+    return DirtyBits::AllDirty;
 }
 
 void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
@@ -37,6 +41,7 @@ void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
     }
 
     const SdfPath& id = GetId();
+    std::string name = id.GetString();
     const VtValue& resource = sceneDelegate->GetMaterialResource(id);
 
     if (!resource.IsHolding<HdMaterialNetworkMap>())
@@ -44,18 +49,44 @@ void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
         return;
     }
 
-    const HdMaterialNetworkMap& networkMap = resource.UncheckedGet<HdMaterialNetworkMap>();
+    HdMaterialNetworkMap& networkMap = resource.GetWithDefault<HdMaterialNetworkMap>();
+    HdMaterialNetwork& surfaceNetwork = networkMap.map[HdMaterialTerminalTokens->surface];
+
+    bool isUsdPreviewSurface = false;
+    HdMaterialNode* previewSurfaceNode = nullptr;
+    for (auto& node : surfaceNetwork.nodes)
+    {
+        if (node.identifier == UsdImagingTokens->UsdPreviewSurface)
+        {
+            previewSurfaceNode = &node;
+            isUsdPreviewSurface = true;
+        }
+    }
+    
     HdMaterialNetwork2 network;
     bool isVolume = false;
-
     HdMaterialNetwork2ConvertFromHdMaterialNetworkMap(networkMap, &network, &isVolume);
     if (isVolume)
     {
         TF_WARN("Volume %s unsupported", id.GetText());
         return;
     }
-
-    mMaterialXCode = m_translator.ParseNetwork(id, network);
+    
+    if (isUsdPreviewSurface)
+    {
+        mMaterialXCode = m_translator.ParseNetwork(id, network);
+    }
+    else
+    {
+        // MDL
+        bool res = m_translator.ParseMdlNetwork(id, network, mMdlFileUri, mMdlSubIdentifier);
+        if (!res)
+        {
+            TF_RUNTIME_ERROR("Failed to translate material!");
+        }
+        mIsMdl = true;
+    }
+    
 }
 
 const std::string& HdNeVKMaterial::GetNeVKMaterial() const

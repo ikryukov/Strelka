@@ -336,7 +336,11 @@ set(HD_PLUGIN_SOURCES
     src/HdNeVK/Tokens.h
     src/HdNeVK/Tokens.cpp
     src/HdNeVK/MaterialNetworkTranslator.h
-    src/HdNeVK/MaterialNetworkTranslator.cpp    
+    src/HdNeVK/MaterialNetworkTranslator.cpp
+    src/HdNeVK/MdlParserPlugin.h
+    src/HdNeVK/MdlParserPlugin.cpp
+    src/HdNeVK/MdlDiscoveryPlugin.h
+    src/HdNeVK/MdlDiscoveryPlugin.cpp    
 )
 set(HD_PLUGIN_NAME HdNeVK)
 add_library(${HD_PLUGIN_NAME} SHARED ${HD_PLUGIN_SOURCES})
@@ -546,7 +550,7 @@ endif ()
 # CXXOPTS
 target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
 
-option(NEVK_TESTS "enable tests" ON)
+option(NEVK_TESTS "enable tests" OFF)
 
 if (NOT NEVK_TESTS)
     message(STATUS "tests are disabled")

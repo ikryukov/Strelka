@@ -48,9 +48,9 @@ void PtRender::init()
     }
     const std::string usdMdlLibPath = std::string(envUSDPath) + "/mdl";
 
-    const char* paths[3] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/resources/",
-                             usdMdlLibPath.c_str() };
-    bool res = mMaterialManager->addMdlSearchPath(paths, 3);
+    const char* paths[4] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/", 
+        "./misc/test_data/mdl/resources/", usdMdlLibPath.c_str() };
+    bool res = mMaterialManager->addMdlSearchPath(paths, 4);
     if (!res)
     {
         // failed to load MDL
@@ -60,13 +60,26 @@ void PtRender::init()
     std::vector<MaterialManager::CompiledMaterial*> materials;
     for (uint32_t i = 0; i < mScene->materialsCode.size(); ++i)
     {
-        MaterialManager::Module* mdlModule = mMaterialManager->createMtlxModule(mScene->materialsCode[i].code.c_str());
-        assert(mdlModule);
-        MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "");
-        assert(materialInst);
-        MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
-        assert(materialComp);
-        materials.push_back(materialComp);
+        if (mScene->mMaterials[i].isMdl)
+        {
+            MaterialManager::Module* mdlModule = mMaterialManager->createModule(mScene->materialsCode[i].file.c_str());
+            assert(mdlModule);
+            MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, mScene->materialsCode[i].name.c_str());
+            assert(materialInst);
+            MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+            assert(materialComp);
+            materials.push_back(materialComp);
+        }
+        else
+        {
+            MaterialManager::Module* mdlModule = mMaterialManager->createMtlxModule(mScene->materialsCode[i].code.c_str());
+            assert(mdlModule);
+            MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "");
+            assert(materialInst);
+            MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+            assert(materialComp);
+            materials.push_back(materialComp);
+        }
     }
 
     const fs::path cwd = fs::current_path();
@@ -524,7 +537,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     Image* finalImage = nullptr;
 
     // Path Tracer
-    for (int i = 0; i < 10; ++i)
+    for (int i = 0; i < 500; ++i)
     {
         PathTracerDesc ptDesc{};
         // desc.result = mView[imageIndex]->mPathTracerImage;

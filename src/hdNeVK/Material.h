@@ -18,19 +18,33 @@ public:
 
     ~HdNeVKMaterial() override;
 
-public:
     HdDirtyBits GetInitialDirtyBitsMask() const override;
 
     void Sync(HdSceneDelegate* sceneDelegate,
               HdRenderParam* renderParam,
               HdDirtyBits* dirtyBits) override;
 
-public:
     const std::string& GetNeVKMaterial() const;
+    bool isMdl()
+    {
+        return mIsMdl;
+    }
+    std::string getFileUri()
+    {
+        return mMdlFileUri;
+    }
+    std::string getSubIdentifier()
+    {
+        return mMdlSubIdentifier;
+    }
 
 private:
     const MaterialNetworkTranslator& m_translator;
+    bool mIsMdl = false;
     std::string mMaterialXCode;
+    // MDL related
+    std::string mMdlFileUri;
+    std::string mMdlSubIdentifier;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

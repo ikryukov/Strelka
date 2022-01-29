@@ -430,10 +430,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
                 if (evalData.pdf > 0.0f)
                 {
-                    const float mis_weight = lightPdf / (lightPdf + evalData.pdf);
-                    const float3 w = throughput * radianceOverPdf * mis_weight;
-                    finalColor += w * evalData.bsdf_diffuse;
-                    finalColor += w * evalData.bsdf_glossy;
+
                 }
 
                 float4 rndSample = float4(rand(rngState), rand(rngState), rand(rngState), rand(rngState));
@@ -454,32 +451,43 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 if (sampleData.event_type == BSDF_EVENT_ABSORB)
                 {
                     // stop on absorb
-                     break;
+                    break;
                 }
                 else
+                {
+                    // flip inside/outside on transmission
+                    // setup next path segment
+                    ray_direction_next = sampleData.k2;
+                    // weight *= sampleData.bsdf_over_pdf;
+                    if ((sampleData.event_type & BSDF_EVENT_TRANSMISSION) != 0)
                     {
-                        // flip inside/outside on transmission
-                        // setup next path segment
-                        ray_direction_next = sampleData.k2;
-                        weight *= sampleData.bsdf_over_pdf;
-                        if ((sampleData.event_type & BSDF_EVENT_TRANSMISSION) != 0)
-                        {
-                            //toggle_flag(payload.flags, FLAG_INSIDE);
-                            flag = 1;
-                            // continue on the opposite side
-                            ray_origin_next = offset_ray(mdlState.position, -mdlState.geom_normal);
-                        }
-                        else
-                        {
-                            // continue on the current side
-                            ray_origin_next = offset_ray(mdlState.position, mdlState.geom_normal);
-                        }
-
-                        if ((sampleData.event_type & BSDF_EVENT_SPECULAR) != 0)
-                            last_bsdf_pdf = DIRAC;
-                        else
-                            last_bsdf_pdf = sampleData.pdf;
+                        //toggle_flag(payload.flags, FLAG_INSIDE);
+                        flag = 1;
+                        // continue on the opposite side
+                        ray_origin_next = offset_ray(mdlState.position, -mdlState.geom_normal);
                     }
+                    else
+                    {
+                        // continue on the current side
+                        ray_origin_next = offset_ray(mdlState.position, mdlState.geom_normal);
+                    }
+
+                    if ((sampleData.event_type & BSDF_EVENT_SPECULAR) != 0)
+                        last_bsdf_pdf = DIRAC;
+                    else
+                        last_bsdf_pdf = sampleData.pdf;
+                }
+
+                int inside = (int) (flag == 1);
+                const bool next_event_valid = ((dot(toLight, mdlState.geom_normal) > 0.0f) != inside) && lightPdf != 0.0f;
+                //const bool next_event_valid = true
+                if (next_event_valid)
+                {
+                    const float mis_weight = lightPdf / (lightPdf + evalData.pdf);
+                    const float3 w = throughput * radianceOverPdf * mis_weight;
+                    finalColor += w * evalData.bsdf_diffuse;
+                    finalColor += w * evalData.bsdf_glossy;
+                }
 
                 throughput *= sampleData.bsdf_over_pdf;
 
@@ -493,10 +501,10 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                     throughput *= 1.0 / (p + 1e-5);
                 }
 
-                const float3 offset = world_normal * 1e-5; // need to add small offset to fix self-collision
+                //const float3 offset = world_normal * 1e-5; // need to add small offset to fix self-collision
                 // add check and flip offset for transmission event
 
-                ray.o = float4(offset_ray(mdlState.position + offset, mdlState.geom_normal * (flag == 1 ? -1.0f : 1.0f)), 1e9);
+                ray.o = float4(ray_origin_next, 1e9);
                 ray.d = float4(ray_direction_next, 0.0f);
                 //ray.o = float4(mdlState.position + offset, 1e9);
                 // ray.d = float4(sampleData.k2, 0.0);
