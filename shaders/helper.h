@@ -1,8 +1,10 @@
 #pragma once
 
-#define INVALID_INDEX 0xFFFFFFFF
 #define PI 3.1415926535897
 #define INVERSE_PI (1.0 / PI)
+#define PiOver2 1.57079632679489661923
+#define PiOver4 0.78539816339744830961
+#define DIRAC -1.0f
 
 float3 interpolateAttrib(float3 attr1, float3 attr2, float3 attr3, float2 bary)
 {
@@ -72,4 +74,20 @@ float3 SampleGGXDistribution(float2 uv, float alpha)
     float sinTheta = sqrt(saturate(1.0f - cosTheta * cosTheta));
     float phi = 2 * PI * uv.y;
     return float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta + 1e-6);
+}
+
+float3 CalcBumpedNormal(float3 normal, float3 tangent, float2 uv, uint32_t texId, uint32_t sampId)
+{
+    float3 Normal = normalize(normal);
+    float3 Tangent = -normalize(tangent);
+    Tangent = normalize(Tangent - dot(Tangent, Normal) * Normal);
+    float3 Bitangent = cross(Normal, Tangent);
+
+    float3 BumpMapNormal = mdl_textures_2d[NonUniformResourceIndex(texId)].Sample(mdl_sampler_tex, uv).xyz;
+    BumpMapNormal = BumpMapNormal * 2.0 - 1.0;
+
+    float3x3 TBN = transpose(float3x3(Tangent, Bitangent, Normal));
+    float3 NewNormal = normalize(mul(TBN, BumpMapNormal));
+
+    return NewNormal;
 }

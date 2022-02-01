@@ -49,7 +49,7 @@ void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
         return;
     }
 
-    HdMaterialNetworkMap& networkMap = resource.GetWithDefault<HdMaterialNetworkMap>();
+    HdMaterialNetworkMap networkMap = resource.GetWithDefault<HdMaterialNetworkMap>();
     HdMaterialNetwork& surfaceNetwork = networkMap.map[HdMaterialTerminalTokens->surface];
 
     bool isUsdPreviewSurface = false;
