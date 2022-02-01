@@ -116,8 +116,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
     Ray ray = generateCameraRay(pixelIndex);
 
-    int flag = 0; // 1 - inside
-    float last_bsdf_pdf = DIRAC;
+    int inside = 0; // 1 - inside
+    float lastBsdfPdf = DIRAC;
     float lightPdf = 0.0f;
 
     while (depth < maxDepth)
@@ -144,7 +144,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 float3 p1 = mul(instConst.objectToWorld, float4(accel.vb[NonUniformResourceIndex(i1)].position, 1.0f)).xyz;
                 float3 p2 = mul(instConst.objectToWorld, float4(accel.vb[NonUniformResourceIndex(i2)].position, 1.0f)).xyz;
 
-                float3 geom_normal = normalize(cross(p1 - p0, p2 - p0));
+                float3 geomNormal = normalize(cross(p1 - p0, p2 - p0));
 
                 float3 n0 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[NonUniformResourceIndex(i0)].normal));
                 float3 n1 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[NonUniformResourceIndex(i1)].normal));
@@ -155,10 +155,10 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 float3 t2 = mul((float3x3) instConst.normalMatrix, unpackNormal(accel.vb[NonUniformResourceIndex(i2)].tangent));
 
                 const float2 bcoords = hit.bary;
-                float3 world_position = interpolateAttrib(p0, p1, p2, bcoords);
-                float3 world_normal = normalize(interpolateAttrib(n0, n1, n2, bcoords));
-                float3 world_tangent = normalize(interpolateAttrib(t0, t1, t2, bcoords));
-                float3 world_binormal = cross(world_normal, world_tangent);
+                float3 worldPosition = interpolateAttrib(p0, p1, p2, bcoords);
+                float3 worldNormal = normalize(interpolateAttrib(n0, n1, n2, bcoords));
+                float3 worldTangent = normalize(interpolateAttrib(t0, t1, t2, bcoords));
+                float3 worldBinormal = cross(worldNormal, worldTangent);
 
                 float2 uv0 = unpackUV(accel.vb[NonUniformResourceIndex(i0)].uv);
                 float2 uv1 = unpackUV(accel.vb[NonUniformResourceIndex(i1)].uv);
@@ -168,8 +168,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
                 if (ubo.debug == 1)
                 {
-                    // float3 debugN = (world_normal + 1.0) * 0.5;
-                    float3 debugN = (world_normal);
+                    // float3 debugN = (worldNormal + 1.0) * 0.5;
+                    float3 debugN = (worldNormal);
                     return debugN;
                 }
 
@@ -177,12 +177,12 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
                 // setup MDL state
                 Shading_state_material mdlState;
-                mdlState.normal = world_normal;
-                mdlState.geom_normal = geom_normal;
-                mdlState.position = world_position; // hit position
+                mdlState.normal = worldNormal;
+                mdlState.geom_normal = geomNormal;
+                mdlState.position = worldPosition; // hit position
                 mdlState.animation_time = 0.0f;
-                mdlState.tangent_u[0] = world_tangent;
-                mdlState.tangent_v[0] = world_binormal;
+                mdlState.tangent_u[0] = worldTangent;
+                mdlState.tangent_v[0] = worldBinormal;
                 mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
                 mdlState.world_to_object = instConst.worldToObject;
                 mdlState.object_to_world = instConst.objectToWorld;
@@ -203,7 +203,6 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                     break;
                 }
 
-                int inside = (int) flag == 1;
                 const float ior1 = (inside == 1) ? 1.0f : 1.5f;
                 const float ior2 = (inside == 1) ? 1.5f : 1.0f;
 
@@ -236,55 +235,54 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
                 mdl_bsdf_scattering_sample(scatteringFunctionIndex, sampleData, mdlState);
 
-                float3 ray_direction_next = sampleData.k2;
-                float3 ray_origin_next = float3(0.f);
+                float3 rayDirectionNext = sampleData.k2;
+                float3 rayOriginNext = float3(0.f);
 
                 if (sampleData.event_type == BSDF_EVENT_ABSORB)
                 {
                     // stop on absorb
-                     flag = 0;
+                     inside = 0;
                      break;
                 }
                 else
                 {
                     // flip inside/outside on transmission
                     // setup next path segment
-                    const float3 offset = world_normal * 1e-5; // need to add small offset to fix self-collision
-                    ray_direction_next = sampleData.k2;
+                    const float3 offset = worldNormal * 1e-5; // need to add small offset to fix self-collision
+                    rayDirectionNext = sampleData.k2;
 
                     if ((sampleData.event_type & BSDF_EVENT_TRANSMISSION) != 0)
                     {
-                        flag = 1;
+                        inside = 1;
                         // continue on the opposite side
-                        ray_origin_next = offset_ray(mdlState.position + offset, -mdlState.geom_normal);
+                        rayOriginNext = offset_ray(mdlState.position + offset, -mdlState.geom_normal);
                     }
                     else
                     {
-                        flag = 0;
+                        inside = 0;
                         // continue on the current side
-                        ray_origin_next = offset_ray(mdlState.position + offset, mdlState.geom_normal);
+                        rayOriginNext = offset_ray(mdlState.position + offset, mdlState.geom_normal);
                     }
 
                     if ((sampleData.event_type & BSDF_EVENT_SPECULAR) != 0)
                     {
-                        last_bsdf_pdf = DIRAC;
+                        lastBsdfPdf = DIRAC;
                     }
                     else
                     {
-                        last_bsdf_pdf = sampleData.pdf;
+                        lastBsdfPdf = sampleData.pdf;
                     }
                 }
 
-                inside = (int) (flag == 1);
-                const bool next_event_valid = ((dot(toLight, mdlState.geom_normal) > 0.0f) != inside) && lightPdf != 0.0f;
+                const bool nextEventValid = ((dot(toLight, mdlState.geom_normal) > 0.0f) != inside) && lightPdf != 0.0f;
                 //const bool next_event_valid = true
-                if (next_event_valid)
+                if (nextEventValid)
                 {
                     // compute lighting for this light
-                    if(evalData.pdf > 0.0f)
+                    if (evalData.pdf > 0.0f)
                     {
-                        const float mis_weight = (lightPdf == 0.0f) ? 1.0f : lightPdf / (lightPdf + evalData.pdf);
-                        const float3 w = throughput * radianceOverPdf * mis_weight;
+                        const float misWeight = (lightPdf == 0.0f) ? 1.0f : lightPdf / (lightPdf + evalData.pdf);
+                        const float3 w = throughput * radianceOverPdf * misWeight;
                         finalColor += w * evalData.bsdf_diffuse;
                         finalColor += w * evalData.bsdf_glossy;
                     }
@@ -303,8 +301,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 }
 
                 // add check and flip offset for transmission event
-                ray.o = float4(ray_origin_next, 1e9);
-                ray.d = float4(ray_direction_next, 0.0f);
+                ray.o = float4(rayOriginNext, 1e9);
+                ray.d = float4(rayDirectionNext, 0.0f);
 
                 // ray.o = float4(mdlState.position + offset, 1e9);
                 // ray.d = float4(sampleData.k2, 0.0);
@@ -315,11 +313,11 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
             // miss - add background color and exit
 
             // MIS weight for non-specular BSDF events
-            float mis_weight = (last_bsdf_pdf == DIRAC || lightPdf == 0.0f) ? 1.0f : last_bsdf_pdf / (last_bsdf_pdf + lightPdf);
+            float misWeight = (lastBsdfPdf == DIRAC) ? 1.0f : lastBsdfPdf / (lastBsdfPdf + lightPdf);
             float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
-            finalColor += throughput * mis_weight * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
+            finalColor += throughput * misWeight * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
 
-             // finalColor += throughput * float3(0.f);
+            // finalColor += throughput * float3(0.f);
 
             break;
         }

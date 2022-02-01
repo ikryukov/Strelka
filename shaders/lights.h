@@ -19,7 +19,7 @@ struct Light
 
 struct UniformLight
 {
-    float4 points[16];
+    float4 points[4];
     float4 color;
     float4 normal;
     int type;
