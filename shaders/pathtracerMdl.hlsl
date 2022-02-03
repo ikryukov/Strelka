@@ -29,40 +29,6 @@ StructuredBuffer<UniformLight> lights;
 RWStructuredBuffer<float> sampleBuffer;
 // RWTexture2D<float4> output;
 
-float3 estimateDirectLighting(inout uint rngState, in Accel accel, in UniformLight light, in Shading_state_material state, out float3 toLight, out float lightPdf)
-{
-    SphQuad quad = init(light, state.position);
-    const float3 pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
-
-    //const float3 pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
-
-    float3 L = normalize(pointOnLight - state.position);
-    toLight = L;
-    float3 lightNormal = calcLightNormal(light);
-    float3 Li = light.color.rgb;
-
-    if (dot(state.normal, L) > 0 && -dot(L, lightNormal) > 0.0 && all(Li))
-    {
-        float distToLight = distance(pointOnLight, state.position);
-        float lightArea = calcLightArea(light);
-        float lightPDF = distToLight * distToLight / (-dot(L, lightNormal) * lightArea);
-
-        Ray shadowRay;
-        shadowRay.d = float4(L, 0.0);
-        const float3 offset = state.normal * 1e-6f; // need to add small offset to fix self-collision
-        shadowRay.o = float4(state.position + offset, distToLight - 1e-5);
-
-        Hit shadowHit;
-        shadowHit.t = 0.0;
-        float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
-
-        lightPdf = lightPDF;
-        return visibility * Li * saturate(dot(state.normal, L)) / (lightPDF + 1e-5);
-    }
-
-    return float3(0.0);
-}
-
 // Matrices version
 Ray generateCameraRay(uint2 pixelIndex)
 {
@@ -156,6 +122,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 float3 worldPosition = interpolateAttrib(p0, p1, p2, bcoords);
                 float3 worldNormal = normalize(interpolateAttrib(n0, n1, n2, bcoords));
                 float3 worldTangent = normalize(interpolateAttrib(t0, t1, t2, bcoords));
+                geomNormal *= (inside ? -1.0 : 1.0);
+                worldNormal *= (inside ? -1.0 : 1.0);
                 float3 worldBinormal = cross(worldNormal, worldTangent);
 
                 float2 uv0 = unpackUV(accel.vb[NonUniformResourceIndex(i0)].uv);
@@ -189,10 +157,10 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
                 mdlState.text_coords[0] = float3(uvCoord, 0);
 
-                float3 shadingNormal = mdlState.normal;
+                float3 shadingNormal = mdlState.geom_normal;
 
-                const float ior1 = (!inside) ? 1.47f : 1.0f; // material -> air
-                const float ior2 = (!inside) ? 1.0f : 1.47f;
+                const float ior1 = (inside) ? BSDF_USE_MATERIAL_IOR : 1.0f; // material -> air
+                const float ior2 = (inside) ? 1.0f : BSDF_USE_MATERIAL_IOR;
 
                 int scatteringFunctionIndex = currMdlMaterial.functionId;
 
@@ -203,11 +171,12 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 float3 intensity = mdl_edf_emission_intensity(scatteringFunctionIndex, mdlState);
                 finalColor += throughput * intensity * edfEval.edf;
 
-                mdlState.normal = shadingNormal; // reset normal (init calls can change the normal due to maps)
+                mdlState.geom_normal = shadingNormal; // reset normal (init calls can change the normal due to maps)
                 mdl_bsdf_scattering_init(scatteringFunctionIndex, mdlState);
 
                 float3 toLight; //return value for sampleLights()
                 float lightPdf = 0.0f; //return value for sampleLights()
+
                 float3 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
 
                 if (any(isnan(radianceOverPdf)) || isnan(lightPdf))
@@ -215,8 +184,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                     break;
                 }
 
-                //const bool nextEventValid = ((dot(toLight, mdlState.geom_normal) > 0.0f) != inside) && lightPdf != 0.0f;
-                const bool nextEventValid = true;
+                const bool nextEventValid = ((dot(toLight, mdlState.geom_normal) > 0.0f) != inside) && lightPdf != 0.0f;
+                //const bool nextEventValid = true;
                 if (nextEventValid)
                 {
                     Bsdf_evaluate_data evalData = (Bsdf_evaluate_data) 0;
@@ -253,11 +222,6 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
                 mdl_bsdf_scattering_sample(scatteringFunctionIndex, sampleData, mdlState);
 
-                const float3 offset = worldNormal * 1e-5; // need to add small offset to fix self-collision
-
-                float3 rayDirectionNext = sampleData.k2;
-                float3 rayOriginNext = mdlState.position + offset;
-
                 if (sampleData.event_type == BSDF_EVENT_ABSORB)
                 {
                     // stop on absorb
@@ -267,9 +231,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
                 // flip inside/outside on transmission
                 // setup next path segment
                 inside = ((sampleData.event_type & BSDF_EVENT_TRANSMISSION) != 0);
-
-                rayDirectionNext = sampleData.k2;
-                rayOriginNext = offset_ray(mdlState.position, -mdlState.geom_normal * (inside ? -1.0 : 1.0));
+                float3 rayDirectionNext = sampleData.k2;
+                float3 rayOriginNext = offset_ray(mdlState.position, mdlState.geom_normal * (inside ? -1.0 : 1.0));
 
                 throughput *= sampleData.bsdf_over_pdf;
 

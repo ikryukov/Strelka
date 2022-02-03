@@ -213,6 +213,40 @@ float calcLightArea(in UniformLight l)
     return area;
 }
 
+float3 estimateDirectLighting(inout uint rngState, in Accel accel, in UniformLight light, in Shading_state_material state, out float3 toLight, out float lightPdf)
+{
+    SphQuad quad = init(light, state.position);
+    const float3 pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
+
+    //const float3 pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
+
+    float3 L = normalize(pointOnLight - state.position);
+    toLight = L;
+    float3 lightNormal = calcLightNormal(light);
+    float3 Li = light.color.rgb;
+
+    if (dot(state.normal, L) > 0 && -dot(L, lightNormal) > 0.0 && all(Li))
+    {
+        float distToLight = distance(pointOnLight, state.position);
+        float lightArea = calcLightArea(light);
+        float lightPDF = distToLight * distToLight / (-dot(L, lightNormal) * lightArea);
+
+        Ray shadowRay;
+        shadowRay.d = float4(L, 0.0);
+        const float3 offset = state.normal * 1e-6f; // need to add small offset to fix self-collision
+        shadowRay.o = float4(state.position + offset, distToLight - 1e-5);
+
+        Hit shadowHit;
+        shadowHit.t = 0.0;
+        float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
+
+        lightPdf = lightPDF;
+        return visibility * Li * saturate(dot(state.normal, L)) / (lightPDF + 1e-5);
+    }
+
+    return float3(0.0);
+}
+
 float3 sampleLights(inout uint rngState, in Accel accel, in Shading_state_material state, out float3 toLight, out float lightPdf)
 {
     uint lightId = (uint) (ubo.numLights * rand(rngState));
