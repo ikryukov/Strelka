@@ -18,7 +18,8 @@ class HdNeVKRenderPass final : public HdRenderPass
 public:
     HdNeVKRenderPass(HdRenderIndex* index,
                      const HdRprimCollection& collection,
-                     const HdRenderSettingsMap& settings);
+                     const HdRenderSettingsMap& settings,
+                     nevk::PtRender* renderer);
 
     ~HdNeVKRenderPass() override;
 
@@ -47,7 +48,8 @@ private:
     GfMatrix4d m_rootMatrix;
     
     nevk::Scene mScene;
-    nevk::PtRender* mRender;
+    // ptr to global render
+    nevk::PtRender* mRenderer;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

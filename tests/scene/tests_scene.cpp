@@ -129,29 +129,29 @@ TEST_CASE("test checkInstance")
     CHECK(scene.mInstances.size() == 1);
 }
 
-TEST_CASE("test addMaterial")
-{
-    nevk::Scene scene;
-    Material currMaterial{};
-
-    currMaterial.diffuse = glm::float4(1.0f, 1.0f, 1.0f, 1.0f);
-    currMaterial.texNormalId = 1;
-    currMaterial.sampNormalId = 1;
-    currMaterial.baseColorFactor = glm::float4(1.0f, 1.0f, 1.0f, 1.0f);
-    currMaterial.texBaseColor = 1;
-    currMaterial.sampBaseId = 1;
-    currMaterial.roughnessFactor = (float)1;
-    currMaterial.metallicFactor = (float)1;
-    currMaterial.texMetallicRoughness = 1;
-    currMaterial.sampMetallicRoughness = 1;
-    currMaterial.emissiveFactor = glm::float3(1.0f, 1.0f, 1.0f);
-    currMaterial.texEmissive = 1;
-    currMaterial.sampEmissiveId = 1;
-    currMaterial.texOcclusion = 1;
-    currMaterial.sampOcclusionId = 1;
-    currMaterial.d = (float)0.1;
-    currMaterial.illum = 1;
-
-    scene.addMaterial(currMaterial);
-    CHECK(scene.mMaterials.size() == 1);
-}
+//TEST_CASE("test addMaterial")
+//{
+//    nevk::Scene scene;
+//    Material currMaterial{};
+//
+//    currMaterial.diffuse = glm::float4(1.0f, 1.0f, 1.0f, 1.0f);
+//    currMaterial.texNormalId = 1;
+//    currMaterial.sampNormalId = 1;
+//    currMaterial.baseColorFactor = glm::float4(1.0f, 1.0f, 1.0f, 1.0f);
+//    currMaterial.texBaseColor = 1;
+//    currMaterial.sampBaseId = 1;
+//    currMaterial.roughnessFactor = (float)1;
+//    currMaterial.metallicFactor = (float)1;
+//    currMaterial.texMetallicRoughness = 1;
+//    currMaterial.sampMetallicRoughness = 1;
+//    currMaterial.emissiveFactor = glm::float3(1.0f, 1.0f, 1.0f);
+//    currMaterial.texEmissive = 1;
+//    currMaterial.sampEmissiveId = 1;
+//    currMaterial.texOcclusion = 1;
+//    currMaterial.sampOcclusionId = 1;
+//    currMaterial.d = (float)0.1;
+//    currMaterial.illum = 1;
+//
+//    scene.addMaterial(currMaterial);
+//    CHECK(scene.mMaterials.size() == 1);
+//}

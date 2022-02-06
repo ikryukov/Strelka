@@ -14,6 +14,8 @@ namespace nevk
 
 uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint32_t>& ib)
 {
+    std::scoped_lock lock(mMeshMutex);
+
     Mesh* mesh = nullptr;
     uint32_t meshId = -1;
     if (mDelMesh.empty())
@@ -45,6 +47,9 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
 {
     assert(meshId < mMeshes.size());
     assert(materialId < mMaterials.size());
+    
+    std::scoped_lock lock(mInstanceMutex);
+    
     Instance* inst = nullptr;
     uint32_t instId = -1;
     if (mDelInstances.empty())

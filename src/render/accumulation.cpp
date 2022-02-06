@@ -18,33 +18,14 @@ void Accumulation::execute(VkCommandBuffer& cmd, const AccumulationDesc& desc, u
     auto& param = mShaderParamFactory.getNextShaderParameters(frameIndex);
     {
         param.setConstants(desc.constants);
-        if (desc.input1)
         {
-            param.setTexture("currTex1", mSharedCtx.mResManager->getView(desc.input1));
-            param.setTexture("currTex4", VK_NULL_HANDLE);
-            param.setTexture("prevTex1", mSharedCtx.mResManager->getView(desc.history1));
-            param.setTexture("prevTex4", VK_NULL_HANDLE);
-            param.setTexture("output1", mSharedCtx.mResManager->getView(desc.output1));
-            param.setTexture("output4", VK_NULL_HANDLE);        
+            param.setTexture("input", mSharedCtx.mResManager->getView(desc.input));
+            param.setTexture("output", mSharedCtx.mResManager->getView(desc.output));
         }
-        else if (desc.input4)
-        {
-            param.setTexture("currTex4", mSharedCtx.mResManager->getView(desc.input4));
-            param.setTexture("currTex1", VK_NULL_HANDLE);
-            param.setTexture("prevTex4", mSharedCtx.mResManager->getView(desc.history4));
-            param.setTexture("prevTex1", VK_NULL_HANDLE);
-            param.setTexture("output4", mSharedCtx.mResManager->getView(desc.output4));
-            param.setTexture("output1", VK_NULL_HANDLE);
-        }
-        else
-        {
-            // error
-            assert(0);
-        }
-        param.setTexture("gbWpos", mSharedCtx.mResManager->getView(desc.wpos));
-        param.setTexture("motionTex", mSharedCtx.mResManager->getView(desc.motion));
-        param.setTexture("prevDepthTex", mSharedCtx.mResManager->getView(desc.prevDepth));
-        param.setTexture("currDepthTex", mSharedCtx.mResManager->getView(desc.currDepth));
+        //param.setTexture("gbWpos", mSharedCtx.mResManager->getView(desc.wpos));
+        //param.setTexture("motionTex", mSharedCtx.mResManager->getView(desc.motion));
+        //param.setTexture("prevDepthTex", mSharedCtx.mResManager->getView(desc.prevDepth));
+        //param.setTexture("currDepthTex", mSharedCtx.mResManager->getView(desc.currDepth));
     }
 
     int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;

@@ -11,19 +11,13 @@ struct AccumulationDesc
 {
     AccumulationParam constants;
 
-    Image* wpos = VK_NULL_HANDLE;
-    Image* motion = VK_NULL_HANDLE;
-    Image* prevDepth = VK_NULL_HANDLE;
-    Image* currDepth = VK_NULL_HANDLE;
+    //Image* wpos = VK_NULL_HANDLE;
+    //Image* motion = VK_NULL_HANDLE;
+    //Image* prevDepth = VK_NULL_HANDLE;
+    //Image* currDepth = VK_NULL_HANDLE;
 
-    Image* history1 = VK_NULL_HANDLE;
-    Image* history4 = VK_NULL_HANDLE;
-
-    Image* input1 = VK_NULL_HANDLE;
-    Image* input4 = VK_NULL_HANDLE;
-
-    Image* output1 = VK_NULL_HANDLE;
-    Image* output4 = VK_NULL_HANDLE;
+    Image* input = VK_NULL_HANDLE;
+    Image* output = VK_NULL_HANDLE;
 };
 
 using AccumulationBase = ComputePass<AccumulationParam>;

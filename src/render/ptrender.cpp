@@ -24,7 +24,22 @@ void PtRender::init()
 {
     VkRender::initVulkan();
 
-    mView[0] = createView(800, 600, 6);
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        mView[i] = createView(800, 600, 1);
+    }    
+
+    {
+        ResourceManager* resManager = mSharedCtx.mResManager;
+        TextureManager* texManager = mSharedCtx.mTextureManager;
+        const std::string imageName = "Accumulation Image";
+        mAccumulatedPt = resManager->createImage(800, 600, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                                        VK_IMAGE_TILING_OPTIMAL,
+                                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        texManager->transitionImageLayout(resManager->getVkImage(mAccumulatedPt), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        resManager->setImageLayout(mAccumulatedPt, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    }
 
     mDebugView = new DebugView(mSharedCtx);
     mDebugView->initialize();
@@ -58,6 +73,18 @@ void PtRender::init()
     }
 
     std::vector<MaterialManager::CompiledMaterial*> materials;
+
+    // default material
+    {
+        MaterialManager::Module* mdlModule = mMaterialManager->createModule("tutorials.mdl");
+        assert(mdlModule);
+        MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "example_material");
+        assert(materialInst);
+        MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+        assert(materialComp);
+        materials.push_back(materialComp);
+    }
+
     for (uint32_t i = 0; i < mScene->materialsCode.size(); ++i)
     {
         if (mScene->mMaterials[i].isMdl)
@@ -241,8 +268,11 @@ void PtRender::createGbufferPass()
     mGbufferPass.setTextureSamplers(mSharedCtx.mTextureManager->texSamplers);
     assert(mView[0]);
     mGbufferPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize,
-                      mSharedCtx.mDescriptorPool, mSharedCtx.mResManager, mView[0]->gbuffer);
-    mGbufferPass.createFrameBuffers(*mView[0]->gbuffer, 0);
+                      mSharedCtx.mDescriptorPool, mSharedCtx.mResManager, mView[0]->gbuffer->depthFormat, mView[0]->gbuffer->width, mView[0]->gbuffer->height);
+    for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        mGbufferPass.createFrameBuffers(*mView[i]->gbuffer, i);
+    }    
 }
 
 void PtRender::createVertexBuffer(nevk::Scene& scene)
@@ -466,16 +496,20 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     // ZoneScoped;
 
     FrameData& currFrame = getCurrentFrameData();
-    const uint32_t imageIndex = 0;
-    const uint64_t frameIndex = 0;
-
-    createVertexBuffer(*mScene);
-    createIndexBuffer(*mScene);
-    createInstanceBuffer(*mScene);
-    createLightsBuffer(*mScene);
-    createMaterialBuffer(*mScene);
-    createMdlBuffers();
-    createBvhBuffer(*mScene); // need to update descriptors after it
+    const uint32_t imageIndex = mFrameNumber % MAX_FRAMES_IN_FLIGHT;
+    const uint64_t frameIndex = mFrameNumber;
+    
+    // TODO: handle changes: resize, update
+    if (mFrameNumber == 0)
+    {
+        createVertexBuffer(*mScene);
+        createIndexBuffer(*mScene);
+        createInstanceBuffer(*mScene);
+        createLightsBuffer(*mScene);
+        createMaterialBuffer(*mScene);
+        createMdlBuffers();
+        createBvhBuffer(*mScene); // need to update descriptors after it
+    }
 
     ViewData* currView = mView[imageIndex];
     uint32_t renderWidth = currView->renderWidth;
@@ -490,7 +524,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
     cam.prevMatrices = cam.matrices; // TODO:
 
-    mGbufferPass.onResize(currView->gbuffer, 0);
+    mGbufferPass.onResize(currView->gbuffer, imageIndex);
     mGbufferPass.updateUniformBuffer(imageIndex, *mScene, getActiveCameraIndex());
 
     VkCommandBuffer& cmd = getFrameData(imageIndex).cmdBuffer;
@@ -509,35 +543,43 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     mGbufferPass.setMaterialBuffer(resManager->getVkBuffer(mCurrentSceneRenderData->mMaterialBuffer));
     mGbufferPass.setInstanceBuffer(resManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer));
 
-    mGbufferPass.record(cmd, resManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), resManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, renderWidth, renderHeight, imageIndex, getActiveCameraIndex());
-
     const GBuffer& gbuffer = *currView->gbuffer;
 
     // barriers
     {
-        recordImageBarrier(cmd, gbuffer.wPos, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordImageBarrier(cmd, gbuffer.normal, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordImageBarrier(cmd, gbuffer.tangent, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordImageBarrier(cmd, gbuffer.uv, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordImageBarrier(cmd, gbuffer.instId, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordImageBarrier(cmd, gbuffer.motion, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        recordImageBarrier(cmd, gbuffer.depth, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                           VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
-        recordImageBarrier(cmd, gbuffer.debug, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                           VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        // clang-format off
+        recordImageBarrier(cmd, gbuffer.wPos,       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        recordImageBarrier(cmd, gbuffer.normal,     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        recordImageBarrier(cmd, gbuffer.tangent,    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        recordImageBarrier(cmd, gbuffer.uv,         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        recordImageBarrier(cmd, gbuffer.instId,     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        recordImageBarrier(cmd, gbuffer.motion,     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        recordImageBarrier(cmd, gbuffer.debug,      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+        recordImageBarrier(cmd, gbuffer.depth,      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        // clang-format on
+    }
+
+    mGbufferPass.record(cmd, resManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), resManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), *mScene, renderWidth, renderHeight, imageIndex, getActiveCameraIndex());
+
+    // barriers
+    {
+        // clang-format off
+        recordImageBarrier(cmd, gbuffer.wPos,       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordImageBarrier(cmd, gbuffer.normal,     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordImageBarrier(cmd, gbuffer.tangent,    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordImageBarrier(cmd, gbuffer.uv,         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordImageBarrier(cmd, gbuffer.instId,     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordImageBarrier(cmd, gbuffer.motion,     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordImageBarrier(cmd, gbuffer.depth,      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
+        recordImageBarrier(cmd, gbuffer.debug,      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        // clang-format on
     }
 
     Image* finalPathTracerImage = currView->mPathTracerImage;
     Image* finalImage = nullptr;
 
     // Path Tracer
-    for (int i = 0; i < 20; ++i)
+    for (int i = 0; i < 1; ++i)
     {
         PathTracerDesc ptDesc{};
         // desc.result = mView[imageIndex]->mPathTracerImage;
@@ -603,8 +645,9 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
         {
             // Accumulation pass
-            Image* accHist = mView[imageIndex]->mAccumulationPathTracerImage[i % 2];
-            Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage[(i + 1) % 2];
+            //Image* accHist = mView[imageIndex]->mAccumulationPathTracerImage[i % 2];
+            //Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage[0];
+            Image* accOut = mAccumulatedPt;
             
             AccumulationDesc accDesc{};
             AccumulationParam& accParam = accDesc.constants;
@@ -622,22 +665,16 @@ void PtRender::drawFrame(const uint8_t* outPixels)
             accParam.clipToView = cam.matrices.invPerspective;
             accParam.viewToWorld = glm::inverse(cam.matrices.view);
             accParam.isPt = 1;
-            currView->mPtIteration = i; // TODO: need to recalc properly
+            currView->mPtIteration = i + (uint32_t) mFrameNumber * 1; // TODO: need to recalc properly
             accParam.iteration = currView->mPtIteration;
 
-            accDesc.input4 = finalPathTracerImage;
-            accDesc.history4 = accHist;
-            accDesc.output4 = accOut;
-            accDesc.wpos = gbuffer.wPos;
-            accDesc.currDepth = gbuffer.depth;
-            accDesc.motion = gbuffer.motion;
-            accDesc.prevDepth = gbuffer.depth; //TODO: fix
+            accDesc.input = finalPathTracerImage;
+            accDesc.output = accOut;
 
-            recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL,
-                               VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mAccumulationPathTracer->execute(cmd, accDesc, renderWidth, renderHeight, frameIndex);
-            recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            //recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            //                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
             finalPathTracerImage = accOut;
         }
@@ -648,8 +685,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
         {
             recordImageBarrier(cmd, mView[imageIndex]->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            // recordBarrier(cmd, mResManager->getVkImage(tmpImage), VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            //             VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             TonemapDesc toneDesc{};
             Tonemapparam& toneParams = toneDesc.constants;
             toneParams.dimension.x = renderWidth;
@@ -678,8 +714,8 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
             mUpscalePass->execute(cmd, upscaleDesc, finalWidth, finalHeight, frameIndex);
 
-            recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL,
-                               VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            //recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL,
+            //                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             finalImage = mView[imageIndex]->textureUpscaleImage;
         }
     }
@@ -704,6 +740,9 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     region.imageExtent.height = finalHeight;
     region.imageExtent.depth = 1;
     vkCmdCopyImageToBuffer(cmd, resManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, resManager->getVkBuffer(stagingBuffer), 1, &region);
+
+    recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
 
     //    VkOffset3D blitSize{};
     //    blitSize.x = finalWidth;

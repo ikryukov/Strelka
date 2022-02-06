@@ -11,7 +11,7 @@
 #include <stack>
 #include <unordered_map>
 #include <vector>
-
+#include <mutex>
 
 namespace nevk
 {
@@ -171,6 +171,9 @@ public:
     bool opaqueMode = true;
 
     glm::float4 mLightPosition{ 10.0, 10.0, 10.0, 1.0 };
+
+    std::mutex mMeshMutex;
+    std::mutex mInstanceMutex;
 
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;

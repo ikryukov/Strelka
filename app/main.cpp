@@ -34,13 +34,13 @@ int main(int argc, char** argv)
     }
 
     // initialise & run render
-    nevk::Render r;
+    //nevk::Render r;
 
-    r.MODEL_PATH = mesh;
-    r.WIDTH = result["width"].as<uint32_t>();
-    r.HEIGHT = result["height"].as<uint32_t>();
+    //r.MODEL_PATH = mesh;
+    //r.WIDTH = result["width"].as<uint32_t>();
+    //r.HEIGHT = result["height"].as<uint32_t>();
 
-    r.run();
+    //r.run();
 
     return 0;
 }

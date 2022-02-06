@@ -4,6 +4,9 @@
 
 #include "MaterialNetworkTranslator.h"
 
+#include <scene/scene.h>
+#include <ptrender.h>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 class HdNeVKRenderDelegate final : public HdRenderDelegate
@@ -73,6 +76,9 @@ private:
     const MaterialNetworkTranslator& m_translator;
     HdRenderSettingDescriptorList m_settingDescriptors;
     HdResourceRegistrySharedPtr m_resourceRegistry;
+
+    nevk::Scene mScene;
+    nevk::PtRender mRenderer;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

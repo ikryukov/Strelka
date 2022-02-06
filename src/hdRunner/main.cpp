@@ -182,15 +182,20 @@ int main(int argc, const char* argv[])
     TfTokenVector renderTags(1, HdRenderTagTokens->geometry);
     auto renderTask = std::make_shared<SimpleRenderTask>(renderPass, renderPassState, renderTags);
 
-    HdTaskSharedPtrVector tasks;
-    tasks.push_back(renderTask);
-
     // Perform rendering.
     TfStopwatch timerRender;
     timerRender.Start();
 
     HdEngine engine;
-    engine.Execute(renderIndex, &tasks);
+
+    for (int i = 0; i < 2000; ++i)
+    {
+        HdTaskSharedPtrVector tasks;
+        tasks.push_back(renderTask);
+
+        sceneDelegate.SetTime(i);
+        engine.Execute(renderIndex, &tasks);
+    }    
 
     renderBuffer->Resolve();
     TF_VERIFY(renderBuffer->IsConverged());

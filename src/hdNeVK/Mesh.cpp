@@ -7,8 +7,8 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdNeVKMesh::HdNeVKMesh(const SdfPath& id)
-    : HdMesh(id), m_prototypeTransform(1.0), m_color(0.0, 0.0, 0.0), m_hasColor(false)
+HdNeVKMesh::HdNeVKMesh(const SdfPath& id, nevk::Scene* scene)
+    : HdMesh(id), m_prototypeTransform(1.0), m_color(0.0, 0.0, 0.0), m_hasColor(false), mScene(scene)
 {
 }
 
@@ -69,6 +69,70 @@ void HdNeVKMesh::Sync(HdSceneDelegate* sceneDelegate,
     m_normals.clear();
 
     _UpdateGeometry(sceneDelegate);
+
+    //_ConvertMesh();
+}
+
+//  valid range of coordinates [-1; 1]
+static uint32_t packNormal(const glm::float3& normal)
+{
+    uint32_t packed = (uint32_t)((normal.x + 1.0f) / 2.0f * 511.99999f);
+    packed += (uint32_t)((normal.y + 1.0f) / 2.0f * 511.99999f) << 10;
+    packed += (uint32_t)((normal.z + 1.0f) / 2.0f * 511.99999f) << 20;
+    return packed;
+}
+
+void HdNeVKMesh::_ConvertMesh()
+{
+    GfMatrix4d transform = m_prototypeTransform; // need to add instancer support
+    GfMatrix4d normalMatrix = transform.GetInverse().GetTranspose();
+
+    const std::vector<GfVec3f>& meshPoints = GetPoints();
+    const std::vector<GfVec3f>& meshNormals = GetNormals();
+    const std::vector<GfVec3i>& meshFaces = GetFaces();
+    TF_VERIFY(meshPoints.size() == meshNormals.size());
+    const size_t vertexCount = meshPoints.size();
+
+    std::vector<nevk::Scene::Vertex> vertices(vertexCount);
+    std::vector<uint32_t> indices(meshFaces.size() * 3);
+
+    for (size_t j = 0; j < meshFaces.size(); ++j)
+    {
+        const GfVec3i& vertexIndices = meshFaces[j];
+        indices[j * 3 + 0] = vertexIndices[0];
+        indices[j * 3 + 1] = vertexIndices[1];
+        indices[j * 3 + 2] = vertexIndices[2];
+    }
+    glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
+    for (size_t j = 0; j < vertexCount; ++j)
+    {
+        const GfVec3f& point = meshPoints[j];
+        const GfVec3f& normal = meshNormals[j];
+
+        nevk::Scene::Vertex& vertex = vertices[j];
+        vertex.pos[0] = point[0];
+        vertex.pos[1] = point[1];
+        vertex.pos[2] = point[2];
+
+        glm::float3 glmNormal = glm::float3(normal[0], normal[1], normal[2]);
+        vertex.normal = packNormal(glmNormal);
+        sum += vertex.pos;
+    }
+    const glm::float3 massCenter = sum / (float)vertexCount;
+
+    glm::float4x4 glmTransform;
+    for (int i = 0; i < 4; ++i)
+    {
+        for (int j = 0; j < 4; ++j)
+        {
+            glmTransform[i][j] = (float)transform[i][j];
+        }
+    }
+
+    uint32_t meshId = mScene->createMesh(vertices, indices);
+    assert(meshId != -1);
+    //uint32_t instId = mScene->createInstance(meshId, materialIndex, glmTransform, massCenter);
+    //assert(instId != -1);
 }
 
 void HdNeVKMesh::_UpdateGeometry(HdSceneDelegate* sceneDelegate)

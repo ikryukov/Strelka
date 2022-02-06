@@ -321,7 +321,7 @@ void GbufferPass::createRenderPass()
     }
 
     VkAttachmentDescription depthAttachment{};
-    depthAttachment.format = mGbuffer->depthFormat;
+    depthAttachment.format = mDepthFormat;
     depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -565,7 +565,6 @@ void GbufferPass::onDestroy()
 void GbufferPass::onResize(GBuffer* gbuffer, uint32_t index)
 {
     assert(gbuffer);
-    mGbuffer = gbuffer;
 
     vkDestroyFramebuffer(mDevice, mFrameBuffers[index], nullptr);
 
@@ -573,8 +572,8 @@ void GbufferPass::onResize(GBuffer* gbuffer, uint32_t index)
     vkDestroyRenderPass(mDevice, mRenderPass, nullptr);
 
     createRenderPass();
-    mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, mGbuffer->width, mGbuffer->height);
-    createFrameBuffers(*mGbuffer, index);
+    mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, gbuffer->width, gbuffer->height);
+    createFrameBuffers(*gbuffer, index);
 }
 
 void GbufferPass::setTextureImageView(const std::vector<VkImageView>& textureImageView)

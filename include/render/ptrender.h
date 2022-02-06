@@ -128,6 +128,9 @@ private:
     };
 
     ViewData* mPrevView = nullptr;
+
+    Image* mAccumulatedPt = nullptr;
+
     std::array<ViewData*, MAX_FRAMES_IN_FLIGHT> mView;
 
     struct SceneRenderData

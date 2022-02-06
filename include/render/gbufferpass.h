@@ -59,6 +59,8 @@ private:
 
     VkShaderModule mVS, mPS;
 
+    VkFormat mDepthFormat;
+
     ResourceManager* mResManager;
     VkDescriptorPool mDescriptorPool;
     std::vector<Buffer*> uniformBuffers;
@@ -75,7 +77,6 @@ private:
 
     std::vector<VkDescriptorSet> mDescriptorSets;
 
-    GBuffer* mGbuffer;
     VkFramebuffer mFrameBuffers[MAX_FRAMES_IN_FLIGHT];
 
     static VkVertexInputBindingDescription getBindingDescription()
@@ -147,13 +148,13 @@ public:
     void setInstanceBuffer(VkBuffer instanceBuffer);
 
     void init(VkDevice& device, bool enableValidation, const char* vsCode, uint32_t vsCodeSize, const char* psCode, uint32_t psCodeSize, 
-        VkDescriptorPool descpool, ResourceManager* resMngr, GBuffer* gbuffer)
+        VkDescriptorPool descpool, ResourceManager* resMngr, VkFormat depthFormat, uint32_t width, uint32_t height)
     {
+        mDepthFormat = depthFormat;
         mEnableValidation = enableValidation;
         mDevice = device;
         mResManager = resMngr;
         mDescriptorPool = descpool;
-        mGbuffer = gbuffer;
         mVS = createShaderModule(vsCode, vsCodeSize);
         mPS = createShaderModule(psCode, psCodeSize);
         createConstantBuffers();
@@ -162,7 +163,7 @@ public:
         createDescriptorSetLayout();
         createDescriptorSets(mDescriptorPool);
         mPipelineLayout = createGraphicsPipelineLayout();
-        mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, mGbuffer->width, mGbuffer->height);
+        mPipeline = createGraphicsPipeline(mVS, mPS, mPipelineLayout, width, height);
     }
 
     void onResize(GBuffer* gbuffer, uint32_t index);

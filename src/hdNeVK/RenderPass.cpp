@@ -38,8 +38,10 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 HdNeVKRenderPass::HdNeVKRenderPass(HdRenderIndex* index,
                                    const HdRprimCollection& collection,
-                                   const HdRenderSettingsMap& settings)
-    : HdRenderPass(index, collection), m_settings(settings), m_isConverged(false), m_lastSceneStateVersion(UINT32_MAX), m_lastRenderSettingsVersion(UINT32_MAX)
+                                   const HdRenderSettingsMap& settings,
+                                   nevk::PtRender* renderer
+    )
+    : HdRenderPass(index, collection), m_settings(settings), m_isConverged(false), m_lastSceneStateVersion(UINT32_MAX), m_lastRenderSettingsVersion(UINT32_MAX), mRenderer(renderer)
 {
 }
 
@@ -339,11 +341,11 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     bool sceneChanged = (sceneStateVersion != m_lastSceneStateVersion);
     bool renderSettingsChanged = (renderSettingsStateVersion != m_lastRenderSettingsVersion);
 
-    if (!sceneChanged && !renderSettingsChanged)
-    {
-        renderBuffer->SetConverged(true);
-        return;
-    }
+    //if (!sceneChanged && !renderSettingsChanged)
+    //{
+    //    renderBuffer->SetConverged(true);
+    //    return;
+    //}
 
     renderBuffer->SetConverged(false);
 
@@ -352,68 +354,72 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
 
     // Transform scene into camera space to increase floating point precision.
     GfMatrix4d viewMatrix = camera->GetTransform().GetInverse();
+    
+    static int counter = 0;
 
-    _BakeMeshes(renderIndex, viewMatrix);
-
-    m_rootMatrix = viewMatrix;
-
-    _ConstructNeVKCamera(*camera);
-
-    mRender = new nevk::PtRender();
-    mRender->setScene(&mScene);
-    mRender->init();
-
-    nevk::Scene::UniformLightDesc desc{};
-    desc.color = glm::float3(1.0f);
-    desc.height = 0.4f;
-    desc.width = 0.4f;
-    desc.position = glm::float3(0, 1.1, 0.67);
-    desc.orientation = glm::float3(179.68, 29.77, -89.97);
-    desc.intensity = 160.0f;
-
-    static const TfTokenVector lightTypes = { HdPrimTypeTokens->domeLight,
-                                              HdPrimTypeTokens->simpleLight,
-                                              HdPrimTypeTokens->sphereLight,
-                                              HdPrimTypeTokens->rectLight,
-                                              HdPrimTypeTokens->diskLight,
-                                              HdPrimTypeTokens->cylinderLight,
-                                              HdPrimTypeTokens->distantLight };
-    size_t count = 0;
-    // TF_FOR_ALL(it, lightTypes)
+    if (counter == 0)
     {
-        if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->rectLight))
-        {
-            SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->rectLight,
-                                                                    SdfPath::AbsoluteRootPath());
-            for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
-            {
-                HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->rectLight, sprimPaths[lightIdx]);
-                HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
-                mScene.createLight(light->getLightDesc());
-            }
-        }
+        ++counter;
 
-        if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->diskLight))
+        _BakeMeshes(renderIndex, viewMatrix);
+
+        m_rootMatrix = viewMatrix;
+
+        _ConstructNeVKCamera(*camera);
+
+        mRenderer->setScene(&mScene);
+
+        nevk::Scene::UniformLightDesc desc{};
+        desc.color = glm::float3(1.0f);
+        desc.height = 0.4f;
+        desc.width = 0.4f;
+        desc.position = glm::float3(0, 1.1, 0.67);
+        desc.orientation = glm::float3(179.68, 29.77, -89.97);
+        desc.intensity = 160.0f;
+
+        static const TfTokenVector lightTypes = { HdPrimTypeTokens->domeLight,
+                                                  HdPrimTypeTokens->simpleLight,
+                                                  HdPrimTypeTokens->sphereLight,
+                                                  HdPrimTypeTokens->rectLight,
+                                                  HdPrimTypeTokens->diskLight,
+                                                  HdPrimTypeTokens->cylinderLight,
+                                                  HdPrimTypeTokens->distantLight };
+        size_t count = 0;
+        // TF_FOR_ALL(it, lightTypes)
         {
-            SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->diskLight,
-                                                                    SdfPath::AbsoluteRootPath());
-            for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
+            if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->rectLight))
             {
-                HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->diskLight, sprimPaths[lightIdx]);
-                HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
-                mScene.createLight(light->getLightDesc());
+                SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->rectLight,
+                                                                        SdfPath::AbsoluteRootPath());
+                for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
+                {
+                    HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->rectLight, sprimPaths[lightIdx]);
+                    HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
+                    mScene.createLight(light->getLightDesc());
+                }
+            }
+
+            if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->diskLight))
+            {
+                SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->diskLight,
+                                                                        SdfPath::AbsoluteRootPath());
+                for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
+                {
+                    HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->diskLight, sprimPaths[lightIdx]);
+                    HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
+                    mScene.createLight(light->getLightDesc());
+                }
             }
         }
     }
-
     // mScene.createLight(desc);
 
     float* img_data = (float*)renderBuffer->Map();
 
-    mRender->drawFrame((uint8_t*)img_data);
+    mRenderer->drawFrame((uint8_t*)img_data);
 
     renderBuffer->Unmap();
-    renderBuffer->SetConverged(true);
+    //renderBuffer->SetConverged(true);
 
     m_isConverged = true;
 }

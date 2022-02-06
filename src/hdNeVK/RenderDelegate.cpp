@@ -32,6 +32,9 @@ HdNeVKRenderDelegate::HdNeVKRenderDelegate(const HdRenderSettingsMap& settingsMa
 
         _settingsMap[key] = value;
     }
+
+    mRenderer.setScene(&mScene);
+    mRenderer.init();
 }
 
 HdNeVKRenderDelegate::~HdNeVKRenderDelegate()
@@ -46,7 +49,7 @@ HdRenderSettingDescriptorList HdNeVKRenderDelegate::GetRenderSettingDescriptors(
 HdRenderPassSharedPtr HdNeVKRenderDelegate::CreateRenderPass(HdRenderIndex* index,
                                                              const HdRprimCollection& collection)
 {
-    return HdRenderPassSharedPtr(new HdNeVKRenderPass(index, collection, _settingsMap));
+    return HdRenderPassSharedPtr(new HdNeVKRenderPass(index, collection, _settingsMap, &mRenderer));
 }
 
 HdResourceRegistrySharedPtr HdNeVKRenderDelegate::GetResourceRegistry() const
@@ -97,7 +100,7 @@ HdRprim* HdNeVKRenderDelegate::CreateRprim(const TfToken& typeId,
 {
     if (typeId == HdPrimTypeTokens->mesh)
     {
-        return new HdNeVKMesh(rprimId);
+        return new HdNeVKMesh(rprimId, &mScene);
     }
     TF_CODING_ERROR("Unknown Rprim Type %s", typeId.GetText());
     return nullptr;

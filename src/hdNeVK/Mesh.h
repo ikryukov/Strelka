@@ -3,6 +3,8 @@
 #include "pxr/pxr.h"
 #include <pxr/imaging/hd/mesh.h>
 
+#include <scene/scene.h>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 class HdNeVKMesh final : public HdMesh
@@ -10,7 +12,7 @@ class HdNeVKMesh final : public HdMesh
 public:
     HF_MALLOC_TAG_NEW("new HdNeVKMesh");
 
-    HdNeVKMesh(const SdfPath& id);
+    HdNeVKMesh(const SdfPath& id, nevk::Scene* scene);
 
     ~HdNeVKMesh() override;
 
@@ -43,6 +45,9 @@ protected:
                    HdDirtyBits* dirtyBits) override;
 
 private:
+
+    void _ConvertMesh();
+
     void _UpdateGeometry(HdSceneDelegate* sceneDelegate);
 
     bool _FindPrimvar(HdSceneDelegate* sceneDelegate,
@@ -63,6 +68,7 @@ private:
     std::vector<GfVec3i> m_faces;
     GfVec3f m_color;
     bool m_hasColor;
+    nevk::Scene* mScene;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
