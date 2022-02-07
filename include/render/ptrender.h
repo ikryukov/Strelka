@@ -50,6 +50,11 @@ public:
 
     void drawFrame(const uint8_t* outPixels);
 
+    SharedContext& getSharedContext()
+    {
+        return mSharedCtx;
+    }
+
     void setScene(Scene* scene)
     {
         mScene = scene;

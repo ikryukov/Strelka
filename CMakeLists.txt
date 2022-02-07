@@ -449,10 +449,15 @@ set_target_properties(
     CXX_STANDARD_REQUIRED TRUE
     CXX_EXTENSIONS OFF
 )
-
+target_include_directories(${HD_RUNNER_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_include_directories(${HD_RUNNER_NAME} PUBLIC external/glfw/include)
+target_include_directories(${HD_RUNNER_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_link_libraries(
   ${HD_RUNNER_NAME}
   ar cameraUtil hd hf hgi hio usd usdGeom usdImaging
+  ${Vulkan_LIBRARY}
+  ${RESMNGR_NAME} 
+  ${SHADERLIB_NAME} 
 )
 
 # Set working directory

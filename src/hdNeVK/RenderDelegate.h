@@ -4,6 +4,7 @@
 
 #include "MaterialNetworkTranslator.h"
 
+#include <render/common.h>
 #include <scene/scene.h>
 #include <ptrender.h>
 
@@ -13,11 +14,14 @@ class HdNeVKRenderDelegate final : public HdRenderDelegate
 {
 public:
     HdNeVKRenderDelegate(const HdRenderSettingsMap& settingsMap,
-                            const MaterialNetworkTranslator& translator);
+                         const MaterialNetworkTranslator& translator);
 
     ~HdNeVKRenderDelegate() override;
 
 public:
+
+    void SetDrivers(HdDriverVector const& drivers) override;
+
     HdRenderSettingDescriptorList GetRenderSettingDescriptors() const override;
 
 public:
@@ -72,11 +76,15 @@ public:
 
     TfTokenVector GetShaderSourceTypes() const override;
 
+public:
+    nevk::SharedContext& getSharedContext();
+
 private:
     const MaterialNetworkTranslator& m_translator;
     HdRenderSettingDescriptorList m_settingDescriptors;
     HdResourceRegistrySharedPtr m_resourceRegistry;
 
+    nevk::SharedContext* mSharedCtx;
     nevk::Scene mScene;
     nevk::PtRender mRenderer;
 };

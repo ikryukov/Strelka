@@ -15,6 +15,11 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
+TF_DEFINE_PRIVATE_TOKENS(
+    _Tokens,
+    (HdNeVKDriver)
+ );
+
 HdNeVKRenderDelegate::HdNeVKRenderDelegate(const HdRenderSettingsMap& settingsMap, const MaterialNetworkTranslator& translator)
     : m_translator(translator)
 {
@@ -39,6 +44,19 @@ HdNeVKRenderDelegate::HdNeVKRenderDelegate(const HdRenderSettingsMap& settingsMa
 
 HdNeVKRenderDelegate::~HdNeVKRenderDelegate()
 {
+}
+
+void HdNeVKRenderDelegate::SetDrivers(HdDriverVector const& drivers)
+{
+    for (HdDriver* hdDriver : drivers)
+    {
+        if (hdDriver->name == _Tokens->HdNeVKDriver &&
+            hdDriver->driver.IsHolding<nevk::SharedContext*>())
+        {
+            mSharedCtx = hdDriver->driver.UncheckedGet<nevk::SharedContext*>();
+            break;
+        }
+    }
 }
 
 HdRenderSettingDescriptorList HdNeVKRenderDelegate::GetRenderSettingDescriptors() const
@@ -208,6 +226,11 @@ TfTokenVector HdNeVKRenderDelegate::GetMaterialRenderContexts() const
 TfTokenVector HdNeVKRenderDelegate::GetShaderSourceTypes() const
 {
     return TfTokenVector{ HdNeVKSourceTypes->mtlx, HdNeVKSourceTypes->mdl };
+}
+
+nevk::SharedContext& HdNeVKRenderDelegate::getSharedContext()
+{
+    return mRenderer.getSharedContext();
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

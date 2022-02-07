@@ -1,9 +1,9 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-#include <ShaderManager.h>
-#include <resourcemanager.h>
-#include <texturemanager.h>
+#include <shadermanager/ShaderManager.h>
+#include <resourcemanager/resourcemanager.h>
+#include <texturemanager/texturemanager.h>
 #include "bindless.h"
 
 namespace nevk

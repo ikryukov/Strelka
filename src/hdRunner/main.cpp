@@ -28,12 +28,15 @@
 
 #include "SimpleRenderTask.h"
 
+#include <render/common.h>
+
+
 PXR_NAMESPACE_USING_DIRECTIVE
 
 TF_DEFINE_PRIVATE_TOKENS(
-  _AppTokens,
-  (HdNeVKRendererPlugin)
-);
+    _AppTokens,
+    (HdNeVKDriver)
+    (HdNeVKRendererPlugin));
 
 HdRendererPluginHandle GetHdNeVKPlugin()
 {
@@ -105,6 +108,18 @@ int main(int argc, const char* argv[])
 
     HdRenderDelegate* renderDelegate = pluginHandle->CreateRenderDelegate();
     TF_VERIFY(renderDelegate);
+
+    HdDriverVector drivers;
+
+    nevk::SharedContext* ctx;
+
+    HdDriver driver;
+    driver.name = _AppTokens->HdNeVKDriver;
+    driver.driver = VtValue(ctx);
+
+    drivers.push_back(&driver);
+
+    renderDelegate->SetDrivers(drivers);
 
     // Handle cmdline args.
     // Load scene.
