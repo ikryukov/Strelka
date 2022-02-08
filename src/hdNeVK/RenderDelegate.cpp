@@ -39,7 +39,6 @@ HdNeVKRenderDelegate::HdNeVKRenderDelegate(const HdRenderSettingsMap& settingsMa
     }
 
     mRenderer.setScene(&mScene);
-    mRenderer.init();
 }
 
 HdNeVKRenderDelegate::~HdNeVKRenderDelegate()
@@ -54,6 +53,8 @@ void HdNeVKRenderDelegate::SetDrivers(HdDriverVector const& drivers)
             hdDriver->driver.IsHolding<nevk::SharedContext*>())
         {
             mSharedCtx = hdDriver->driver.UncheckedGet<nevk::SharedContext*>();
+            mRenderer.setSharedContext(mSharedCtx);
+            mRenderer.init();
             break;
         }
     }
@@ -195,7 +196,7 @@ HdBprim* HdNeVKRenderDelegate::CreateBprim(const TfToken& typeId,
 {
     if (typeId == HdPrimTypeTokens->renderBuffer)
     {
-        return new HdNeVKRenderBuffer(bprimId);
+        return new HdNeVKRenderBuffer(bprimId, mSharedCtx);
     }
 
     return nullptr;

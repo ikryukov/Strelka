@@ -41,18 +41,15 @@ void VkRender::initVulkan()
     {
         // nevk::debug::setupDebug(mInstance);
     }
+    createSurface();
     pickPhysicalDevice();
     createLogicalDevice();
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        mFramesData[i].cmdPool = createCommandPool();
+        mSharedCtx.mFramesData[i].cmdPool = createCommandPool();
     }
 
-    mSharedCtx.mDevice = mDevice;
-    mSharedCtx.mDescriptorPool = createDescriptorPool();
-    mSharedCtx.mShaderManager = new ShaderManager;
-    mSharedCtx.mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, mInstance, getCurrentFrameData().cmdPool, mGraphicsQueue);
-    mSharedCtx.mTextureManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mSharedCtx.mResManager);
+    initSharedContext();
 
     createCommandBuffers();
     createSyncObjects();
@@ -63,6 +60,16 @@ void VkRender::initVulkan()
     }
 }
 
+void nevk::VkRender::initSharedContext()
+{
+    mSharedCtx.mDevice = mDevice;
+    mSharedCtx.mDescriptorPool = createDescriptorPool();
+    mSharedCtx.mShaderManager = new ShaderManager;
+    mSharedCtx.mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, mInstance, getCurrentFrameData().cmdPool, mGraphicsQueue);
+    mSharedCtx.mTextureManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mSharedCtx.mResManager);
+    mSharedCtx.depthFormat = findDepthFormat();
+}
+
 void VkRender::cleanup()
 {
     vkDestroyDescriptorPool(mDevice, mSharedCtx.mDescriptorPool, nullptr);
@@ -70,7 +77,7 @@ void VkRender::cleanup()
     mSharedCtx.mTextureManager->textureDestroy();
     mSharedCtx.mTextureManager->delTexturesFromQueue();
 
-    for (FrameData& fd : mFramesData)
+    for (FrameData& fd : mSharedCtx.mFramesData)
     {
         vkDestroySemaphore(mDevice, fd.renderFinished, nullptr);
         vkDestroySemaphore(mDevice, fd.imageAvailable, nullptr);
@@ -97,6 +104,10 @@ void VkRender::cleanup()
     }
 
     vkDestroyInstance(mInstance, nullptr);
+}
+
+void nevk::VkRender::createSurface()
+{
 }
 
 void VkRender::createInstance()
@@ -255,8 +266,8 @@ void VkRender::createLogicalDevice()
 
     createInfo.pEnabledFeatures = &deviceFeatures;
 
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    createInfo.enabledExtensionCount = static_cast<uint32_t>(mDeviceExtensions.size());
+    createInfo.ppEnabledExtensionNames = mDeviceExtensions.data();
 
     if (enableValidationLayers)
     {
@@ -433,7 +444,7 @@ void VkRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLay
 
 void VkRender::createCommandBuffers()
 {
-    for (FrameData& fd : mFramesData)
+    for (FrameData& fd : mSharedCtx.mFramesData)
     {
         VkCommandBufferAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -459,9 +470,9 @@ void VkRender::createSyncObjects()
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        if (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mFramesData[i].renderFinished) != VK_SUCCESS ||
-            vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mFramesData[i].imageAvailable) != VK_SUCCESS ||
-            vkCreateFence(mDevice, &fenceInfo, nullptr, &mFramesData[i].inFlightFence) != VK_SUCCESS)
+        if (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSharedCtx.mFramesData[i].renderFinished) != VK_SUCCESS ||
+            vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSharedCtx.mFramesData[i].imageAvailable) != VK_SUCCESS ||
+            vkCreateFence(mDevice, &fenceInfo, nullptr, &mSharedCtx.mFramesData[i].inFlightFence) != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create synchronization objects for a frame!");
         }
@@ -488,7 +499,7 @@ bool VkRender::checkDeviceExtensionSupport(VkPhysicalDevice device)
     std::vector<VkExtensionProperties> availableExtensions(extensionCount);
     vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
 
-    std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
+    std::set<std::string> requiredExtensions(mDeviceExtensions.begin(), mDeviceExtensions.end());
 
     for (const auto& extension : availableExtensions)
     {
@@ -515,6 +526,7 @@ QueueFamilyIndices VkRender::findQueueFamilies(VkPhysicalDevice device)
         {
             indices.graphicsFamily = i;
         }
+
 
         {
             indices.presentFamily = i;

@@ -4,8 +4,8 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdNeVKRenderBuffer::HdNeVKRenderBuffer(const SdfPath& id)
-    : HdRenderBuffer(id)
+HdNeVKRenderBuffer::HdNeVKRenderBuffer(const SdfPath& id, nevk::SharedContext* ctx)
+    : HdRenderBuffer(id), mCtx(ctx)
 {
     m_isMapped = false;
     m_isConverged = false;
@@ -39,6 +39,16 @@ bool HdNeVKRenderBuffer::Allocate(const GfVec3i& dimensions,
         return false;
     }
 
+    if (mResult)
+    {
+        mCtx->mResManager->destroyImage(mResult);
+    }
+    mResult = mCtx->mResManager->createImage(m_width, m_height, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                             VK_IMAGE_TILING_OPTIMAL,
+                                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "HdNeVKRenderBuffer");
+    mCtx->mTextureManager->transitionImageLayout(mCtx->mResManager->getVkImage(mResult), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+
     return true;
 }
 
@@ -65,6 +75,11 @@ HdFormat HdNeVKRenderBuffer::GetFormat() const
 bool HdNeVKRenderBuffer::IsMultiSampled() const
 {
     return m_isMultiSampled;
+}
+
+VtValue HdNeVKRenderBuffer::GetResource(bool multiSampled) const
+{
+    return VtValue((uint8_t*) mResult);
 }
 
 bool HdNeVKRenderBuffer::IsConverged() const

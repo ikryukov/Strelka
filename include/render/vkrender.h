@@ -29,14 +29,7 @@ const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
-const std::vector<const char*> deviceExtensions = {
-// VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-#ifdef __APPLE__
-    "VK_KHR_portability_subset",
-    "VK_KHR_maintenance3",
-    "VK_EXT_descriptor_indexing"
-#endif
-};
+
 
 #ifdef NDEBUG
 const bool enableValidationLayers = true; // Enable validation in release
@@ -55,13 +48,6 @@ struct QueueFamilyIndices
     }
 };
 
-struct SwapChainSupportDetails
-{
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
 namespace nevk
 {
 
@@ -70,9 +56,7 @@ class VkRender
 public:
     void initVulkan();
     void cleanup();
-
     void drawFrame(const uint8_t* outPixels);
-
     SharedContext& getSharedContext()
     {
         return mSharedCtx;
@@ -86,26 +70,28 @@ protected:
     VkDevice mDevice;
 
     VkQueue mGraphicsQueue;
+    VkQueue mPresentQueue;
 
     SharedContext mSharedCtx;
+
+    virtual void createSurface();
+    void initSharedContext();
+
+    std::vector<const char*> mDeviceExtensions = {
+// VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef __APPLE__
+        "VK_KHR_portability_subset",
+        "VK_KHR_maintenance3",
+        "VK_EXT_descriptor_indexing"
+#endif
+    };
 
     static constexpr size_t MAX_UPLOAD_SIZE = 1 << 24; // 16mb
     Buffer* mUploadBuffer[MAX_FRAMES_IN_FLIGHT] = { nullptr, nullptr, nullptr };
 
-    struct FrameData
-    {
-        VkCommandBuffer cmdBuffer;
-        VkCommandPool cmdPool;
-        VkFence inFlightFence;
-        VkFence imagesInFlight;
-        VkSemaphore renderFinished;
-        VkSemaphore imageAvailable;
-    };
-    FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
-
     FrameData& getFrameData(uint32_t idx)
     {
-        return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
+        return mSharedCtx.mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
     }
 
     std::array<bool, MAX_FRAMES_IN_FLIGHT> needImageViewUpdate = { false, false, false };
@@ -121,7 +107,7 @@ protected:
 
     void pickPhysicalDevice();
 
-    void createLogicalDevice();
+    virtual void createLogicalDevice();
 
     VkCommandPool createCommandPool();
 
@@ -145,9 +131,9 @@ protected:
 
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 
-    QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+    virtual QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
 
-    std::vector<const char*> getRequiredExtensions();
+    virtual std::vector<const char*> getRequiredExtensions();
 
     bool checkValidationLayerSupport();
 
@@ -198,7 +184,7 @@ public:
     }
     FrameData& getCurrentFrameData()
     {
-        return mFramesData[mFrameNumber % MAX_FRAMES_IN_FLIGHT];
+        return mSharedCtx.mFramesData[mFrameNumber % MAX_FRAMES_IN_FLIGHT];
     }
 };
 

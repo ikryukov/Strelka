@@ -187,6 +187,7 @@ set(RENDER_SOURCES
         include/render/bvh.h
         #include/render/render.h
         include/render/vkrender.h
+        include/render/glfwrender.h
         include/render/ptrender.h
         include/render/renderpass.h
         include/render/gbufferpass.h
@@ -202,6 +203,7 @@ set(RENDER_SOURCES
         include/render/debugUtils.h
         #src/render/render.cpp
         src/render/vkrender.cpp
+        src/render/glfwrender.cpp
         src/render/ptrender.cpp
         src/render/renderpass.cpp
         src/render/gbufferpass.cpp
@@ -456,8 +458,8 @@ target_link_libraries(
   ${HD_RUNNER_NAME}
   ar cameraUtil hd hf hgi hio usd usdGeom usdImaging
   ${Vulkan_LIBRARY}
-  ${RESMNGR_NAME} 
-  ${SHADERLIB_NAME} 
+  ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} 
+  ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB} ${MATERIALLIB_NAME}
 )
 
 # Set working directory

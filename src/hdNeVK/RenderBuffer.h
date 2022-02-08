@@ -3,12 +3,14 @@
 #include <pxr/imaging/hd/renderBuffer.h>
 #include <pxr/pxr.h>
 
+#include <render/common.h>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 class HdNeVKRenderBuffer final : public HdRenderBuffer
 {
 public:
-    HdNeVKRenderBuffer(const SdfPath& id);
+    HdNeVKRenderBuffer(const SdfPath& id, nevk::SharedContext* ctx);
 
     ~HdNeVKRenderBuffer() override;
 
@@ -28,6 +30,8 @@ public:
 
     bool IsMultiSampled() const override;
 
+    VtValue GetResource(bool multiSampled) const override;
+
 public:
     bool IsConverged() const override;
 
@@ -46,6 +50,9 @@ protected:
     void _Deallocate() override;
 
 private:
+    nevk::Image* mResult = nullptr;
+    nevk::SharedContext* mCtx = nullptr;
+
     void* m_bufferMem;
     uint32_t m_width;
     uint32_t m_height;

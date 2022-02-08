@@ -41,18 +41,26 @@
 namespace nevk
 {
 
-class PtRender : public VkRender
+class PtRender
 {
 public:
-
+    PtRender()
+    {
+    }
+    
     void init();
     void cleanup();
 
-    void drawFrame(const uint8_t* outPixels);
+    void drawFrame(Image* result);
+
+    void setSharedContext(SharedContext* ctx)
+    {
+        mSharedCtx = ctx;
+    }
 
     SharedContext& getSharedContext()
     {
-        return mSharedCtx;
+        return *mSharedCtx;
     }
 
     void setScene(Scene* scene)
@@ -61,18 +69,16 @@ public:
     }
 
 private:
+    SharedContext* mSharedCtx;
 
     MaterialManager* mMaterialManager = nullptr;
-
     BvhBuilder mBvhBuilder;
-
     GbufferPass mGbufferPass;
     PathTracer* mPathTracer;
     Accumulation* mAccumulationPathTracer;
     Tonemap* mTonemap;
     UpscalePass* mUpscalePass;
     ReductionPass* mReductionPass;
-
     DebugView* mDebugView;
 
     struct ViewData
@@ -208,14 +214,16 @@ private:
     void createBvhBuffer(nevk::Scene& scene);
     void createIndexBuffer(nevk::Scene& scene);
     void createInstanceBuffer(nevk::Scene& scene);
-
     void createMdlBuffers();
     
+    void recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
+    void recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage);
+
 public:
 
     nevk::ResourceManager* getResManager()
     {
-        return mSharedCtx.mResManager;
+        return mSharedCtx->mResManager;
     }
 
     nevk::Scene* getScene()
@@ -230,12 +238,17 @@ public:
 
     nevk::TextureManager* getTexManager()
     {
-        return mSharedCtx.mTextureManager;
+        return mSharedCtx->mTextureManager;
     }
 
     SceneRenderData* getSceneData()
     {
         return mCurrentSceneRenderData;
+    }
+
+    ShaderManager* getShaderManager()
+    {
+        return mSharedCtx->mShaderManager;
     }
 };
 

@@ -29,7 +29,7 @@
 #include "SimpleRenderTask.h"
 
 #include <render/common.h>
-
+#include <render/glfwrender.h>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
@@ -105,13 +105,14 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "HdNeVK plugin is not supported!\n");
         return EXIT_FAILURE;
     }
-
-    HdRenderDelegate* renderDelegate = pluginHandle->CreateRenderDelegate();
-    TF_VERIFY(renderDelegate);
-
+    
     HdDriverVector drivers;
 
-    nevk::SharedContext* ctx;
+    nevk::GLFWRender render;
+
+    render.init(800, 600);
+
+    nevk::SharedContext* ctx = &render.getSharedContext();
 
     HdDriver driver;
     driver.name = _AppTokens->HdNeVKDriver;
@@ -119,6 +120,8 @@ int main(int argc, const char* argv[])
 
     drivers.push_back(&driver);
 
+    HdRenderDelegate* renderDelegate = pluginHandle->CreateRenderDelegate();
+    TF_VERIFY(renderDelegate);
     renderDelegate->SetDrivers(drivers);
 
     // Handle cmdline args.
@@ -173,13 +176,14 @@ int main(int argc, const char* argv[])
     // Set up rendering context.
     uint32_t imageWidth = 800;
     uint32_t imageHeight = 600;
-    HdRenderBuffer* renderBuffer = (HdRenderBuffer*)renderDelegate->CreateFallbackBprim(HdPrimTypeTokens->renderBuffer);
-    renderBuffer->Allocate(GfVec3i(imageWidth, imageHeight, 1), HdFormatFloat32Vec4, false);
 
-    HdRenderPassAovBindingVector aovBindings(1);
-    aovBindings[0].aovName = HdAovTokens->color;
-    aovBindings[0].renderBuffer = renderBuffer;
-
+    HdRenderBuffer* renderBuffers[3];
+    for (int i = 0; i < 3; ++i)
+    {
+        renderBuffers[i] = (HdRenderBuffer*)renderDelegate->CreateFallbackBprim(HdPrimTypeTokens->renderBuffer);
+        renderBuffers[i]->Allocate(GfVec3i(imageWidth, imageHeight, 1), HdFormatFloat32Vec4, false);
+    }
+    
     CameraUtilFraming framing;
     framing.dataWindow = GfRect2i(GfVec2i(0, 0), GfVec2i(imageWidth, imageHeight));
     framing.displayWindow = GfRange2f(GfVec2f(0.0f, 0.0f), GfVec2f((float)imageWidth, (float)imageHeight));
@@ -187,33 +191,53 @@ int main(int argc, const char* argv[])
 
     std::pair<bool, CameraUtilConformWindowPolicy> overrideWindowPolicy(false, CameraUtilFit);
 
-    auto renderPassState = std::make_shared<HdRenderPassState>();
-    renderPassState->SetCameraAndFraming(camera, framing, overrideWindowPolicy);
-    renderPassState->SetAovBindings(aovBindings);
-
+    TfTokenVector renderTags(1, HdRenderTagTokens->geometry);
     HdRprimCollection renderCollection(HdTokens->geometry, HdReprSelector(HdReprTokens->refined));
     HdRenderPassSharedPtr renderPass = renderDelegate->CreateRenderPass(renderIndex, renderCollection);
 
-    TfTokenVector renderTags(1, HdRenderTagTokens->geometry);
-    auto renderTask = std::make_shared<SimpleRenderTask>(renderPass, renderPassState, renderTags);
+    std::shared_ptr<HdRenderPassState> renderPassState[3];
+    std::shared_ptr<SimpleRenderTask> renderTasks[3];
+    for (int i = 0; i < 3; ++i)
+    {
+        renderPassState[i] = std::make_shared<HdRenderPassState>();
+        renderPassState[i]->SetCameraAndFraming(camera, framing, overrideWindowPolicy);
+        HdRenderPassAovBindingVector aovBindings(1);
+        aovBindings[0].aovName = HdAovTokens->color;
+        aovBindings[0].renderBuffer = renderBuffers[i];
 
+        renderPassState[i]->SetAovBindings(aovBindings);
+        renderTasks[i] = std::make_shared<SimpleRenderTask>(renderPass, renderPassState[i], renderTags);    
+    }
+    
     // Perform rendering.
     TfStopwatch timerRender;
     timerRender.Start();
 
     HdEngine engine;
 
-    for (int i = 0; i < 2000; ++i)
+    uint64_t frameCount = 0;
+    while (!render.windowShouldClose())
     {
+        auto start = std::chrono::high_resolution_clock::now();
         HdTaskSharedPtrVector tasks;
-        tasks.push_back(renderTask);
+        tasks.push_back(renderTasks[frameCount % 3]);
+        sceneDelegate.SetTime(1.0f);
+        
+        render.pollEvents();
 
-        sceneDelegate.SetTime(i);
+        render.onBeginFrame();
         engine.Execute(renderIndex, &tasks);
-    }    
+        nevk::Image* outputImage = renderBuffers[frameCount % 3]->GetResource(false).UncheckedGet<nevk::Image*>();
+        render.drawFrame(outputImage);
+        render.onEndFrame();
+        
+        auto finish = std::chrono::high_resolution_clock::now();
+        double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
+        ++frameCount;
+    }
 
-    renderBuffer->Resolve();
-    TF_VERIFY(renderBuffer->IsConverged());
+    //renderBuffer->Resolve();
+    //TF_VERIFY(renderBuffer->IsConverged());
 
     timerRender.Stop();
 
@@ -221,50 +245,52 @@ int main(int argc, const char* argv[])
     fflush(stdout);
 
     // Gamma correction.
-    float* mappedMem = (float*)renderBuffer->Map();
-    TF_VERIFY(mappedMem != nullptr);
+    //float* mappedMem = (float*)renderBuffer->Map();
+    //TF_VERIFY(mappedMem != nullptr);
 
-    int pixelCount = renderBuffer->GetWidth() * renderBuffer->GetHeight();
+    //int pixelCount = renderBuffer->GetWidth() * renderBuffer->GetHeight();
 
-    for (int i = 0; i < pixelCount; i++)
+    //for (int i = 0; i < pixelCount; i++)
+    //{
+    //    mappedMem[i * 4 + 0] = GfConvertLinearToDisplay(mappedMem[i * 4 + 0]);
+    //    mappedMem[i * 4 + 1] = GfConvertLinearToDisplay(mappedMem[i * 4 + 1]);
+    //    mappedMem[i * 4 + 2] = GfConvertLinearToDisplay(mappedMem[i * 4 + 2]);
+    //}
+
+    //// Write image to file.
+    //TfStopwatch timerWrite;
+    //timerWrite.Start();
+
+    //std::string outputFilePath = "res.png";
+
+    //HioImageSharedPtr image = HioImage::OpenForWriting(outputFilePath);
+
+    //if (!image)
+    //{
+    //    fprintf(stderr, "Unable to open output file for writing!\n");
+    //    return EXIT_FAILURE;
+    //}
+
+    //HioImage::StorageSpec storage;
+    //storage.width = (int)renderBuffer->GetWidth();
+    //storage.height = (int)renderBuffer->GetHeight();
+    //storage.depth = (int)renderBuffer->GetDepth();
+    //storage.format = HioFormat::HioFormatFloat32Vec4;
+    //storage.flipped = false;
+    //storage.data = mappedMem;
+
+    //VtDictionary metadata;
+    //image->Write(storage, metadata);
+
+    //renderBuffer->Unmap();
+    //timerWrite.Stop();
+
+    //printf("Wrote image (%.3fs)\n", timerWrite.GetSeconds());
+    //fflush(stdout);
+
+    for (int i = 0; i < 3; ++i)
     {
-        mappedMem[i * 4 + 0] = GfConvertLinearToDisplay(mappedMem[i * 4 + 0]);
-        mappedMem[i * 4 + 1] = GfConvertLinearToDisplay(mappedMem[i * 4 + 1]);
-        mappedMem[i * 4 + 2] = GfConvertLinearToDisplay(mappedMem[i * 4 + 2]);
+        renderDelegate->DestroyBprim(renderBuffers[i]);
     }
-
-    // Write image to file.
-    TfStopwatch timerWrite;
-    timerWrite.Start();
-
-    std::string outputFilePath = "res.png";
-
-    HioImageSharedPtr image = HioImage::OpenForWriting(outputFilePath);
-
-    if (!image)
-    {
-        fprintf(stderr, "Unable to open output file for writing!\n");
-        return EXIT_FAILURE;
-    }
-
-    HioImage::StorageSpec storage;
-    storage.width = (int)renderBuffer->GetWidth();
-    storage.height = (int)renderBuffer->GetHeight();
-    storage.depth = (int)renderBuffer->GetDepth();
-    storage.format = HioFormat::HioFormatFloat32Vec4;
-    storage.flipped = false;
-    storage.data = mappedMem;
-
-    VtDictionary metadata;
-    image->Write(storage, metadata);
-
-    renderBuffer->Unmap();
-    timerWrite.Stop();
-
-    printf("Wrote image (%.3fs)\n", timerWrite.GetSeconds());
-    fflush(stdout);
-
-    renderDelegate->DestroyBprim(renderBuffer);
-
     return EXIT_SUCCESS;
 }

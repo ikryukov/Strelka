@@ -347,6 +347,8 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     //    return;
     //}
 
+    nevk::Image* outputImage = renderBuffer->GetResource(false).UncheckedGet<nevk::Image*>();
+
     renderBuffer->SetConverged(false);
 
     m_lastSceneStateVersion = sceneStateVersion;
@@ -416,7 +418,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
 
     float* img_data = (float*)renderBuffer->Map();
 
-    mRenderer->drawFrame((uint8_t*)img_data);
+    mRenderer->drawFrame(outputImage);
 
     renderBuffer->Unmap();
     //renderBuffer->SetConverged(true);

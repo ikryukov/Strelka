@@ -22,16 +22,14 @@ using namespace nevk;
 
 void PtRender::init()
 {
-    VkRender::initVulkan();
-
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         mView[i] = createView(800, 600, 1);
     }    
 
     {
-        ResourceManager* resManager = mSharedCtx.mResManager;
-        TextureManager* texManager = mSharedCtx.mTextureManager;
+        ResourceManager* resManager = getResManager();
+        TextureManager* texManager = getTexManager();
         const std::string imageName = "Accumulation Image";
         mAccumulatedPt = resManager->createImage(800, 600, VK_FORMAT_R32G32B32A32_SFLOAT,
                                                                         VK_IMAGE_TILING_OPTIMAL,
@@ -41,16 +39,16 @@ void PtRender::init()
         resManager->setImageLayout(mAccumulatedPt, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
-    mDebugView = new DebugView(mSharedCtx);
+    mDebugView = new DebugView(getSharedContext());
     mDebugView->initialize();
 
-    mTonemap = new Tonemap(mSharedCtx);
+    mTonemap = new Tonemap(getSharedContext());
     mTonemap->initialize();
 
-    mUpscalePass = new UpscalePass(mSharedCtx);
+    mUpscalePass = new UpscalePass(getSharedContext());
     mUpscalePass->initialize();
 
-    mReductionPass = new ReductionPass(mSharedCtx);
+    mReductionPass = new ReductionPass(getSharedContext());
     mReductionPass->initialize();
 
     mMaterialManager = new MaterialManager();
@@ -118,20 +116,20 @@ void PtRender::init()
     const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials);
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
-    mCurrentSceneRenderData = new SceneRenderData(mSharedCtx.mResManager);
+    mCurrentSceneRenderData = new SceneRenderData(getResManager());
 
     mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
 
     std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
 
-    mPathTracer = new PathTracer(mSharedCtx, newPTCode);
+    mPathTracer = new PathTracer(getSharedContext(), newPTCode);
     mPathTracer->initialize();
 
-    mAccumulationPathTracer = new Accumulation(mSharedCtx);
+    mAccumulationPathTracer = new Accumulation(getSharedContext());
     mAccumulationPathTracer->initialize();
 
     TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
-    mSharedCtx.mTextureManager->createTextureSampler(defSamplerDesc);
+    getTexManager()->createTextureSampler(defSamplerDesc);
 
     createGbufferPass();
 }
@@ -160,10 +158,10 @@ void PtRender::cleanup()
 
 PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32_t spp)
 {
-    assert(mSharedCtx.mResManager);
-    assert(mSharedCtx.mTextureManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
-    TextureManager* texManager = mSharedCtx.mTextureManager;
+    assert(mSharedCtx->mResManager);
+    assert(mSharedCtx->mTextureManager);
+    ResourceManager* resManager = getResManager();
+    TextureManager* texManager = getTexManager();
     ViewData* view = new ViewData();
     view->spp = spp;
     view->finalWidth = width;
@@ -219,15 +217,15 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32
 
 GBuffer* PtRender::createGbuffer(uint32_t width, uint32_t height)
 {
-    assert(mSharedCtx.mResManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
+    assert(mSharedCtx->mResManager);
+    ResourceManager* resManager = getResManager();
     assert(resManager);
     GBuffer* res = new GBuffer();
     res->mResManager = resManager;
     res->width = width;
     res->height = height;
     // Depth
-    res->depthFormat = findDepthFormat();
+    res->depthFormat = getSharedContext().depthFormat;
     res->depth = resManager->createImage(width, height, res->depthFormat, VK_IMAGE_TILING_OPTIMAL,
                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
     // Normals
@@ -256,19 +254,19 @@ GBuffer* PtRender::createGbuffer(uint32_t width, uint32_t height)
 
 void PtRender::createGbufferPass()
 {
-    uint32_t vertId = mSharedCtx.mShaderManager->loadShader("shaders/gbuffer.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
-    uint32_t fragId = mSharedCtx.mShaderManager->loadShader("shaders/gbuffer.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
+    uint32_t vertId = getShaderManager()->loadShader("shaders/gbuffer.hlsl", "vertexMain", nevk::ShaderManager::Stage::eVertex);
+    uint32_t fragId = getShaderManager()->loadShader("shaders/gbuffer.hlsl", "fragmentMain", nevk::ShaderManager::Stage::ePixel);
     const char* vertShaderCode = nullptr;
     uint32_t vertShaderCodeSize = 0;
     const char* fragShaderCode = nullptr;
     uint32_t fragShaderCodeSize = 0;
-    mSharedCtx.mShaderManager->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
-    mSharedCtx.mShaderManager->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
+    getShaderManager()->getShaderCode(vertId, vertShaderCode, vertShaderCodeSize);
+    getShaderManager()->getShaderCode(fragId, fragShaderCode, fragShaderCodeSize);
 
-    mGbufferPass.setTextureSamplers(mSharedCtx.mTextureManager->texSamplers);
+    mGbufferPass.setTextureSamplers(getTexManager()->texSamplers);
     assert(mView[0]);
-    mGbufferPass.init(mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize,
-                      mSharedCtx.mDescriptorPool, mSharedCtx.mResManager, mView[0]->gbuffer->depthFormat, mView[0]->gbuffer->width, mView[0]->gbuffer->height);
+    mGbufferPass.init(getSharedContext().mDevice, enableValidationLayers, vertShaderCode, vertShaderCodeSize, fragShaderCode, fragShaderCodeSize,
+                      getSharedContext().mDescriptorPool, getResManager(), mView[0]->gbuffer->depthFormat, mView[0]->gbuffer->width, mView[0]->gbuffer->height);
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         mGbufferPass.createFrameBuffers(*mView[i]->gbuffer, i);
@@ -277,8 +275,8 @@ void PtRender::createGbufferPass()
 
 void PtRender::createVertexBuffer(nevk::Scene& scene)
 {
-    assert(mSharedCtx.mResManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
+    assert(mSharedCtx->mResManager);
+    ResourceManager* resManager = getResManager();
     std::vector<nevk::Scene::Vertex>& sceneVertices = scene.getVertices();
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
     if (bufferSize == 0)
@@ -295,8 +293,8 @@ void PtRender::createVertexBuffer(nevk::Scene& scene)
 
 void PtRender::createMaterialBuffer(nevk::Scene& scene)
 {
-    assert(mSharedCtx.mResManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
+    assert(mSharedCtx->mResManager);
+    ResourceManager* resManager = getResManager();
     std::vector<Material>& sceneMaterials = scene.getMaterials();
 
     VkDeviceSize bufferSize = sizeof(Material) * (sceneMaterials.size() + MAX_LIGHT_COUNT); // Reserve extra for lights material
@@ -314,8 +312,8 @@ void PtRender::createMaterialBuffer(nevk::Scene& scene)
 
 void PtRender::createLightsBuffer(nevk::Scene& scene)
 {
-    assert(mSharedCtx.mResManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
+    assert(mSharedCtx->mResManager);
+    ResourceManager* resManager = getResManager();
     std::vector<nevk::Scene::Light>& sceneLights = scene.getLights();
 
     VkDeviceSize bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
@@ -333,8 +331,8 @@ void PtRender::createLightsBuffer(nevk::Scene& scene)
 
 void PtRender::createBvhBuffer(nevk::Scene& scene)
 {
-    assert(mSharedCtx.mResManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
+    assert(mSharedCtx->mResManager);
+    ResourceManager* resManager = getResManager();
     const std::vector<Scene::Vertex>& vertices = scene.getVertices();
     const std::vector<uint32_t>& indices = scene.getIndices();
     const std::vector<Instance>& instances = scene.getInstances();
@@ -402,8 +400,8 @@ void PtRender::createBvhBuffer(nevk::Scene& scene)
 
 void PtRender::createIndexBuffer(nevk::Scene& scene)
 {
-    assert(mSharedCtx.mResManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
+    assert(mSharedCtx->mResManager);
+    ResourceManager* resManager = getResManager();
     std::vector<uint32_t>& sceneIndices = scene.getIndices();
     mCurrentSceneRenderData->mIndicesCount = (uint32_t)sceneIndices.size();
     VkDeviceSize bufferSize = sizeof(uint32_t) * sceneIndices.size();
@@ -422,8 +420,8 @@ void PtRender::createIndexBuffer(nevk::Scene& scene)
 
 void PtRender::createInstanceBuffer(nevk::Scene& scene)
 {
-    assert(mSharedCtx.mResManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
+    assert(mSharedCtx->mResManager);
+    ResourceManager* resManager = getResManager();
     const std::vector<Mesh>& meshes = scene.getMeshes();
     const std::vector<nevk::Instance>& sceneInstances = scene.getInstances();
     mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
@@ -456,8 +454,8 @@ void PtRender::createInstanceBuffer(nevk::Scene& scene)
 
 void nevk::PtRender::createMdlBuffers()
 {
-    assert(mSharedCtx.mResManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
+    assert(mSharedCtx->mResManager);
+    ResourceManager* resManager = getResManager();
     const MaterialManager::TargetCode* code = mCurrentSceneRenderData->mMaterialTargetCode;
     mMaterialManager->getArgBufferData(code);
 
@@ -485,22 +483,22 @@ void nevk::PtRender::createMdlBuffers()
     resManager->destroyBuffer(stagingBuffer);
 }
 
-void PtRender::drawFrame(const uint8_t* outPixels)
+void PtRender::drawFrame(Image* result)
 {
-    assert(mSharedCtx.mResManager);
-    assert(mSharedCtx.mTextureManager);
-    ResourceManager* resManager = mSharedCtx.mResManager;
-    TextureManager* texManager = mSharedCtx.mTextureManager;
+    assert(mSharedCtx->mResManager);
+    assert(mSharedCtx->mTextureManager);
+    ResourceManager* resManager = getResManager();
+    TextureManager* texManager = getTexManager();
 
     assert(mScene);
     // ZoneScoped;
 
-    FrameData& currFrame = getCurrentFrameData();
-    const uint32_t imageIndex = mFrameNumber % MAX_FRAMES_IN_FLIGHT;
-    const uint64_t frameIndex = mFrameNumber;
+    //FrameData& currFrame = mSharedCtx.getCurrentFrameData();
+    const uint32_t imageIndex = getSharedContext().mFrameNumber % MAX_FRAMES_IN_FLIGHT;
+    const uint64_t frameIndex = getSharedContext().mFrameNumber;
     
     // TODO: handle changes: resize, update
-    if (mFrameNumber == 0)
+    if (getSharedContext().mFrameNumber == 0)
     {
         createVertexBuffer(*mScene);
         createIndexBuffer(*mScene);
@@ -527,16 +525,8 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     mGbufferPass.onResize(currView->gbuffer, imageIndex);
     mGbufferPass.updateUniformBuffer(imageIndex, *mScene, getActiveCameraIndex());
 
-    VkCommandBuffer& cmd = getFrameData(imageIndex).cmdBuffer;
-    vkResetCommandBuffer(cmd, 0);
-
-    VkCommandBufferBeginInfo cmdBeginInfo = {};
-    cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    cmdBeginInfo.pNext = nullptr;
-    cmdBeginInfo.pInheritanceInfo = nullptr;
-    cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+    // at this point we reseive opened cmd buffer
+    VkCommandBuffer& cmd = getSharedContext().getFrameData(imageIndex).cmdBuffer;
 
     mGbufferPass.setTextureImageView(texManager->textureImageView);
     mGbufferPass.setTextureSamplers(texManager->texSamplers);
@@ -592,7 +582,6 @@ void PtRender::drawFrame(const uint8_t* outPixels)
         ptDesc.materials = mCurrentSceneRenderData->mMaterialBuffer;
         ptDesc.matSampler = texManager->mMdlSampler;
         ptDesc.matTextures = texManager->textureImages;
-
         ptDesc.sampleBuffer = currView->mSampleBuffer;
         // desc.compositingBuffer = currView->mCompositingBuffer;
 
@@ -603,7 +592,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
         PathTracerParam& pathTracerParam = ptDesc.constants;
         pathTracerParam.dimension = glm::int2(renderWidth, renderHeight);
-        pathTracerParam.frameNumber = (uint32_t)mFrameNumber;
+        pathTracerParam.frameNumber = (uint32_t)getSharedContext().mFrameNumber;
         pathTracerParam.maxDepth = 6;
         pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
         pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
@@ -665,7 +654,7 @@ void PtRender::drawFrame(const uint8_t* outPixels)
             accParam.clipToView = cam.matrices.invPerspective;
             accParam.viewToWorld = glm::inverse(cam.matrices.view);
             accParam.isPt = 1;
-            currView->mPtIteration = i + (uint32_t) mFrameNumber * 1; // TODO: need to recalc properly
+            currView->mPtIteration = i + (uint32_t)getSharedContext().mFrameNumber * 1; // TODO: need to recalc properly
             accParam.iteration = currView->mPtIteration;
 
             accDesc.input = finalPathTracerImage;
@@ -721,48 +710,46 @@ void PtRender::drawFrame(const uint8_t* outPixels)
     }
 
     // Copy to swapchain image
-    recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                       VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-    VkDeviceSize imageSize = finalWidth * finalHeight * 16;
-    Buffer* stagingBuffer = resManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    VkBufferImageCopy region{};
-    region.bufferOffset = 0;
-    region.bufferRowLength = finalWidth;
-    region.bufferImageHeight = 0;
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageSubresource.mipLevel = 0;
-    region.imageOffset.x = 0;
-    region.imageOffset.y = 0;
-    region.imageOffset.z = 0;
-    region.imageExtent.width = finalWidth;
-    region.imageExtent.height = finalHeight;
-    region.imageExtent.depth = 1;
-    vkCmdCopyImageToBuffer(cmd, resManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, resManager->getVkBuffer(stagingBuffer), 1, &region);
+    //recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    //                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    //VkDeviceSize imageSize = finalWidth * finalHeight * 16;
+    //Buffer* stagingBuffer = resManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    //VkBufferImageCopy region{};
+    //region.bufferOffset = 0;
+    //region.bufferRowLength = finalWidth;
+    //region.bufferImageHeight = 0;
+    //region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    //region.imageSubresource.baseArrayLayer = 0;
+    //region.imageSubresource.layerCount = 1;
+    //region.imageSubresource.mipLevel = 0;
+    //region.imageOffset.x = 0;
+    //region.imageOffset.y = 0;
+    //region.imageOffset.z = 0;
+    //region.imageExtent.width = finalWidth;
+    //region.imageExtent.height = finalHeight;
+    //region.imageExtent.depth = 1;
+    //vkCmdCopyImageToBuffer(cmd, resManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, resManager->getVkBuffer(stagingBuffer), 1, &region);
+
+    //recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
+
+    VkOffset3D blitSize{};
+    blitSize.x = finalWidth;
+    blitSize.y = finalHeight;
+    blitSize.z = 1;
+    VkImageBlit imageBlitRegion{};
+    imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.srcSubresource.layerCount = 1;
+    imageBlitRegion.srcOffsets[1] = blitSize;
+    imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.dstSubresource.layerCount = 1;
+    imageBlitRegion.dstOffsets[1] = blitSize;
+    vkCmdBlitImage(cmd, resManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_GENERAL, resManager->getVkImage(result), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
 
     recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-
-    //    VkOffset3D blitSize{};
-    //    blitSize.x = finalWidth;
-    //    blitSize.y = finalHeight;
-    //    blitSize.z = 1;
-    //    VkImageBlit imageBlitRegion{};
-    //    imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    //    imageBlitRegion.srcSubresource.layerCount = 1;
-    //    imageBlitRegion.srcOffsets[1] = blitSize;
-    //    imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    //    imageBlitRegion.dstSubresource.layerCount = 1;
-    //    imageBlitRegion.dstOffsets[1] = blitSize;
-    //    vkCmdBlitImage(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
-
-    //    recordBarrier(cmd, mResManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
-    //                  VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
-    //    recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    //                  VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-    //}
+    //recordBarrier(cmd, mSwapChainImages[imageIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    //              VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
     // copy current depth from gbuffer to prev gbuffer
     //{
@@ -792,30 +779,54 @@ void PtRender::drawFrame(const uint8_t* outPixels)
 
     // assign prev resources for next frame rendering
     mPrevView = mView[imageIndex];
+}
 
-    if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to record command buffer!");
-    }
+void PtRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask)
+{
+    VkImageMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.image = getSharedContext().mResManager->getVkImage(image);
+    barrier.oldLayout = getSharedContext().mResManager->getImageLayout(image);
+    barrier.newLayout = newLayout;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.subresourceRange.aspectMask = aspectMask;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
 
-    VkSubmitInfo submitInfo{};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &cmd;
+    barrier.srcAccessMask = srcAccess;
+    barrier.dstAccessMask = dstAccess;
 
-    vkResetFences(mDevice, 1, &currFrame.inFlightFence);
+    getSharedContext().mResManager->setImageLayout(image, newLayout);
 
-    if (vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, currFrame.inFlightFence) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to submit draw command buffer!");
-    }
+    vkCmdPipelineBarrier(
+        cmd,
+        sourceStage, destinationStage,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier);
+}
 
-    vkWaitForFences(mDevice, 1, &currFrame.inFlightFence, true, UINT64_MAX);
+void PtRender::recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage)
+{
+    VkBufferMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.buffer = getSharedContext().mResManager->getVkBuffer(buff);
+    barrier.offset = 0;
+    barrier.size = getSharedContext().mResManager->getSize(buff);
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.srcAccessMask = srcAccess;
+    barrier.dstAccessMask = dstAccess;
 
-    vkDeviceWaitIdle(mDevice);
-
-    void* data = resManager->getMappedMemory(stagingBuffer);
-    memcpy((void*)outPixels, data, static_cast<size_t>(imageSize));
-
-    ++mFrameNumber;
+    vkCmdPipelineBarrier(
+        cmd,
+        sourceStage, destinationStage,
+        0,
+        0, nullptr,
+        1, &barrier,
+        0, nullptr);
 }
