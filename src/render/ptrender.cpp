@@ -70,19 +70,37 @@ void PtRender::init()
         return;
     }
 
-    std::vector<MaterialManager::CompiledMaterial*> materials;
 
     // default material
     {
-        MaterialManager::Module* mdlModule = mMaterialManager->createModule("tutorials.mdl");
-        assert(mdlModule);
-        MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "example_material");
-        assert(materialInst);
-        MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
-        assert(materialComp);
-        materials.push_back(materialComp);
+        //MaterialManager::Module* mdlModule = mMaterialManager->createModule();
+        //assert(mdlModule);
+        //MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, );
+        //assert(materialInst);
+        //MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+        //assert(materialComp);
+        //materials.push_back(materialComp);
+
+        Material defaultMaterial{};
+
+        defaultMaterial.baseColorFactor = glm::float4(1.0f);
+        defaultMaterial.diffuse = defaultMaterial.baseColorFactor;
+        defaultMaterial.illum = 2; // opaque
+        defaultMaterial.texBaseColor = -1;
+        defaultMaterial.texNormalId = -1;
+        defaultMaterial.texEmissive = -1;
+
+        nevk::Scene::MaterialX material;
+        material.file = "tutorials.mdl";
+        material.name = "example_material";
+        mScene->materialsCode.push_back(material);
+
+        Material mdlMaterial = defaultMaterial;
+        mdlMaterial.isMdl = 1;
+        mScene->addMaterial(mdlMaterial);
     }
 
+    std::vector<MaterialManager::CompiledMaterial*> materials;
     for (uint32_t i = 0; i < mScene->materialsCode.size(); ++i)
     {
         if (mScene->mMaterials[i].isMdl)
@@ -154,6 +172,49 @@ void PtRender::cleanup()
     {
         delete mCurrentSceneRenderData;
     }
+}
+
+void nevk::PtRender::reloadPt()
+{
+    std::vector<MaterialManager::CompiledMaterial*> materials;
+    for (uint32_t i = 0; i < mScene->materialsCode.size(); ++i)
+    {
+        if (mScene->mMaterials[i].isMdl)
+        {
+            MaterialManager::Module* mdlModule = mMaterialManager->createModule(mScene->materialsCode[i].file.c_str());
+            assert(mdlModule);
+            MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, mScene->materialsCode[i].name.c_str());
+            assert(materialInst);
+            MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+            assert(materialComp);
+            materials.push_back(materialComp);
+        }
+        else
+        {
+            MaterialManager::Module* mdlModule = mMaterialManager->createMtlxModule(mScene->materialsCode[i].code.c_str());
+            assert(mdlModule);
+            MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, "");
+            assert(materialInst);
+            MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+            assert(materialComp);
+            materials.push_back(materialComp);
+        }
+    }
+
+    const fs::path cwd = fs::current_path();
+    std::ifstream pt(cwd.string() + "/shaders/pathtracerMdl.hlsl");
+    std::stringstream ptcode;
+    ptcode << pt.rdbuf();
+
+    assert(materials.size() != 0);
+    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials);
+    const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
+
+    mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
+
+    std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+
+    mPathTracer->updateShader(newPTCode.c_str());
 }
 
 PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32_t spp)
@@ -504,9 +565,11 @@ void PtRender::drawFrame(Image* result)
         createIndexBuffer(*mScene);
         createInstanceBuffer(*mScene);
         createLightsBuffer(*mScene);
+        createBvhBuffer(*mScene); // need to update descriptors after it
+
+        reloadPt();
         createMaterialBuffer(*mScene);
         createMdlBuffers();
-        createBvhBuffer(*mScene); // need to update descriptors after it
     }
 
     ViewData* currView = mView[imageIndex];

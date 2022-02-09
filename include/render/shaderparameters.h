@@ -607,11 +607,17 @@ public:
         assert(shaderId != (uint32_t)-1);
         mShaderId = shaderId;
 
+        mNameToDesc.clear(); // remove previous values
         mResourcesDescs = mSharedCtx.mShaderManager->getResourcesDesc(shaderId);
         for (auto& desc : mResourcesDescs)
         {
             mNameToDesc[desc.name] = desc;
         }
+
+        if (mDescriptorSetLayout)
+        {
+            vkDestroyDescriptorSetLayout(mSharedCtx.mDevice, mDescriptorSetLayout, nullptr);
+        }        
 
         NeVkResult res = createDescriptorSetLayout();
         assert(mCbBinding != -1);

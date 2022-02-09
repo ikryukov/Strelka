@@ -19,7 +19,7 @@ public:
     HdNeVKRenderPass(HdRenderIndex* index,
                      const HdRprimCollection& collection,
                      const HdRenderSettingsMap& settings,
-                     nevk::PtRender* renderer);
+                     nevk::PtRender* renderer, nevk::Scene* scene);
 
     ~HdNeVKRenderPass() override;
 
@@ -47,7 +47,7 @@ private:
     uint32_t m_lastRenderSettingsVersion;
     GfMatrix4d m_rootMatrix;
     
-    nevk::Scene mScene;
+    nevk::Scene* mScene;
     // ptr to global render
     nevk::PtRender* mRenderer;
 };

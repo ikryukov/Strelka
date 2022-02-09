@@ -16,6 +16,7 @@ protected:
     bool mNeedUpdatePipeline[MAX_FRAMES_IN_FLIGHT] = { true, true, true };
 
     VkShaderModule mCS = VK_NULL_HANDLE;
+    uint32_t mCSid = (uint32_t)-1;
 
     ShaderParametersFactory<T> mShaderParamFactory;
 
@@ -78,16 +79,31 @@ public:
         onDestroy();
     }
 
-    void initializeFromCode(const char* code)
+    void updateShader(const char* code)
     {
         const char* csShaderCode = nullptr;
         uint32_t csShaderCodeSize = 0;
-        uint32_t csId = mSharedCtx.mShaderManager->loadShaderFromString(code, "computeMain", nevk::ShaderManager::Stage::eCompute);
-        assert(csId != -1);
-        mSharedCtx.mShaderManager->getShaderCode(csId, csShaderCode, csShaderCodeSize);
+        mCSid = mSharedCtx.mShaderManager->loadShaderFromString(code, "computeMain", nevk::ShaderManager::Stage::eCompute);
+        assert(mCSid != -1);
+        mSharedCtx.mShaderManager->getShaderCode(mCSid, csShaderCode, csShaderCodeSize);
+        if (mCS)
+        {
+            vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
+        }
         mCS = createShaderModule(csShaderCode, csShaderCodeSize);
 
-        mShaderParamFactory.initialize(csId);
+        // mark as dirty, we need update pipelines
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            mNeedUpdatePipeline[i] = true;
+        }
+    }
+
+    void initializeFromCode(const char* code)
+    {
+        updateShader(code);
+
+        mShaderParamFactory.initialize(mCSid);
     }
 
     void initialize(const char* shaderFile)

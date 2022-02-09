@@ -39,9 +39,9 @@ PXR_NAMESPACE_OPEN_SCOPE
 HdNeVKRenderPass::HdNeVKRenderPass(HdRenderIndex* index,
                                    const HdRprimCollection& collection,
                                    const HdRenderSettingsMap& settings,
-                                   nevk::PtRender* renderer
-    )
-    : HdRenderPass(index, collection), m_settings(settings), m_isConverged(false), m_lastSceneStateVersion(UINT32_MAX), m_lastRenderSettingsVersion(UINT32_MAX), mRenderer(renderer)
+                                   nevk::PtRender* renderer,
+                                   nevk::Scene* scene)
+    : HdRenderPass(index, collection), m_settings(settings), m_isConverged(false), m_lastSceneStateVersion(UINT32_MAX), m_lastRenderSettingsVersion(UINT32_MAX), mRenderer(renderer), mScene(scene)
 {
 }
 
@@ -111,9 +111,9 @@ void HdNeVKRenderPass::_BakeMeshInstance(const HdNeVKMesh* mesh,
         }
     }
 
-    uint32_t meshId = mScene.createMesh(vertices, indices);
+    uint32_t meshId = mScene->createMesh(vertices, indices);
     assert(meshId != -1);
-    uint32_t instId = mScene.createInstance(meshId, materialIndex, glmTransform, massCenter);
+    uint32_t instId = mScene->createInstance(meshId, materialIndex, glmTransform, massCenter);
     assert(instId != -1);
 }
 
@@ -182,12 +182,12 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
                 material.file = fileUri;
                 material.name = name;
 
-                materialIndex = mScene.materialsCode.size();
-                mScene.materialsCode.push_back(material);
+                materialIndex = mScene->materialsCode.size();
+                mScene->materialsCode.push_back(material);
                 Material mdlMaterial = defaultMaterial;
                 mdlMaterial.isMdl = 1;
 
-                mScene.addMaterial(mdlMaterial);
+                mScene->addMaterial(mdlMaterial);
                 materialMapping[materialId] = materialIndex;
             }
             else
@@ -195,9 +195,9 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
                 const std::string& code = material->GetNeVKMaterial();
                 nevk::Scene::MaterialX material;
                 material.code = code;
-                materialIndex = mScene.materialsCode.size();
-                mScene.materialsCode.push_back(material);
-                mScene.addMaterial(defaultMaterial);
+                materialIndex = mScene->materialsCode.size();
+                mScene->materialsCode.push_back(material);
+                mScene->addMaterial(defaultMaterial);
                 materialMapping[materialId] = materialIndex;
             }
         }
@@ -211,9 +211,9 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
             _BakeMeshInstance(mesh, transform, materialIndex);
         }
     }
-    printf("Meshes: %zu\n", mScene.getMeshes().size());
-    printf("Instances: %zu\n", mScene.getInstances().size());
-    printf("Materials: %zu\n", mScene.getMaterials().size());
+    printf("Meshes: %zu\n", mScene->getMeshes().size());
+    printf("Instances: %zu\n", mScene->getInstances().size());
+    printf("Materials: %zu\n", mScene->getMaterials().size());
     fflush(stdout);
 }
 
@@ -285,7 +285,7 @@ void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
     nevkCamera.fov = glm::degrees(camera.GetVFov());
     //nevkCamera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
 
-    mScene.addCamera(nevkCamera);
+    mScene->addCamera(nevkCamera);
 }
 
 void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState,
@@ -369,7 +369,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
 
         _ConstructNeVKCamera(*camera);
 
-        mRenderer->setScene(&mScene);
+        mRenderer->setScene(mScene);
 
         nevk::Scene::UniformLightDesc desc{};
         desc.color = glm::float3(1.0f);
@@ -397,7 +397,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
                 {
                     HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->rectLight, sprimPaths[lightIdx]);
                     HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
-                    mScene.createLight(light->getLightDesc());
+                    mScene->createLight(light->getLightDesc());
                 }
             }
 
@@ -409,7 +409,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
                 {
                     HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->diskLight, sprimPaths[lightIdx]);
                     HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
-                    mScene.createLight(light->getLightDesc());
+                    mScene->createLight(light->getLightDesc());
                 }
             }
         }

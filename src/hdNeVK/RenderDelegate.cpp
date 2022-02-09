@@ -68,7 +68,7 @@ HdRenderSettingDescriptorList HdNeVKRenderDelegate::GetRenderSettingDescriptors(
 HdRenderPassSharedPtr HdNeVKRenderDelegate::CreateRenderPass(HdRenderIndex* index,
                                                              const HdRprimCollection& collection)
 {
-    return HdRenderPassSharedPtr(new HdNeVKRenderPass(index, collection, _settingsMap, &mRenderer));
+    return HdRenderPassSharedPtr(new HdNeVKRenderPass(index, collection, _settingsMap, &mRenderer, &mScene));
 }
 
 HdResourceRegistrySharedPtr HdNeVKRenderDelegate::GetResourceRegistry() const

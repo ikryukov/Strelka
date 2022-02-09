@@ -51,6 +51,8 @@ public:
     void init();
     void cleanup();
 
+    void reloadPt();
+
     void drawFrame(Image* result);
 
     void setSharedContext(SharedContext* ctx)
