@@ -24,7 +24,7 @@ struct InstanceConstants
     int32_t materialId;
     int32_t indexOffset;
     int32_t indexCount;
-    int32_t pad2;
+    int32_t lightId;
 };
 
 #ifdef __cplusplus

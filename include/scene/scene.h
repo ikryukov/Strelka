@@ -28,7 +28,7 @@ struct Instance
     uint32_t mMeshId;
     uint32_t mMaterialId;
     glm::float3 massCenter;
-    bool isLight = false;
+    uint32_t lightId = (uint32_t) -1;
 };
 
 class Scene
@@ -333,7 +333,7 @@ public:
     /// <param name="materialId">valid material id</param>
     /// <param name="transform">transform</param>
     /// <returns>Instance id in scene</returns>
-    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter);
+    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter, uint32_t lightId = (uint32_t) -1);
 
     uint32_t addMaterial(const Material& material);
 

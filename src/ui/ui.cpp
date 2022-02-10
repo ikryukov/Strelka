@@ -635,7 +635,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
                 {
                     for (uint32_t i = 0; i < instances.size(); i++)
                     {
-                        if (instances[i].isLight == -1)
+                        if (instances[i].lightId == -1)
                         {
                             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
                             if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", instances[i].mMeshId))

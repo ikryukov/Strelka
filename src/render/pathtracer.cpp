@@ -43,7 +43,6 @@ void PathTracer::execute(VkCommandBuffer& cmd, const PathTracerDesc& desc, uint3
         param.setBuffer("vb", mSharedCtx.mResManager->getVkBuffer(desc.vb));
         param.setBuffer("ib", mSharedCtx.mResManager->getVkBuffer(desc.ib));
         param.setBuffer("instanceConstants", mSharedCtx.mResManager->getVkBuffer(desc.instanceConst));
-        param.setBuffer("materials", mSharedCtx.mResManager->getVkBuffer(desc.materials));
         param.setBuffer("lights", mSharedCtx.mResManager->getVkBuffer(desc.lights));
         
         param.setCubeMap("cubeMap", mSharedCtx.mResManager->getView(mCubeMap));

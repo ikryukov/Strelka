@@ -43,10 +43,9 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     return meshId;
 }
 
-uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter)
+uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter, uint32_t lightId)
 {
     assert(meshId < mMeshes.size());
-    assert(materialId < mMaterials.size());
     
     std::scoped_lock lock(mInstanceMutex);
     
@@ -68,17 +67,10 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     inst->mMeshId = meshId;
     inst->transform = transform;
     inst->massCenter = massCenter;
-    inst->isLight = mMaterials[materialId].isLight != -1;
+    inst->lightId = lightId;
 
-    if (mMaterials[materialId].isTransparent())
-    {
-        mTransparentInstances.push_back(instId);
-    }
-    else
-    {
-        mOpaqueInstances.push_back(instId);
-    }
-
+    mOpaqueInstances.push_back(instId);
+    
     return instId;
 }
 
@@ -243,15 +235,6 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
 
     updateLight(lightId, desc);
 
-    Material light;
-    light.isLight = lightId;
-    light.baseColorFactor = glm::float4(desc.color, 1.0f) * desc.intensity;
-    light.texBaseColor = -1;
-    light.texMetallicRoughness = -1;
-    light.roughnessFactor = 0.01;
-    light.illum = 2;
-    uint32_t matId = addMaterial(light);
-
     // TODO: only for rect light
     // Lazy init light mesh
     glm::float4x4 scaleMatrix = glm::float4x4(0.f);
@@ -270,7 +253,7 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
     }
 
     const glm::float4x4 transform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc);
-    uint32_t instId = createInstance(currentLightId, matId, transform, desc.position);
+    uint32_t instId = createInstance(currentLightId, (uint32_t) -1, transform, desc.position, lightId);
     assert(instId != -1);
 
     mLightIdToInstanceId[lightId] = instId;

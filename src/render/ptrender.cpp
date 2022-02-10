@@ -503,6 +503,7 @@ void PtRender::createInstanceBuffer(nevk::Scene& scene)
         const uint32_t currentMeshId = sceneInstances[i].mMeshId;
         instanceConsts[i].indexOffset = meshes[currentMeshId].mIndex;
         instanceConsts[i].indexCount = meshes[currentMeshId].mCount;
+        instanceConsts[i].lightId = sceneInstances[i].lightId;
     }
 
     Buffer* stagingBuffer = resManager->createBuffer(sizeof(InstanceConstants) * sceneInstances.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
