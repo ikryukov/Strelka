@@ -33,11 +33,11 @@ void PathTracer::execute(VkCommandBuffer& cmd, const PathTracerDesc& desc, uint3
         // mShaderParams.setTextures3d("mdl_textures_3d", mMatTextures);
         param.setSampler("mdl_sampler_tex", mMdlSampler);
 
-        param.setTexture("gbWPos", mSharedCtx.mResManager->getView(desc.gbuffer->wPos));
-        param.setTexture("gbNormal", mSharedCtx.mResManager->getView(desc.gbuffer->normal));
-        param.setTexture("gbTangent", mSharedCtx.mResManager->getView(desc.gbuffer->tangent));
-        param.setTexture("gbInstId", mSharedCtx.mResManager->getView(desc.gbuffer->instId));
-        param.setTexture("gbUV", mSharedCtx.mResManager->getView(desc.gbuffer->uv));
+        //param.setTexture("gbWPos", mSharedCtx.mResManager->getView(desc.gbuffer->wPos));
+        //param.setTexture("gbNormal", mSharedCtx.mResManager->getView(desc.gbuffer->normal));
+        //param.setTexture("gbTangent", mSharedCtx.mResManager->getView(desc.gbuffer->tangent));
+        //param.setTexture("gbInstId", mSharedCtx.mResManager->getView(desc.gbuffer->instId));
+        //param.setTexture("gbUV", mSharedCtx.mResManager->getView(desc.gbuffer->uv));
 
         param.setBuffer("bvhNodes", mSharedCtx.mResManager->getVkBuffer(desc.bvhNodes));
         param.setBuffer("vb", mSharedCtx.mResManager->getVkBuffer(desc.vb));

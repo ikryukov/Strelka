@@ -9,11 +9,11 @@
 
 ConstantBuffer<PathTracerParam> ubo;
 
-Texture2D<float4> gbWPos;
-Texture2D<float4> gbNormal;
-Texture2D<float4> gbTangent;
-Texture2D<int> gbInstId;
-Texture2D<float2> gbUV;
+// Texture2D<float4> gbWPos;
+// Texture2D<float4> gbNormal;
+// Texture2D<float4> gbTangent;
+// Texture2D<int> gbInstId;
+// Texture2D<float2> gbUV;
 
 TextureCube<float4> cubeMap;
 SamplerState cubeMapSampler;

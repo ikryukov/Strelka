@@ -74,11 +74,11 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     return instId;
 }
 
-uint32_t Scene::addMaterial(const Material& material)
+uint32_t Scene::addMaterial(const MaterialDescription& material)
 {
     // TODO: fix here
-    uint32_t res = mMaterials.size();
-    mMaterials.push_back(material);
+    uint32_t res = mMaterialsDescs.size();
+    mMaterialsDescs.push_back(material);
     return res;
 }
 

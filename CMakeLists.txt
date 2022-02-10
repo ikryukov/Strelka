@@ -183,14 +183,10 @@ add_library(${TRACY_LIB} OBJECT ${TRACY_SOURCES})
 # Render lib
 set(RENDER_SOURCES
         include/render/common.h
-        include/render/gbuffer.h
         include/render/bvh.h
-        #include/render/render.h
         include/render/vkrender.h
         include/render/glfwrender.h
         include/render/ptrender.h
-        include/render/renderpass.h
-        include/render/gbufferpass.h
         include/render/shaderparameters.h
         include/render/computepass.h
         include/render/pathtracer.h
@@ -199,14 +195,10 @@ set(RENDER_SOURCES
         include/render/tonemap.h
         include/render/accumulation.h
         include/render/debugview.h
-        #include/render/depthpass.h
         include/render/debugUtils.h
-        #src/render/render.cpp
         src/render/vkrender.cpp
         src/render/glfwrender.cpp
         src/render/ptrender.cpp
-        src/render/renderpass.cpp
-        src/render/gbufferpass.cpp
         src/render/bvh.cpp
         src/render/upscalepass.cpp
         src/render/reduction.cpp
@@ -214,7 +206,6 @@ set(RENDER_SOURCES
         src/render/tonemap.cpp
         src/render/accumulation.cpp
         src/render/debugview.cpp
-        #src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )
 set(RENDERLIB_NAME render)
@@ -225,17 +216,6 @@ target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/shader
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/external/tracy)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${EMBREE_INCLUDE_PATH})
 
-# Model loader lib
-set(MODELLIB_SOURCES
-        include/modelloader/modelloader.h
-        src/modelloader/modelloader.cpp)
-set(MODELLIB_NAME modelloader)
-add_library(${MODELLIB_NAME} OBJECT ${MODELLIB_SOURCES})
-target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
-target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/modelloader)
-target_link_libraries(${MODELLIB_NAME} PUBLIC ${SCENELIB_NAME})
-target_include_directories(${MODELLIB_NAME} PUBLIC external/tinygltf)
-
 set(TEXTURELIB_SOURCES
         include/texturemanager/texturemanager.h
         src/texturemanager/texturemanager.cpp)
@@ -243,13 +223,12 @@ set(TEXTURELIB_NAME texturemanager)
 add_library(${TEXTURELIB_NAME} OBJECT ${TEXTURELIB_SOURCES})
 target_include_directories(${TEXTURELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${TEXTURELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/texturemanager)
-target_link_libraries(${TEXTURELIB_NAME} PUBLIC ${SCENELIB_NAME} ${MODELLIB_NAME})
+target_include_directories(${TEXTURELIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${TEXTURELIB_NAME} PUBLIC ${SCENELIB_NAME})
 
 ## Vulkan
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
-target_include_directories(${MODELLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_link_libraries(${MODELLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 target_include_directories(${MATERIALLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 
@@ -267,11 +246,9 @@ endif ()
 
 ## GLM (Mathematics)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
-target_include_directories(${MODELLIB_NAME} PUBLIC external/glm)
 
 # TOL (TinyObjLoader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
-target_include_directories(${MODELLIB_NAME} PUBLIC external/tol)
 
 # STB (image loader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
@@ -285,7 +262,6 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${RESMNGR_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
-target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${UILIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${TEXTURELIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC embree)
@@ -298,7 +274,25 @@ target_link_libraries(${RENDERLIB_NAME} PRIVATE
 target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
-add_executable(${PROJECT_NAME} app/main.cpp)
+set(HD_RUNNER_SOURCES
+    src/hdRunner/main.cpp
+    src/hdRunner/SimpleRenderTask.h
+    src/hdRunner/SimpleRenderTask.cpp
+)
+add_executable(${PROJECT_NAME} ${HD_RUNNER_SOURCES})
+set_target_properties(
+  ${PROJECT_NAME}
+  PROPERTIES
+    LINKER_LANGUAGE CXX
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED TRUE
+    CXX_EXTENSIONS OFF
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC external/glfw/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+
 target_link_libraries(${PROJECT_NAME} PUBLIC 
     ${RESMNGR_NAME} 
     ${SHADERLIB_NAME} 
@@ -309,10 +303,13 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
     ${SCENELIB_NAME} 
     ${RENDERLIB_NAME} 
     ${UILIB_NAME} 
-    ${MODELLIB_NAME} 
     ${TEXTURELIB_NAME} 
-    ${TRACY_LIB})  # Link the executable to library (if it uses it).
-target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
+    ${TRACY_LIB}
+    ${Vulkan_LIBRARY}
+    ar cameraUtil hd hf hgi hio usd usdGeom usdImaging    
+)  # Link the executable to library (if it uses it).
+
+# target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
 
 # Hydra plugin
 set(HD_PLUGIN_SOURCES
@@ -395,7 +392,7 @@ target_link_libraries(
   PRIVATE
     usdImaging
     hdMtlx
-    ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB}
+    ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB}
     ${MATERIALLIB_NAME}
   PUBLIC
     hd
@@ -435,40 +432,11 @@ install(
     COMPONENT ${HD_PLUGIN_NAME}
 )
 
-# Hydra runner application
-set(HD_RUNNER_SOURCES
-    src/hdRunner/main.cpp
-    src/hdRunner/SimpleRenderTask.h
-    src/hdRunner/SimpleRenderTask.cpp
-)
-set(HD_RUNNER_NAME HdRunner)
-add_executable(${HD_RUNNER_NAME} ${HD_RUNNER_SOURCES})
-set_target_properties(
-  ${HD_RUNNER_NAME}
-  PROPERTIES
-    LINKER_LANGUAGE CXX
-    CXX_STANDARD 17
-    CXX_STANDARD_REQUIRED TRUE
-    CXX_EXTENSIONS OFF
-)
-target_include_directories(${HD_RUNNER_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_include_directories(${HD_RUNNER_NAME} PUBLIC external/glfw/include)
-target_include_directories(${HD_RUNNER_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
-target_link_libraries(
-  ${HD_RUNNER_NAME}
-  ar cameraUtil hd hf hgi hio usd usdGeom usdImaging
-  ${Vulkan_LIBRARY}
-  ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} 
-  ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB} ${MATERIALLIB_NAME}
-)
-
 # Set working directory
 if (MSVC)
     set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
-    set_property(TARGET ${HD_RUNNER_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
 elseif (APPLE)
     set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_SCHEME_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
-    set_property(TARGET ${HD_RUNNER_NAME} PROPERTY XCODE_SCHEME_WORKING_DIRECTORY "${OUTPUT_DIRECTORY}")
 endif ()
 
 # Create symbolic links in final directory before building

@@ -5,7 +5,6 @@
 #include <stb_image_write.h>
 
 #include <scene/scene.h>
-#include <modelloader/modelloader.h>
 
 #include <doctest.h>
 

@@ -7,11 +7,11 @@
 #undef float3
 
 #include <cstdint>
+#include <mutex>
 #include <set>
 #include <stack>
 #include <unordered_map>
 #include <vector>
-#include <mutex>
 
 namespace nevk
 {
@@ -28,34 +28,23 @@ struct Instance
     uint32_t mMeshId;
     uint32_t mMaterialId;
     glm::float3 massCenter;
-    uint32_t lightId = (uint32_t) -1;
+    uint32_t lightId = (uint32_t)-1;
 };
 
 class Scene
 {
-private:
-    std::vector<Camera> mCameras;
-
-    std::stack<uint32_t> mDelInstances;
-    std::stack<uint32_t> mDelMesh;
-    std::stack<uint32_t> mDelMaterial;
-
-    bool FrMod{};
-
-    std::set<uint32_t> mDirtyInstances;
-
-    uint32_t mRectLigthMeshId = (uint32_t) -1;
-    uint32_t mDiskLigthMeshId = (uint32_t) -1;
-
 public:
-    struct MaterialX
+    struct MaterialDescription
     {
+        enum class Type
+        {
+            eMdl,
+            eMaterialX
+        } type;
         std::string code;
         std::string file;
         std::string name;
     };
-
-    std::vector<MaterialX> materialsCode;
 
     struct Vertex
     {
@@ -154,7 +143,7 @@ public:
 
     std::vector<UniformLightDesc> mLightDesc;
     uint32_t createDiscLightMesh();
-    enum class DebugView: uint32_t
+    enum class DebugView : uint32_t
     {
         eNone = 0,
         eNormals = 1,
@@ -183,7 +172,6 @@ public:
     std::string getSceneDir();
 
     std::vector<Mesh> mMeshes;
-    std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
     std::vector<Light> mLights;
 
@@ -208,9 +196,9 @@ public:
         return mIndices;
     }
 
-    std::vector<Material>& getMaterials()
+    std::vector<MaterialDescription>& getMaterials()
     {
-        return mMaterials;
+        return mMaterialsDescs;
     }
 
     std::vector<Light>& getLights()
@@ -261,7 +249,7 @@ public:
             camera.updateAspectRatio((float)width / height);
         }
     }
-    
+
     uint32_t createLightMesh();
 
     glm::float4x4 getTransform(const Scene::UniformLightDesc& desc)
@@ -269,7 +257,7 @@ public:
         const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
         glm::quat rotation = glm::quat(glm::radians(desc.orientation)); // to quaternion
         const glm::float4x4 rotationMatrix{ rotation };
-        glm::float3 scale = {  desc.width, desc.height, 1.0f };
+        glm::float3 scale = { desc.width, desc.height, 1.0f };
         const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
 
         const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;
@@ -333,9 +321,9 @@ public:
     /// <param name="materialId">valid material id</param>
     /// <param name="transform">transform</param>
     /// <returns>Instance id in scene</returns>
-    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter, uint32_t lightId = (uint32_t) -1);
+    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter, uint32_t lightId = (uint32_t)-1);
 
-    uint32_t addMaterial(const Material& material);
+    uint32_t addMaterial(const MaterialDescription& material);
 
     uint32_t createLight(const UniformLightDesc& desc);
     /// <summary>
@@ -380,5 +368,21 @@ public:
     /// </summary>
     /// <returns>Nothing</returns>
     void endFrame();
+
+private:
+    std::vector<Camera> mCameras;
+
+    std::stack<uint32_t> mDelInstances;
+    std::stack<uint32_t> mDelMesh;
+    std::stack<uint32_t> mDelMaterial;
+
+    std::vector<MaterialDescription> mMaterialsDescs;
+
+    bool FrMod{};
+
+    std::set<uint32_t> mDirtyInstances;
+
+    uint32_t mRectLigthMeshId = (uint32_t)-1;
+    uint32_t mDiskLigthMeshId = (uint32_t)-1;
 };
 } // namespace nevk

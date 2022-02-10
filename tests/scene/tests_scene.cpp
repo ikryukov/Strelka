@@ -46,8 +46,7 @@ TEST_CASE("test createInstance")
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
 
-    Material currMaterial{};
-    currMaterial.illum = 1;
+    nevk::Scene::MaterialDescription currMaterial{};
     scene.addMaterial(currMaterial);
     uint32_t matId = 0;
 
@@ -71,8 +70,7 @@ TEST_CASE("test createInstance complex")
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
 
-    Material currMaterial{};
-    currMaterial.illum = 1;
+    nevk::Scene::MaterialDescription currMaterial{};
     scene.addMaterial(currMaterial);
     uint32_t matId = 0;
 
@@ -110,8 +108,7 @@ TEST_CASE("test checkInstance")
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
 
-    Material currMaterial{};
-    currMaterial.illum = 1;
+    nevk::Scene::MaterialDescription currMaterial{};
     scene.addMaterial(currMaterial);
     uint32_t matId = 0;
 

@@ -20,7 +20,6 @@
 #include "bvh.h"
 #include "debugview.h"
 #include "gbuffer.h"
-#include "gbufferpass.h"
 #include "pathtracer.h"
 #include "tonemap.h"
 #include "upscalepass.h"
@@ -75,7 +74,6 @@ private:
 
     MaterialManager* mMaterialManager = nullptr;
     BvhBuilder mBvhBuilder;
-    GbufferPass mGbufferPass;
     PathTracer* mPathTracer;
     Accumulation* mAccumulationPathTracer;
     Tonemap* mTonemap;
@@ -182,10 +180,10 @@ private:
             {
                 mResManager->destroyBuffer(mIndexBuffer);
             }
-            if (mMaterialBuffer)
-            {
-                mResManager->destroyBuffer(mMaterialBuffer);
-            }
+            //if (mMaterialBuffer)
+            //{
+            //    mResManager->destroyBuffer(mMaterialBuffer);
+            //}
             if (mInstanceBuffer)
             {
                 mResManager->destroyBuffer(mInstanceBuffer);
@@ -208,10 +206,8 @@ private:
 
     ViewData* createView(uint32_t width, uint32_t height, uint32_t spp);
     GBuffer* createGbuffer(uint32_t width, uint32_t height);
-    void createGbufferPass();
 
     void createVertexBuffer(nevk::Scene& scene);
-    void createMaterialBuffer(nevk::Scene& scene);
     void createLightsBuffer(nevk::Scene& scene);
     void createBvhBuffer(nevk::Scene& scene);
     void createIndexBuffer(nevk::Scene& scene);

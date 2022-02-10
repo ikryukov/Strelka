@@ -22,18 +22,6 @@
 #include <glm/gtx/compatibility.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 
-static const char* DEFAULT_MTLX_DOC =
-    "<?xml version=\"1.0\"?>"
-    "<materialx version=\"1.38\" colorspace=\"lin_rec709\">"
-    "  <UsdPreviewSurface name=\"SR_Invalid\" type=\"surfaceshader\">"
-    "    <input name=\"diffuseColor\" type=\"color3\" value=\"1.0, 0.0, 1.0\" />"
-    "    <input name=\"roughness\" type=\"float\" value=\"1.0\" />"
-    "  </UsdPreviewSurface>"
-    "  <surfacematerial name=\"USD_Invalid\" type=\"material\">"
-    "    <input name=\"surfaceshader\" type=\"surfaceshader\" nodename=\"SR_Invalid\" />"
-    "  </surfacematerial>"
-    "</materialx>";
-
 PXR_NAMESPACE_OPEN_SCOPE
 
 HdNeVKRenderPass::HdNeVKRenderPass(HdRenderIndex* index,
@@ -123,15 +111,6 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
     TfHashMap<SdfPath, uint32_t, SdfPath::Hash> materialMapping;
     materialMapping[SdfPath::EmptyPath()] = 0;
 
-    Material defaultMaterial{};
-
-    defaultMaterial.baseColorFactor = glm::float4(1.0f);
-    defaultMaterial.diffuse = defaultMaterial.baseColorFactor;
-    defaultMaterial.illum = 2; // opaque
-    defaultMaterial.texBaseColor = -1;
-    defaultMaterial.texNormalId = -1;
-    defaultMaterial.texEmissive = -1;
-
     for (const auto& rprimId : renderIndex->GetRprimIds())
     {
         const HdRprim* rprim = renderIndex->GetRprim(rprimId);
@@ -161,7 +140,7 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
         }
 
         const SdfPath& materialId = mesh->GetMaterialId();
-        std::string materialNAme = materialId.GetString();
+        std::string materialName = materialId.GetString();
 
         uint32_t materialIndex = 0;
         if (materialMapping.find(materialId) != materialMapping.end())
@@ -177,29 +156,21 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
             {
                 const std::string& fileUri = material->getFileUri();
                 const std::string& name = material->getSubIdentifier();
-
-                nevk::Scene::MaterialX material;
+                nevk::Scene::MaterialDescription material;
                 material.file = fileUri;
                 material.name = name;
-
-                materialIndex = mScene->materialsCode.size();
-                mScene->materialsCode.push_back(material);
-                Material mdlMaterial = defaultMaterial;
-                mdlMaterial.isMdl = 1;
-
-                mScene->addMaterial(mdlMaterial);
-                materialMapping[materialId] = materialIndex;
+                material.type = nevk::Scene::MaterialDescription::Type::eMdl;
+                materialIndex = mScene->addMaterial(material);
             }
             else
             {
                 const std::string& code = material->GetNeVKMaterial();
-                nevk::Scene::MaterialX material;
+                nevk::Scene::MaterialDescription material;
                 material.code = code;
-                materialIndex = mScene->materialsCode.size();
-                mScene->materialsCode.push_back(material);
-                mScene->addMaterial(defaultMaterial);
-                materialMapping[materialId] = materialIndex;
+                material.type = nevk::Scene::MaterialDescription::Type::eMaterialX;
+                materialIndex = mScene->addMaterial(material);
             }
+            materialMapping[materialId] = materialIndex;
         }
 
         const GfMatrix4d& prototypeTransform = mesh->GetPrototypeTransform();

@@ -14,42 +14,6 @@
 #    define uint glm::uint
 #endif
 
-struct Material
-{
-    float4 diffuse; // Kd
-    float4 specular;
-    float4 baseColorFactor;
-
-    uint32_t illum; // illum 2 -- модель освещения
-    int32_t texNormalId = -1; // map_normal - map_Bump
-    float d;
-    int32_t texMetallicRoughness = -1;
-
-    int32_t sampMetallicRoughness = -1;
-    float metallicFactor;
-    float roughnessFactor;
-    int32_t texBaseColor = -1;
-
-    int32_t texEmissive = -1;
-    int32_t sampEmissiveId = -1;
-    int32_t texOcclusion = -1;
-    int32_t sampOcclusionId = -1;
-
-    float3 emissiveFactor;
-    int32_t isMdl = 0;
-
-    int32_t sampNormalId = -1;
-    int32_t isLight = -1;
-    float extIOR = 1.0f;
-    float intIOR = 1.5f;
-
-    bool isTransparent()
-    {
-        // TODO:
-        return illum != 2;
-    }
-};
-
 struct MdlMaterial
 {
     int arg_block_offset = 0; // in bytes
@@ -68,31 +32,6 @@ struct Mdl_resource_info
     uint pad1;
     uint pad2;
 };
-
-#ifndef __cplusplus
-#include "bindless.h"
-
-float getRoughness(Material material, float2 matUV, Texture2D textures[BINDLESS_TEXTURE_COUNT], SamplerState sampler)
-{
-    float roughness = material.roughnessFactor;
-    if (material.texMetallicRoughness != -1)
-    {
-        roughness *= textures[NonUniformResourceIndex(material.texMetallicRoughness)].SampleLevel(sampler, matUV, 0).g;
-    }
-    return roughness;
-}
-
-float3 getBaseColor(Material material, float2 matUV, Texture2D textures[BINDLESS_TEXTURE_COUNT], SamplerState sampler)
-{
-    float3 dcol = material.baseColorFactor.rgb;
-    if (material.texBaseColor != -1)
-    {
-        dcol *= textures[NonUniformResourceIndex(material.texBaseColor)].SampleLevel(sampler, matUV, 0).rgb;
-    }
-    return dcol;
-}
-
-#endif
 
 #ifdef __cplusplus
 #    undef float4
