@@ -12,7 +12,8 @@ ConstantBuffer<AccumulationParam> ubo;
 // Texture2D<float> currDepthTex;
 
 Texture2D<float4> input;
-RWTexture2D<float4> output; // history
+Texture2D<float4> history;
+RWTexture2D<float4> output;
 
 // float3 reconstructWorldPos(uint2 pixelIndex, float2 motion, uint2 dimension, Texture2D<float> depthTex, float4x4 clipToView, float4x4 viewToWorld)
 // {
@@ -85,7 +86,7 @@ RWTexture2D<float4> output; // history
 void accPt(uint2 pixelIndex)
 {
     const float3 current = input[pixelIndex].rgb;
-    float3 prev = output[pixelIndex].rgb;
+    float3 prev = history[pixelIndex].rgb;
 
     float wHistory = float(ubo.iteration) / float(ubo.iteration + 1);
     float wNew = 1.0 / float(ubo.iteration + 1);

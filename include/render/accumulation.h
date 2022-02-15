@@ -10,13 +10,8 @@ namespace nevk
 struct AccumulationDesc
 {
     AccumulationParam constants;
-
-    //Image* wpos = VK_NULL_HANDLE;
-    //Image* motion = VK_NULL_HANDLE;
-    //Image* prevDepth = VK_NULL_HANDLE;
-    //Image* currDepth = VK_NULL_HANDLE;
-
     Image* input = VK_NULL_HANDLE;
+    Image* history = VK_NULL_HANDLE;
     Image* output = VK_NULL_HANDLE;
 };
 

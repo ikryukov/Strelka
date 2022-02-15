@@ -20,12 +20,9 @@ void Accumulation::execute(VkCommandBuffer& cmd, const AccumulationDesc& desc, u
         param.setConstants(desc.constants);
         {
             param.setTexture("input", mSharedCtx.mResManager->getView(desc.input));
+            param.setTexture("history", mSharedCtx.mResManager->getView(desc.history));
             param.setTexture("output", mSharedCtx.mResManager->getView(desc.output));
         }
-        //param.setTexture("gbWpos", mSharedCtx.mResManager->getView(desc.wpos));
-        //param.setTexture("motionTex", mSharedCtx.mResManager->getView(desc.motion));
-        //param.setTexture("prevDepthTex", mSharedCtx.mResManager->getView(desc.prevDepth));
-        //param.setTexture("currDepthTex", mSharedCtx.mResManager->getView(desc.currDepth));
     }
 
     int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
