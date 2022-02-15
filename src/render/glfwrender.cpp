@@ -25,6 +25,11 @@ void nevk::GLFWRender::init(int width, int height)
     createSwapChain();
 }
 
+void nevk::GLFWRender::setWindowTitle(const char* title)
+{
+    glfwSetWindowTitle(mWindow, title);
+}
+
 bool nevk::GLFWRender::windowShouldClose()
 {
     return glfwWindowShouldClose(mWindow);

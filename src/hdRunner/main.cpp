@@ -233,6 +233,7 @@ int main(int argc, const char* argv[])
         
         auto finish = std::chrono::high_resolution_clock::now();
         double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
+        render.setWindowTitle((std::string("NeVK") + " [" + std::to_string(frameTime) + " ms]").c_str());
         ++frameCount;
     }
 
