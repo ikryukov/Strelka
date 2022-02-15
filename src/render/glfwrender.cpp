@@ -155,17 +155,21 @@ void nevk::GLFWRender::drawFrame(Image* result)
         recordBarrier(cmd, mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                       VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-        VkOffset3D blitSize{};
-        blitSize.x = mWindowWidth;
-        blitSize.y = mWindowHeight;
-        blitSize.z = 1;
+        VkOffset3D srcBlitSize{};
+        srcBlitSize.x = mWindowWidth;
+        srcBlitSize.y = mWindowHeight;
+        srcBlitSize.z = 1;
         VkImageBlit imageBlitRegion{};
         imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         imageBlitRegion.srcSubresource.layerCount = 1;
-        imageBlitRegion.srcOffsets[1] = blitSize;
+        imageBlitRegion.srcOffsets[1] = srcBlitSize;
         imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         imageBlitRegion.dstSubresource.layerCount = 1;
-        imageBlitRegion.dstOffsets[1] = blitSize;
+        VkOffset3D blitSwapSize{};
+        blitSwapSize.x = mSwapChainExtent.width;
+        blitSwapSize.y = mSwapChainExtent.height;
+        blitSwapSize.z = 1;
+        imageBlitRegion.dstOffsets[1] = blitSwapSize;
         vkCmdBlitImage(cmd, mSharedCtx.mResManager->getVkImage(result), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
 
         recordImageBarrier(cmd, result, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -381,7 +385,7 @@ void nevk::GLFWRender::createSwapChain()
     vkGetSwapchainImagesKHR(mDevice, mSwapChain, &imageCount, mSwapChainImages.data());
 
     swapChainImageFormat = surfaceFormat.format;
-    swapChainExtent = extent;
+    mSwapChainExtent = extent;
 }
 
 nevk::GLFWRender::SwapChainSupportDetails nevk::GLFWRender::querySwapChainSupport(VkPhysicalDevice device)

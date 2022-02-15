@@ -209,8 +209,8 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32
     view->spp = spp;
     view->finalWidth = width;
     view->finalHeight = height;
-    view->renderWidth = (uint32_t)(width * 1.0f); // mRenderConfig.upscaleFactor
-    view->renderHeight = (uint32_t)(height * 1.0f); // mRenderConfig.upscaleFactor
+    view->renderWidth = (uint32_t)(width * 0.5f); // mRenderConfig.upscaleFactor
+    view->renderHeight = (uint32_t)(height * 0.5f); // mRenderConfig.upscaleFactor
     view->mResManager = resManager;
     view->gbuffer = createGbuffer(view->renderWidth, view->renderHeight);
     view->prevDepth = resManager->createImage(view->renderWidth, view->renderHeight, view->gbuffer->depthFormat, VK_IMAGE_TILING_OPTIMAL,

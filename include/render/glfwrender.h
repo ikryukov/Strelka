@@ -68,7 +68,7 @@ protected:
     VkSwapchainKHR mSwapChain;
     std::vector<VkImage> mSwapChainImages;
     VkFormat swapChainImageFormat;
-    VkExtent2D swapChainExtent;
+    VkExtent2D mSwapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
 
