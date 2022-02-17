@@ -19,7 +19,8 @@ public:
     HdNeVKRenderPass(HdRenderIndex* index,
                      const HdRprimCollection& collection,
                      const HdRenderSettingsMap& settings,
-                     nevk::PtRender* renderer, nevk::Scene* scene);
+                     nevk::PtRender* renderer,
+                     nevk::Scene* scene);
 
     ~HdNeVKRenderPass() override;
 
@@ -38,15 +39,13 @@ private:
     void _BakeMeshes(HdRenderIndex* renderIndex,
                      GfMatrix4d rootTransform);
 
-    void _ConstructNeVKCamera(const HdNeVKCamera& camera);
-
 private:
     const HdRenderSettingsMap& m_settings;
     bool m_isConverged;
     uint32_t m_lastSceneStateVersion;
     uint32_t m_lastRenderSettingsVersion;
     GfMatrix4d m_rootMatrix;
-    
+
     nevk::Scene* mScene;
     // ptr to global render
     nevk::PtRender* mRenderer;

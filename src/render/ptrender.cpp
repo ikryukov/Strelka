@@ -6,6 +6,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
+#include <glm/ext/matrix_relational.hpp>
 
 #include <chrono>
 #include <filesystem>
@@ -500,7 +501,7 @@ void PtRender::drawFrame(Image* result)
     //FrameData& currFrame = mSharedCtx.getCurrentFrameData();
     const uint32_t imageIndex = getSharedContext().mFrameNumber % MAX_FRAMES_IN_FLIGHT;
     const uint64_t frameIndex = getSharedContext().mFrameNumber;
-    
+
     // TODO: handle changes: resize, update
     if (getSharedContext().mFrameNumber == 0)
     {
@@ -525,8 +526,17 @@ void PtRender::drawFrame(Image* result)
 
     Camera& cam = mScene->getCamera(getActiveCameraIndex());
     cam.updateViewMatrix();
-
-    cam.prevMatrices = cam.matrices; // TODO:
+    
+    currView->mCamMatrices = cam.matrices;
+    
+    // check if camera is dirty?
+    if (mPrevView &&
+        (glm::any(glm::notEqual(currView->mCamMatrices.perspective, mPrevView->mCamMatrices.perspective)) 
+        || glm::any(glm::notEqual(currView->mCamMatrices.view, mPrevView->mCamMatrices.view))))
+    {
+        // need to reset pt iteration and accumulation
+        currView->mPtIteration = 0;
+    }
 
     // at this point we reseive opened cmd buffer
     VkCommandBuffer& cmd = getSharedContext().getFrameData(imageIndex).cmdBuffer;
@@ -568,7 +578,7 @@ void PtRender::drawFrame(Image* result)
         pathTracerParam.viewToClip = cam.matrices.perspective; //
         pathTracerParam.len = (int)0;
         pathTracerParam.spp = currView->spp;
-        pathTracerParam.iteration = i;
+        pathTracerParam.iteration = currView->mPtIteration;
         pathTracerParam.numLights = (uint32_t)mScene->getLights().size();
         pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
         pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
@@ -609,17 +619,17 @@ void PtRender::drawFrame(Image* result)
             accParam.dimension = glm::int2(renderWidth, renderHeight);
             // glm::double4x4 persp = cam.prevMatrices.perspective;
             // accParam.prevClipToView = glm::inverse(persp);
-            accParam.prevClipToView = cam.prevMatrices.invPerspective;
-            accParam.prevViewToClip = cam.prevMatrices.perspective;
-            accParam.prevWorldToView = cam.prevMatrices.view;
-            glm::double4x4 view = cam.prevMatrices.view;
+            accParam.prevClipToView = mPrevView->mCamMatrices.invPerspective;
+            accParam.prevViewToClip = mPrevView->mCamMatrices.perspective;
+            accParam.prevWorldToView = mPrevView->mCamMatrices.view;
+            glm::double4x4 view = mPrevView->mCamMatrices.view;
             accParam.prevViewToWorld = glm::inverse(view);
             // debug
             // accParam.clipToView = glm::inverse(cam.matrices.perspective);
             accParam.clipToView = cam.matrices.invPerspective;
             accParam.viewToWorld = glm::inverse(cam.matrices.view);
             accParam.isPt = 1;
-            currView->mPtIteration = i + (uint32_t)getSharedContext().mFrameNumber * 1; // TODO: need to recalc properly
+            //currView->mPtIteration = i + (uint32_t)getSharedContext().mFrameNumber * 1; // TODO: need to recalc properly
             accParam.iteration = currView->mPtIteration;
 
             accDesc.input = finalPathTracerImage;
@@ -633,6 +643,8 @@ void PtRender::drawFrame(Image* result)
 
             finalPathTracerImage = accOut;
         }
+
+        ++currView->mPtIteration;
     }
 
     {

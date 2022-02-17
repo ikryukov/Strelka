@@ -188,77 +188,6 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
     fflush(stdout);
 }
 
-void HdNeVKRenderPass::_ConstructNeVKCamera(const HdNeVKCamera& camera)
-{
-    // We transform the scene into camera space at the beginning, so for
-    // subsequent camera transforms, we need to 'substract' the initial transform.
-    GfMatrix4d absInvViewMatrix = camera.GetTransform();
-    GfMatrix4d relViewMatrix = absInvViewMatrix; //*m_rootMatrix;
-
-    GfVec3d position = relViewMatrix.Transform(GfVec3d(0.0, 0.0, 0.0));
-    GfVec3d forward = relViewMatrix.TransformDir(GfVec3d(0.0, 0.0, -1.0));
-    GfVec3d up = relViewMatrix.TransformDir(GfVec3d(0.0, 1.0, 0.0));
-
-    forward.Normalize();
-    up.Normalize();
-
-    bool isRH = relViewMatrix.IsRightHanded();
-
-    glm::float4x4 xform;
-    for (int i = 0; i < 4; ++i)
-    {
-        for (int j = 0; j < 4; ++j)
-        {
-            xform[i][j] = (float)relViewMatrix[i][j];
-        }
-    }
-
-#ifdef __APPLE__
-    GfMatrix4d perspMatrix = camera.ComputeProjectionMatrix();
-#else
-    GfMatrix4d perspMatrix = camera.GetProjectionMatrix();
-#endif // __APPLE__
-
-    glm::float4x4 persp;
-    for (int i = 0; i < 4; ++i)
-    {
-        for (int j = 0; j < 4; ++j)
-        {
-            persp[i][j] = (float)perspMatrix[i][j];
-        }
-    }
-
-    nevk::Camera nevkCamera;
-
-    {
-        glm::vec3 scale;
-        glm::quat rotation;
-        glm::vec3 translation;
-        glm::vec3 skew;
-        glm::vec4 perspective;
-        glm::decompose(xform, scale, rotation, translation, skew, perspective);
-        rotation = glm::conjugate(rotation);
-        nevkCamera.position = translation * scale;
-        nevkCamera.mOrientation = rotation;
-    }
-
-    nevkCamera.matrices.perspective = persp;
-    nevkCamera.matrices.invPerspective = glm::inverse(persp);
-
-    //GfQuatd orient = relViewMatrix.ExtractRotationQuat().GetConjugate();
-    //const double* im = orient.GetImaginary().data();
-    //nevkCamera.mOrientation = glm::quat((float)orient.GetReal(), (float)im[0], (float)im[1], (float)im[2]);
-
-    //nevkCamera.position = glm::float3(0.0f, 0.0f, 15.0f);
-
-    //TODO: debug:
-    // nevkCamera.setPerspective(45.0f, (float)800 / (float)600, 0.1f, 10000.0f);
-    nevkCamera.fov = glm::degrees(camera.GetVFov());
-    //nevkCamera.setRotation(glm::quat({ 1.0f, 0.0f, 0.0f, 0.0f }));
-
-    mScene->addCamera(nevkCamera);
-}
-
 void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState,
                                 const TfTokenVector& renderTags)
 {
@@ -327,7 +256,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
 
     // Transform scene into camera space to increase floating point precision.
     GfMatrix4d viewMatrix = camera->GetTransform().GetInverse();
-    
+
     static int counter = 0;
 
     if (counter == 0)
@@ -338,9 +267,10 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
 
         m_rootMatrix = viewMatrix;
 
-        _ConstructNeVKCamera(*camera);
-
         mRenderer->setScene(mScene);
+
+        const uint32_t camIndex = camera->GetCameraIndex();
+        mRenderer->setActiveCameraIndex(camIndex);
 
         nevk::Scene::UniformLightDesc desc{};
         desc.color = glm::float3(1.0f);

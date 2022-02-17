@@ -12,6 +12,8 @@
 #include <stack>
 #include <unordered_map>
 #include <vector>
+#include <mutex>
+
 
 namespace nevk
 {
@@ -211,24 +213,48 @@ public:
         return mLightDesc;
     }
 
-    void addCamera(Camera camera)
+    uint32_t findCameraByName(const std::string& name)
     {
+        std::scoped_lock lock(mCameraMutex);
+        if (mNameToCamera.find(name) != mNameToCamera.end())
+        {
+            return mNameToCamera[name];
+        }
+        return (uint32_t) -1;
+    }
+
+    uint32_t addCamera(Camera& camera)
+    {
+        std::scoped_lock lock(mCameraMutex);
         mCameras.push_back(camera);
+        // store camera index
+        mNameToCamera[camera.name] = (uint32_t) mCameras.size() - 1;
+        return (uint32_t) mCameras.size() - 1;
+    }
+
+    void updateCamera(Camera& camera, uint32_t index)
+    {
+        assert(index < mCameras.size());
+        std::scoped_lock lock(mCameraMutex);
+        mCameras[index] = camera;
     }
 
     Camera& getCamera(uint32_t index)
     {
         assert(index < mCameras.size());
+        std::scoped_lock lock(mCameraMutex);
         return mCameras[index];
     }
 
-    const std::vector<Camera>& getCameras() const
+    const std::vector<Camera>& getCameras()
     {
+        std::scoped_lock lock(mCameraMutex);
         return mCameras;
     }
 
     size_t getCameraCount()
     {
+        std::scoped_lock lock(mCameraMutex);
         return mCameras.size();
     }
 
@@ -371,6 +397,8 @@ public:
 
 private:
     std::vector<Camera> mCameras;
+    std::unordered_map<std::string, uint32_t> mNameToCamera;
+    std::mutex mCameraMutex;
 
     std::stack<uint32_t> mDelInstances;
     std::stack<uint32_t> mDelMesh;

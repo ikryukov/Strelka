@@ -62,30 +62,19 @@ HdRendererPluginHandle GetHdNeVKPlugin()
     return HdRendererPluginHandle();
 }
 
-HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, std::string& settingsCameraPath)
+HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, SdfPath& cameraPath)
 {
-    SdfPath cameraPath;
-
-    if (!settingsCameraPath.empty())
+    UsdPrimRange primRange = stage->TraverseAll();
+    for (auto prim = primRange.cbegin(); prim != primRange.cend(); prim++)
     {
-        cameraPath = SdfPath(settingsCameraPath);
-    }
-    else
-    {
-        UsdPrimRange primRange = stage->TraverseAll();
-        for (auto prim = primRange.cbegin(); prim != primRange.cend(); prim++)
+        if (!prim->IsA<UsdGeomCamera>())
         {
-            if (!prim->IsA<UsdGeomCamera>())
-            {
-                continue;
-            }
-            cameraPath = prim->GetPath();
-            break;
+            continue;
         }
+        cameraPath = prim->GetPath();
+        break;
     }
-
     HdCamera* camera = (HdCamera*)dynamic_cast<HdCamera*>(renderIndex->GetSprim(HdTokens->camera, cameraPath));
-
     return camera;
 }
 
@@ -164,8 +153,7 @@ int main(int argc, const char* argv[])
 
     double meterPerUnit = UsdGeomGetStageMetersPerUnit(stage);
 
-    std::string cameraPath = "";
-
+    SdfPath cameraPath = SdfPath::EmptyPath();
     HdCamera* camera = FindCamera(stage, renderIndex, cameraPath);
     if (!camera)
     {
@@ -224,6 +212,16 @@ int main(int argc, const char* argv[])
         sceneDelegate.SetTime(1.0f);
         
         render.pollEvents();
+
+        UsdGeomCamera cam = UsdGeomCamera::Get(stage, cameraPath);
+        GfCamera gfCam = cam.GetCamera(0.0);
+
+        GfMatrix4d xform = gfCam.GetTransform();
+        xform.SetTranslateOnly(GfVec3d(-3.080613613128662, -1.22476722300052643, 2.9320838451385498 - frameCount * 0.001));
+
+        gfCam.SetTransform(xform);
+            
+        cam.SetFromCamera(gfCam, 0.0);
 
         render.onBeginFrame();
         engine.Execute(renderIndex, &tasks);

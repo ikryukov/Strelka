@@ -69,6 +69,16 @@ public:
         mScene = scene;
     }
 
+    void setActiveCameraIndex(const uint32_t index)
+    {
+        mCurrentSceneRenderData->cameraIndex = index;
+    }
+
+    uint32_t getActiveCameraIndex()
+    {
+        return mCurrentSceneRenderData->cameraIndex;
+    }
+
 private:
     SharedContext* mSharedCtx;
 
@@ -101,6 +111,9 @@ private:
         Buffer* mCompositingBuffer = nullptr;
         ResourceManager* mResManager = nullptr;
         uint32_t mPtIteration = 0;
+
+        Camera::Matrices mCamMatrices;
+
         ~ViewData()
         {
             assert(mResManager);
@@ -226,10 +239,7 @@ public:
         return mScene;
     }
 
-    uint32_t getActiveCameraIndex()
-    {
-        return mCurrentSceneRenderData->cameraIndex;
-    }
+
 
     nevk::TextureManager* getTexManager()
     {

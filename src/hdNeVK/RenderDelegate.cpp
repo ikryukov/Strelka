@@ -149,7 +149,7 @@ HdSprim* HdNeVKRenderDelegate::CreateSprim(const TfToken& typeId,
     TF_STATUS("CreateSprim Type: %s", typeId.GetText());
     if (typeId == HdPrimTypeTokens->camera)
     {
-        return new HdNeVKCamera(sprimId);
+        return new HdNeVKCamera(sprimId, mScene);
     }
     else if (typeId == HdPrimTypeTokens->material)
     {

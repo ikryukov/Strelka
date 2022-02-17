@@ -54,7 +54,7 @@ public:
         glm::float4x4 invPerspective;
         glm::float4x4 view;
     };
-    Matrices matrices, prevMatrices;
+    Matrices matrices;
 
     void updateViewMatrix();
 
