@@ -53,8 +53,8 @@ void HdNeVKCamera::Sync(HdSceneDelegate* sceneDelegate,
         float vfov = 2.0f * std::atanf(aperture / (2.0f * focalLength));
 
         m_vfov = vfov;
-        
-        mScene.updateCamera(_ConstructNeVKCamera(), mCameraIndex);
+        nevk::Camera cam = _ConstructNeVKCamera();
+        mScene.updateCamera(cam, mCameraIndex);
     }
 
     *dirtyBits = DirtyBits::Clean;
