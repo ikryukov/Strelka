@@ -78,6 +78,93 @@ HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, SdfPath&
     return camera;
 }
 
+class CameraController
+{
+    GfCamera mGfCam;
+    GfQuatd mOrientation;
+    GfVec3d mPosition;
+
+    float rotationSpeed = 0.025f;
+    float movementSpeed = 5.0f;
+
+public:
+    struct
+    {
+        bool left = false;
+        bool right = false;
+        bool up = false;
+        bool down = false;
+        bool forward = false;
+        bool back = false;
+    } keys;
+    struct MouseButtons
+    {
+        bool left = false;
+        bool right = false;
+        bool middle = false;
+    } mouseButtons;
+
+public:
+    GfVec3d getFront()
+    {
+        return mOrientation.Transform(GfVec3d(0.0, 0.0, -1.0));
+    }
+    GfVec3d getUp()
+    {
+        return mOrientation.Transform(GfVec3d(0.0, 1.0, 0.0));
+    }
+    GfVec3d getRight()
+    {
+        return mOrientation.Transform(GfVec3d(1.0, 0.0, 0.0));
+    }
+    bool moving()
+    {
+        return keys.left || keys.right || keys.up || keys.down || keys.forward || keys.back || mouseButtons.right || mouseButtons.left || mouseButtons.middle;
+    }
+    void update(double deltaTime)
+    {
+        if (moving())
+        {
+            const float moveSpeed = deltaTime * movementSpeed;
+            if (keys.up)
+                mPosition += getUp() * moveSpeed;
+            if (keys.down)
+                mPosition -= getUp() * moveSpeed;
+            if (keys.left)
+                mPosition -= getRight() * moveSpeed;
+            if (keys.right)
+                mPosition += getRight() * moveSpeed;
+            if (keys.forward)
+                mPosition += getFront() * moveSpeed;
+            if (keys.back)
+                mPosition -= getFront() * moveSpeed;
+            updateViewMatrix();
+        }
+    }
+    void updateViewMatrix()
+    {
+        GfMatrix4d view(1.0);
+        view.SetRotateOnly(mOrientation);
+        view.SetTranslateOnly(mPosition);
+
+        mGfCam.SetTransform(view);
+    }
+
+    GfCamera& getCamera()
+    {
+        return mGfCam;
+    }
+
+    CameraController(UsdGeomCamera& cam)
+    {
+        mGfCam = cam.GetCamera(0.0);
+        GfMatrix4d xform = mGfCam.GetTransform();
+
+        mOrientation = xform.ExtractRotationQuat();
+        mPosition = xform.ExtractTranslation();
+    }
+};
+
 int main(int argc, const char* argv[])
 {
     // Init plugin.
@@ -202,6 +289,8 @@ int main(int argc, const char* argv[])
     timerRender.Start();
 
     HdEngine engine;
+    UsdGeomCamera cam = UsdGeomCamera::Get(stage, cameraPath);
+    CameraController cameraController(cam);
 
     uint64_t frameCount = 0;
     while (!render.windowShouldClose())
@@ -213,15 +302,10 @@ int main(int argc, const char* argv[])
         
         render.pollEvents();
 
-        UsdGeomCamera cam = UsdGeomCamera::Get(stage, cameraPath);
-        GfCamera gfCam = cam.GetCamera(0.0);
+        cameraController.keys.forward = true;
+        cameraController.update(0.0001);
 
-        GfMatrix4d xform = gfCam.GetTransform();
-        xform.SetTranslateOnly(GfVec3d(-3.080613613128662, -1.22476722300052643, 2.9320838451385498 - frameCount * 0.001));
-
-        gfCam.SetTransform(xform);
-            
-        cam.SetFromCamera(gfCam, 0.0);
+        cam.SetFromCamera(cameraController.getCamera(), 0.0);
 
         render.onBeginFrame();
         engine.Execute(renderIndex, &tasks);

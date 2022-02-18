@@ -8,10 +8,9 @@
 #endif
 
 #define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include "render/vkrender.h"
 
+#include <GLFW/glfw3.h>
 
 namespace nevk
 {
@@ -19,7 +18,6 @@ namespace nevk
 class GLFWRender : public VkRender
 {
 public:
-    
     void init(int width, int height);
 
     void setWindowTitle(const char* title);
@@ -70,7 +68,6 @@ protected:
     VkExtent2D mSwapChainExtent;
     std::vector<VkImageView> swapChainImageViews;
     std::vector<VkFramebuffer> swapChainFramebuffers;
-
 };
 
 } // namespace nevk
