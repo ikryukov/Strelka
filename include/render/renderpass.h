@@ -134,7 +134,7 @@ public:
 
     std::vector<VkImageView> mTextureImageView;
     VkImageView mShadowImageView = VK_NULL_HANDLE;
-    VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
+    //VkBuffer mMaterialBuffer = VK_NULL_HANDLE;
     VkBuffer mInstanceBuffer = VK_NULL_HANDLE;
 
     bool needDesciptorSetUpdate[MAX_FRAMES_IN_FLIGHT] = {false, false, false};

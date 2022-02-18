@@ -29,6 +29,14 @@
                 {
                     "name": "MVK_CONFIG_API_VERSION_TO_ADVERTISE",
                     "value": "VK_API_VERSION_1_2"
+                },
+                {
+                    "name": "DYLD_LIBRARY_PATH",
+                    "value": "/Users/ilya/work/NeVK/external/slang/:$DYLD_LIBRARY_PATH"
+                },
+                {
+                    "name": "USD_PATH",
+                    "value": "/Users/ilya/work/usd_build/"
                 }
 
             ],

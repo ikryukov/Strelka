@@ -7,10 +7,12 @@
 #undef float3
 
 #include <cstdint>
+#include <mutex>
 #include <set>
 #include <stack>
 #include <unordered_map>
 #include <vector>
+#include <mutex>
 
 
 namespace nevk
@@ -28,24 +30,24 @@ struct Instance
     uint32_t mMeshId;
     uint32_t mMaterialId;
     glm::float3 massCenter;
-    bool isLight = false;
+    uint32_t lightId = (uint32_t)-1;
 };
 
 class Scene
 {
-private:
-    std::vector<Camera> mCameras;
-
-    std::stack<uint32_t> mDelInstances;
-    std::stack<uint32_t> mDelMesh;
-    std::stack<uint32_t> mDelMaterial;
-
-    bool FrMod{};
-
-    std::set<uint32_t> mDirtyInstances;
-
-
 public:
+    struct MaterialDescription
+    {
+        enum class Type
+        {
+            eMdl,
+            eMaterialX
+        } type;
+        std::string code;
+        std::string file;
+        std::string name;
+    };
+
     struct Vertex
     {
         glm::float3 pos;
@@ -116,23 +118,34 @@ public:
     {
         glm::float4 points[4];
         glm::float4 color = glm::float4(1.0f);
+        glm::float4 normal;
+        int32_t type;
     };
 
     // CPU side structure
-    struct RectLightDesc
+    struct UniformLightDesc
     {
+        int32_t type;
+        glm::float4x4 xform;
         glm::float3 position; // world position
         glm::float3 orientation; // euler angles in degrees
+        bool useXform;
+
         // OX - axis of light or normal
-        float width; // OY
-        float height; // OZ
         glm::float3 color;
         float intensity;
+
+        // rectangle light
+        float width; // OY
+        float height; // OZ
+
+        // disc/sphere light
+        float radius;
     };
 
-    std::vector<RectLightDesc> mLightDesc;
-
-    enum class DebugView: uint32_t
+    std::vector<UniformLightDesc> mLightDesc;
+    uint32_t createDiscLightMesh();
+    enum class DebugView : uint32_t
     {
         eNone = 0,
         eNormals = 1,
@@ -150,6 +163,9 @@ public:
 
     glm::float4 mLightPosition{ 10.0, 10.0, 10.0, 1.0 };
 
+    std::mutex mMeshMutex;
+    std::mutex mInstanceMutex;
+
     std::vector<Vertex> mVertices;
     std::vector<uint32_t> mIndices;
 
@@ -158,7 +174,6 @@ public:
     std::string getSceneDir();
 
     std::vector<Mesh> mMeshes;
-    std::vector<Material> mMaterials;
     std::vector<Instance> mInstances;
     std::vector<Light> mLights;
 
@@ -170,6 +185,9 @@ public:
     ~Scene() = default;
 
     std::unordered_map<uint32_t, uint32_t> mLightIdToInstanceId{};
+
+    std::unordered_map<int32_t, std::string> mTexIdToTexName{};
+
     std::vector<Vertex>& getVertices()
     {
         return mVertices;
@@ -180,9 +198,9 @@ public:
         return mIndices;
     }
 
-    std::vector<Material>& getMaterials()
+    std::vector<MaterialDescription>& getMaterials()
     {
-        return mMaterials;
+        return mMaterialsDescs;
     }
 
     std::vector<Light>& getLights()
@@ -190,29 +208,53 @@ public:
         return mLights;
     }
 
-    std::vector<RectLightDesc>& getLightsDesc()
+    std::vector<UniformLightDesc>& getLightsDesc()
     {
         return mLightDesc;
     }
 
-    void addCamera(Camera camera)
+    uint32_t findCameraByName(const std::string& name)
     {
+        std::scoped_lock lock(mCameraMutex);
+        if (mNameToCamera.find(name) != mNameToCamera.end())
+        {
+            return mNameToCamera[name];
+        }
+        return (uint32_t) -1;
+    }
+
+    uint32_t addCamera(Camera& camera)
+    {
+        std::scoped_lock lock(mCameraMutex);
         mCameras.push_back(camera);
+        // store camera index
+        mNameToCamera[camera.name] = (uint32_t) mCameras.size() - 1;
+        return (uint32_t) mCameras.size() - 1;
+    }
+
+    void updateCamera(Camera& camera, uint32_t index)
+    {
+        assert(index < mCameras.size());
+        std::scoped_lock lock(mCameraMutex);
+        mCameras[index] = camera;
     }
 
     Camera& getCamera(uint32_t index)
     {
         assert(index < mCameras.size());
+        std::scoped_lock lock(mCameraMutex);
         return mCameras[index];
     }
 
-    const std::vector<Camera>& getCameras() const
+    const std::vector<Camera>& getCameras()
     {
+        std::scoped_lock lock(mCameraMutex);
         return mCameras;
     }
 
     size_t getCameraCount()
     {
+        std::scoped_lock lock(mCameraMutex);
         return mCameras.size();
     }
 
@@ -233,15 +275,15 @@ public:
             camera.updateAspectRatio((float)width / height);
         }
     }
-    void createLightMesh();
 
+    uint32_t createLightMesh();
 
-    glm::float4x4 getTransform(const Scene::RectLightDesc& desc)
+    glm::float4x4 getTransform(const Scene::UniformLightDesc& desc)
     {
         const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
         glm::quat rotation = glm::quat(glm::radians(desc.orientation)); // to quaternion
         const glm::float4x4 rotationMatrix{ rotation };
-        glm::float3 scale = { 1.0f, desc.width, desc.height };
+        glm::float3 scale = { desc.width, desc.height, 1.0f };
         const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), scale);
 
         const glm::float4x4 localTransform = translationMatrix * rotationMatrix * scaleMatrix;
@@ -290,7 +332,7 @@ public:
 
     void updateAnimation(const float dt);
 
-    void updateLight(uint32_t lightId, const RectLightDesc& desc);
+    void updateLight(uint32_t lightId, const UniformLightDesc& desc);
     /// <summary>
     /// Create Mesh geometry
     /// </summary>
@@ -305,11 +347,11 @@ public:
     /// <param name="materialId">valid material id</param>
     /// <param name="transform">transform</param>
     /// <returns>Instance id in scene</returns>
-    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter);
+    uint32_t createInstance(uint32_t meshId, uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter, uint32_t lightId = (uint32_t)-1);
 
-    uint32_t addMaterial(const Material& material);
+    uint32_t addMaterial(const MaterialDescription& material);
 
-    uint32_t createLight(const RectLightDesc& desc);
+    uint32_t createLight(const UniformLightDesc& desc);
     /// <summary>
     /// Removes instance/mesh/material
     /// </summary>
@@ -352,5 +394,23 @@ public:
     /// </summary>
     /// <returns>Nothing</returns>
     void endFrame();
+
+private:
+    std::vector<Camera> mCameras;
+    std::unordered_map<std::string, uint32_t> mNameToCamera;
+    std::mutex mCameraMutex;
+
+    std::stack<uint32_t> mDelInstances;
+    std::stack<uint32_t> mDelMesh;
+    std::stack<uint32_t> mDelMaterial;
+
+    std::vector<MaterialDescription> mMaterialsDescs;
+
+    bool FrMod{};
+
+    std::set<uint32_t> mDirtyInstances;
+
+    uint32_t mRectLigthMeshId = (uint32_t)-1;
+    uint32_t mDiskLigthMeshId = (uint32_t)-1;
 };
 } // namespace nevk

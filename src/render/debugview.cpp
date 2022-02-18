@@ -13,20 +13,27 @@ void DebugView::initialize()
 {
     DebugViewBase::initialize("shaders/debugview.hlsl");
 }
-void DebugView::setInputTexture(const DebugImages& images)
+void DebugView::execute(VkCommandBuffer& cmd, const DebugDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex)
 {
-    mShaderParams.setTexture("inputLTC", mSharedCtx.mResManager->getView(images.LTC));
-    mShaderParams.setTexture("inputShadow", mSharedCtx.mResManager->getView(images.shadow));
-    mShaderParams.setTexture("inputNormals", mSharedCtx.mResManager->getView(images.normal));
-    mShaderParams.setTexture("inputMotion", mSharedCtx.mResManager->getView(images.motion));
-    mShaderParams.setTexture("debugTex", mSharedCtx.mResManager->getView(images.debug));
-    mShaderParams.setTexture("inputAO", mSharedCtx.mResManager->getView(images.AO));
-    mShaderParams.setTexture("inputReflection", mSharedCtx.mResManager->getView(images.reflection));
-    mShaderParams.setTexture("inputVariance", mSharedCtx.mResManager->getView(images.variance));
-    mShaderParams.setTexture("inputPathTracer", mSharedCtx.mResManager->getView(images.pathTracer));
-}
-void DebugView::setOutputTexture(VkImageView imageView)
-{
-    mShaderParams.setTexture("output", imageView);
+    auto& param = mShaderParamFactory.getNextShaderParameters(frameIndex);
+    {
+        param.setConstants(desc.constants);
+        
+        param.setTexture("inputNormals", mSharedCtx.mResManager->getView(desc.normal));
+        param.setTexture("inputMotion", mSharedCtx.mResManager->getView(desc.motion));
+        param.setTexture("debugTex", mSharedCtx.mResManager->getView(desc.debug));
+        param.setTexture("inputPathTracer", mSharedCtx.mResManager->getView(desc.pathTracer));
+        param.setTexture("output", mSharedCtx.mResManager->getView(desc.output));
+    }
+    
+    int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
+    NeVkResult res = updatePipeline(frameVersion);
+    assert(res == NeVkResult::eOk);
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
+    VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);
+    const uint32_t dispX = (width + 15) / 16;
+    const uint32_t dispY = (height + 15) / 16;
+    vkCmdDispatch(cmd, dispX, dispY, 1);
 }
 } // namespace nevk

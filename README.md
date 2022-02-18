@@ -40,3 +40,14 @@ Use vscode with preset env variable
 ## Example
 
     ./nevk misc/Cube/Cube.gltf
+
+## USD
+    USD env:
+        export USD_PATH=/Users/ilya/work/usd_build/
+        export PATH=/Users/ilya/work/usd_build/bin:$PATH
+        export PYTHONPATH=/Users/ilya/work/usd_build/lib/python:$PYTHONPATH
+
+    Cmake:
+        cmake -DCMAKE_INSTALL_PREFIX=/Users/ilya/work/usd_build/plugin/usd/ ..
+    Install plugin:
+        cmake --install . --component HdNeVK

@@ -30,17 +30,22 @@ if (MINGW)
             )
 endif ()
 
+if(WIN32)
+  add_compile_definitions(NOMINMAX)
+  add_compile_definitions(_USE_MATH_DEFINES)
+endif()
+
 ######## Packages
 # Vulkan
 if (NOT DEFINED VULKAN_SDK)
     find_package(Vulkan REQUIRED)
 else ()
-# Workaround for CI
-if (APPLE)
-    set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/libvulkan.dylib)
-elseif (MSVC)
-    set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/vulkan-1.lib)
-endif ()
+    # Workaround for CI
+    if (APPLE)
+        set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/libvulkan.dylib)
+    elseif (MSVC)
+        set(Vulkan_LIBRARY ${VULKAN_SDK}/lib/vulkan-1.lib)
+    endif ()
     set(Vulkan_INCLUDE_DIR ${VULKAN_SDK}/include)
     message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
     message(STATUS "VULKAN INCLUDE: ${Vulkan_INCLUDE_DIR}")
@@ -49,6 +54,8 @@ endif ()
 # Embree
 find_package(embree 3 REQUIRED)
 message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
+
+find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
 
 # Shader Manager
 set(SHADERMANAGER_SOURCES
@@ -66,6 +73,40 @@ elseif (APPLE)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib")
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib")
 endif ()
+
+set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
+set(USD_ROOT /Users/jswark/school/USD_Build)
+find_package(MaterialX REQUIRED)
+
+# Material Manager
+set(MATERIALMANAGER_SOURCES
+       include/materialmanager/materialmanager.h
+       include/materialmanager/mdlNeurayLoader.h
+       include/materialmanager/mdlRuntime.h
+       include/materialmanager/mdlHlslCodeGen.h
+       include/materialmanager/mtlxMdlCodeGen.h
+       include/materialmanager/mdlLogger.h
+       include/materialmanager/mdlMaterialCompiler.h
+
+       src/materialmanager/materialmanager.cpp
+       src/materialmanager/mdlNeurayLoader.cpp
+       src/materialmanager/mdlMaterialCompiler.cpp
+       src/materialmanager/mdlRuntime.cpp
+       src/materialmanager/mdlHlslCodeGen.cpp
+       src/materialmanager/mtlxMdlCodeGen.cpp
+       src/materialmanager/mdlLogger.cpp
+        )
+set(MATERIALLIB_NAME materialmanager)
+add_library(${MATERIALLIB_NAME} OBJECT ${MATERIALMANAGER_SOURCES})
+target_include_directories(${MATERIALLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/ ${PROJECT_SOURCE_DIR}/include/materialmanager)
+target_include_directories(${MATERIALLIB_NAME} PUBLIC  shaders/ external/glm)
+target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${SHADERLIB_NAME})
+target_link_libraries(${MATERIALLIB_NAME} PRIVATE #hdMtlx )
+        MaterialXCore
+        MaterialXFormat
+        MaterialXGenMdl)
+# MDL ( $MDL_SDK_ROOT refer to the installation root of the MDL SDK.)
+target_include_directories(${MATERIALLIB_NAME} PUBLIC external/mdl-sdk/include) # $ENV{MDL_SDK_ROOT}
 
 # Scene
 set(SCENE_SOURCES
@@ -142,43 +183,29 @@ add_library(${TRACY_LIB} OBJECT ${TRACY_SOURCES})
 # Render lib
 set(RENDER_SOURCES
         include/render/common.h
-        include/render/gbuffer.h
         include/render/bvh.h
-        include/render/render.h
-        include/render/renderpass.h
-        include/render/gbufferpass.h
+        include/render/vkrender.h
+        include/render/glfwrender.h
+        include/render/ptrender.h
         include/render/shaderparameters.h
         include/render/computepass.h
-        include/render/rtshadowpass.h
         include/render/pathtracer.h
-        include/render/reflection.h
-        include/render/aopass.h
         include/render/upscalepass.h
-        include/render/ltcpass.h
-        include/render/bilateralfilter.h
+        include/render/reduction.h
         include/render/tonemap.h
-        include/render/composition.h
         include/render/accumulation.h
         include/render/debugview.h
-        include/render/depthpass.h
         include/render/debugUtils.h
-        src/render/render.cpp
-        src/render/renderpass.cpp
-        src/render/gbufferpass.cpp
+        src/render/vkrender.cpp
+        src/render/glfwrender.cpp
+        src/render/ptrender.cpp
         src/render/bvh.cpp
         src/render/upscalepass.cpp
-        src/render/rtshadowpass.cpp
+        src/render/reduction.cpp
         src/render/pathtracer.cpp
-        src/render/reflection.cpp
-        src/render/aopass.cpp
-        src/render/ltcpass.cpp
-        src/render/bilateralfilter.cpp
-        src/render/ltc_data.h
         src/render/tonemap.cpp
-        src/render/composition.cpp
         src/render/accumulation.cpp
         src/render/debugview.cpp
-        src/render/depthpass.cpp
         src/render/debugUtils.cpp
         )
 set(RENDERLIB_NAME render)
@@ -189,17 +216,6 @@ target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/shader
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/external/tracy)
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${EMBREE_INCLUDE_PATH})
 
-# Model loader lib
-set(MODELLIB_SOURCES
-        include/modelloader/modelloader.h
-        src/modelloader/modelloader.cpp)
-set(MODELLIB_NAME modelloader)
-add_library(${MODELLIB_NAME} OBJECT ${MODELLIB_SOURCES})
-target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
-target_include_directories(${MODELLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/modelloader)
-target_link_libraries(${MODELLIB_NAME} PUBLIC ${SCENELIB_NAME})
-target_include_directories(${MODELLIB_NAME} PUBLIC external/tinygltf)
-
 set(TEXTURELIB_SOURCES
         include/texturemanager/texturemanager.h
         src/texturemanager/texturemanager.cpp)
@@ -207,13 +223,14 @@ set(TEXTURELIB_NAME texturemanager)
 add_library(${TEXTURELIB_NAME} OBJECT ${TEXTURELIB_SOURCES})
 target_include_directories(${TEXTURELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${TEXTURELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/texturemanager)
-target_link_libraries(${TEXTURELIB_NAME} PUBLIC ${SCENELIB_NAME} ${MODELLIB_NAME})
+target_include_directories(${TEXTURELIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${TEXTURELIB_NAME} PUBLIC ${SCENELIB_NAME})
 
 ## Vulkan
 target_include_directories(${RENDERLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
-target_include_directories(${MODELLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_link_libraries(${MODELLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
+target_include_directories(${MATERIALLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
@@ -229,11 +246,9 @@ endif ()
 
 ## GLM (Mathematics)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
-target_include_directories(${MODELLIB_NAME} PUBLIC external/glm)
 
 # TOL (TinyObjLoader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
-target_include_directories(${MODELLIB_NAME} PUBLIC external/tol)
 
 # STB (image loader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/stb)
@@ -247,17 +262,175 @@ target_link_libraries(${RENDERLIB_NAME} PUBLIC doctest)
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${RESMNGR_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SHADERLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${SCENELIB_NAME})
-target_link_libraries(${RENDERLIB_NAME} PUBLIC ${MODELLIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${UILIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC ${TEXTURELIB_NAME})
 target_link_libraries(${RENDERLIB_NAME} PUBLIC embree)
+target_link_libraries(${RENDERLIB_NAME} PRIVATE 
+    ${MATERIALLIB_NAME}
+    MaterialXCore
+    MaterialXFormat
+    MaterialXGenMdl)
+
 target_set_warnings(${RENDERLIB_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying)
 
 # Application
-add_executable(${PROJECT_NAME} app/main.cpp)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB})  # Link the executable to library (if it uses it).
-target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
+set(HD_RUNNER_SOURCES
+    src/hdRunner/main.cpp
+    src/hdRunner/SimpleRenderTask.h
+    src/hdRunner/SimpleRenderTask.cpp
+)
+add_executable(${PROJECT_NAME} ${HD_RUNNER_SOURCES})
+set_target_properties(
+  ${PROJECT_NAME}
+  PROPERTIES
+    LINKER_LANGUAGE CXX
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED TRUE
+    CXX_EXTENSIONS OFF
+)
 
+target_include_directories(${PROJECT_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC external/glfw/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+    ${RESMNGR_NAME} 
+    ${SHADERLIB_NAME} 
+    ${MATERIALLIB_NAME}
+    MaterialXCore
+    MaterialXFormat
+    MaterialXGenMdl
+    ${SCENELIB_NAME} 
+    ${RENDERLIB_NAME} 
+    ${UILIB_NAME} 
+    ${TEXTURELIB_NAME} 
+    ${TRACY_LIB}
+    ${Vulkan_LIBRARY}
+    ar cameraUtil hd hf hgi hio usd usdGeom usdImaging    
+)  # Link the executable to library (if it uses it).
+
+# target_set_warnings(${PROJECT_NAME} ENABLE ALL AS_ERROR ALL DISABLE Annoying) # Set warnings (if needed).
+
+# Hydra plugin
+set(HD_PLUGIN_SOURCES
+    include/HdNeVK/RendererPlugin.h
+    src/HdNeVK/RendererPlugin.cpp
+    src/HdNeVK/RenderParam.h
+    src/HdNeVK/RenderBuffer.h
+    src/HdNeVK/RenderDelegate.h
+    src/HdNeVK/RenderPass.h
+    src/HdNeVK/RenderBuffer.cpp
+    src/HdNeVK/RenderDelegate.cpp
+    src/HdNeVK/RenderPass.cpp
+    src/HdNeVK/Instancer.h
+    src/HdNeVK/Instancer.cpp
+    src/HdNeVK/Material.h
+    src/HdNeVK/Material.cpp
+    src/HdNeVK/Camera.h
+    src/HdNeVK/Camera.cpp
+    src/HdNeVK/Mesh.h
+    src/HdNeVK/Mesh.cpp
+    src/HdNeVK/Light.h
+    src/HdNeVK/Light.cpp
+    src/HdNeVK/Tokens.h
+    src/HdNeVK/Tokens.cpp
+    src/HdNeVK/MaterialNetworkTranslator.h
+    src/HdNeVK/MaterialNetworkTranslator.cpp
+    src/HdNeVK/MdlParserPlugin.h
+    src/HdNeVK/MdlParserPlugin.cpp
+    src/HdNeVK/MdlDiscoveryPlugin.h
+    src/HdNeVK/MdlDiscoveryPlugin.cpp    
+)
+set(HD_PLUGIN_NAME HdNeVK)
+add_library(${HD_PLUGIN_NAME} SHARED ${HD_PLUGIN_SOURCES})
+set_target_properties(
+  ${HD_PLUGIN_NAME}
+  PROPERTIES
+    LINKER_LANGUAGE CXX
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    INSTALL_RPATH_USE_LINK_PATH ON
+    # The other libs in the plugin dir have no "lib" prefix, so let's match this
+    PREFIX ""
+)
+
+if(WIN32)
+  add_compile_definitions(NOMINMAX)
+  add_compile_definitions(_USE_MATH_DEFINES)
+  add_compile_definitions(_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH)
+endif()
+
+target_compile_definitions(
+  ${HD_PLUGIN_NAME}
+  PUBLIC
+    # Required for PLUG_THIS_PLUGIN macro
+    MFB_PACKAGE_NAME=${HD_PLUGIN_NAME}
+  PRIVATE
+    # Workaround for https://github.com/PixarAnimationStudios/USD/issues/1471#issuecomment-799813477
+    "$<$<OR:$<CONFIG:>,$<CONFIG:Debug>>:TBB_USE_DEBUG>"
+)
+
+# Workaround for https://github.com/PixarAnimationStudios/USD/issues/1279
+if (MSVC_VERSION GREATER_EQUAL 1920)
+    target_compile_options(${HD_PLUGIN_NAME} PRIVATE "/Zc:inline-")
+endif()
+set(Boost_USE_STATIC_LIBS OFF) 
+set(BUILD_SHARED_LIBS ON)
+# find_package(Boost COMPONENTS python REQUIRED)
+
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/hdNeVK)
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/hdNeVK)
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC hd)
+target_include_directories(${HD_PLUGIN_NAME} PRIVATE 
+    usdImaging
+    hdMtlx
+)
+
+target_link_libraries(
+  ${HD_PLUGIN_NAME}
+  PRIVATE
+    usdImaging
+    hdMtlx
+    ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} ${RENDERLIB_NAME} ${UILIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB}
+    ${MATERIALLIB_NAME}
+  PUBLIC
+    hd
+)
+
+set(PLUGINFO_PATH "${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json")
+
+file(READ ${PROJECT_SOURCE_DIR}/src/hdNeVK/plugInfo.json.in PLUGINFO)
+file(
+  GENERATE
+  OUTPUT
+    "${PLUGINFO_PATH}"
+  CONTENT
+    ${PLUGINFO}
+)
+
+install(
+  FILES
+    "${PLUGINFO_PATH}"
+  DESTINATION
+    "${CMAKE_INSTALL_PREFIX}/HdNeVK/resources"
+  COMPONENT
+    ${HD_PLUGIN_NAME}
+)
+
+install(
+  TARGETS
+    ${HD_PLUGIN_NAME}
+  LIBRARY
+    DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    COMPONENT ${HD_PLUGIN_NAME}
+  RUNTIME
+    DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    COMPONENT ${HD_PLUGIN_NAME}
+  ARCHIVE
+    DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    COMPONENT ${HD_PLUGIN_NAME}
+)
 
 # Set working directory
 if (MSVC)
@@ -301,8 +474,28 @@ if (MSVC)
             "${EMBREE_ROOT_DIR}/bin/embree3.dll"
             "${OUTPUT_DIRECTORY}"
             )
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/nt-x86-64/lib/libmdl_sdk.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/nt-x86-64/lib/nv_freeimage.dll"
+            "${OUTPUT_DIRECTORY}"
+            )
+elseif(APPLE)
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/macosx-x86-64/lib/libmdl_sdk.so"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/mdl-sdk/macosx-x86-64/lib/nv_freeimage.so"
+            "${OUTPUT_DIRECTORY}"
+            )
 endif ()
-
 ##########################################
 # External 3rd-party libraries
 
@@ -332,7 +525,7 @@ endif ()
 # CXXOPTS
 target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
 
-option(NEVK_TESTS "enable tests" ON)
+option(NEVK_TESTS "enable tests" OFF)
 
 if (NOT NEVK_TESTS)
     message(STATUS "tests are disabled")

@@ -351,9 +351,9 @@ void showGizmo(Camera& cam, float camDistance, float* matrix, ImGuizmo::OPERATIO
     ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, mCurrentGizmoMode, matrix, NULL, nullptr, nullptr, nullptr);
 }
 
-Scene::RectLightDesc parseFromJson(json light, uint32_t j)
+Scene::UniformLightDesc parseFromJson(json light, uint32_t j)
 {
-    Scene::RectLightDesc desc;
+    Scene::UniformLightDesc desc;
     desc.position = glm::float3(light["lights"][j]["position"][0], light["lights"][j]["position"][1], light["lights"][j]["position"][2]);
     desc.orientation = glm::float3(light["lights"][j]["orientation"][0], light["lights"][j]["orientation"][1], light["lights"][j]["orientation"][2]);
     desc.width = float(light["lights"][j]["width"]);
@@ -366,7 +366,7 @@ Scene::RectLightDesc parseFromJson(json light, uint32_t j)
 
 void saveToJson(Scene& scene)
 {
-    std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
+    std::vector<Scene::UniformLightDesc>& lightDescs = scene.getLightsDesc();
     std::vector<json> lightSettings;
     lightSettings.resize(lightDescs.size());
 
@@ -409,7 +409,7 @@ void Ui::loadFromJson(Scene& scene)
 
         for (uint32_t j = 0; j < light["lights"].size(); ++j)
         {
-            Scene::RectLightDesc desc = parseFromJson(light, j);
+            Scene::UniformLightDesc desc = parseFromJson(light, j);
             scene.createLight(desc);
         }
     }
@@ -421,8 +421,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     glm::float3 camPos = cam.getPosition();
 
     // get CPU light
-    std::vector<Scene::RectLightDesc>& lightDescs = scene.getLightsDesc();
-    Scene::RectLightDesc& currLightDesc = lightDescs[lightId];
+    std::vector<Scene::UniformLightDesc>& lightDescs = scene.getLightsDesc();
+    Scene::UniformLightDesc& currLightDesc = lightDescs[lightId];
 
     if (ImGui::RadioButton("Translate", mCurrentGizmoOperation == ImGuizmo::TRANSLATE))
         mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
@@ -474,7 +474,13 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     currLightDesc.height = matrixScale[2];
 
     // update in scene
-    Scene::RectLightDesc desc = { currLightDesc.position, currLightDesc.orientation, currLightDesc.width, currLightDesc.height, currLightDesc.color, currLightDesc.intensity };
+    Scene::UniformLightDesc desc{};
+    desc.position = currLightDesc.position;
+    desc.orientation = currLightDesc.orientation;
+    desc.width = currLightDesc.width;
+    desc.height = currLightDesc.height;
+    desc.color = currLightDesc.color;
+    desc.intensity = currLightDesc.intensity;
     scene.updateLight(lightId, desc);
     scene.updateInstanceTransform(scene.mLightIdToInstanceId[lightId], lightXform);
 }
@@ -487,7 +493,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Shadows", "LTC", "Motion", "Custom Debug", "AO", "Variance", "Reflection", "Ref Final", "Path Tracer", "PT Normals"};
+    const char* items[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer"};
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();
@@ -533,7 +539,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
             {
                 if (ImGui::MenuItem("Light"))
                 {
-                    Scene::RectLightDesc desc{};
+                    Scene::UniformLightDesc desc{};
                     desc.color = glm::float4(1.0f);
                     desc.height = 1.0f;
                     desc.width = 1.0f;
@@ -629,7 +635,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
                 {
                     for (uint32_t i = 0; i < instances.size(); i++)
                     {
-                        if (instances[i].isLight == 0)
+                        if (instances[i].lightId == -1)
                         {
                             ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf;
                             if (ImGui::TreeNodeEx((void*)(intptr_t)i, flags, "Instance ID: %d", instances[i].mMeshId))
@@ -723,56 +729,6 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     }
     // Common for bilateral filters
     ImGui::Checkbox("Use swizzle threads in filters", &renderConfig.useSwizzleTid);
-    
-    ImGui::Checkbox("Enable Shadows", &renderConfig.enableShadows);
-    if (renderConfig.enableShadows)
-    {
-        if (ImGui::TreeNode("Shadows"))
-        {
-            ImGui::Checkbox("Shadow Accumulation", &renderConfig.enableShadowsAcc);
-            if (renderConfig.enableShadowsAcc)
-            {
-                ImGui::SliderFloat("Alpha", &renderConfig.accAlpha, 0.01, 0.5);
-            }
-            ImGui::Checkbox("Bilateral Filter", &renderConfig.enableFilter);
-            if (renderConfig.enableFilter)
-            {
-                ImGui::DragFloat("Sigma", &renderConfig.sigma, 0.1f, 0.1f);
-                ImGui::DragFloat("Sigma normal", &renderConfig.sigmaNormal, 0.1f, 0.1f);
-                ImGui::DragInt("Max Radius", &renderConfig.maxR, 1, 1);
-                ImGui::DragInt("Radius", &renderConfig.radius, 1, 1);
-            }
-            ImGui::TreePop();
-        }
-    }
-
-    ImGui::Checkbox("Enable AO", &renderConfig.enableAO);
-
-    if (renderConfig.enableAO)
-    {
-        if (ImGui::TreeNode("Ambient Occlusion"))
-        {
-            ImGui::Checkbox("AO Accumulation", &renderConfig.enableAOAcc);
-            if (renderConfig.enableAOAcc)
-            {
-                ImGui::SliderFloat("Alpha", &renderConfig.accAOAlpha, 0.01, 0.5);
-            }
-            ImGui::SliderFloat("Ray length", &renderConfig.rayLen, 0.01, 100);
-            ImGui::SliderInt("Samples per pixel", &renderConfig.samples, 1, 100);
-
-            ImGui::Checkbox("AO Bilateral Filter", &renderConfig.enableAOFilter);
-            if (renderConfig.enableAOFilter)
-            {
-                ImGui::DragFloat("AO sigma", &renderConfig.sigmaAO, 0.1f, 0.1f);
-                ImGui::DragFloat("AO sigma normal", &renderConfig.sigmaAONormal, 0.1f, 0.1f);
-                ImGui::DragInt("AO max radius", &renderConfig.maxRAO, 1, 1);
-                ImGui::DragInt("AO radius", &renderConfig.radiusAO, 1, 1);
-            }
-            ImGui::TreePop();
-        }
-    }
-
-    ImGui::Checkbox("Enable Reflections", &renderConfig.enableReflections);
 
     ImGui::Checkbox("Enable Upscale", &renderConfig.enableUpscale);
     if (renderConfig.enableUpscale)
@@ -784,15 +740,11 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
         renderConfig.upscaleFactor = 1.0f;
     }
 
-    bool isClicked = ImGui::Button("Recreate BVH");
-    if (isClicked)
-    {
-        renderConfig.recreateBVH = true;
-    }
-    else
-    {
-        renderConfig.recreateBVH = false;
-    }
+    bool isRecreate = ImGui::Button("Recreate BVH");
+    renderConfig.recreateBVH = isRecreate ? true : false;
+
+    bool isCPU = ImGui::Button("Render CPU");
+    renderConfig.renderCPU = isCPU ? true : false;
 
     ImGui::End(); // end window
 }

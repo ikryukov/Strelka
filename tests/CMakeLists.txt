@@ -8,14 +8,36 @@ set(TESTFILES
         modelloader/test_model.cpp
         ui/tests_ui.cpp
         intersection/aabb.cpp
+        materialmanager/test_materialmanager.cpp
         )
 
 set(TEST_MAIN unit_tests)
 set(TEST_RUNNER_PARAMS "")
 
+set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
+find_package(MaterialX REQUIRED)
+
 add_executable(${TEST_MAIN} ${TESTFILES})
-target_link_libraries(${TEST_MAIN} PRIVATE ${RESMNGR_NAME} ${SHADERLIB_NAME} ${SCENELIB_NAME} 
-        ${RENDERLIB_NAME} ${UILIB_NAME} ${MODELLIB_NAME} ${TEXTURELIB_NAME} ${TRACY_LIB} doctest)
+target_link_libraries(${TEST_MAIN} 
+    PRIVATE 
+    ${RESMNGR_NAME} 
+    ${SHADERLIB_NAME} 
+    ${SCENELIB_NAME} 
+    ${RENDERLIB_NAME} 
+    ${UILIB_NAME} 
+    ${MODELLIB_NAME} 
+    ${TEXTURELIB_NAME} 
+    ${TRACY_LIB} 
+    ${MATERIALLIB_NAME}
+    usdImaging
+    hdMtlx
+    MaterialXCore
+    MaterialXFormat
+    MaterialXGenMdl
+    doctest
+    PUBLIC
+    hd
+    )
 target_include_directories(${TEST_MAIN} PRIVATE ../include/)
 
 # Set working directory

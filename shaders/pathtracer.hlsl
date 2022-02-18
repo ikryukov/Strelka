@@ -5,6 +5,7 @@
 #include "helper.h"
 #include "raytracing.h"
 #include "pathtracerparam.h"
+#include "instanceconstants.h"
 
 ConstantBuffer<PathTracerParam> ubo;
 
@@ -273,7 +274,7 @@ float3 pathTrace(uint2 pixelIndex)
     accel.vb = vb;
     accel.ib = ib;
 
-    if (ubo.debug == 1)
+    //if (ubo.debug == 1)
     {
         float3 debugN = (N + 1.0) * 0.5;
         return debugN;
@@ -405,4 +406,5 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     color = pathTrace(pixelIndex);
 
     output[pixelIndex] = float4(color, 1.0);
+    //output[pixelIndex] = float4(abs(gbWPos[pixelIndex].rgb), 1.0);
 }

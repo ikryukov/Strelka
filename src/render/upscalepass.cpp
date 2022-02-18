@@ -36,16 +36,26 @@ void UpscalePass::initialize()
         assert(0);
     }
 
-    mShaderParams.setSampler("upscaleSampler", mUpscaleSampler);
-
     UpscalePassBase::initialize("shaders/upscalepass.hlsl");
 }
-void UpscalePass::setInputTexture(VkImageView input)
+void UpscalePass::execute(VkCommandBuffer& cmd, const UpscaleDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex)
 {
-    mShaderParams.setTexture("input", input);
+    auto& param = mShaderParamFactory.getNextShaderParameters(frameIndex);
+    {
+        param.setConstants(desc.constants);
+        param.setTexture("input", mSharedCtx.mResManager->getView(desc.input));
+        param.setTexture("output", mSharedCtx.mResManager->getView(desc.output));
+        param.setSampler("upscaleSampler", mUpscaleSampler);
+    }
+    int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
+    NeVkResult res = updatePipeline(frameVersion);
+    assert(res == NeVkResult::eOk);
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
+    VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);
+    const uint32_t dispX = (width + 15) / 16;
+    const uint32_t dispY = (height + 15) / 16;
+    vkCmdDispatch(cmd, dispX, dispY, 1);
 }
-void UpscalePass::setOutputTexture(VkImageView imageView)
-{
-    mShaderParams.setTexture("output", imageView);
-}
+
 } // namespace nevk

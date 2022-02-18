@@ -13,50 +13,26 @@ void Accumulation::initialize()
 {
     AccumulationBase::initialize("shaders/accumulation.hlsl");
 }
-void Accumulation::setInputTexture1(Image* input)
+void Accumulation::execute(VkCommandBuffer& cmd, const AccumulationDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex)
 {
-    mShaderParams.setTexture("currTex1", mSharedCtx.mResManager->getView(input));
-    mShaderParams.setTexture("currTex4", VK_NULL_HANDLE);
-}
-void Accumulation::setInputTexture4(Image* input)
-{
-    mShaderParams.setTexture("currTex4", mSharedCtx.mResManager->getView(input));
-    mShaderParams.setTexture("currTex1", VK_NULL_HANDLE);
-}
-void Accumulation::setWposTexture(Image* input)
-{
-    mShaderParams.setTexture("gbWpos", mSharedCtx.mResManager->getView(input));
-}
-void Accumulation::setMotionTexture(Image* motion)
-{
-    mShaderParams.setTexture("motionTex", mSharedCtx.mResManager->getView(motion));
-}
-void Accumulation::setPrevDepthTexture(Image* input)
-{
-    mShaderParams.setTexture("prevDepthTex", mSharedCtx.mResManager->getView(input));
-}
-void Accumulation::setCurrDepthTexture(Image* input)
-{
-    mShaderParams.setTexture("currDepthTex", mSharedCtx.mResManager->getView(input));
-}
-void Accumulation::setHistoryTexture1(Image* history)
-{
-    mShaderParams.setTexture("prevTex1", mSharedCtx.mResManager->getView(history));
-    mShaderParams.setTexture("prevTex4", VK_NULL_HANDLE);
-}
-void Accumulation::setHistoryTexture4(Image* history)
-{
-    mShaderParams.setTexture("prevTex4", mSharedCtx.mResManager->getView(history));
-    mShaderParams.setTexture("prevTex1", VK_NULL_HANDLE);
-}
-void Accumulation::setOutputTexture1(Image* output)
-{
-    mShaderParams.setTexture("output1", mSharedCtx.mResManager->getView(output));
-    mShaderParams.setTexture("output4", VK_NULL_HANDLE);
-}
-void Accumulation::setOutputTexture4(Image* output)
-{
-    mShaderParams.setTexture("output4", mSharedCtx.mResManager->getView(output));
-    mShaderParams.setTexture("output1", VK_NULL_HANDLE);
+    auto& param = mShaderParamFactory.getNextShaderParameters(frameIndex);
+    {
+        param.setConstants(desc.constants);
+        {
+            param.setTexture("input", mSharedCtx.mResManager->getView(desc.input));
+            param.setTexture("history", mSharedCtx.mResManager->getView(desc.history));
+            param.setTexture("output", mSharedCtx.mResManager->getView(desc.output));
+        }
+    }
+
+    int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
+    NeVkResult res = updatePipeline(frameVersion);
+    assert(res == NeVkResult::eOk);
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
+    VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
+    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);
+    const uint32_t dispX = (width + 15) / 16;
+    const uint32_t dispY = (height + 15) / 16;
+    vkCmdDispatch(cmd, dispX, dispY, 1);
 }
 } // namespace nevk

@@ -24,8 +24,9 @@ ShaderManager::~ShaderManager()
     }
 }
 
-ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, const char* entryPointName, Stage stage)
+ShaderManager::ShaderDesc ShaderManager::compileShaderFromString(const char* source, const char* entryPointName, Stage stage)
 {
+    // printf("%s\n", source);
     SlangCompileRequest* slangRequest = spCreateCompileRequest(mSlangSession);
     // spSetDebugInfoLevel(slangRequest, SLANG_DEBUG_INFO_LEVEL_MAXIMAL);
     int targetIndex = spAddCodeGenTarget(slangRequest, SLANG_SPIRV);
@@ -34,6 +35,71 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
     spSetOptimizationLevel(slangRequest, optLevel);
     spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(compDir).c_str());
+    //spAddPreprocessorDefine(slangRequest, "MDL_NUM_TEXTURE_RESULTS", "0");
+    spAddSearchPath(slangRequest, "./shaders/");
+    int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
+    spAddTranslationUnitSourceString(slangRequest, translationUnitIndex, "memory", source);
+
+    SlangStage slangStage = SLANG_STAGE_NONE;
+    switch (stage)
+    {
+    case nevk::ShaderManager::Stage::eVertex:
+        slangStage = SLANG_STAGE_VERTEX;
+        break;
+    case nevk::ShaderManager::Stage::ePixel:
+        slangStage = SLANG_STAGE_PIXEL;
+        break;
+    case nevk::ShaderManager::Stage::eCompute:
+        slangStage = SLANG_STAGE_COMPUTE;
+        break;
+    default:
+        break;
+    }
+    int entryPointIndex = spAddEntryPoint(slangRequest, translationUnitIndex, entryPointName, slangStage);
+    const SlangResult compileRes = spCompile(slangRequest);
+
+    if (auto diagnostics = spGetDiagnosticOutput(slangRequest))
+        printf("%s\n", diagnostics);
+    if (SLANG_FAILED(compileRes))
+    {
+        spDestroyCompileRequest(slangRequest);
+        return ShaderDesc();
+    }
+
+    size_t dataSize = 0;
+    void const* data = spGetEntryPointCode(slangRequest, entryPointIndex, &dataSize);
+
+    if (!data)
+        return ShaderDesc();
+
+    ShaderDesc desc{};
+    desc.valid = true;
+    desc.fileName = std::string("memory");
+    desc.entryPointName = std::string(entryPointName);
+    desc.stage = stage;
+
+    desc.code.resize(dataSize);
+    memcpy(&desc.code[0], data, dataSize);
+    desc.codeSize = dataSize;
+    desc.type = slangStage;
+    desc.slangReflection = (slang::ShaderReflection*)spGetReflection(slangRequest);
+    desc.slangRequest = slangRequest;
+
+    //spDestroyCompileRequest(slangRequest);
+    return desc;
+}
+
+ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, const char* entryPointName, Stage stage)
+{
+    SlangCompileRequest* slangRequest = spCreateCompileRequest(mSlangSession);
+    // spSetDebugInfoLevel(slangRequest, SLANG_DEBUG_INFO_LEVEL_MAXIMAL);
+    int targetIndex = spAddCodeGenTarget(slangRequest, SLANG_SPIRV);
+    SlangProfileID profileID = spFindProfile(mSlangSession, "sm_6_3");
+    spSetTargetProfile(slangRequest, targetIndex, profileID);
+    SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_DEFAULT;
+    spSetOptimizationLevel(slangRequest, optLevel);
+    spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(compDir).c_str());
+    //spAddPreprocessorDefine(slangRequest, "MDL_NUM_TEXTURE_RESULTS", "0");
 
     int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
     spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, fileName);
@@ -71,7 +137,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
         return ShaderDesc();
 
     ShaderDesc desc{};
-
+    desc.valid = true;
     desc.fileName = std::string(fileName);
     desc.entryPointName = std::string(entryPointName);
     desc.stage = stage;
@@ -89,6 +155,11 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
 uint32_t ShaderManager::loadShader(const char* fileName, const char* entryPointName, Stage stage)
 {
     ShaderDesc sd = compileShader(fileName, entryPointName, stage);
+    if (sd.valid == false)
+    {
+        return -1;
+    }
+
     uint32_t shaderId = 0;
 
     // Try to reload existing shader
@@ -96,6 +167,36 @@ uint32_t ShaderManager::loadShader(const char* fileName, const char* entryPointN
     {
         ShaderDesc& old_sd = mShaderDescs[shaderId];
         if (old_sd.fileName == std::string(fileName) && old_sd.entryPointName == std::string(entryPointName))
+        {
+            old_sd.code.resize(sd.codeSize);
+            memcpy(&old_sd.code[0], &sd.code[0], sd.codeSize);
+            old_sd.codeSize = sd.codeSize;
+            return shaderId;
+        }
+    }
+
+    // Remember new data
+    shaderId = mShaderDescs.size();
+    mShaderDescs.push_back(sd);
+
+    return shaderId;
+}
+uint32_t ShaderManager::loadShaderFromString(const char* source, const char* entryPointName, Stage stage)
+{
+    ShaderDesc sd = compileShaderFromString(source, entryPointName, stage);
+
+    if (sd.valid == false)
+    {
+        return -1;
+    }
+
+    uint32_t shaderId = 0;
+
+    // Try to reload existing shader
+    for (; shaderId < mShaderDescs.size(); shaderId++)
+    {
+        ShaderDesc& old_sd = mShaderDescs[shaderId];
+        if (old_sd.fileName == std::string("memory") && old_sd.entryPointName == std::string(entryPointName))
         {
             old_sd.code.resize(sd.codeSize);
             memcpy(&old_sd.code[0], &sd.code[0], sd.codeSize);
@@ -204,13 +305,33 @@ ShaderManager::ResourceType getType(const char* resourceType)
     {
         return ShaderManager::ResourceType::eRWTexture2D;
     }
+    else if (strcmp(resourceType, "TextureCube") == 0)
+    {
+        return ShaderManager::ResourceType::eCubeMap;
+    }
+    else if (strcmp(resourceType, "Texture3D") == 0)
+    {
+        return ShaderManager::ResourceType::eTexture3D;
+    }
+    else if (strcmp(resourceType, "RWTexture3D") == 0)
+    {
+        return ShaderManager::ResourceType::eRWTexture3D;
+    }
     else if (strcmp(resourceType, "StructuredBuffer") == 0)
     {
         return ShaderManager::ResourceType::eStructuredBuffer;
     }
+    else if (strcmp(resourceType, "RWStructuredBuffer") == 0)
+    {
+        return ShaderManager::ResourceType::eRWStructuredBuffer;
+    }
     else if (strcmp(resourceType, "SamplerState") == 0)
     {
         return ShaderManager::ResourceType::eSampler;
+    }
+    else if (strcmp(resourceType, "ByteAddressBuffer") == 0)
+    {
+        return ShaderManager::ResourceType::eByteAddressBuffer;
     }
     else
     {
@@ -284,7 +405,7 @@ void print(slang::VariableLayoutReflection* var)
 void fillResDesc(slang::VariableLayoutReflection* var, ShaderManager::ResourceDesc& desc)
 {
     const char* name = var->getName();
-    printf("name: %s\t", name);
+    //printf("name: %s\t", name);
     desc.name = std::string(name);
     slang::TypeLayoutReflection* typeLayout = var->getTypeLayout();
     auto categoryCount = var->getCategoryCount();
@@ -298,11 +419,11 @@ void fillResDesc(slang::VariableLayoutReflection* var, ShaderManager::ResourceDe
             auto count = typeLayout->getSize(category);
             if (category == SLANG_PARAMETER_CATEGORY_UNIFORM)
             {
-                printf("offset=%d, size=%d\n", (uint32_t)index, (uint32_t)count);
+                //printf("offset=%d, size=%d\n", (uint32_t)index, (uint32_t)count);
             }
             else
             {
-                printf("binding=%d, set=%d\n", (uint32_t)index, (uint32_t)space);
+                //printf("binding=%d, set=%d\n", (uint32_t)index, (uint32_t)space);
                 desc.binding = index;
                 desc.set = space;
             }
@@ -339,8 +460,7 @@ std::vector<ShaderManager::ResourceDesc> ShaderManager::getResourcesDesc(uint32_
 
         fillResDesc(parameter, descs[i]);
 
-        printf("name = %s, binding=%d, set=%d\n", name, index, space);
-        //print(parameter);
+        //printf("name = %s, binding=%d, set=%d\n", name, index, space);
     }
     return descs;
 }

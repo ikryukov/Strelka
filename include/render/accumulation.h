@@ -7,6 +7,14 @@
 
 namespace nevk
 {
+struct AccumulationDesc
+{
+    AccumulationParam constants;
+    Image* input = VK_NULL_HANDLE;
+    Image* history = VK_NULL_HANDLE;
+    Image* output = VK_NULL_HANDLE;
+};
+
 using AccumulationBase = ComputePass<AccumulationParam>;
 class Accumulation : public AccumulationBase
 {
@@ -14,15 +22,7 @@ public:
     Accumulation(const SharedContext& ctx);
     ~Accumulation();
     void initialize();
-    void setInputTexture1(Image* input);
-    void setInputTexture4(Image* input);
-    void setWposTexture(Image* input);
-    void setMotionTexture(Image* motion);
-    void setPrevDepthTexture(Image* input);
-    void setCurrDepthTexture(Image* input);
-    void setHistoryTexture1(Image* history);
-    void setOutputTexture1(Image* output);
-    void setHistoryTexture4(Image* history);
-    void setOutputTexture4(Image* output);
+    
+    void execute(VkCommandBuffer& cmd, const AccumulationDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex);
 };
 } // namespace nevk

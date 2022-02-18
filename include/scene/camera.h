@@ -31,6 +31,7 @@ public:
     // View dir -Z
     glm::quat mOrientation = { 1.0f, 0.0f, 0.0f, 0.0f };
     glm::float3 position = { 0.0f, 0.0f, 10.0f };
+    glm::quat getOrientation();
 
     float rotationSpeed = 0.025f;
     float movementSpeed = 5.0f;
@@ -53,7 +54,7 @@ public:
         glm::float4x4 invPerspective;
         glm::float4x4 view;
     };
-    Matrices matrices, prevMatrices;
+    Matrices matrices;
 
     void updateViewMatrix();
 

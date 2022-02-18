@@ -11,11 +11,14 @@ class ComputePass
 protected:
     const SharedContext& mSharedCtx;
 
-    VkPipeline mPipeline = VK_NULL_HANDLE;
-    VkPipelineLayout mPipelineLayout = VK_NULL_HANDLE;
-    VkShaderModule mCS = VK_NULL_HANDLE;
+    VkPipeline mPipelines[MAX_FRAMES_IN_FLIGHT] = { VK_NULL_HANDLE };
+    VkPipelineLayout mPipelineLayouts[MAX_FRAMES_IN_FLIGHT] = { VK_NULL_HANDLE };
+    bool mNeedUpdatePipeline[MAX_FRAMES_IN_FLIGHT] = { true, true, true };
 
-    ShaderParameters<T> mShaderParams;
+    VkShaderModule mCS = VK_NULL_HANDLE;
+    uint32_t mCSid = (uint32_t)-1;
+
+    ShaderParametersFactory<T> mShaderParamFactory;
 
     VkShaderModule createShaderModule(const char* code, uint32_t codeSize)
     {
@@ -32,8 +35,9 @@ protected:
 
         return shaderModule;
     }
-    void createComputePipeline(VkShaderModule& shaderModule)
+    NeVkResult createComputePipeline(VkShaderModule& shaderModule, int frameVersion)
     {
+        assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
         VkPipelineShaderStageCreateInfo shaderStageInfo{};
         shaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStageInfo.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -43,36 +47,63 @@ protected:
         VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
         pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         pipelineLayoutInfo.setLayoutCount = 1;
-        VkDescriptorSetLayout layout = mShaderParams.getDescriptorSetLayout();
+        VkDescriptorSetLayout layout = mShaderParamFactory.getDescriptorSetLayout();
         pipelineLayoutInfo.pSetLayouts = &layout;
 
-        if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
+        if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayouts[frameVersion]) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to create pipeline layout!");
+            return NeVkResult::eFail;
         }
 
         VkComputePipelineCreateInfo pipelineInfo{};
         pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
         pipelineInfo.stage = shaderStageInfo;
-        pipelineInfo.layout = mPipelineLayout;
+        pipelineInfo.layout = mPipelineLayouts[frameVersion];
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipeline) != VK_SUCCESS)
+        if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[frameVersion]) != VK_SUCCESS)
         {
-            throw std::runtime_error("failed to create compute pipeline!");
+            return NeVkResult::eFail;
         }
+        return NeVkResult::eOk;
     }
 
 public:
     ComputePass(const SharedContext& ctx)
-        : mSharedCtx(ctx)
+        : mSharedCtx(ctx),
+          mShaderParamFactory(ctx)
     {
     }
     virtual ~ComputePass()
     {
-        vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
-        vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
-        vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
+        onDestroy();
+    }
+
+    void updateShader(const char* code)
+    {
+        const char* csShaderCode = nullptr;
+        uint32_t csShaderCodeSize = 0;
+        mCSid = mSharedCtx.mShaderManager->loadShaderFromString(code, "computeMain", nevk::ShaderManager::Stage::eCompute);
+        assert(mCSid != -1);
+        mSharedCtx.mShaderManager->getShaderCode(mCSid, csShaderCode, csShaderCodeSize);
+        if (mCS)
+        {
+            vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
+        }
+        mCS = createShaderModule(csShaderCode, csShaderCodeSize);
+
+        // mark as dirty, we need update pipelines
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            mNeedUpdatePipeline[i] = true;
+        }
+    }
+
+    void initializeFromCode(const char* code)
+    {
+        updateShader(code);
+
+        mShaderParamFactory.initialize(mCSid);
     }
 
     void initialize(const char* shaderFile)
@@ -83,30 +114,51 @@ public:
         mSharedCtx.mShaderManager->getShaderCode(csId, csShaderCode, csShaderCodeSize);
         mCS = createShaderModule(csShaderCode, csShaderCodeSize);
 
-        mShaderParams.create(mSharedCtx, csId);
+        mShaderParamFactory.initialize(csId);
+    }
 
-        createComputePipeline(mCS);
-    }
-    void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
+    NeVkResult updatePipeline(int frameVersion)
     {
-        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipeline);
-        VkDescriptorSet descSet = mShaderParams.getDescriptorSet(imageIndex);
-        vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, mPipelineLayout, 0, 1, &descSet, 0, nullptr);
-        const uint32_t dispX = (width + 15) / 16;
-        const uint32_t dispY = (height + 15) / 16;
-        vkCmdDispatch(cmd, dispX, dispY, 1);
+        assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
+        if (mNeedUpdatePipeline[frameVersion])
+        {
+            vkDestroyPipeline(mSharedCtx.mDevice, mPipelines[frameVersion], nullptr);
+            vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayouts[frameVersion], nullptr);
+            NeVkResult res = createComputePipeline(mCS, frameVersion);
+            mNeedUpdatePipeline[frameVersion] = false;
+            return res;
+        }
+        return NeVkResult::eOk;
     }
+
+    VkPipeline getPipeline(int frameVersion)
+    {
+        assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
+        return mPipelines[frameVersion];
+    }
+
+    VkPipelineLayout getPipeLineLayout(int frameIndex)
+    {
+        assert((frameIndex >= 0) && (frameIndex < MAX_FRAMES_IN_FLIGHT));
+        return mPipelineLayouts[frameIndex];
+    }
+
+    // void execute(VkCommandBuffer& cmd, uint32_t width, uint32_t height, uint32_t imageIndex)
+
     void onDestroy()
     {
-        vkDestroyPipeline(mSharedCtx.mDevice, mPipeline, nullptr);
-        vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayout, nullptr);
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            if (mPipelines[i])
+            {
+                vkDestroyPipeline(mSharedCtx.mDevice, mPipelines[i], nullptr);
+            }
+            if (mPipelineLayouts[i])
+            {
+                vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayouts[i], nullptr);
+            }
+        }
         vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
     }
-
-    void setParams(const T& params)
-    {
-        mShaderParams.setParams(params);
-    }
-
 };
 } // namespace nevk

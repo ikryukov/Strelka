@@ -18,10 +18,15 @@ public:
         eUnknown,
         eConstantBuffer,
         eStructuredBuffer,
+        eRWStructuredBuffer,
+        eByteAddressBuffer,
         eTexture2D,
         eRWTexture2D,
-        eSampler
-
+        eSampler,
+        eTexture3D,
+        eCubeMap,
+        eRWCubeMap,
+        eRWTexture3D,
     };
 
     struct ResourceDesc
@@ -45,6 +50,7 @@ public:
     ~ShaderManager();
 
     uint32_t loadShader(const char* fileName, const char* entryPointName, Stage stage);
+    uint32_t loadShaderFromString(const char* source, const char* entryPointName, Stage stage);
     void reloadAllShaders();
     bool getShaderCode(uint32_t id, const char*& code, uint32_t& size);
 
@@ -53,6 +59,7 @@ public:
 private:
     struct ShaderDesc
     {
+        bool valid = false;
         std::string fileName;
         std::string entryPointName;
         Stage stage = Stage::eNone;
@@ -67,5 +74,6 @@ private:
     std::vector<ShaderDesc> mShaderDescs;
 
     ShaderDesc compileShader(const char* fileName, const char* entryPointName, Stage stage);
+    ShaderDesc compileShaderFromString(const char* source, const char* entryPointName, Stage stage);
 };
 } // namespace nevk

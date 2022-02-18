@@ -9,6 +9,13 @@
 
 namespace nevk
 {
+struct UpscaleDesc
+{
+    Upscalepassparam constants;
+    Image* input;
+    Image* output;
+};
+
 using UpscalePassBase = ComputePass<Upscalepassparam>;
 class UpscalePass : public UpscalePassBase
 {
@@ -18,7 +25,6 @@ public:
     UpscalePass(const SharedContext& ctx);
     ~UpscalePass();
     void initialize();
-    void setInputTexture(VkImageView input);
-    void setOutputTexture(VkImageView imageView);
+    void execute(VkCommandBuffer& cmd, const UpscaleDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex);
 };
 } // namespace nevk

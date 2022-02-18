@@ -1,4 +1,5 @@
 #include "materials.h"
+#include "instanceconstants.h"
 #include "pack.h"
 
 struct VertexInput
@@ -7,16 +8,6 @@ struct VertexInput
     uint32_t tangent;
     uint32_t normal;
     uint32_t uv;
-};
-
-struct InstanceConstants
-{
-    float4x4 model;
-    float4x4 normalMatrix;
-    int32_t materialId;
-    int32_t pad0;
-    int32_t pad1;
-    int32_t pad2;
 };
 
 struct PS_INPUT
@@ -56,7 +47,7 @@ PS_INPUT vertexMain(VertexInput vi)
 {
     PS_INPUT out;
     InstanceConstants constants = instanceConstants[NonUniformResourceIndex(pconst.instanceId)];
-    const float4 wpos = mul(constants.model, float4(vi.position, 1.0f));
+    const float4 wpos = mul(constants.objectToWorld, float4(vi.position, 1.0f));
     out.pos = mul(viewToProj, mul(worldToView, wpos));
     out.currPos = out.pos;
     out.prevPos = mul(prevViewToProj, mul(prevWorldToView, wpos));
@@ -118,10 +109,10 @@ FSOutput fragmentMain(PS_INPUT inp) : SV_TARGET
     int32_t sampNormalId = material.sampNormalId;
 
     float3 N = normalize(inp.normal);
-    if (texNormalId != INVALID_INDEX)
-    {
-        N = CalcBumpedNormal(inp, texNormalId, sampNormalId);
-    }
+    // if (texNormalId != INVALID_INDEX)
+    // {
+    //     N = CalcBumpedNormal(inp, texNormalId, sampNormalId);
+    // }
 
     FSOutput ret;
     ret.wPos = float4(inp.wPos, 1.0);

@@ -1,14 +1,24 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
-#include <ShaderManager.h>
-#include <resourcemanager.h>
-#include <texturemanager.h>
+#include <shadermanager/ShaderManager.h>
+#include <resourcemanager/resourcemanager.h>
+#include <texturemanager/texturemanager.h>
 #include "bindless.h"
 
 namespace nevk
 {
 static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
+
+struct FrameData
+{
+    VkCommandBuffer cmdBuffer;
+    VkCommandPool cmdPool;
+    VkFence inFlightFence;
+    VkFence imagesInFlight;
+    VkSemaphore renderFinished;
+    VkSemaphore imageAvailable;
+};
 
 struct SharedContext
 {
@@ -17,6 +27,21 @@ struct SharedContext
     ResourceManager* mResManager = nullptr;
     ShaderManager* mShaderManager = nullptr;
     TextureManager* mTextureManager = nullptr;
+
+    FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
+    uint64_t mFrameNumber = 0;
+    uint32_t mFrameIndex = 0;
+    VkFormat depthFormat = VK_FORMAT_UNDEFINED;   
+
+
+    FrameData& getCurrentFrameData()
+    {
+        return mFramesData[mFrameNumber % MAX_FRAMES_IN_FLIGHT];
+    }
+    FrameData& getFrameData(uint32_t idx)
+    {
+        return mFramesData[idx % MAX_FRAMES_IN_FLIGHT];
+    }
 };
 
 enum class NeVkResult: uint32_t

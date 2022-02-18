@@ -19,6 +19,7 @@ struct Image
     VkImageView view = VK_NULL_HANDLE;
     VkFormat format;
     VmaAllocation allocation = VK_NULL_HANDLE;
+    VkImageLayout currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 };
 
 class ResourceManager::Context
@@ -83,6 +84,11 @@ public:
             allocFlags = 0;
             break;
         }
+        case VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT: {
+            memUsage = VMA_MEMORY_USAGE_GPU_TO_CPU;
+            allocFlags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+            break;
+        }
         default:
             break;
         }
@@ -99,7 +105,8 @@ public:
         }
 
         Buffer* ret = new Buffer();
-        if (vmaCreateBuffer(mAllocator, &bufferInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, nullptr) != VK_SUCCESS)
+        VkResult res = vmaCreateBuffer(mAllocator, &bufferInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, nullptr);
+        if (res != VK_SUCCESS)
         {
             throw std::runtime_error("failed to create buffer!");
         }
@@ -128,6 +135,73 @@ public:
             return buffer->handle;
         else
             return nullptr;
+    }
+
+    Image* createCubeMapImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr)
+    {
+        VkImageCreateInfo imageInfo{};
+        imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        imageInfo.imageType = VK_IMAGE_TYPE_2D;
+        imageInfo.extent.width = width;
+        imageInfo.extent.height = height;
+        imageInfo.extent.depth = 1;
+        imageInfo.mipLevels = 1;
+        imageInfo.arrayLayers = 6;
+        imageInfo.format = format;
+        imageInfo.tiling = tiling;
+        imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        imageInfo.usage = usage;
+        imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+        imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        
+        VmaAllocationCreateInfo vmaAllocInfo = {};
+        vmaAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+        VmaAllocationInfo allocInfo = {};
+        std::string imageName;
+        if (name)
+        {
+            vmaAllocInfo.flags |= VMA_ALLOCATION_CREATE_USER_DATA_COPY_STRING_BIT;
+            imageName = "Image: " + std::string(name);
+            vmaAllocInfo.pUserData = (void*)imageName.c_str();
+        }
+
+        Image* ret = new Image();
+        if (vmaCreateImage(mAllocator, &imageInfo, &vmaAllocInfo, &ret->handle, &ret->allocation, nullptr) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create image!");
+        }
+        ret->format = format;
+
+        VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+        if (usage & VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        {
+            aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+        }
+        ret->view = createCubeMapImageView(ret, aspectFlags);
+
+        return ret;
+    }
+
+    VkImageView createCubeMapImageView(const Image* image, VkImageAspectFlags aspectFlags)
+    {
+        VkImageViewCreateInfo viewInfo{};
+        viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        viewInfo.image = image->handle;
+        viewInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+        viewInfo.format = image->format;
+        viewInfo.subresourceRange.aspectMask = aspectFlags;
+        viewInfo.subresourceRange.baseMipLevel = 0;
+        viewInfo.subresourceRange.levelCount = 1;
+        viewInfo.subresourceRange.baseArrayLayer = 0;
+        viewInfo.subresourceRange.layerCount = 6;
+
+        VkImageView imageView;
+        if (vkCreateImageView(mDevice, &viewInfo, nullptr, &imageView) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create texture image view!");
+        }
+        return imageView;
     }
 
     Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr)
@@ -171,6 +245,7 @@ public:
             aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
         }
         ret->view = createImageView(ret, aspectFlags);
+        ret->currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
         return ret;
     }
@@ -210,6 +285,16 @@ public:
         return image->handle;
     }
 
+    VkImageLayout getImageLayout(Image* image)
+    {
+        return image->currentLayout;
+    }
+
+    void setImageLayout(Image* image, VkImageLayout newLayout)
+    {
+        image->currentLayout = newLayout;
+    }
+
     void getStats()
     {
         char* stats = nullptr;
@@ -231,7 +316,7 @@ ResourceManager::ResourceManager(VkDevice device, VkPhysicalDevice physicalDevic
 ResourceManager::~ResourceManager()
 {
     // Uncomment this line to debug memory leak
-    //mContext->getStats();
+    // mContext->getStats();
     mContext.reset(nullptr);
 }
 
@@ -265,6 +350,11 @@ Image* ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat fo
     return mContext->createImage(width, height, format, tiling, usage, properties, name);
 }
 
+Image* ResourceManager::createCubeMapImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name)
+{
+    return mContext->createCubeMapImage(width, height, format, tiling, usage, properties, name);
+}
+
 void ResourceManager::destroyImage(Image* image)
 {
     return mContext->destroyImage(image);
@@ -275,6 +365,16 @@ VkImage ResourceManager::getVkImage(const Image* image)
     return mContext->getVkImage(image);
 }
 
+VkImageLayout ResourceManager::getImageLayout(Image* image)
+{
+    return mContext->getImageLayout(image);
+}
+
+void ResourceManager::setImageLayout(Image* image, VkImageLayout newLayout)
+{
+    mContext->setImageLayout(image, newLayout);
+}
+
 VkImageView ResourceManager::getView(Image* image)
 {
     return image->view;
@@ -283,6 +383,11 @@ VkImageView ResourceManager::getView(Image* image)
 VkImageView ResourceManager::createImageView(const Image* image, VkImageAspectFlags aspectFlags)
 {
     return mContext->createImageView(image, aspectFlags);
+}
+
+VkImageView ResourceManager::createCubeMapImageView(const Image* image, VkImageAspectFlags aspectFlags)
+{
+    return mContext->createCubeMapImageView(image, aspectFlags);
 }
 
 VkCommandBuffer ResourceManager::beginSingleTimeCommands()
