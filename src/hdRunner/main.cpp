@@ -78,7 +78,7 @@ HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, SdfPath&
     return camera;
 }
 
-class CameraController
+class CameraController: public nevk::InputHandler
 {
     GfCamera mGfCam;
     GfQuatd mOrientation;
@@ -162,6 +162,41 @@ public:
 
         mOrientation = xform.ExtractRotationQuat();
         mPosition = xform.ExtractTranslation();
+    }
+
+    void keyCallback(int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods)
+    {
+        const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
+        switch (key)
+
+        {
+        case GLFW_KEY_W: {
+            keys.forward = keyState;
+            break;
+        }
+        case GLFW_KEY_S: {
+            keys.back = keyState;
+            break;
+        }
+        case GLFW_KEY_A: {
+            keys.left = keyState;
+            break;
+        }
+        case GLFW_KEY_D: {
+            keys.right = keyState;
+            break;
+        }
+        case GLFW_KEY_Q: {
+            keys.up = keyState;
+            break;
+        }
+        case GLFW_KEY_E: {
+            keys.down = keyState;
+            break;
+        }
+        default:
+            break;
+        }
     }
 };
 
@@ -292,6 +327,8 @@ int main(int argc, const char* argv[])
     UsdGeomCamera cam = UsdGeomCamera::Get(stage, cameraPath);
     CameraController cameraController(cam);
 
+    render.setInputHandler(&cameraController);
+
     uint64_t frameCount = 0;
     while (!render.windowShouldClose())
     {
@@ -302,7 +339,6 @@ int main(int argc, const char* argv[])
         
         render.pollEvents();
 
-        cameraController.keys.forward = true;
         cameraController.update(0.0001);
 
         cam.SetFromCamera(cameraController.getCamera(), 0.0);

@@ -201,8 +201,12 @@ void nevk::GLFWRender::framebufferResizeCallback(GLFWwindow* window, int width, 
 void nevk::GLFWRender::keyCallback(GLFWwindow* window, [[maybe_unused]] int key, [[maybe_unused]] int scancode, [[maybe_unused]] int action, [[maybe_unused]] int mods)
 {
     assert(window);
-    //auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    //nevk::Scene* scene = app->getScene();
+    auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
+    InputHandler* handler = app->getInputHandler();
+    assert(handler);
+
+    handler->keyCallback(key, scancode, action, mods);
+
     //Camera& camera = scene->getCamera(app->getActiveCameraIndex());
 
     //const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
