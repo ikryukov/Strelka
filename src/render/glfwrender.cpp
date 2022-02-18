@@ -245,8 +245,11 @@ void nevk::GLFWRender::keyCallback(GLFWwindow* window, [[maybe_unused]] int key,
 void nevk::GLFWRender::mouseButtonCallback(GLFWwindow* window, [[maybe_unused]] int button, [[maybe_unused]] int action, [[maybe_unused]] int mods)
 {
     assert(window);
-    //auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    //nevk::Scene* scene = app->getScene();
+    auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
+    InputHandler* handler = app->getInputHandler();
+    assert(handler);
+    handler->mouseButtonCallback(button, action, mods);
+
     //Camera& camera = scene->getCamera(app->getActiveCameraIndex());
     //if (button == GLFW_MOUSE_BUTTON_RIGHT)
     //{
@@ -275,6 +278,11 @@ void nevk::GLFWRender::mouseButtonCallback(GLFWwindow* window, [[maybe_unused]] 
 void nevk::GLFWRender::handleMouseMoveCallback(GLFWwindow* window, [[maybe_unused]] double xpos, [[maybe_unused]] double ypos)
 {
     assert(window);
+    auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
+    InputHandler* handler = app->getInputHandler();
+    assert(handler);
+    handler->handleMouseMoveCallback(xpos, ypos);
+
     //auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     //nevk::Scene* scene = app->getScene();
     //Camera& camera = scene->getCamera(app->getActiveCameraIndex());

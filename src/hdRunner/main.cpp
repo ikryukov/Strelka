@@ -1,5 +1,6 @@
 #include <pxr/pxr.h>
 #include <pxr/base/gf/gamma.h>
+#include <pxr/base/gf/rotation.h>
 #include <pxr/base/tf/stopwatch.h>
 #include <pxr/imaging/hd/camera.h>
 #include <pxr/imaging/hd/engine.h>
@@ -103,6 +104,8 @@ public:
         bool right = false;
         bool middle = false;
     } mouseButtons;
+    
+    GfVec2d mMousePos;
 
 public:
     GfVec3d getFront()
@@ -141,6 +144,25 @@ public:
             updateViewMatrix();
         }
     }
+
+    void rotate(double rightAngle, double upAngle)
+    {
+        GfRotation a(GfVec3d(1.0, 0.0, 0.0), upAngle * rotationSpeed);
+        //GfRotation a(getRight(), upAngle * rotationSpeed);
+        GfRotation b(GfVec3d(0.0, 1.0, 0.0), rightAngle * rotationSpeed);
+        //GfRotation b(getUp(), rightAngle * rotationSpeed);
+        //mOrientation = a.GetQuat() * mOrientation * b.GetQuat();
+        mOrientation = mOrientation * (a * b).GetQuat();
+        mOrientation.Normalize();
+        updateViewMatrix();
+    }
+
+    void translate(GfVec3d delta)
+    {
+        mPosition += mOrientation.Transform(delta);
+        updateViewMatrix();
+    }
+
     void updateViewMatrix()
     {
         GfMatrix4d view(1.0);
@@ -159,8 +181,9 @@ public:
     {
         mGfCam = cam.GetCamera(0.0);
         GfMatrix4d xform = mGfCam.GetTransform();
-
+        xform.Orthonormalize();
         mOrientation = xform.ExtractRotationQuat();
+        mOrientation.Normalize();
         mPosition = xform.ExtractTranslation();
     }
 
@@ -168,7 +191,6 @@ public:
     {
         const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
         switch (key)
-
         {
         case GLFW_KEY_W: {
             keys.forward = keyState;
@@ -197,6 +219,61 @@ public:
         default:
             break;
         }
+    }
+
+    void mouseButtonCallback(int button, int action, [[maybe_unused]] int mods)
+    {
+        if (button == GLFW_MOUSE_BUTTON_RIGHT)
+        {
+            if (action == GLFW_PRESS)
+            {
+                mouseButtons.right = true;
+            }
+            else if (action == GLFW_RELEASE)
+            {
+                mouseButtons.right = false;
+            }
+        }
+        else if (button == GLFW_MOUSE_BUTTON_LEFT)
+        {
+            if (action == GLFW_PRESS)
+            {
+                mouseButtons.left = true;
+            }
+            else if (action == GLFW_RELEASE)
+            {
+                mouseButtons.left = false;
+            }
+        }
+    }
+    
+    void handleMouseMoveCallback([[maybe_unused]] double xpos, [[maybe_unused]] double ypos)
+    {
+        const float dx = mMousePos[0] - xpos;
+        const float dy = mMousePos[1] - ypos;
+
+        //ImGuiIO& io = ImGui::GetIO();
+        //bool handled = io.WantCaptureMouse;
+        //if (handled)
+        //{
+        //    camera.mousePos = glm::vec2((float)xpos, (float)ypos);
+        //    return;
+        //}
+
+        if (mouseButtons.right)
+        {
+            rotate(dx, dy);
+        }
+        if (mouseButtons.left)
+        {
+            translate(GfVec3d(-0.0, 0.0, -dy * .005 * movementSpeed));
+        }
+        if (mouseButtons.middle)
+        {
+            translate(GfVec3d(-dx * 0.01, -dy * 0.01, 0.0f));
+        }
+        mMousePos[0] = xpos;
+        mMousePos[1] = ypos;
     }
 };
 
@@ -339,7 +416,11 @@ int main(int argc, const char* argv[])
         
         render.pollEvents();
 
-        cameraController.update(0.0001);
+        static auto prevTime = std::chrono::high_resolution_clock::now();
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        const double deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
+        cameraController.update(deltaTime);
+        prevTime = currentTime;
 
         cam.SetFromCamera(cameraController.getCamera(), 0.0);
 
