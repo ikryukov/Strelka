@@ -19,7 +19,7 @@
 namespace fs = std::filesystem;
 const uint32_t MAX_LIGHT_COUNT = 100;
 
-using namespace nevk;
+using namespace oka;
 
 void PtRender::init()
 {
@@ -74,10 +74,10 @@ void PtRender::init()
 
     // default material
     {
-        nevk::Scene::MaterialDescription defaultMaterial{};
+        oka::Scene::MaterialDescription defaultMaterial{};
         defaultMaterial.file = "tutorials.mdl";
         defaultMaterial.name = "example_material";
-        defaultMaterial.type = nevk::Scene::MaterialDescription::Type::eMdl;
+        defaultMaterial.type = oka::Scene::MaterialDescription::Type::eMdl;
         mScene->addMaterial(defaultMaterial);
     }
 
@@ -86,8 +86,8 @@ void PtRender::init()
     std::vector<Scene::MaterialDescription> matDescs = mScene->getMaterials();
     for (uint32_t i = 0; i < matDescs.size(); ++i)
     {
-        nevk::Scene::MaterialDescription& currMatDesc = matDescs[i];
-        if (currMatDesc.type == nevk::Scene::MaterialDescription::Type::eMdl)
+        oka::Scene::MaterialDescription& currMatDesc = matDescs[i];
+        if (currMatDesc.type == oka::Scene::MaterialDescription::Type::eMdl)
         {
             MaterialManager::Module* mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
             assert(mdlModule);
@@ -155,14 +155,14 @@ void PtRender::cleanup()
     }
 }
 
-void nevk::PtRender::reloadPt()
+void oka::PtRender::reloadPt()
 {
     std::vector<MaterialManager::CompiledMaterial*> materials;
     std::vector<Scene::MaterialDescription> matDescs = mScene->getMaterials();
     for (uint32_t i = 0; i < matDescs.size(); ++i)
     {
-        nevk::Scene::MaterialDescription& currMatDesc = matDescs[i];
-        if (currMatDesc.type == nevk::Scene::MaterialDescription::Type::eMdl)
+        oka::Scene::MaterialDescription& currMatDesc = matDescs[i];
+        if (currMatDesc.type == oka::Scene::MaterialDescription::Type::eMdl)
         {
             MaterialManager::Module* mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
             assert(mdlModule);
@@ -296,12 +296,12 @@ GBuffer* PtRender::createGbuffer(uint32_t width, uint32_t height)
     return res;
 }
 
-void PtRender::createVertexBuffer(nevk::Scene& scene)
+void PtRender::createVertexBuffer(oka::Scene& scene)
 {
     assert(mSharedCtx->mResManager);
     ResourceManager* resManager = getResManager();
-    std::vector<nevk::Scene::Vertex>& sceneVertices = scene.getVertices();
-    VkDeviceSize bufferSize = sizeof(nevk::Scene::Vertex) * sceneVertices.size();
+    std::vector<oka::Scene::Vertex>& sceneVertices = scene.getVertices();
+    VkDeviceSize bufferSize = sizeof(oka::Scene::Vertex) * sceneVertices.size();
     if (bufferSize == 0)
     {
         return;
@@ -314,26 +314,26 @@ void PtRender::createVertexBuffer(nevk::Scene& scene)
     resManager->destroyBuffer(stagingBuffer);
 }
 
-void PtRender::createLightsBuffer(nevk::Scene& scene)
+void PtRender::createLightsBuffer(oka::Scene& scene)
 {
     assert(mSharedCtx->mResManager);
     ResourceManager* resManager = getResManager();
-    std::vector<nevk::Scene::Light>& sceneLights = scene.getLights();
+    std::vector<oka::Scene::Light>& sceneLights = scene.getLights();
 
-    VkDeviceSize bufferSize = sizeof(nevk::Scene::Light) * MAX_LIGHT_COUNT;
+    VkDeviceSize bufferSize = sizeof(oka::Scene::Light) * MAX_LIGHT_COUNT;
     mCurrentSceneRenderData->mLightsBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Lights");
 
     if (!sceneLights.empty())
     {
         Buffer* stagingBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         void* stagingBufferMemory = resManager->getMappedMemory(stagingBuffer);
-        memcpy(stagingBufferMemory, sceneLights.data(), sceneLights.size() * sizeof(nevk::Scene::Light));
+        memcpy(stagingBufferMemory, sceneLights.data(), sceneLights.size() * sizeof(oka::Scene::Light));
         resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer), resManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), bufferSize);
         resManager->destroyBuffer(stagingBuffer);
     }
 }
 
-void PtRender::createBvhBuffer(nevk::Scene& scene)
+void PtRender::createBvhBuffer(oka::Scene& scene)
 {
     assert(mSharedCtx->mResManager);
     ResourceManager* resManager = getResManager();
@@ -402,7 +402,7 @@ void PtRender::createBvhBuffer(nevk::Scene& scene)
     }
 }
 
-void PtRender::createIndexBuffer(nevk::Scene& scene)
+void PtRender::createIndexBuffer(oka::Scene& scene)
 {
     assert(mSharedCtx->mResManager);
     ResourceManager* resManager = getResManager();
@@ -422,12 +422,12 @@ void PtRender::createIndexBuffer(nevk::Scene& scene)
     resManager->destroyBuffer(stagingBuffer);
 }
 
-void PtRender::createInstanceBuffer(nevk::Scene& scene)
+void PtRender::createInstanceBuffer(oka::Scene& scene)
 {
     assert(mSharedCtx->mResManager);
     ResourceManager* resManager = getResManager();
     const std::vector<Mesh>& meshes = scene.getMeshes();
-    const std::vector<nevk::Instance>& sceneInstances = scene.getInstances();
+    const std::vector<oka::Instance>& sceneInstances = scene.getInstances();
     mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
     VkDeviceSize bufferSize = sizeof(InstanceConstants) * (sceneInstances.size() + MAX_LIGHT_COUNT); // Reserve some extra space for lights
     if (bufferSize == 0)
@@ -457,7 +457,7 @@ void PtRender::createInstanceBuffer(nevk::Scene& scene)
     resManager->destroyBuffer(stagingBuffer);
 }
 
-void nevk::PtRender::createMdlBuffers()
+void oka::PtRender::createMdlBuffers()
 {
     assert(mSharedCtx->mResManager);
     ResourceManager* resManager = getResManager();

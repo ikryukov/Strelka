@@ -4,7 +4,7 @@
 #include "gbuffer.h"
 #include "pathtracerparam.h"
 
-namespace nevk
+namespace oka
 {
 struct PathTracerDesc
 {
@@ -48,4 +48,4 @@ public:
 
     void initialize();
 };
-} // namespace nevk
+} // namespace oka

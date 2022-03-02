@@ -36,10 +36,10 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 TF_DEFINE_PRIVATE_TOKENS(
     _AppTokens,
-    (HdNeVKDriver)
-    (HdNeVKRendererPlugin));
+    (HdOkaDriver)
+    (HdOkaRendererPlugin));
 
-HdRendererPluginHandle GetHdNeVKPlugin()
+HdRendererPluginHandle GetHdOkaPlugin()
 {
     HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
 
@@ -50,7 +50,7 @@ HdRendererPluginHandle GetHdNeVKPlugin()
     {
         const TfToken& pluginId = pluginDesc.id;
 
-        if (pluginId != _AppTokens->HdNeVKRendererPlugin)
+        if (pluginId != _AppTokens->HdOkaRendererPlugin)
         {
             continue;
         }
@@ -79,7 +79,7 @@ HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, SdfPath&
     return camera;
 }
 
-class CameraController: public nevk::InputHandler
+class CameraController: public oka::InputHandler
 {
     GfCamera mGfCam;
     GfQuatd mOrientation;
@@ -280,30 +280,30 @@ public:
 int main(int argc, const char* argv[])
 {
     // Init plugin.
-    HdRendererPluginHandle pluginHandle = GetHdNeVKPlugin();
+    HdRendererPluginHandle pluginHandle = GetHdOkaPlugin();
 
     if (!pluginHandle)
     {
-        fprintf(stderr, "HdNeVK plugin not found!\n");
+        fprintf(stderr, "HdOka plugin not found!\n");
         return EXIT_FAILURE;
     }
 
     if (!pluginHandle->IsSupported())
     {
-        fprintf(stderr, "HdNeVK plugin is not supported!\n");
+        fprintf(stderr, "HdOka plugin is not supported!\n");
         return EXIT_FAILURE;
     }
     
     HdDriverVector drivers;
 
-    nevk::GLFWRender render;
+    oka::GLFWRender render;
 
     render.init(800, 600);
 
-    nevk::SharedContext* ctx = &render.getSharedContext();
+    oka::SharedContext* ctx = &render.getSharedContext();
 
     HdDriver driver;
-    driver.name = _AppTokens->HdNeVKDriver;
+    driver.name = _AppTokens->HdOkaDriver;
     driver.driver = VtValue(ctx);
 
     drivers.push_back(&driver);
@@ -426,13 +426,13 @@ int main(int argc, const char* argv[])
 
         render.onBeginFrame();
         engine.Execute(renderIndex, &tasks);
-        nevk::Image* outputImage = renderBuffers[frameCount % 3]->GetResource(false).UncheckedGet<nevk::Image*>();
+        oka::Image* outputImage = renderBuffers[frameCount % 3]->GetResource(false).UncheckedGet<oka::Image*>();
         render.drawFrame(outputImage);
         render.onEndFrame();
         
         auto finish = std::chrono::high_resolution_clock::now();
         double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
-        render.setWindowTitle((std::string("NeVK") + " [" + std::to_string(frameTime) + " ms]").c_str());
+        render.setWindowTitle((std::string("Strelka") + " [" + std::to_string(frameTime) + " ms]").c_str());
         ++frameCount;
     }
 

@@ -7,14 +7,14 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKMesh final : public HdMesh
+class HdOkaMesh final : public HdMesh
 {
 public:
-    HF_MALLOC_TAG_NEW("new HdNeVKMesh");
+    HF_MALLOC_TAG_NEW("new HdOkaMesh");
 
-    HdNeVKMesh(const SdfPath& id, nevk::Scene* scene);
+    HdOkaMesh(const SdfPath& id, oka::Scene* scene);
 
-    ~HdNeVKMesh() override;
+    ~HdOkaMesh() override;
 
 public:
     void Sync(HdSceneDelegate* delegate,
@@ -68,7 +68,7 @@ private:
     std::vector<GfVec3i> m_faces;
     GfVec3f m_color;
     bool m_hasColor;
-    nevk::Scene* mScene;
+    oka::Scene* mScene;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

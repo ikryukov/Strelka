@@ -12,7 +12,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-NDR_REGISTER_PARSER_PLUGIN(HdNeVKMdlParserPlugin);
+NDR_REGISTER_PARSER_PLUGIN(HdOkaMdlParserPlugin);
 
 // clang-format off
 TF_DEFINE_PRIVATE_TOKENS(_tokens,
@@ -20,7 +20,7 @@ TF_DEFINE_PRIVATE_TOKENS(_tokens,
     (subIdentifier));
 // clang-format on
 
-NdrNodeUniquePtr HdNeVKMdlParserPlugin::Parse(const NdrNodeDiscoveryResult& discoveryResult)
+NdrNodeUniquePtr HdOkaMdlParserPlugin::Parse(const NdrNodeDiscoveryResult& discoveryResult)
 {
     NdrTokenMap metadata = discoveryResult.metadata;
     metadata[_tokens->subIdentifier] = discoveryResult.subIdentifier;
@@ -38,13 +38,13 @@ NdrNodeUniquePtr HdNeVKMdlParserPlugin::Parse(const NdrNodeDiscoveryResult& disc
         metadata);
 }
 
-const NdrTokenVec& HdNeVKMdlParserPlugin::GetDiscoveryTypes() const
+const NdrTokenVec& HdOkaMdlParserPlugin::GetDiscoveryTypes() const
 {
   static NdrTokenVec s_discoveryTypes{ _tokens->mdl };
   return s_discoveryTypes;
 }
 
-const TfToken& HdNeVKMdlParserPlugin::GetSourceType() const
+const TfToken& HdOkaMdlParserPlugin::GetSourceType() const
 {
     return _tokens->mdl;
 }

@@ -5,17 +5,17 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdNeVKInstancer::HdNeVKInstancer(HdSceneDelegate* delegate,
+HdOkaInstancer::HdOkaInstancer(HdSceneDelegate* delegate,
                                        const SdfPath& id)
     : HdInstancer(delegate, id)
 {
 }
 
-HdNeVKInstancer::~HdNeVKInstancer()
+HdOkaInstancer::~HdOkaInstancer()
 {
 }
 
-void HdNeVKInstancer::Sync(HdSceneDelegate* sceneDelegate,
+void HdOkaInstancer::Sync(HdSceneDelegate* sceneDelegate,
                               HdRenderParam* renderParam,
                               HdDirtyBits* dirtyBits)
 {
@@ -55,7 +55,7 @@ void HdNeVKInstancer::Sync(HdSceneDelegate* sceneDelegate,
     }
 }
 
-VtMatrix4dArray HdNeVKInstancer::ComputeInstanceTransforms(const SdfPath& prototypeId)
+VtMatrix4dArray HdOkaInstancer::ComputeInstanceTransforms(const SdfPath& prototypeId)
 {
     HdSceneDelegate* sceneDelegate = GetDelegate();
 
@@ -155,7 +155,7 @@ VtMatrix4dArray HdNeVKInstancer::ComputeInstanceTransforms(const SdfPath& protot
 
     const HdRenderIndex& renderIndex = sceneDelegate->GetRenderIndex();
     HdInstancer* boxedParentInstancer = renderIndex.GetInstancer(parentId);
-    HdNeVKInstancer* parentInstancer = dynamic_cast<HdNeVKInstancer*>(boxedParentInstancer);
+    HdOkaInstancer* parentInstancer = dynamic_cast<HdOkaInstancer*>(boxedParentInstancer);
 
     VtMatrix4dArray parentTransforms = parentInstancer->ComputeInstanceTransforms(id);
 

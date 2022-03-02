@@ -1,6 +1,6 @@
 #include "accumulation.h"
 
-namespace nevk
+namespace oka
 {
 Accumulation::Accumulation(const SharedContext& ctx)
     : AccumulationBase(ctx)
@@ -26,8 +26,8 @@ void Accumulation::execute(VkCommandBuffer& cmd, const AccumulationDesc& desc, u
     }
 
     int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
-    NeVkResult res = updatePipeline(frameVersion);
-    assert(res == NeVkResult::eOk);
+    OkaResult res = updatePipeline(frameVersion);
+    assert(res == OkaResult::eOk);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
     VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);
@@ -35,4 +35,4 @@ void Accumulation::execute(VkCommandBuffer& cmd, const AccumulationDesc& desc, u
     const uint32_t dispY = (height + 15) / 16;
     vkCmdDispatch(cmd, dispX, dispY, 1);
 }
-} // namespace nevk
+} // namespace oka

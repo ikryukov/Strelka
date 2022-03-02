@@ -30,7 +30,7 @@ Use vscode with preset env variable
     
 ## Synopsis 
 
-      nevk [MODEL PATH] [OPTION...] positional parameters
+      oka [MODEL PATH] [OPTION...] positional parameters
       
         -m, --mesh arg     mesh path (default: misc/Cube/Cube.gltf)
             --width arg    window width (default: 800)
@@ -39,7 +39,7 @@ Use vscode with preset env variable
 
 ## Example
 
-    ./nevk misc/Cube/Cube.gltf
+    ./oka misc/Cube/Cube.gltf
 
 ## USD
     USD env:
@@ -50,4 +50,4 @@ Use vscode with preset env variable
     Cmake:
         cmake -DCMAKE_INSTALL_PREFIX=/Users/ilya/work/usd_build/plugin/usd/ ..
     Install plugin:
-        cmake --install . --component HdNeVK
+        cmake --install . --component HdOka

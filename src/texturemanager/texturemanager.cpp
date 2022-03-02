@@ -6,12 +6,12 @@
 
 #include <texturemanager.h>
 
-void nevk::TextureManager::savePNG(int32_t width, int32_t height, uint8_t* colorData)
+void oka::TextureManager::savePNG(int32_t width, int32_t height, uint8_t* colorData)
 {
     stbi_write_png("result.png", width, height, 3, colorData, 3 * width);
 }
 
-int nevk::TextureManager::loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name)
+int oka::TextureManager::loadTextureGltf(const void* pixels, const uint32_t width, const uint32_t height, const std::string& name)
 {
     if (mNameToID.count(name) == 0)
     {
@@ -42,7 +42,7 @@ VkFormat getVkFormat(const char* format)
     }
 }
 
-int nevk::TextureManager::loadTextureMdl(const void* pixels, const uint32_t width, const uint32_t height,  const char* format, const std::string& name)
+int oka::TextureManager::loadTextureMdl(const void* pixels, const uint32_t width, const uint32_t height,  const char* format, const std::string& name)
 {
     VkFormat vkFormat = getVkFormat(format);
     assert(vkFormat == VK_FORMAT_R32G32B32A32_SFLOAT);
@@ -59,7 +59,7 @@ int nevk::TextureManager::loadTextureMdl(const void* pixels, const uint32_t widt
     return mNameToID.find(name)->second;
 }
 
-nevk::TextureManager::Texture nevk::TextureManager::createCubeMapTextureImage(std::string texture_path[6])
+oka::TextureManager::Texture oka::TextureManager::createCubeMapTextureImage(std::string texture_path[6])
 {
     int texWidth, texHeight, texChannels;
     const uint8_t* pixels[6];
@@ -84,7 +84,7 @@ nevk::TextureManager::Texture nevk::TextureManager::createCubeMapTextureImage(st
     return res;
 }
 
-nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std::string& texture_path)
+oka::TextureManager::Texture oka::TextureManager::createTextureImage(const std::string& texture_path)
 {
     int texWidth, texHeight, texChannels;
     stbi_uc* pixels = stbi_load(texture_path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
@@ -101,17 +101,17 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const std
     return res;
 }
 
-nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, uint32_t width, uint32_t height)
+oka::TextureManager::Texture oka::TextureManager::createTextureImage(const void* pixels, uint32_t width, uint32_t height)
 {
     return createTextureImage(pixels, VK_FORMAT_R8G8B8A8_UNORM, width, height);
 }
 
-nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, VkFormat format, uint32_t width, uint32_t height)
+oka::TextureManager::Texture oka::TextureManager::createTextureImage(const void* pixels, VkFormat format, uint32_t width, uint32_t height)
 {
     return createTextureImage(pixels, 4, format, width, height);
 }
 
-nevk::TextureManager::Texture nevk::TextureManager::createCubeMapImage(const uint8_t* pixels[6], uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height, const char* name)
+oka::TextureManager::Texture oka::TextureManager::createCubeMapImage(const uint8_t* pixels[6], uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height, const char* name)
 {
     VkDeviceSize imageSize = width * height * bytesPerPixel;
     Buffer* stagingBuffer = mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT); //same
@@ -132,7 +132,7 @@ nevk::TextureManager::Texture nevk::TextureManager::createCubeMapImage(const uin
     return Texture{ textureImage, width, height };
 }
 
-nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const void* pixels, uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height, const char* name)
+oka::TextureManager::Texture oka::TextureManager::createTextureImage(const void* pixels, uint32_t bytesPerPixel, VkFormat format, uint32_t width, uint32_t height, const char* name)
 {
     VkDeviceSize imageSize = width * height * bytesPerPixel;
     Buffer* stagingBuffer = mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -151,7 +151,7 @@ nevk::TextureManager::Texture nevk::TextureManager::createTextureImage(const voi
     return Texture{ textureImage, width, height };
 }
 
-int nevk::TextureManager::findTexture(const std::string& name)
+int oka::TextureManager::findTexture(const std::string& name)
 {
     auto it = mNameToID.find(name);
     if (it == mNameToID.end())
@@ -161,12 +161,12 @@ int nevk::TextureManager::findTexture(const std::string& name)
     return it->second;
 }
 
-void nevk::TextureManager::createTextureImageView(Texture& texture)
+void oka::TextureManager::createTextureImageView(Texture& texture)
 {
     textureImageView.push_back(mResManager->getView(texture.textureImage));
 }
 
-void nevk::TextureManager::createTextureSampler(TextureSamplerDesc& texSamplerData)
+void oka::TextureManager::createTextureSampler(TextureSamplerDesc& texSamplerData)
 {
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(mPhysicalDevice, &properties);
@@ -196,7 +196,7 @@ void nevk::TextureManager::createTextureSampler(TextureSamplerDesc& texSamplerDa
     texSamplers.push_back(tmpSampler);
 }
 
-void nevk::TextureManager::createShadowSampler()
+void oka::TextureManager::createShadowSampler()
 {
     VkPhysicalDeviceProperties properties{};
     vkGetPhysicalDeviceProperties(mPhysicalDevice, &properties);
@@ -225,7 +225,7 @@ void nevk::TextureManager::createShadowSampler()
     }
 }
 
-VkImageView nevk::TextureManager::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
+VkImageView oka::TextureManager::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags)
 {
     VkImageViewCreateInfo viewInfo{};
     viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -246,7 +246,7 @@ VkImageView nevk::TextureManager::createImageView(VkImage image, VkFormat format
     return imageView;
 }
 
-void nevk::TextureManager::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layer)
+void oka::TextureManager::transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t layer)
 {
     VkCommandBuffer commandBuffer = mResManager->beginSingleTimeCommands();
 
@@ -316,7 +316,7 @@ void nevk::TextureManager::transitionImageLayout(VkImage image, VkFormat format,
     mResManager->endSingleTimeCommands(commandBuffer);
 }
 
-void nevk::TextureManager::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer)
+void oka::TextureManager::copyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height, uint32_t layer)
 {
     VkCommandBuffer commandBuffer = mResManager->beginSingleTimeCommands();
 

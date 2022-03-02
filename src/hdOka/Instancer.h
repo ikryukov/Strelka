@@ -4,13 +4,13 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKInstancer final : public HdInstancer
+class HdOkaInstancer final : public HdInstancer
 {
 public:
-    HdNeVKInstancer(HdSceneDelegate* delegate,
+    HdOkaInstancer(HdSceneDelegate* delegate,
                        const SdfPath& id);
 
-    ~HdNeVKInstancer() override;
+    ~HdOkaInstancer() override;
 
 public:
     VtMatrix4dArray ComputeInstanceTransforms(const SdfPath& prototypeId);

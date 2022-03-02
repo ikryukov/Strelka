@@ -6,7 +6,7 @@
 
 #include <vector>
 
-namespace nevk
+namespace oka
 {
 struct DebugDesc
 {

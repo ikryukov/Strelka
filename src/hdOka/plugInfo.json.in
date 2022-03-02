@@ -3,25 +3,25 @@
         {
             "Info": {
                 "Types": {
-                    "HdNeVKRendererPlugin": {
+                    "HdOkaRendererPlugin": {
                         "bases": [
                             "HdRendererPlugin"
                         ],
-                        "displayName": "NeVK",
+                        "displayName": "Oka",
                         "priority": 99
                     },
-                    "HdNeVKMdlDiscoveryPlugin": {
+                    "HdOkaMdlDiscoveryPlugin": {
                         "bases": ["NdrDiscoveryPlugin"],
                         "displayName": "MDL Discovery"
                     },
-                    "HdNeVKMdlParserPlugin": {
+                    "HdOkaMdlParserPlugin": {
                         "bases": ["NdrParserPlugin"],
                         "displayName": "MDL Node Parser"
                     }
                 }
             },
-            "LibraryPath": "../$<TARGET_FILE_NAME:HdNeVK>",
-            "Name": "HdNeVK",
+            "LibraryPath": "../$<TARGET_FILE_NAME:HdOka>",
+            "Name": "HdOka",
             "ResourcePath": "resources",
             "Root": "..",
             "Type": "library"

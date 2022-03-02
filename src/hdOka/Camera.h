@@ -6,12 +6,12 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKCamera final : public HdCamera
+class HdOkaCamera final : public HdCamera
 {
 public:
-    HdNeVKCamera(const SdfPath& id, nevk::Scene& scene);
+    HdOkaCamera(const SdfPath& id, oka::Scene& scene);
 
-    ~HdNeVKCamera() override;
+    ~HdOkaCamera() override;
 
 public:
     float GetVFov() const;
@@ -26,10 +26,10 @@ public:
     HdDirtyBits GetInitialDirtyBitsMask() const override;
 
 private:
-    nevk::Camera _ConstructNeVKCamera();
+    oka::Camera _ConstructOkaCamera();
 
     float m_vfov;
-    nevk::Scene& mScene;
+    oka::Scene& mScene;
     uint32_t mCameraIndex = -1;
 };
 

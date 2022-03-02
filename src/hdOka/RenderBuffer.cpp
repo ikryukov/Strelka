@@ -4,7 +4,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdNeVKRenderBuffer::HdNeVKRenderBuffer(const SdfPath& id, nevk::SharedContext* ctx)
+HdOkaRenderBuffer::HdOkaRenderBuffer(const SdfPath& id, oka::SharedContext* ctx)
     : HdRenderBuffer(id), mCtx(ctx)
 {
     m_isMapped = false;
@@ -12,11 +12,11 @@ HdNeVKRenderBuffer::HdNeVKRenderBuffer(const SdfPath& id, nevk::SharedContext* c
     m_bufferMem = nullptr;
 }
 
-HdNeVKRenderBuffer::~HdNeVKRenderBuffer()
+HdOkaRenderBuffer::~HdOkaRenderBuffer()
 {
 }
 
-bool HdNeVKRenderBuffer::Allocate(const GfVec3i& dimensions,
+bool HdOkaRenderBuffer::Allocate(const GfVec3i& dimensions,
                                      HdFormat format,
                                      bool multiSampled)
 {
@@ -46,74 +46,74 @@ bool HdNeVKRenderBuffer::Allocate(const GfVec3i& dimensions,
     mResult = mCtx->mResManager->createImage(m_width, m_height, VK_FORMAT_R32G32B32A32_SFLOAT,
                                              VK_IMAGE_TILING_OPTIMAL,
                                              VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "HdNeVKRenderBuffer");
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "HdOkaRenderBuffer");
     mCtx->mTextureManager->transitionImageLayout(mCtx->mResManager->getVkImage(mResult), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     return true;
 }
 
-unsigned int HdNeVKRenderBuffer::GetWidth() const
+unsigned int HdOkaRenderBuffer::GetWidth() const
 {
     return m_width;
 }
 
-unsigned int HdNeVKRenderBuffer::GetHeight() const
+unsigned int HdOkaRenderBuffer::GetHeight() const
 {
     return m_height;
 }
 
-unsigned int HdNeVKRenderBuffer::GetDepth() const
+unsigned int HdOkaRenderBuffer::GetDepth() const
 {
     return 1u;
 }
 
-HdFormat HdNeVKRenderBuffer::GetFormat() const
+HdFormat HdOkaRenderBuffer::GetFormat() const
 {
     return m_format;
 }
 
-bool HdNeVKRenderBuffer::IsMultiSampled() const
+bool HdOkaRenderBuffer::IsMultiSampled() const
 {
     return m_isMultiSampled;
 }
 
-VtValue HdNeVKRenderBuffer::GetResource(bool multiSampled) const
+VtValue HdOkaRenderBuffer::GetResource(bool multiSampled) const
 {
     return VtValue((uint8_t*) mResult);
 }
 
-bool HdNeVKRenderBuffer::IsConverged() const
+bool HdOkaRenderBuffer::IsConverged() const
 {
     return m_isConverged;
 }
 
-void HdNeVKRenderBuffer::SetConverged(bool converged)
+void HdOkaRenderBuffer::SetConverged(bool converged)
 {
     m_isConverged = converged;
 }
 
-void* HdNeVKRenderBuffer::Map()
+void* HdOkaRenderBuffer::Map()
 {
     m_isMapped = true;
 
     return m_bufferMem;
 }
 
-bool HdNeVKRenderBuffer::IsMapped() const
+bool HdOkaRenderBuffer::IsMapped() const
 {
     return m_isMapped;
 }
 
-void HdNeVKRenderBuffer::Unmap()
+void HdOkaRenderBuffer::Unmap()
 {
     m_isMapped = false;
 }
 
-void HdNeVKRenderBuffer::Resolve()
+void HdOkaRenderBuffer::Resolve()
 {
 }
 
-void HdNeVKRenderBuffer::_Deallocate()
+void HdOkaRenderBuffer::_Deallocate()
 {
     free(m_bufferMem);
 }

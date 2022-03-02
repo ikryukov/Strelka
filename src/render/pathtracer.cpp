@@ -1,5 +1,5 @@
 #include "pathtracer.h"
-namespace nevk
+namespace oka
 {
 
 PathTracer::PathTracer(const SharedContext& ctx, std::string& shaderCode)
@@ -49,8 +49,8 @@ void PathTracer::execute(VkCommandBuffer& cmd, const PathTracerDesc& desc, uint3
         param.setSampler("cubeMapSampler", mCubeMapSampler);
     }
     int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
-    NeVkResult res = updatePipeline(frameVersion);
-    assert(res == NeVkResult::eOk);
+    OkaResult res = updatePipeline(frameVersion);
+    assert(res == OkaResult::eOk);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
     VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);
@@ -90,9 +90,9 @@ void PathTracer::initialize()
                               "misc/skybox/bottom.jpg",
                               "misc/skybox/front.jpg",
                               "misc/skybox/back.jpg"};
-    nevk::TextureManager::Texture cubeMapTex = mSharedCtx.mTextureManager->createCubeMapTextureImage(texPath);
+    oka::TextureManager::Texture cubeMapTex = mSharedCtx.mTextureManager->createCubeMapTextureImage(texPath);
     mCubeMap = cubeMapTex.textureImage;
     PathTracerBase::initializeFromCode(mShaderCode.c_str());
 }
 
-} // namespace nevk
+} // namespace oka

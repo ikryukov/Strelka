@@ -3,7 +3,7 @@
 #include <mi/base/handle.h>
 #include <mi/neuraylib/ineuray.h>
 
-namespace nevk
+namespace oka
 {
 class MdlNeurayLoader
 {

@@ -7,16 +7,16 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdNeVKMesh::HdNeVKMesh(const SdfPath& id, nevk::Scene* scene)
+HdOkaMesh::HdOkaMesh(const SdfPath& id, oka::Scene* scene)
     : HdMesh(id), m_prototypeTransform(1.0), m_color(0.0, 0.0, 0.0), m_hasColor(false), mScene(scene)
 {
 }
 
-HdNeVKMesh::~HdNeVKMesh()
+HdOkaMesh::~HdOkaMesh()
 {
 }
 
-void HdNeVKMesh::Sync(HdSceneDelegate* sceneDelegate,
+void HdOkaMesh::Sync(HdSceneDelegate* sceneDelegate,
                       HdRenderParam* renderParam,
                       HdDirtyBits* dirtyBits,
                       const TfToken& reprToken)
@@ -82,7 +82,7 @@ static uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
-void HdNeVKMesh::_ConvertMesh()
+void HdOkaMesh::_ConvertMesh()
 {
     GfMatrix4d transform = m_prototypeTransform; // need to add instancer support
     GfMatrix4d normalMatrix = transform.GetInverse().GetTranspose();
@@ -93,7 +93,7 @@ void HdNeVKMesh::_ConvertMesh()
     TF_VERIFY(meshPoints.size() == meshNormals.size());
     const size_t vertexCount = meshPoints.size();
 
-    std::vector<nevk::Scene::Vertex> vertices(vertexCount);
+    std::vector<oka::Scene::Vertex> vertices(vertexCount);
     std::vector<uint32_t> indices(meshFaces.size() * 3);
 
     for (size_t j = 0; j < meshFaces.size(); ++j)
@@ -109,7 +109,7 @@ void HdNeVKMesh::_ConvertMesh()
         const GfVec3f& point = meshPoints[j];
         const GfVec3f& normal = meshNormals[j];
 
-        nevk::Scene::Vertex& vertex = vertices[j];
+        oka::Scene::Vertex& vertex = vertices[j];
         vertex.pos[0] = point[0];
         vertex.pos[1] = point[1];
         vertex.pos[2] = point[2];
@@ -135,7 +135,7 @@ void HdNeVKMesh::_ConvertMesh()
     //assert(instId != -1);
 }
 
-void HdNeVKMesh::_UpdateGeometry(HdSceneDelegate* sceneDelegate)
+void HdOkaMesh::_UpdateGeometry(HdSceneDelegate* sceneDelegate)
 {
     const HdMeshTopology& topology = GetMeshTopology(sceneDelegate);
     const SdfPath& id = GetId();
@@ -165,7 +165,7 @@ void HdNeVKMesh::_UpdateGeometry(HdSceneDelegate* sceneDelegate)
     }
 }
 
-bool HdNeVKMesh::_FindPrimvar(HdSceneDelegate* sceneDelegate,
+bool HdOkaMesh::_FindPrimvar(HdSceneDelegate* sceneDelegate,
                               TfToken primvarName,
                               HdInterpolation& interpolation) const
 {
@@ -196,7 +196,7 @@ bool HdNeVKMesh::_FindPrimvar(HdSceneDelegate* sceneDelegate,
     return false;
 }
 
-void HdNeVKMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
+void HdOkaMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
                                VtVec3fArray& points,
                                VtVec3fArray& normals,
                                bool& indexedNormals,
@@ -289,42 +289,42 @@ const TfTokenVector BUILTIN_PRIMVAR_NAMES = {
     HdTokens->normals
 };
 
-const TfTokenVector& HdNeVKMesh::GetBuiltinPrimvarNames() const
+const TfTokenVector& HdOkaMesh::GetBuiltinPrimvarNames() const
 {
     return BUILTIN_PRIMVAR_NAMES;
 }
 
-const std::vector<GfVec3f>& HdNeVKMesh::GetPoints() const
+const std::vector<GfVec3f>& HdOkaMesh::GetPoints() const
 {
     return m_points;
 }
 
-const std::vector<GfVec3f>& HdNeVKMesh::GetNormals() const
+const std::vector<GfVec3f>& HdOkaMesh::GetNormals() const
 {
     return m_normals;
 }
 
-const std::vector<GfVec3i>& HdNeVKMesh::GetFaces() const
+const std::vector<GfVec3i>& HdOkaMesh::GetFaces() const
 {
     return m_faces;
 }
 
-const GfMatrix4d& HdNeVKMesh::GetPrototypeTransform() const
+const GfMatrix4d& HdOkaMesh::GetPrototypeTransform() const
 {
     return m_prototypeTransform;
 }
 
-const GfVec3f& HdNeVKMesh::GetColor() const
+const GfVec3f& HdOkaMesh::GetColor() const
 {
     return m_color;
 }
 
-bool HdNeVKMesh::HasColor() const
+bool HdOkaMesh::HasColor() const
 {
     return m_hasColor;
 }
 
-HdDirtyBits HdNeVKMesh::GetInitialDirtyBitsMask() const
+HdDirtyBits HdOkaMesh::GetInitialDirtyBitsMask() const
 {
     return HdChangeTracker::DirtyPoints |
            HdChangeTracker::DirtyNormals |
@@ -335,12 +335,12 @@ HdDirtyBits HdNeVKMesh::GetInitialDirtyBitsMask() const
            HdChangeTracker::DirtyMaterialId;
 }
 
-HdDirtyBits HdNeVKMesh::_PropagateDirtyBits(HdDirtyBits bits) const
+HdDirtyBits HdOkaMesh::_PropagateDirtyBits(HdDirtyBits bits) const
 {
     return bits;
 }
 
-void HdNeVKMesh::_InitRepr(const TfToken& reprName,
+void HdOkaMesh::_InitRepr(const TfToken& reprName,
                            HdDirtyBits* dirtyBits)
 {
     TF_UNUSED(reprName);

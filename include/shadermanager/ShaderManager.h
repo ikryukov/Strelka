@@ -6,7 +6,7 @@
 #include <vector>
 #include <slang-com-ptr.h>
 
-namespace nevk
+namespace oka
 {
 
 class ShaderManager
@@ -76,4 +76,4 @@ private:
     ShaderDesc compileShader(const char* fileName, const char* entryPointName, Stage stage);
     ShaderDesc compileShaderFromString(const char* source, const char* entryPointName, Stage stage);
 };
-} // namespace nevk
+} // namespace oka

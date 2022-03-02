@@ -10,19 +10,19 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKCamera;
-class HdNeVKMesh;
+class HdOkaCamera;
+class HdOkaMesh;
 
-class HdNeVKRenderPass final : public HdRenderPass
+class HdOkaRenderPass final : public HdRenderPass
 {
 public:
-    HdNeVKRenderPass(HdRenderIndex* index,
+    HdOkaRenderPass(HdRenderIndex* index,
                      const HdRprimCollection& collection,
                      const HdRenderSettingsMap& settings,
-                     nevk::PtRender* renderer,
-                     nevk::Scene* scene);
+                     oka::PtRender* renderer,
+                     oka::Scene* scene);
 
-    ~HdNeVKRenderPass() override;
+    ~HdOkaRenderPass() override;
 
 public:
     bool IsConverged() const override;
@@ -32,7 +32,7 @@ protected:
                   const TfTokenVector& renderTags) override;
 
 private:
-    void _BakeMeshInstance(const HdNeVKMesh* mesh,
+    void _BakeMeshInstance(const HdOkaMesh* mesh,
                            GfMatrix4d transform,
                            uint32_t materialIndex);
 
@@ -46,9 +46,9 @@ private:
     uint32_t m_lastRenderSettingsVersion;
     GfMatrix4d m_rootMatrix;
 
-    nevk::Scene* mScene;
+    oka::Scene* mScene;
     // ptr to global render
-    nevk::PtRender* mRenderer;
+    oka::PtRender* mRenderer;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

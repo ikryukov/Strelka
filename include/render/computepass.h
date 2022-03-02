@@ -3,7 +3,7 @@
 #include "common.h"
 #include "shaderparameters.h"
 
-namespace nevk
+namespace oka
 {
 template <typename T>
 class ComputePass
@@ -35,7 +35,7 @@ protected:
 
         return shaderModule;
     }
-    NeVkResult createComputePipeline(VkShaderModule& shaderModule, int frameVersion)
+    OkaResult createComputePipeline(VkShaderModule& shaderModule, int frameVersion)
     {
         assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
         VkPipelineShaderStageCreateInfo shaderStageInfo{};
@@ -52,7 +52,7 @@ protected:
 
         if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayouts[frameVersion]) != VK_SUCCESS)
         {
-            return NeVkResult::eFail;
+            return OkaResult::eFail;
         }
 
         VkComputePipelineCreateInfo pipelineInfo{};
@@ -63,9 +63,9 @@ protected:
 
         if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[frameVersion]) != VK_SUCCESS)
         {
-            return NeVkResult::eFail;
+            return OkaResult::eFail;
         }
-        return NeVkResult::eOk;
+        return OkaResult::eOk;
     }
 
 public:
@@ -83,7 +83,7 @@ public:
     {
         const char* csShaderCode = nullptr;
         uint32_t csShaderCodeSize = 0;
-        mCSid = mSharedCtx.mShaderManager->loadShaderFromString(code, "computeMain", nevk::ShaderManager::Stage::eCompute);
+        mCSid = mSharedCtx.mShaderManager->loadShaderFromString(code, "computeMain", oka::ShaderManager::Stage::eCompute);
         assert(mCSid != -1);
         mSharedCtx.mShaderManager->getShaderCode(mCSid, csShaderCode, csShaderCodeSize);
         if (mCS)
@@ -110,25 +110,25 @@ public:
     {
         const char* csShaderCode = nullptr;
         uint32_t csShaderCodeSize = 0;
-        uint32_t csId = mSharedCtx.mShaderManager->loadShader(shaderFile, "computeMain", nevk::ShaderManager::Stage::eCompute);
+        uint32_t csId = mSharedCtx.mShaderManager->loadShader(shaderFile, "computeMain", oka::ShaderManager::Stage::eCompute);
         mSharedCtx.mShaderManager->getShaderCode(csId, csShaderCode, csShaderCodeSize);
         mCS = createShaderModule(csShaderCode, csShaderCodeSize);
 
         mShaderParamFactory.initialize(csId);
     }
 
-    NeVkResult updatePipeline(int frameVersion)
+    OkaResult updatePipeline(int frameVersion)
     {
         assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
         if (mNeedUpdatePipeline[frameVersion])
         {
             vkDestroyPipeline(mSharedCtx.mDevice, mPipelines[frameVersion], nullptr);
             vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayouts[frameVersion], nullptr);
-            NeVkResult res = createComputePipeline(mCS, frameVersion);
+            OkaResult res = createComputePipeline(mCS, frameVersion);
             mNeedUpdatePipeline[frameVersion] = false;
             return res;
         }
-        return NeVkResult::eOk;
+        return OkaResult::eOk;
     }
 
     VkPipeline getPipeline(int frameVersion)

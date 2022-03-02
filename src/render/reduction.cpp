@@ -1,6 +1,6 @@
 #include "reduction.h"
 
-namespace nevk
+namespace oka
 {
 ReductionPass::ReductionPass(const SharedContext& ctx)
     : ReductionPassBase(ctx)
@@ -24,8 +24,8 @@ void ReductionPass::execute(VkCommandBuffer& cmd, const ReductionDesc& desc, uin
         param.setBuffer("sampleBuffer", mSharedCtx.mResManager->getVkBuffer(desc.sampleBuffer));
     }
     int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
-    NeVkResult res = updatePipeline(frameVersion);
-    assert(res == NeVkResult::eOk);
+    OkaResult res = updatePipeline(frameVersion);
+    assert(res == OkaResult::eOk);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
     VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);
@@ -33,4 +33,4 @@ void ReductionPass::execute(VkCommandBuffer& cmd, const ReductionDesc& desc, uin
     const uint32_t dispY = 1;
     vkCmdDispatch(cmd, dispX, dispY, 1);
 }
-} // namespace nevk
+} // namespace oka

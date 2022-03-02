@@ -103,16 +103,16 @@ static GfVec3f _BlackbodyTemperatureAsRgb(float temp)
     return rgb;
 }
 
-HdNeVKLight::HdNeVKLight(const SdfPath& id, TfToken const& lightType)
+HdOkaLight::HdOkaLight(const SdfPath& id, TfToken const& lightType)
     : HdLight(id), mLightType(lightType)
 {
 }
 
-HdNeVKLight::~HdNeVKLight()
+HdOkaLight::~HdOkaLight()
 {
 }
 
-void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
+void HdOkaLight::Sync(HdSceneDelegate* sceneDelegate,
                       HdRenderParam* renderParam,
                       HdDirtyBits* dirtyBits)
 {
@@ -212,12 +212,12 @@ void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
     }
 }
 
-HdDirtyBits HdNeVKLight::GetInitialDirtyBitsMask() const
+HdDirtyBits HdOkaLight::GetInitialDirtyBitsMask() const
 {
     return (DirtyParams | DirtyTransform);
 }
 
-nevk::Scene::UniformLightDesc HdNeVKLight::getLightDesc()
+oka::Scene::UniformLightDesc HdOkaLight::getLightDesc()
 {
     return mLightDesc;
 }

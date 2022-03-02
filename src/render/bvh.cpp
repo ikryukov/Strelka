@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace nevk
+namespace oka
 {
 BvhBuilder::BvhBuilder()
 {
@@ -269,4 +269,4 @@ BVH BvhBuilder::repack(const std::vector<BvhNodeInternal>& nodes, const uint32_t
     return res;
 }
 
-} // namespace nevk
+} // namespace oka

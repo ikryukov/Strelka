@@ -37,7 +37,7 @@
 #include <stdexcept>
 #include <vector>
 
-namespace nevk
+namespace oka
 {
 
 class PtRender
@@ -212,36 +212,34 @@ private:
     SceneRenderData* mCurrentSceneRenderData = nullptr;
     SceneRenderData* mDefaultSceneRenderData = nullptr;
 
-    nevk::Scene* mScene = nullptr;
+    oka::Scene* mScene = nullptr;
 
     ViewData* createView(uint32_t width, uint32_t height, uint32_t spp);
     GBuffer* createGbuffer(uint32_t width, uint32_t height);
 
-    void createVertexBuffer(nevk::Scene& scene);
-    void createLightsBuffer(nevk::Scene& scene);
-    void createBvhBuffer(nevk::Scene& scene);
-    void createIndexBuffer(nevk::Scene& scene);
-    void createInstanceBuffer(nevk::Scene& scene);
+    void createVertexBuffer(oka::Scene& scene);
+    void createLightsBuffer(oka::Scene& scene);
+    void createBvhBuffer(oka::Scene& scene);
+    void createIndexBuffer(oka::Scene& scene);
+    void createInstanceBuffer(oka::Scene& scene);
     void createMdlBuffers();
     
     void recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
     void recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage);
 
 public:
-
-    nevk::ResourceManager* getResManager()
+    oka::ResourceManager* getResManager()
     {
         return mSharedCtx->mResManager;
     }
 
-    nevk::Scene* getScene()
+    oka::Scene* getScene()
     {
         return mScene;
     }
 
 
-
-    nevk::TextureManager* getTexManager()
+    oka::TextureManager* getTexManager()
     {
         return mSharedCtx->mTextureManager;
     }
@@ -257,4 +255,4 @@ public:
     }
 };
 
-} // namespace nevk
+} // namespace oka

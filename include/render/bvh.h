@@ -11,7 +11,7 @@ RTC_NAMESPACE_USE
 #include <vector>
 
 
-namespace nevk
+namespace oka
 {
 
 // GPU structure

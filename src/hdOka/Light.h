@@ -8,14 +8,14 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKLight final : public HdLight
+class HdOkaLight final : public HdLight
 {
 public:
-    HF_MALLOC_TAG_NEW("new HdNeVKLight");
+    HF_MALLOC_TAG_NEW("new HdOkaLight");
 
-    HdNeVKLight(const SdfPath& id, TfToken const& lightType);
+    HdOkaLight(const SdfPath& id, TfToken const& lightType);
 
-    ~HdNeVKLight() override;
+    ~HdOkaLight() override;
 
 public:
     void Sync(HdSceneDelegate* delegate,
@@ -24,11 +24,11 @@ public:
 
     HdDirtyBits GetInitialDirtyBitsMask() const override;
 
-    nevk::Scene::UniformLightDesc getLightDesc();
+    oka::Scene::UniformLightDesc getLightDesc();
 
 private:
     TfToken mLightType;
-    nevk::Scene::UniformLightDesc mLightDesc;
+    oka::Scene::UniformLightDesc mLightDesc;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

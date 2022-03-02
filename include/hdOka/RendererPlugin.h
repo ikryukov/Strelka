@@ -8,12 +8,12 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKRendererPlugin final : public HdRendererPlugin
+class HdOkaRendererPlugin final : public HdRendererPlugin
 {
 public:
-    HdNeVKRendererPlugin();
+    HdOkaRendererPlugin();
 
-    ~HdNeVKRendererPlugin() override;
+    ~HdOkaRendererPlugin() override;
 
 public:
     HdRenderDelegate* CreateRenderDelegate() override;

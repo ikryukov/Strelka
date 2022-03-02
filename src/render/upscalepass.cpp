@@ -1,6 +1,6 @@
 #include "upscalepass.h"
 
-namespace nevk
+namespace oka
 {
 UpscalePass::UpscalePass(const SharedContext& ctx)
     : UpscalePassBase(ctx)
@@ -48,8 +48,8 @@ void UpscalePass::execute(VkCommandBuffer& cmd, const UpscaleDesc& desc, uint32_
         param.setSampler("upscaleSampler", mUpscaleSampler);
     }
     int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
-    NeVkResult res = updatePipeline(frameVersion);
-    assert(res == NeVkResult::eOk);
+    OkaResult res = updatePipeline(frameVersion);
+    assert(res == OkaResult::eOk);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
     VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);
@@ -58,4 +58,4 @@ void UpscalePass::execute(VkCommandBuffer& cmd, const UpscaleDesc& desc, uint32_
     vkCmdDispatch(cmd, dispX, dispY, 1);
 }
 
-} // namespace nevk
+} // namespace oka

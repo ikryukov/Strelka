@@ -7,7 +7,7 @@
 #include <cassert>
 #include <sstream>
 
-namespace nevk
+namespace oka
 {
 const char* SCATTERING_FUNC_NAME = "mdl_bsdf_scattering";
 const char* EMISSION_FUNC_NAME = "mdl_edf_emission";
@@ -175,4 +175,4 @@ bool MdlHlslCodeGen::appendMaterialToLinkUnit(uint32_t idx,
 
     return result == 0;
 }
-} // namespace nevk
+} // namespace oka

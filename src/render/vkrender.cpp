@@ -31,7 +31,7 @@
     }
 }
 
-using namespace nevk;
+using namespace oka;
 
 void VkRender::initVulkan()
 {
@@ -39,7 +39,7 @@ void VkRender::initVulkan()
     setupDebugMessenger();
     if (enableValidationLayers)
     {
-        // nevk::debug::setupDebug(mInstance);
+        // oka::debug::setupDebug(mInstance);
     }
     createSurface();
     pickPhysicalDevice();
@@ -60,13 +60,13 @@ void VkRender::initVulkan()
     }
 }
 
-void nevk::VkRender::initSharedContext()
+void oka::VkRender::initSharedContext()
 {
     mSharedCtx.mDevice = mDevice;
     mSharedCtx.mDescriptorPool = createDescriptorPool();
     mSharedCtx.mShaderManager = new ShaderManager;
-    mSharedCtx.mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, mInstance, getCurrentFrameData().cmdPool, mGraphicsQueue);
-    mSharedCtx.mTextureManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mSharedCtx.mResManager);
+    mSharedCtx.mResManager = new oka::ResourceManager(mDevice, mPhysicalDevice, mInstance, getCurrentFrameData().cmdPool, mGraphicsQueue);
+    mSharedCtx.mTextureManager = new oka::TextureManager(mDevice, mPhysicalDevice, mSharedCtx.mResManager);
     mSharedCtx.depthFormat = findDepthFormat();
 }
 
@@ -86,7 +86,7 @@ void VkRender::cleanup()
         vkDestroyCommandPool(mDevice, fd.cmdPool, nullptr);
     }
 
-    for (nevk::Buffer* buff : mUploadBuffer)
+    for (oka::Buffer* buff : mUploadBuffer)
     {
         if (buff)
         {
@@ -106,7 +106,7 @@ void VkRender::cleanup()
     vkDestroyInstance(mInstance, nullptr);
 }
 
-void nevk::VkRender::createSurface()
+void oka::VkRender::createSurface()
 {
 }
 
@@ -119,7 +119,7 @@ void VkRender::createInstance()
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "NEVK";
+    appInfo.pApplicationName = "OKA";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "NoErrorVulkan Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);

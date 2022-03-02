@@ -5,13 +5,13 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdNeVKMaterial::HdNeVKMaterial(const SdfPath& id,
+HdOkaMaterial::HdOkaMaterial(const SdfPath& id,
                                      const MaterialNetworkTranslator& translator)
     : HdMaterial(id), m_translator(translator)
 {
 }
 
-HdNeVKMaterial::~HdNeVKMaterial()
+HdOkaMaterial::~HdOkaMaterial()
 {
     //if (mMaterial)
     {
@@ -19,13 +19,13 @@ HdNeVKMaterial::~HdNeVKMaterial()
     }
 }
 
-HdDirtyBits HdNeVKMaterial::GetInitialDirtyBitsMask() const
+HdDirtyBits HdOkaMaterial::GetInitialDirtyBitsMask() const
 {
     //return DirtyBits::DirtyParams;
     return DirtyBits::AllDirty;
 }
 
-void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
+void HdOkaMaterial::Sync(HdSceneDelegate* sceneDelegate,
                              HdRenderParam* renderParam,
                              HdDirtyBits* dirtyBits)
 {
@@ -89,7 +89,7 @@ void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
     
 }
 
-const std::string& HdNeVKMaterial::GetNeVKMaterial() const
+const std::string& HdOkaMaterial::GetOkaMaterial() const
 {
     return mMaterialXCode;
 }

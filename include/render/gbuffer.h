@@ -2,7 +2,7 @@
 #include <resourcemanager/resourcemanager.h>
 #include <vulkan/vulkan.h>
 
-namespace nevk
+namespace oka
 {
 
 struct GBuffer

@@ -10,13 +10,13 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKRenderDelegate final : public HdRenderDelegate
+class HdOkaRenderDelegate final : public HdRenderDelegate
 {
 public:
-    HdNeVKRenderDelegate(const HdRenderSettingsMap& settingsMap,
+    HdOkaRenderDelegate(const HdRenderSettingsMap& settingsMap,
                          const MaterialNetworkTranslator& translator);
 
-    ~HdNeVKRenderDelegate() override;
+    ~HdOkaRenderDelegate() override;
 
 public:
 
@@ -77,16 +77,16 @@ public:
     TfTokenVector GetShaderSourceTypes() const override;
 
 public:
-    nevk::SharedContext& getSharedContext();
+    oka::SharedContext& getSharedContext();
 
 private:
     const MaterialNetworkTranslator& m_translator;
     HdRenderSettingDescriptorList m_settingDescriptors;
     HdResourceRegistrySharedPtr m_resourceRegistry;
 
-    nevk::SharedContext* mSharedCtx;
-    nevk::Scene mScene;
-    nevk::PtRender mRenderer;
+    oka::SharedContext* mSharedCtx;
+    oka::Scene mScene;
+    oka::PtRender mRenderer;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

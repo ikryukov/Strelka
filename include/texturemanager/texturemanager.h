@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace nevk
+namespace oka
 {
 class TextureManager
 {
@@ -14,12 +14,12 @@ private:
     VkDevice mDevice;
     VkPhysicalDevice mPhysicalDevice;
 
-    nevk::ResourceManager* mResManager = nullptr;
+    oka::ResourceManager* mResManager = nullptr;
 
 public:
     TextureManager(VkDevice device,
                    VkPhysicalDevice phDevice,
-                   nevk::ResourceManager* ResManager)
+                   oka::ResourceManager* ResManager)
         : mDevice(device), mPhysicalDevice(phDevice), mResManager(ResManager)
     {
         // sampler
@@ -203,4 +203,4 @@ public:
         delShadowSampler.clear();
     }
 };
-} // namespace nevk
+} // namespace oka

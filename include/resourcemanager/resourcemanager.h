@@ -3,7 +3,7 @@
 
 #include <memory>
 
-namespace nevk
+namespace oka
 {
 
 struct Buffer;
@@ -46,4 +46,4 @@ public:
     void endSingleTimeCommands(VkCommandBuffer commandBuffer);
     void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
 };
-} // namespace nevk
+} // namespace oka

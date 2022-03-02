@@ -5,7 +5,7 @@
 
 #include "accumulationparam.h"
 
-namespace nevk
+namespace oka
 {
 struct AccumulationDesc
 {

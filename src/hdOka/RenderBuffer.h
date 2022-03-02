@@ -7,12 +7,12 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKRenderBuffer final : public HdRenderBuffer
+class HdOkaRenderBuffer final : public HdRenderBuffer
 {
 public:
-    HdNeVKRenderBuffer(const SdfPath& id, nevk::SharedContext* ctx);
+    HdOkaRenderBuffer(const SdfPath& id, oka::SharedContext* ctx);
 
-    ~HdNeVKRenderBuffer() override;
+    ~HdOkaRenderBuffer() override;
 
 public:
     bool Allocate(const GfVec3i& dimensions,
@@ -50,8 +50,8 @@ protected:
     void _Deallocate() override;
 
 private:
-    nevk::Image* mResult = nullptr;
-    nevk::SharedContext* mCtx = nullptr;
+    oka::Image* mResult = nullptr;
+    oka::SharedContext* mCtx = nullptr;
 
     void* m_bufferMem;
     uint32_t m_width;

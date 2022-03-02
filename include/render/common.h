@@ -6,7 +6,7 @@
 #include <texturemanager/texturemanager.h>
 #include "bindless.h"
 
-namespace nevk
+namespace oka
 {
 static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 
@@ -44,11 +44,11 @@ struct SharedContext
     }
 };
 
-enum class NeVkResult: uint32_t
+enum class OkaResult : uint32_t
 {
     eOk,
     eFail,
     eOutOfMemory,
 };
 
-} // namespace nevk
+} // namespace oka

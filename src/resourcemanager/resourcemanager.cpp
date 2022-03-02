@@ -4,7 +4,7 @@
 #define VMA_IMPLEMENTATION
 #include <VmaUsage.h>
 
-namespace nevk
+namespace oka
 {
 
 struct Buffer

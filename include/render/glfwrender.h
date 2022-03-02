@@ -12,7 +12,7 @@
 
 #include <GLFW/glfw3.h>
 
-namespace nevk
+namespace oka
 {
 
 class InputHandler
@@ -88,4 +88,4 @@ protected:
     std::vector<VkFramebuffer> swapChainFramebuffers;
 };
 
-} // namespace nevk
+} // namespace oka

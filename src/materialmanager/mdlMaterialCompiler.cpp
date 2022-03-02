@@ -6,7 +6,7 @@
 #include <cassert>
 #include <iostream>
 
-namespace nevk
+namespace oka
 {
 std::string _makeModuleName(const std::string& identifier)
 {
@@ -97,4 +97,4 @@ mi::base::Handle<mi::neuraylib::ITransaction>& MdlMaterialCompiler::getTransacti
 {
     return mTransaction;
 }
-} // namespace nevk
+} // namespace oka

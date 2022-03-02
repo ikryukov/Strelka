@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(nevk)
+project(Strelka)
 set(CMAKE_CXX_STANDARD 17)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/")
@@ -313,35 +313,35 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 # Hydra plugin
 set(HD_PLUGIN_SOURCES
-    include/HdNeVK/RendererPlugin.h
-    src/HdNeVK/RendererPlugin.cpp
-    src/HdNeVK/RenderParam.h
-    src/HdNeVK/RenderBuffer.h
-    src/HdNeVK/RenderDelegate.h
-    src/HdNeVK/RenderPass.h
-    src/HdNeVK/RenderBuffer.cpp
-    src/HdNeVK/RenderDelegate.cpp
-    src/HdNeVK/RenderPass.cpp
-    src/HdNeVK/Instancer.h
-    src/HdNeVK/Instancer.cpp
-    src/HdNeVK/Material.h
-    src/HdNeVK/Material.cpp
-    src/HdNeVK/Camera.h
-    src/HdNeVK/Camera.cpp
-    src/HdNeVK/Mesh.h
-    src/HdNeVK/Mesh.cpp
-    src/HdNeVK/Light.h
-    src/HdNeVK/Light.cpp
-    src/HdNeVK/Tokens.h
-    src/HdNeVK/Tokens.cpp
-    src/HdNeVK/MaterialNetworkTranslator.h
-    src/HdNeVK/MaterialNetworkTranslator.cpp
-    src/HdNeVK/MdlParserPlugin.h
-    src/HdNeVK/MdlParserPlugin.cpp
-    src/HdNeVK/MdlDiscoveryPlugin.h
-    src/HdNeVK/MdlDiscoveryPlugin.cpp    
+    include/HdOka/RendererPlugin.h
+    src/HdOka/RendererPlugin.cpp
+    src/HdOka/RenderParam.h
+    src/HdOka/RenderBuffer.h
+    src/HdOka/RenderDelegate.h
+    src/HdOka/RenderPass.h
+    src/HdOka/RenderBuffer.cpp
+    src/HdOka/RenderDelegate.cpp
+    src/HdOka/RenderPass.cpp
+    src/HdOka/Instancer.h
+    src/HdOka/Instancer.cpp
+    src/HdOka/Material.h
+    src/HdOka/Material.cpp
+    src/HdOka/Camera.h
+    src/HdOka/Camera.cpp
+    src/HdOka/Mesh.h
+    src/HdOka/Mesh.cpp
+    src/HdOka/Light.h
+    src/HdOka/Light.cpp
+    src/HdOka/Tokens.h
+    src/HdOka/Tokens.cpp
+    src/HdOka/MaterialNetworkTranslator.h
+    src/HdOka/MaterialNetworkTranslator.cpp
+    src/HdOka/MdlParserPlugin.h
+    src/HdOka/MdlParserPlugin.cpp
+    src/HdOka/MdlDiscoveryPlugin.h
+    src/HdOka/MdlDiscoveryPlugin.cpp
 )
-set(HD_PLUGIN_NAME HdNeVK)
+set(HD_PLUGIN_NAME HdOka)
 add_library(${HD_PLUGIN_NAME} SHARED ${HD_PLUGIN_SOURCES})
 set_target_properties(
   ${HD_PLUGIN_NAME}
@@ -379,8 +379,8 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(BUILD_SHARED_LIBS ON)
 # find_package(Boost COMPONENTS python REQUIRED)
 
-target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/hdNeVK)
-target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/hdNeVK)
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/hdOka)
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/hdOka)
 target_include_directories(${HD_PLUGIN_NAME} PUBLIC hd)
 target_include_directories(${HD_PLUGIN_NAME} PRIVATE 
     usdImaging
@@ -400,7 +400,7 @@ target_link_libraries(
 
 set(PLUGINFO_PATH "${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json")
 
-file(READ ${PROJECT_SOURCE_DIR}/src/hdNeVK/plugInfo.json.in PLUGINFO)
+file(READ ${PROJECT_SOURCE_DIR}/src/hdOka/plugInfo.json.in PLUGINFO)
 file(
   GENERATE
   OUTPUT
@@ -413,7 +413,7 @@ install(
   FILES
     "${PLUGINFO_PATH}"
   DESTINATION
-    "${CMAKE_INSTALL_PREFIX}/HdNeVK/resources"
+    "${CMAKE_INSTALL_PREFIX}/HdOka/resources"
   COMPONENT
     ${HD_PLUGIN_NAME}
 )
@@ -525,9 +525,9 @@ endif ()
 # CXXOPTS
 target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
 
-option(NEVK_TESTS "enable tests" OFF)
+option(OKA_TESTS "enable tests" OFF)
 
-if (NOT NEVK_TESTS)
+if (NOT OKA_TESTS)
     message(STATUS "tests are disabled")
 else ()
     add_subdirectory(tests)

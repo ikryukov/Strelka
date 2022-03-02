@@ -48,7 +48,7 @@ struct QueueFamilyIndices
     }
 };
 
-namespace nevk
+namespace oka
 {
 
 class VkRender
@@ -188,4 +188,4 @@ public:
     }
 };
 
-} // namespace nevk
+} // namespace oka

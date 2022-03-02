@@ -9,7 +9,7 @@
 #include <utility>
 namespace fs = std::filesystem;
 
-namespace nevk
+namespace oka
 {
 
 uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint32_t>& ib)
@@ -359,4 +359,4 @@ void Scene::endFrame()
     FrMod = false;
 }
 
-} // namespace nevk
+} // namespace oka

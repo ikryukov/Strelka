@@ -8,7 +8,7 @@ const int compDir = 1;
 const int compDir = 0;
 #endif
 
-namespace nevk
+namespace oka
 {
 
 ShaderManager::ShaderManager()
@@ -43,13 +43,13 @@ ShaderManager::ShaderDesc ShaderManager::compileShaderFromString(const char* sou
     SlangStage slangStage = SLANG_STAGE_NONE;
     switch (stage)
     {
-    case nevk::ShaderManager::Stage::eVertex:
+    case oka::ShaderManager::Stage::eVertex:
         slangStage = SLANG_STAGE_VERTEX;
         break;
-    case nevk::ShaderManager::Stage::ePixel:
+    case oka::ShaderManager::Stage::ePixel:
         slangStage = SLANG_STAGE_PIXEL;
         break;
-    case nevk::ShaderManager::Stage::eCompute:
+    case oka::ShaderManager::Stage::eCompute:
         slangStage = SLANG_STAGE_COMPUTE;
         break;
     default:
@@ -107,13 +107,13 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     SlangStage slangStage = SLANG_STAGE_NONE;
     switch (stage)
     {
-    case nevk::ShaderManager::Stage::eVertex:
+    case oka::ShaderManager::Stage::eVertex:
         slangStage = SLANG_STAGE_VERTEX;
         break;
-    case nevk::ShaderManager::Stage::ePixel:
+    case oka::ShaderManager::Stage::ePixel:
         slangStage = SLANG_STAGE_PIXEL;
         break;
-    case nevk::ShaderManager::Stage::eCompute:
+    case oka::ShaderManager::Stage::eCompute:
         slangStage = SLANG_STAGE_COMPUTE;
         break;
     default:
@@ -465,4 +465,4 @@ std::vector<ShaderManager::ResourceDesc> ShaderManager::getResourcesDesc(uint32_
     return descs;
 }
 
-} // namespace nevk
+} // namespace oka

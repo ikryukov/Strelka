@@ -17,16 +17,16 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DEFINE_PRIVATE_TOKENS(
     _Tokens,
-    (HdNeVKDriver)
+    (HdOkaDriver)
  );
 
-HdNeVKRenderDelegate::HdNeVKRenderDelegate(const HdRenderSettingsMap& settingsMap, const MaterialNetworkTranslator& translator)
+HdOkaRenderDelegate::HdOkaRenderDelegate(const HdRenderSettingsMap& settingsMap, const MaterialNetworkTranslator& translator)
     : m_translator(translator)
 {
     m_resourceRegistry = std::make_shared<HdResourceRegistry>();
 
-    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Samples per pixel", HdNeVKSettingsTokens->spp, VtValue{ 8 } });
-    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Max bounces", HdNeVKSettingsTokens->max_bounces, VtValue{ 4 } });
+    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Samples per pixel", HdOkaSettingsTokens->spp, VtValue{ 8 } });
+    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Max bounces", HdOkaSettingsTokens->max_bounces, VtValue{ 4 } });
 
     _PopulateDefaultSettings(m_settingDescriptors);
 
@@ -41,18 +41,18 @@ HdNeVKRenderDelegate::HdNeVKRenderDelegate(const HdRenderSettingsMap& settingsMa
     mRenderer.setScene(&mScene);
 }
 
-HdNeVKRenderDelegate::~HdNeVKRenderDelegate()
+HdOkaRenderDelegate::~HdOkaRenderDelegate()
 {
 }
 
-void HdNeVKRenderDelegate::SetDrivers(HdDriverVector const& drivers)
+void HdOkaRenderDelegate::SetDrivers(HdDriverVector const& drivers)
 {
     for (HdDriver* hdDriver : drivers)
     {
-        if (hdDriver->name == _Tokens->HdNeVKDriver &&
-            hdDriver->driver.IsHolding<nevk::SharedContext*>())
+        if (hdDriver->name == _Tokens->HdOkaDriver &&
+            hdDriver->driver.IsHolding<oka::SharedContext*>())
         {
-            mSharedCtx = hdDriver->driver.UncheckedGet<nevk::SharedContext*>();
+            mSharedCtx = hdDriver->driver.UncheckedGet<oka::SharedContext*>();
             mRenderer.setSharedContext(mSharedCtx);
             mRenderer.init();
             break;
@@ -60,41 +60,41 @@ void HdNeVKRenderDelegate::SetDrivers(HdDriverVector const& drivers)
     }
 }
 
-HdRenderSettingDescriptorList HdNeVKRenderDelegate::GetRenderSettingDescriptors() const
+HdRenderSettingDescriptorList HdOkaRenderDelegate::GetRenderSettingDescriptors() const
 {
     return m_settingDescriptors;
 }
 
-HdRenderPassSharedPtr HdNeVKRenderDelegate::CreateRenderPass(HdRenderIndex* index,
+HdRenderPassSharedPtr HdOkaRenderDelegate::CreateRenderPass(HdRenderIndex* index,
                                                              const HdRprimCollection& collection)
 {
-    return HdRenderPassSharedPtr(new HdNeVKRenderPass(index, collection, _settingsMap, &mRenderer, &mScene));
+    return HdRenderPassSharedPtr(new HdOkaRenderPass(index, collection, _settingsMap, &mRenderer, &mScene));
 }
 
-HdResourceRegistrySharedPtr HdNeVKRenderDelegate::GetResourceRegistry() const
+HdResourceRegistrySharedPtr HdOkaRenderDelegate::GetResourceRegistry() const
 {
     return m_resourceRegistry;
 }
 
-void HdNeVKRenderDelegate::CommitResources(HdChangeTracker* tracker)
+void HdOkaRenderDelegate::CommitResources(HdChangeTracker* tracker)
 {
     TF_UNUSED(tracker);
 
     // We delay BVH building and GPU uploads to the next render call.
 }
 
-HdInstancer* HdNeVKRenderDelegate::CreateInstancer(HdSceneDelegate* delegate,
+HdInstancer* HdOkaRenderDelegate::CreateInstancer(HdSceneDelegate* delegate,
                                                    const SdfPath& id)
 {
-    return new HdNeVKInstancer(delegate, id);
+    return new HdOkaInstancer(delegate, id);
 }
 
-void HdNeVKRenderDelegate::DestroyInstancer(HdInstancer* instancer)
+void HdOkaRenderDelegate::DestroyInstancer(HdInstancer* instancer)
 {
     delete instancer;
 }
 
-HdAovDescriptor HdNeVKRenderDelegate::GetDefaultAovDescriptor(const TfToken& name) const
+HdAovDescriptor HdOkaRenderDelegate::GetDefaultAovDescriptor(const TfToken& name) const
 {
     TF_UNUSED(name);
 
@@ -109,23 +109,23 @@ const TfTokenVector SUPPORTED_RPRIM_TYPES = {
     HdPrimTypeTokens->mesh
 };
 
-const TfTokenVector& HdNeVKRenderDelegate::GetSupportedRprimTypes() const
+const TfTokenVector& HdOkaRenderDelegate::GetSupportedRprimTypes() const
 {
     return SUPPORTED_RPRIM_TYPES;
 }
 
-HdRprim* HdNeVKRenderDelegate::CreateRprim(const TfToken& typeId,
+HdRprim* HdOkaRenderDelegate::CreateRprim(const TfToken& typeId,
                                            const SdfPath& rprimId)
 {
     if (typeId == HdPrimTypeTokens->mesh)
     {
-        return new HdNeVKMesh(rprimId, &mScene);
+        return new HdOkaMesh(rprimId, &mScene);
     }
     TF_CODING_ERROR("Unknown Rprim Type %s", typeId.GetText());
     return nullptr;
 }
 
-void HdNeVKRenderDelegate::DestroyRprim(HdRprim* rprim)
+void HdOkaRenderDelegate::DestroyRprim(HdRprim* rprim)
 {
     delete rprim;
 }
@@ -138,31 +138,31 @@ const TfTokenVector SUPPORTED_SPRIM_TYPES = {
     HdPrimTypeTokens->diskLight
 };
 
-const TfTokenVector& HdNeVKRenderDelegate::GetSupportedSprimTypes() const
+const TfTokenVector& HdOkaRenderDelegate::GetSupportedSprimTypes() const
 {
     return SUPPORTED_SPRIM_TYPES;
 }
 
-HdSprim* HdNeVKRenderDelegate::CreateSprim(const TfToken& typeId,
+HdSprim* HdOkaRenderDelegate::CreateSprim(const TfToken& typeId,
                                            const SdfPath& sprimId)
 {
     TF_STATUS("CreateSprim Type: %s", typeId.GetText());
     if (typeId == HdPrimTypeTokens->camera)
     {
-        return new HdNeVKCamera(sprimId, mScene);
+        return new HdOkaCamera(sprimId, mScene);
     }
     else if (typeId == HdPrimTypeTokens->material)
     {
-        return new HdNeVKMaterial(sprimId, m_translator);
+        return new HdOkaMaterial(sprimId, m_translator);
     }
     else if (typeId == HdPrimTypeTokens->rectLight)
     {
         // unified light, but currently only rect light supported
-        return new HdNeVKLight(sprimId, typeId);
+        return new HdOkaLight(sprimId, typeId);
     }
     else if (typeId == HdPrimTypeTokens->diskLight)
     {
-        return new HdNeVKLight(sprimId, typeId);
+        return new HdOkaLight(sprimId, typeId);
     }
     
     TF_CODING_ERROR("Unknown Sprim Type %s", typeId.GetText());
@@ -170,14 +170,14 @@ HdSprim* HdNeVKRenderDelegate::CreateSprim(const TfToken& typeId,
     return nullptr;
 }
 
-HdSprim* HdNeVKRenderDelegate::CreateFallbackSprim(const TfToken& typeId)
+HdSprim* HdOkaRenderDelegate::CreateFallbackSprim(const TfToken& typeId)
 {
     const SdfPath& sprimId = SdfPath::EmptyPath();
 
     return CreateSprim(typeId, sprimId);
 }
 
-void HdNeVKRenderDelegate::DestroySprim(HdSprim* sprim)
+void HdOkaRenderDelegate::DestroySprim(HdSprim* sprim)
 {
     delete sprim;
 }
@@ -186,50 +186,50 @@ const TfTokenVector SUPPORTED_BPRIM_TYPES = {
     HdPrimTypeTokens->renderBuffer
 };
 
-const TfTokenVector& HdNeVKRenderDelegate::GetSupportedBprimTypes() const
+const TfTokenVector& HdOkaRenderDelegate::GetSupportedBprimTypes() const
 {
     return SUPPORTED_BPRIM_TYPES;
 }
 
-HdBprim* HdNeVKRenderDelegate::CreateBprim(const TfToken& typeId,
+HdBprim* HdOkaRenderDelegate::CreateBprim(const TfToken& typeId,
                                            const SdfPath& bprimId)
 {
     if (typeId == HdPrimTypeTokens->renderBuffer)
     {
-        return new HdNeVKRenderBuffer(bprimId, mSharedCtx);
+        return new HdOkaRenderBuffer(bprimId, mSharedCtx);
     }
 
     return nullptr;
 }
 
-HdBprim* HdNeVKRenderDelegate::CreateFallbackBprim(const TfToken& typeId)
+HdBprim* HdOkaRenderDelegate::CreateFallbackBprim(const TfToken& typeId)
 {
     const SdfPath& bprimId = SdfPath::EmptyPath();
 
     return CreateBprim(typeId, bprimId);
 }
 
-void HdNeVKRenderDelegate::DestroyBprim(HdBprim* bprim)
+void HdOkaRenderDelegate::DestroyBprim(HdBprim* bprim)
 {
     delete bprim;
 }
 
-TfToken HdNeVKRenderDelegate::GetMaterialBindingPurpose() const
+TfToken HdOkaRenderDelegate::GetMaterialBindingPurpose() const
 {
     return HdTokens->full;
 }
 
-TfTokenVector HdNeVKRenderDelegate::GetMaterialRenderContexts() const
+TfTokenVector HdOkaRenderDelegate::GetMaterialRenderContexts() const
 {
-    return TfTokenVector{ HdNeVKRenderContexts->mtlx, HdNeVKRenderContexts->mdl };
+    return TfTokenVector{ HdOkaRenderContexts->mtlx, HdOkaRenderContexts->mdl };
 }
 
-TfTokenVector HdNeVKRenderDelegate::GetShaderSourceTypes() const
+TfTokenVector HdOkaRenderDelegate::GetShaderSourceTypes() const
 {
-    return TfTokenVector{ HdNeVKSourceTypes->mtlx, HdNeVKSourceTypes->mdl };
+    return TfTokenVector{ HdOkaSourceTypes->mtlx, HdOkaSourceTypes->mdl };
 }
 
-nevk::SharedContext& HdNeVKRenderDelegate::getSharedContext()
+oka::SharedContext& HdOkaRenderDelegate::getSharedContext()
 {
     return mRenderer.getSharedContext();
 }

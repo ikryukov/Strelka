@@ -1,11 +1,10 @@
-
 #pragma once
 
 #include <pxr/usd/ndr/parserPlugin.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKMdlParserPlugin final : public NdrParserPlugin
+class HdOkaMdlParserPlugin final : public NdrParserPlugin
 {
 public:
   NdrNodeUniquePtr Parse(const NdrNodeDiscoveryResult& discoveryResult) override;
