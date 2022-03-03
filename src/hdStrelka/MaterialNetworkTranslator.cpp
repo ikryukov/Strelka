@@ -63,7 +63,7 @@ bool _ConvertNodesToMaterialXNodes(const HdMaterialNetwork2& network,
         TfToken& nodeTypeId = nodeIt->second.nodeTypeId;
 
         SdrRegistry& sdrRegistry = SdrRegistry::GetInstance();
-        if (sdrRegistry.GetShaderNodeByIdentifierAndType(nodeTypeId, HdNeVKDiscoveryTypes->mtlx))
+        if (sdrRegistry.GetShaderNodeByIdentifierAndType(nodeTypeId, HdStrelkaDiscoveryTypes->mtlx))
         {
             continue;
         }

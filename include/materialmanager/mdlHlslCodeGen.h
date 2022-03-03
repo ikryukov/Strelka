@@ -10,7 +10,7 @@
 
 #include "texturemanager/texturemanager.h"
 
-namespace nevk
+namespace oka
 {
 class MdlHlslCodeGen
 {
@@ -40,4 +40,4 @@ private:
     mi::base::Handle<mi::neuraylib::ITransaction> mTransaction;
     mi::base::Handle<mi::neuraylib::IMdl_execution_context> mContext;
 };
-} // namespace nevk
+} // namespace oka

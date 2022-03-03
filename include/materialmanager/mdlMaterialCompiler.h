@@ -13,7 +13,7 @@
 
 #include "mdlRuntime.h"
 
-namespace nevk
+namespace oka
 {
 class MdlMaterialCompiler
 {

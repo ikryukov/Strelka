@@ -2,12 +2,11 @@
 
 #include "common.h"
 #include "computepass.h"
-
 #include "tonemapparam.h"
 
 #include <vector>
 
-namespace nevk
+namespace oka
 {
 struct TonemapDesc
 {
@@ -25,4 +24,4 @@ public:
     void initialize();
     void execute(VkCommandBuffer& cmd, const TonemapDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex);
 };
-} // namespace nevk
+} // namespace oka

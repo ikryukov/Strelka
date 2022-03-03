@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace nevk
+namespace oka
 {
 template <typename T>
 class ShaderParameters
@@ -47,20 +47,25 @@ protected:
     size_t getConstantBufferOffset(const uint32_t index)
     {
         const size_t structSize = sizeof(T);
-        return ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) * minUniformBufferOffsetAlignment * index;
+        return ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) *
+               minUniformBufferOffsetAlignment * index;
     }
 
-    NeVkResult createConstantBuffers()
+    Result createConstantBuffers()
     {
         const size_t structSize = sizeof(T);
         // constan buffer size on must be a multiple of VkPhysicalDeviceLimits::minUniformBufferOffsetAlignment (256)
-        const VkDeviceSize bufferSize = ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) * minUniformBufferOffsetAlignment * MAX_FRAMES_IN_FLIGHT;
-        mConstantBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        const VkDeviceSize bufferSize =
+            ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) *
+            minUniformBufferOffsetAlignment * MAX_FRAMES_IN_FLIGHT;
+        mConstantBuffer =
+            mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         if (!mConstantBuffer)
         {
-            return NeVkResult::eOutOfMemory;
+            return Result::eOutOfMemory;
         }
-        return NeVkResult::eOk;
+        return Result::eOk;
     }
 
     void writeConstantBufferDescriptors()
@@ -89,10 +94,11 @@ protected:
             descriptorWrites.push_back(descWrite);
         }
 
-        vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(
+            mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
-    NeVkResult createDescriptorSets(const VkDescriptorPool& descriptorPool)
+    Result createDescriptorSets(const VkDescriptorPool& descriptorPool)
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, mDescriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -104,12 +110,12 @@ protected:
         VkResult res = vkAllocateDescriptorSets(mDevice, &allocInfo, mDescriptorSets.data());
         if (res != VK_SUCCESS)
         {
-            return NeVkResult::eFail;
+            return Result::eFail;
         }
-        return NeVkResult::eOk;
+        return Result::eOk;
     }
 
-    NeVkResult updateDescriptorSet(uint32_t descIndex)
+    Result updateDescriptorSet(uint32_t descIndex)
     {
         VkDescriptorSet& dstDescSet = mDescriptorSets[descIndex];
 
@@ -171,7 +177,8 @@ protected:
                     for (uint32_t i = 0; i < descriptorCount; ++i)
                     {
                         imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        imageInfos[imageInfosOffset + i].imageView = (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
+                        imageInfos[imageInfosOffset + i].imageView =
+                            (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
                         imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
                     }
 
@@ -216,7 +223,8 @@ protected:
                     for (uint32_t i = 0; i < descriptorCount; ++i)
                     {
                         imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        imageInfos[imageInfosOffset + i].imageView = (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
+                        imageInfos[imageInfosOffset + i].imageView =
+                            (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
                         imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
                     }
 
@@ -257,9 +265,10 @@ protected:
                     break;
                 }
                 case ShaderManager::ResourceType::eSampler: {
-                    //for (uint32_t i = 0; i < descriptorCount; ++i)
+                    // for (uint32_t i = 0; i < descriptorCount; ++i)
                     //{
-                    //    imageInfos[imageInfosOffset + i].sampler = (i < descriptor.handles.size()) ? descriptor.handles[i].sampler : VK_NULL_HANDLE;
+                    //    imageInfos[imageInfosOffset + i].sampler = (i < descriptor.handles.size()) ?
+                    //    descriptor.handles[i].sampler : VK_NULL_HANDLE;
                     //}
                     assert(descriptor.handles.size() > 0);
                     for (uint32_t i = 0; i < (uint32_t)descriptor.handles.size(); ++i)
@@ -273,7 +282,7 @@ protected:
                     descWrite.dstBinding = resDesc.binding;
                     descWrite.dstArrayElement = 0;
                     descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                    //descWrite.descriptorCount = descriptorCount;
+                    // descWrite.descriptorCount = descriptorCount;
                     descWrite.descriptorCount = (uint32_t)descriptor.handles.size();
                     descWrite.pImageInfo = &imageInfos[imageInfosOffset];
 
@@ -313,16 +322,17 @@ protected:
             else
             {
                 // not found
-                return NeVkResult::eFail;
+                return Result::eFail;
             }
         }
 
-        vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(
+            mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         needDesciptorSetUpdate[descIndex] = false;
 
         mResUpdate[descIndex].clear();
 
-        return NeVkResult::eOk;
+        return Result::eOk;
     }
 
 public:
@@ -330,7 +340,10 @@ public:
                      std::vector<ShaderManager::ResourceDesc>& resourcesDescs,
                      std::unordered_map<std::string, ShaderManager::ResourceDesc>& nameToDesc,
                      int cbBinding)
-        :  mCbBinding(cbBinding), mDescriptorSetLayout(descriptorSetLayout), mResourcesDescs(resourcesDescs), mNameToDesc(nameToDesc)
+        : mCbBinding(cbBinding),
+          mDescriptorSetLayout(descriptorSetLayout),
+          mResourcesDescs(resourcesDescs),
+          mNameToDesc(nameToDesc)
     {
     }
 
@@ -348,9 +361,9 @@ public:
         const uint32_t index = frameIndex % MAX_FRAMES_IN_FLIGHT;
         if (needDesciptorSetUpdate[index])
         {
-            NeVkResult res = updateDescriptorSet(index);
-            assert(res == NeVkResult::eOk);
-            if (res != NeVkResult::eOk)
+            Result res = updateDescriptorSet(index);
+            assert(res == Result::eOk);
+            if (res != Result::eOk)
             {
                 // TODO: report error
                 printf("Error!\n");
@@ -368,12 +381,12 @@ public:
         return mDescriptorSets[index];
     }
 
-    NeVkResult create(const SharedContext& ctx)
+    Result create(const SharedContext& ctx)
     {
         mDevice = ctx.mDevice;
         mResManager = ctx.mResManager;
 
-        NeVkResult res = createDescriptorSets(ctx.mDescriptorPool);
+        Result res = createDescriptorSets(ctx.mDescriptorPool);
 
         res = createConstantBuffers();
         // Now we support only 1 constant buffer per shader
@@ -515,7 +528,7 @@ class ShaderParametersFactory
     std::vector<ShaderManager::ResourceDesc> mResourcesDescs;
     std::unordered_map<std::string, ShaderManager::ResourceDesc> mNameToDesc;
 
-    NeVkResult createDescriptorSetLayout()
+    Result createDescriptorSetLayout()
     {
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         bindings.reserve(mResourcesDescs.size());
@@ -582,14 +595,13 @@ class ShaderParametersFactory
         VkResult res = vkCreateDescriptorSetLayout(mSharedCtx.mDevice, &layoutInfo, nullptr, &mDescriptorSetLayout);
         if (res != VK_SUCCESS)
         {
-            return NeVkResult::eFail;
+            return Result::eFail;
         }
-        return NeVkResult::eOk;
+        return Result::eOk;
     }
 
 public:
-    ShaderParametersFactory(const SharedContext& ctx)
-        : mSharedCtx(ctx)
+    ShaderParametersFactory(const SharedContext& ctx) : mSharedCtx(ctx)
     {
     }
     virtual ~ShaderParametersFactory()
@@ -617,11 +629,11 @@ public:
         if (mDescriptorSetLayout)
         {
             vkDestroyDescriptorSetLayout(mSharedCtx.mDevice, mDescriptorSetLayout, nullptr);
-        }        
+        }
 
-        NeVkResult res = createDescriptorSetLayout();
+        Result res = createDescriptorSetLayout();
         assert(mCbBinding != -1);
-        return res == NeVkResult::eOk;
+        return res == Result::eOk;
     }
 
     ShaderParameters<T>& getNextShaderParameters(uint64_t frameIndex)
@@ -636,8 +648,8 @@ public:
         if (mIntraFrameIndex >= mShaderParams.size())
         {
             auto param = new ShaderParameters<T>(mDescriptorSetLayout, mResourcesDescs, mNameToDesc, mCbBinding);
-            NeVkResult res = param->create(mSharedCtx);
-            assert(res == NeVkResult::eOk);
+            Result res = param->create(mSharedCtx);
+            assert(res == Result::eOk);
             mShaderParams.push_back(param);
         }
         ++mIntraFrameIndex;
@@ -646,4 +658,4 @@ public:
     }
 };
 
-} // namespace nevk
+} // namespace oka

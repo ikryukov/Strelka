@@ -69,7 +69,6 @@ private:
     VkSampler mShadowSampler = VK_NULL_HANDLE;
 
     void createRenderPass();
-
     void createDescriptorSetLayout();
     void createDescriptorSets(VkDescriptorPool& descriptorPool);
 
@@ -174,6 +173,6 @@ public:
 
     GbufferPass(/* args */);
     ~GbufferPass();
-    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, nevk::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex, uint32_t cameraIndex);
+    void record(VkCommandBuffer& cmd, VkBuffer vertexBuffer, VkBuffer indexBuffer, oka::Scene& scene, uint32_t width, uint32_t height, uint32_t imageIndex, uint32_t cameraIndex);
 };
-} // namespace nevk
+} // namespace oka

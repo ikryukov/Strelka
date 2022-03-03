@@ -5,29 +5,26 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdNeVKMaterial::HdNeVKMaterial(const SdfPath& id,
-                                     const MaterialNetworkTranslator& translator)
+HdStrelkaMaterial::HdStrelkaMaterial(const SdfPath& id, const MaterialNetworkTranslator& translator)
     : HdMaterial(id), m_translator(translator)
 {
 }
 
-HdNeVKMaterial::~HdNeVKMaterial()
+HdStrelkaMaterial::~HdStrelkaMaterial()
 {
-    //if (mMaterial)
+    // if (mMaterial)
     {
-        //DestroyMaterial(m_Material);
+        // DestroyMaterial(m_Material);
     }
 }
 
-HdDirtyBits HdNeVKMaterial::GetInitialDirtyBitsMask() const
+HdDirtyBits HdStrelkaMaterial::GetInitialDirtyBitsMask() const
 {
-    //return DirtyBits::DirtyParams;
+    // return DirtyBits::DirtyParams;
     return DirtyBits::AllDirty;
 }
 
-void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
-                             HdRenderParam* renderParam,
-                             HdDirtyBits* dirtyBits)
+void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* renderParam, HdDirtyBits* dirtyBits)
 {
     TF_UNUSED(renderParam);
 
@@ -62,7 +59,7 @@ void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
             isUsdPreviewSurface = true;
         }
     }
-    
+
     HdMaterialNetwork2 network;
     bool isVolume = false;
     HdMaterialNetwork2ConvertFromHdMaterialNetworkMap(networkMap, &network, &isVolume);
@@ -71,7 +68,7 @@ void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
         TF_WARN("Volume %s unsupported", id.GetText());
         return;
     }
-    
+
     if (isUsdPreviewSurface)
     {
         mMaterialXCode = m_translator.ParseNetwork(id, network);
@@ -86,10 +83,9 @@ void HdNeVKMaterial::Sync(HdSceneDelegate* sceneDelegate,
         }
         mIsMdl = true;
     }
-    
 }
 
-const std::string& HdNeVKMaterial::GetNeVKMaterial() const
+const std::string& HdStrelkaMaterial::GetStrelkaMaterial() const
 {
     return mMaterialXCode;
 }

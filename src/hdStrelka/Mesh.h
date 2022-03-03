@@ -7,14 +7,14 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKMesh final : public HdMesh
+class HdStrelkaMesh final : public HdMesh
 {
 public:
-    HF_MALLOC_TAG_NEW("new HdNeVKMesh");
+    HF_MALLOC_TAG_NEW("new HdStrelkaMesh");
 
-    HdNeVKMesh(const SdfPath& id, nevk::Scene* scene);
+    HdStrelkaMesh(const SdfPath& id, oka::Scene* scene);
 
-    ~HdNeVKMesh() override;
+    ~HdStrelkaMesh() override;
 
 public:
     void Sync(HdSceneDelegate* delegate,
@@ -41,18 +41,14 @@ public:
 protected:
     HdDirtyBits _PropagateDirtyBits(HdDirtyBits bits) const override;
 
-    void _InitRepr(const TfToken& reprName,
-                   HdDirtyBits* dirtyBits) override;
+    void _InitRepr(const TfToken& reprName, HdDirtyBits* dirtyBits) override;
 
 private:
-
     void _ConvertMesh();
 
     void _UpdateGeometry(HdSceneDelegate* sceneDelegate);
 
-    bool _FindPrimvar(HdSceneDelegate* sceneDelegate,
-                      TfToken primvarName,
-                      HdInterpolation& interpolation) const;
+    bool _FindPrimvar(HdSceneDelegate* sceneDelegate, TfToken primvarName, HdInterpolation& interpolation) const;
 
     void _PullPrimvars(HdSceneDelegate* sceneDelegate,
                        VtVec3fArray& points,
@@ -68,7 +64,7 @@ private:
     std::vector<GfVec3i> m_faces;
     GfVec3f m_color;
     bool m_hasColor;
-    nevk::Scene* mScene;
+    oka::Scene* mScene;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

@@ -10,30 +10,26 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKRenderDelegate final : public HdRenderDelegate
+class HdStrelkaRenderDelegate final : public HdRenderDelegate
 {
 public:
-    HdNeVKRenderDelegate(const HdRenderSettingsMap& settingsMap,
-                         const MaterialNetworkTranslator& translator);
+    HdStrelkaRenderDelegate(const HdRenderSettingsMap& settingsMap, const MaterialNetworkTranslator& translator);
 
-    ~HdNeVKRenderDelegate() override;
+    ~HdStrelkaRenderDelegate() override;
 
 public:
-
     void SetDrivers(HdDriverVector const& drivers) override;
 
     HdRenderSettingDescriptorList GetRenderSettingDescriptors() const override;
 
 public:
-    HdRenderPassSharedPtr CreateRenderPass(HdRenderIndex* index,
-                                           const HdRprimCollection& collection) override;
+    HdRenderPassSharedPtr CreateRenderPass(HdRenderIndex* index, const HdRprimCollection& collection) override;
 
     HdResourceRegistrySharedPtr GetResourceRegistry() const override;
 
     void CommitResources(HdChangeTracker* tracker) override;
 
-    HdInstancer* CreateInstancer(HdSceneDelegate* delegate,
-                                 const SdfPath& id) override;
+    HdInstancer* CreateInstancer(HdSceneDelegate* delegate, const SdfPath& id) override;
 
     void DestroyInstancer(HdInstancer* instancer) override;
 
@@ -77,16 +73,16 @@ public:
     TfTokenVector GetShaderSourceTypes() const override;
 
 public:
-    nevk::SharedContext& getSharedContext();
+    oka::SharedContext& getSharedContext();
 
 private:
     const MaterialNetworkTranslator& m_translator;
     HdRenderSettingDescriptorList m_settingDescriptors;
     HdResourceRegistrySharedPtr m_resourceRegistry;
 
-    nevk::SharedContext* mSharedCtx;
-    nevk::Scene mScene;
-    nevk::PtRender mRenderer;
+    oka::SharedContext* mSharedCtx;
+    oka::Scene mScene;
+    oka::PtRender mRenderer;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

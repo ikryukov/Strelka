@@ -4,7 +4,7 @@
 #include <mi/base/ilogger.h>
 #include <mi/neuraylib/imdl_execution_context.h>
 
-namespace nevk
+namespace oka
 {
 class MdlLogger : public mi::base::Interface_implement<mi::base::ILogger>
 {

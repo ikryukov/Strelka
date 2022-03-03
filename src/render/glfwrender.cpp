@@ -1,8 +1,8 @@
 #include "glfwrender.h"
 
-using namespace nevk;
+using namespace oka;
 
-void nevk::GLFWRender::init(int width, int height)
+void oka::GLFWRender::init(int width, int height)
 {
     mWindowWidth = width;
     mWindowHeight = height;
@@ -10,7 +10,7 @@ void nevk::GLFWRender::init(int width, int height)
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    mWindow = glfwCreateWindow(mWindowWidth, mWindowHeight, "NeVK", nullptr, nullptr);
+    mWindow = glfwCreateWindow(mWindowWidth, mWindowHeight, "Strelka", nullptr, nullptr);
     glfwSetWindowUserPointer(mWindow, this);
     glfwSetFramebufferSizeCallback(mWindow, framebufferResizeCallback);
     glfwSetKeyCallback(mWindow, keyCallback);
@@ -25,33 +25,34 @@ void nevk::GLFWRender::init(int width, int height)
     createSwapChain();
 }
 
-void nevk::GLFWRender::setWindowTitle(const char* title)
+void oka::GLFWRender::setWindowTitle(const char* title)
 {
     glfwSetWindowTitle(mWindow, title);
 }
 
-bool nevk::GLFWRender::windowShouldClose()
+bool oka::GLFWRender::windowShouldClose()
 {
     return glfwWindowShouldClose(mWindow);
 }
 
-void nevk::GLFWRender::pollEvents()
+void oka::GLFWRender::pollEvents()
 {
     glfwPollEvents();
 }
 
-void nevk::GLFWRender::onBeginFrame()
+void oka::GLFWRender::onBeginFrame()
 {
     FrameData& currFrame = getCurrentFrameData();
 
     vkWaitForFences(mDevice, 1, &currFrame.inFlightFence, VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
-    VkResult result = vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, currFrame.imageAvailable, VK_NULL_HANDLE, &imageIndex);
+    VkResult result =
+        vkAcquireNextImageKHR(mDevice, mSwapChain, UINT64_MAX, currFrame.imageAvailable, VK_NULL_HANDLE, &imageIndex);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        //recreateSwapChain();
+        // recreateSwapChain();
         return;
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
@@ -68,7 +69,7 @@ void nevk::GLFWRender::onBeginFrame()
     static auto prevTime = std::chrono::high_resolution_clock::now();
 
     auto currentTime = std::chrono::high_resolution_clock::now();
-    //double deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
+    // double deltaTime = std::chrono::duration<double, std::milli>(currentTime - prevTime).count() / 1000.0;
     prevTime = currentTime;
 
     const uint32_t frameIndex = imageIndex;
@@ -84,7 +85,7 @@ void nevk::GLFWRender::onBeginFrame()
     vkBeginCommandBuffer(cmd, &cmdBeginInfo);
 }
 
-void nevk::GLFWRender::onEndFrame()
+void oka::GLFWRender::onEndFrame()
 {
     FrameData& currFrame = getCurrentFrameData();
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
@@ -134,8 +135,8 @@ void nevk::GLFWRender::onEndFrame()
     VkResult result = vkQueuePresentKHR(mPresentQueue, &presentInfo);
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // || framebufferResized)
     {
-        //framebufferResized = false;
-        //recreateSwapChain();
+        // framebufferResized = false;
+        // recreateSwapChain();
     }
     else if (result != VK_SUCCESS)
     {
@@ -145,20 +146,21 @@ void nevk::GLFWRender::onEndFrame()
     ++mSharedCtx.mFrameNumber;
 }
 
-void nevk::GLFWRender::drawFrame(Image* result)
+void oka::GLFWRender::drawFrame(Image* result)
 {
-    //FrameData& currFrame = getCurrentFrameData();
+    // FrameData& currFrame = getCurrentFrameData();
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
 
     VkCommandBuffer& cmd = getFrameData(frameIndex).cmdBuffer;
 
     // Copy to swapchain image
     {
-        recordImageBarrier(cmd, result, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        recordImageBarrier(cmd, result, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT,
+                           VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-        recordBarrier(cmd, mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        recordBarrier(cmd, mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_UNDEFINED,
+                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
         VkOffset3D srcBlitSize{};
         srcBlitSize.x = mWindowWidth;
@@ -175,30 +177,37 @@ void nevk::GLFWRender::drawFrame(Image* result)
         blitSwapSize.y = mSwapChainExtent.height;
         blitSwapSize.z = 1;
         imageBlitRegion.dstOffsets[1] = blitSwapSize;
-        vkCmdBlitImage(cmd, mSharedCtx.mResManager->getVkImage(result), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
+        vkCmdBlitImage(cmd, mSharedCtx.mResManager->getVkImage(result), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                       mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion,
+                       VK_FILTER_NEAREST);
 
-        recordImageBarrier(cmd, result, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                           VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+        recordImageBarrier(cmd, result, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT,
+                           VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
-        recordBarrier(cmd, mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                      VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+        recordBarrier(cmd, mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT,
+                      VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
     }
 }
 
-void nevk::GLFWRender::framebufferResizeCallback(GLFWwindow* window, int width, int height)
+void oka::GLFWRender::framebufferResizeCallback(GLFWwindow* window, int width, int height)
 {
     assert(window);
     if (width == 0 || height == 0)
     {
         return;
     }
-    //auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
-    //app->framebufferResized = true;
-    //nevk::Scene* scene = app->getScene();
-    //scene->updateCamerasParams(width, height);
+    // auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
+    // app->framebufferResized = true;
+    // oka::Scene* scene = app->getScene();
+    // scene->updateCamerasParams(width, height);
 }
 
-void nevk::GLFWRender::keyCallback(GLFWwindow* window, [[maybe_unused]] int key, [[maybe_unused]] int scancode, [[maybe_unused]] int action, [[maybe_unused]] int mods)
+void oka::GLFWRender::keyCallback(GLFWwindow* window,
+                                  [[maybe_unused]] int key,
+                                  [[maybe_unused]] int scancode,
+                                  [[maybe_unused]] int action,
+                                  [[maybe_unused]] int mods)
 {
     assert(window);
     auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
@@ -207,42 +216,45 @@ void nevk::GLFWRender::keyCallback(GLFWwindow* window, [[maybe_unused]] int key,
 
     handler->keyCallback(key, scancode, action, mods);
 
-    //Camera& camera = scene->getCamera(app->getActiveCameraIndex());
+    // Camera& camera = scene->getCamera(app->getActiveCameraIndex());
 
-    //const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
-    //switch (key)
+    // const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
+    // switch (key)
 
     //{
-    //case GLFW_KEY_W: {
+    // case GLFW_KEY_W: {
     //    camera.keys.forward = keyState;
     //    break;
     //}
-    //case GLFW_KEY_S: {
+    // case GLFW_KEY_S: {
     //    camera.keys.back = keyState;
     //    break;
     //}
-    //case GLFW_KEY_A: {
+    // case GLFW_KEY_A: {
     //    camera.keys.left = keyState;
     //    break;
     //}
-    //case GLFW_KEY_D: {
+    // case GLFW_KEY_D: {
     //    camera.keys.right = keyState;
     //    break;
     //}
-    //case GLFW_KEY_Q: {
+    // case GLFW_KEY_Q: {
     //    camera.keys.up = keyState;
     //    break;
     //}
-    //case GLFW_KEY_E: {
+    // case GLFW_KEY_E: {
     //    camera.keys.down = keyState;
     //    break;
     //}
-    //default:
+    // default:
     //    break;
     //}
 }
 
-void nevk::GLFWRender::mouseButtonCallback(GLFWwindow* window, [[maybe_unused]] int button, [[maybe_unused]] int action, [[maybe_unused]] int mods)
+void oka::GLFWRender::mouseButtonCallback(GLFWwindow* window,
+                                          [[maybe_unused]] int button,
+                                          [[maybe_unused]] int action,
+                                          [[maybe_unused]] int mods)
 {
     assert(window);
     auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
@@ -250,8 +262,8 @@ void nevk::GLFWRender::mouseButtonCallback(GLFWwindow* window, [[maybe_unused]] 
     assert(handler);
     handler->mouseButtonCallback(button, action, mods);
 
-    //Camera& camera = scene->getCamera(app->getActiveCameraIndex());
-    //if (button == GLFW_MOUSE_BUTTON_RIGHT)
+    // Camera& camera = scene->getCamera(app->getActiveCameraIndex());
+    // if (button == GLFW_MOUSE_BUTTON_RIGHT)
     //{
     //    if (action == GLFW_PRESS)
     //    {
@@ -262,7 +274,7 @@ void nevk::GLFWRender::mouseButtonCallback(GLFWwindow* window, [[maybe_unused]] 
     //        camera.mouseButtons.right = false;
     //    }
     //}
-    //else if (button == GLFW_MOUSE_BUTTON_LEFT)
+    // else if (button == GLFW_MOUSE_BUTTON_LEFT)
     //{
     //    if (action == GLFW_PRESS)
     //    {
@@ -275,7 +287,7 @@ void nevk::GLFWRender::mouseButtonCallback(GLFWwindow* window, [[maybe_unused]] 
     //}
 }
 
-void nevk::GLFWRender::handleMouseMoveCallback(GLFWwindow* window, [[maybe_unused]] double xpos, [[maybe_unused]] double ypos)
+void oka::GLFWRender::handleMouseMoveCallback(GLFWwindow* window, [[maybe_unused]] double xpos, [[maybe_unused]] double ypos)
 {
     assert(window);
     auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
@@ -283,62 +295,62 @@ void nevk::GLFWRender::handleMouseMoveCallback(GLFWwindow* window, [[maybe_unuse
     assert(handler);
     handler->handleMouseMoveCallback(xpos, ypos);
 
-    //auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    //nevk::Scene* scene = app->getScene();
-    //Camera& camera = scene->getCamera(app->getActiveCameraIndex());
-    //const float dx = camera.mousePos.x - (float)xpos;
-    //const float dy = camera.mousePos.y - (float)ypos;
+    // auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+    // oka::Scene* scene = app->getScene();
+    // Camera& camera = scene->getCamera(app->getActiveCameraIndex());
+    // const float dx = camera.mousePos.x - (float)xpos;
+    // const float dy = camera.mousePos.y - (float)ypos;
 
-    //ImGuiIO& io = ImGui::GetIO();
-    //bool handled = io.WantCaptureMouse;
-    //if (handled)
+    // ImGuiIO& io = ImGui::GetIO();
+    // bool handled = io.WantCaptureMouse;
+    // if (handled)
     //{
     //    camera.mousePos = glm::vec2((float)xpos, (float)ypos);
     //    return;
     //}
 
-    //if (camera.mouseButtons.right)
+    // if (camera.mouseButtons.right)
     //{
     //    camera.rotate(-dx, -dy);
     //}
-    //if (camera.mouseButtons.left)
+    // if (camera.mouseButtons.left)
     //{
     //    camera.translate(glm::float3(-0.0f, 0.0f, -dy * .005f * camera.movementSpeed));
     //}
-    //if (camera.mouseButtons.middle)
+    // if (camera.mouseButtons.middle)
     //{
     //    camera.translate(glm::float3(-dx * 0.01f, -dy * 0.01f, 0.0f));
     //}
-    //camera.mousePos = glm::float2((float)xpos, (float)ypos);
+    // camera.mousePos = glm::float2((float)xpos, (float)ypos);
 }
 
-void nevk::GLFWRender::scrollCallback(GLFWwindow* window, [[maybe_unused]] double xoffset, [[maybe_unused]] double yoffset)
+void oka::GLFWRender::scrollCallback(GLFWwindow* window, [[maybe_unused]] double xoffset, [[maybe_unused]] double yoffset)
 {
     assert(window);
-    //ImGuiIO& io = ImGui::GetIO();
-    //bool handled = io.WantCaptureMouse;
-    //if (handled)
+    // ImGuiIO& io = ImGui::GetIO();
+    // bool handled = io.WantCaptureMouse;
+    // if (handled)
     //{
     //    return;
     //}
 
-    //auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
-    //nevk::Scene* mScene = app->getScene();
-    //Camera& mCamera = mScene->getCamera(app->getActiveCameraIndex());
+    // auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
+    // oka::Scene* mScene = app->getScene();
+    // Camera& mCamera = mScene->getCamera(app->getActiveCameraIndex());
 
-    //mCamera.translate(glm::vec3(0.0f, 0.0f,
+    // mCamera.translate(glm::vec3(0.0f, 0.0f,
     //                            -yoffset * mCamera.movementSpeed));
 }
 
-void nevk::GLFWRender::createLogicalDevice()
+void oka::GLFWRender::createLogicalDevice()
 {
-    nevk::VkRender::createLogicalDevice();
+    oka::VkRender::createLogicalDevice();
     // add present queue
     QueueFamilyIndices indices = findQueueFamilies(mPhysicalDevice);
     vkGetDeviceQueue(mDevice, indices.presentFamily.value(), 0, &mPresentQueue);
 }
 
-void nevk::GLFWRender::createSurface()
+void oka::GLFWRender::createSurface()
 {
     if (glfwCreateWindowSurface(mInstance, mWindow, nullptr, &mSurface) != VK_SUCCESS)
     {
@@ -346,7 +358,7 @@ void nevk::GLFWRender::createSurface()
     }
 }
 
-void nevk::GLFWRender::createSwapChain()
+void oka::GLFWRender::createSwapChain()
 {
     SwapChainSupportDetails swapChainSupport = querySwapChainSupport(mPhysicalDevice);
 
@@ -405,7 +417,7 @@ void nevk::GLFWRender::createSwapChain()
     mSwapChainExtent = extent;
 }
 
-nevk::GLFWRender::SwapChainSupportDetails nevk::GLFWRender::querySwapChainSupport(VkPhysicalDevice device)
+oka::GLFWRender::SwapChainSupportDetails oka::GLFWRender::querySwapChainSupport(VkPhysicalDevice device)
 {
     SwapChainSupportDetails details;
 
@@ -432,11 +444,12 @@ nevk::GLFWRender::SwapChainSupportDetails nevk::GLFWRender::querySwapChainSuppor
     return details;
 }
 
-VkSurfaceFormatKHR nevk::GLFWRender::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+VkSurfaceFormatKHR oka::GLFWRender::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
     for (const auto& availableFormat : availableFormats)
     {
-        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+        if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
+            availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
         {
             return availableFormat;
         }
@@ -445,7 +458,7 @@ VkSurfaceFormatKHR nevk::GLFWRender::chooseSwapSurfaceFormat(const std::vector<V
     return availableFormats[0];
 }
 
-VkPresentModeKHR nevk::GLFWRender::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
+VkPresentModeKHR oka::GLFWRender::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
     for (const auto& availablePresentMode : availablePresentModes)
     {
@@ -458,7 +471,7 @@ VkPresentModeKHR nevk::GLFWRender::chooseSwapPresentMode(const std::vector<VkPre
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D nevk::GLFWRender::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
+VkExtent2D oka::GLFWRender::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
     if (capabilities.currentExtent.width != UINT32_MAX)
     {
@@ -469,19 +482,18 @@ VkExtent2D nevk::GLFWRender::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& ca
         int width, height;
         glfwGetFramebufferSize(mWindow, &width, &height);
 
-        VkExtent2D actualExtent = {
-            static_cast<uint32_t>(width),
-            static_cast<uint32_t>(height)
-        };
+        VkExtent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
 
-        actualExtent.width = std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
-        actualExtent.height = std::max(capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
+        actualExtent.width =
+            std::max(capabilities.minImageExtent.width, std::min(capabilities.maxImageExtent.width, actualExtent.width));
+        actualExtent.height = std::max(
+            capabilities.minImageExtent.height, std::min(capabilities.maxImageExtent.height, actualExtent.height));
 
         return actualExtent;
     }
 }
 
-std::vector<const char*> nevk::GLFWRender::getRequiredExtensions()
+std::vector<const char*> oka::GLFWRender::getRequiredExtensions()
 {
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
@@ -499,7 +511,7 @@ std::vector<const char*> nevk::GLFWRender::getRequiredExtensions()
     return extensions;
 }
 
-QueueFamilyIndices nevk::GLFWRender::findQueueFamilies(VkPhysicalDevice device)
+QueueFamilyIndices oka::GLFWRender::findQueueFamilies(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices;
 
@@ -535,5 +547,3 @@ QueueFamilyIndices nevk::GLFWRender::findQueueFamilies(VkPhysicalDevice device)
 
     return indices;
 }
-
-

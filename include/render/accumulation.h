@@ -1,11 +1,10 @@
 #pragma once
 
+#include "accumulationparam.h"
 #include "common.h"
 #include "computepass.h"
 
-#include "accumulationparam.h"
-
-namespace nevk
+namespace oka
 {
 struct AccumulationDesc
 {
@@ -22,7 +21,7 @@ public:
     Accumulation(const SharedContext& ctx);
     ~Accumulation();
     void initialize();
-    
+
     void execute(VkCommandBuffer& cmd, const AccumulationDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex);
 };
-} // namespace nevk
+} // namespace oka

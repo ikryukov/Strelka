@@ -7,27 +7,26 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdNeVKMesh::HdNeVKMesh(const SdfPath& id, nevk::Scene* scene)
+HdStrelkaMesh::HdStrelkaMesh(const SdfPath& id, oka::Scene* scene)
     : HdMesh(id), m_prototypeTransform(1.0), m_color(0.0, 0.0, 0.0), m_hasColor(false), mScene(scene)
 {
 }
 
-HdNeVKMesh::~HdNeVKMesh()
+HdStrelkaMesh::~HdStrelkaMesh()
 {
 }
 
-void HdNeVKMesh::Sync(HdSceneDelegate* sceneDelegate,
-                      HdRenderParam* renderParam,
-                      HdDirtyBits* dirtyBits,
-                      const TfToken& reprToken)
+void HdStrelkaMesh::Sync(HdSceneDelegate* sceneDelegate,
+                         HdRenderParam* renderParam,
+                         HdDirtyBits* dirtyBits,
+                         const TfToken& reprToken)
 {
     TF_UNUSED(renderParam);
     TF_UNUSED(reprToken);
 
     HdRenderIndex& renderIndex = sceneDelegate->GetRenderIndex();
 
-    if ((*dirtyBits & HdChangeTracker::DirtyInstancer) |
-        (*dirtyBits & HdChangeTracker::DirtyInstanceIndex))
+    if ((*dirtyBits & HdChangeTracker::DirtyInstancer) | (*dirtyBits & HdChangeTracker::DirtyInstanceIndex))
     {
         HdDirtyBits dirtyBitsCopy = *dirtyBits;
 
@@ -52,10 +51,8 @@ void HdNeVKMesh::Sync(HdSceneDelegate* sceneDelegate,
         m_prototypeTransform = sceneDelegate->GetTransform(id);
     }
 
-    bool updateGeometry =
-        (*dirtyBits & HdChangeTracker::DirtyPoints) |
-        (*dirtyBits & HdChangeTracker::DirtyNormals) |
-        (*dirtyBits & HdChangeTracker::DirtyTopology);
+    bool updateGeometry = (*dirtyBits & HdChangeTracker::DirtyPoints) | (*dirtyBits & HdChangeTracker::DirtyNormals) |
+                          (*dirtyBits & HdChangeTracker::DirtyTopology);
 
     *dirtyBits = HdChangeTracker::Clean;
 
@@ -82,7 +79,7 @@ static uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
-void HdNeVKMesh::_ConvertMesh()
+void HdStrelkaMesh::_ConvertMesh()
 {
     GfMatrix4d transform = m_prototypeTransform; // need to add instancer support
     GfMatrix4d normalMatrix = transform.GetInverse().GetTranspose();
@@ -93,7 +90,7 @@ void HdNeVKMesh::_ConvertMesh()
     TF_VERIFY(meshPoints.size() == meshNormals.size());
     const size_t vertexCount = meshPoints.size();
 
-    std::vector<nevk::Scene::Vertex> vertices(vertexCount);
+    std::vector<oka::Scene::Vertex> vertices(vertexCount);
     std::vector<uint32_t> indices(meshFaces.size() * 3);
 
     for (size_t j = 0; j < meshFaces.size(); ++j)
@@ -109,7 +106,7 @@ void HdNeVKMesh::_ConvertMesh()
         const GfVec3f& point = meshPoints[j];
         const GfVec3f& normal = meshNormals[j];
 
-        nevk::Scene::Vertex& vertex = vertices[j];
+        oka::Scene::Vertex& vertex = vertices[j];
         vertex.pos[0] = point[0];
         vertex.pos[1] = point[1];
         vertex.pos[2] = point[2];
@@ -131,11 +128,11 @@ void HdNeVKMesh::_ConvertMesh()
 
     uint32_t meshId = mScene->createMesh(vertices, indices);
     assert(meshId != -1);
-    //uint32_t instId = mScene->createInstance(meshId, materialIndex, glmTransform, massCenter);
-    //assert(instId != -1);
+    // uint32_t instId = mScene->createInstance(meshId, materialIndex, glmTransform, massCenter);
+    // assert(instId != -1);
 }
 
-void HdNeVKMesh::_UpdateGeometry(HdSceneDelegate* sceneDelegate)
+void HdStrelkaMesh::_UpdateGeometry(HdSceneDelegate* sceneDelegate)
 {
     const HdMeshTopology& topology = GetMeshTopology(sceneDelegate);
     const SdfPath& id = GetId();
@@ -165,17 +162,12 @@ void HdNeVKMesh::_UpdateGeometry(HdSceneDelegate* sceneDelegate)
     }
 }
 
-bool HdNeVKMesh::_FindPrimvar(HdSceneDelegate* sceneDelegate,
-                              TfToken primvarName,
-                              HdInterpolation& interpolation) const
+bool HdStrelkaMesh::_FindPrimvar(HdSceneDelegate* sceneDelegate, TfToken primvarName, HdInterpolation& interpolation) const
 {
     HdInterpolation interpolations[] = {
-        HdInterpolation::HdInterpolationVertex,
-        HdInterpolation::HdInterpolationFaceVarying,
-        HdInterpolation::HdInterpolationConstant,
-        HdInterpolation::HdInterpolationUniform,
-        HdInterpolation::HdInterpolationVarying,
-        HdInterpolation::HdInterpolationInstance
+        HdInterpolation::HdInterpolationVertex,   HdInterpolation::HdInterpolationFaceVarying,
+        HdInterpolation::HdInterpolationConstant, HdInterpolation::HdInterpolationUniform,
+        HdInterpolation::HdInterpolationVarying,  HdInterpolation::HdInterpolationInstance
     };
 
     for (HdInterpolation i : interpolations)
@@ -196,20 +188,18 @@ bool HdNeVKMesh::_FindPrimvar(HdSceneDelegate* sceneDelegate,
     return false;
 }
 
-void HdNeVKMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
-                               VtVec3fArray& points,
-                               VtVec3fArray& normals,
-                               bool& indexedNormals,
-                               GfVec3f& color,
-                               bool& hasColor) const
+void HdStrelkaMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
+                                  VtVec3fArray& points,
+                                  VtVec3fArray& normals,
+                                  bool& indexedNormals,
+                                  GfVec3f& color,
+                                  bool& hasColor) const
 {
     const SdfPath& id = GetId();
 
     // Handle points.
     HdInterpolation pointInterpolation;
-    bool foundPoints = _FindPrimvar(sceneDelegate,
-                                    HdTokens->points,
-                                    pointInterpolation);
+    bool foundPoints = _FindPrimvar(sceneDelegate, HdTokens->points, pointInterpolation);
 
     if (!foundPoints)
     {
@@ -227,9 +217,7 @@ void HdNeVKMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
 
     // Handle color.
     HdInterpolation colorInterpolation;
-    bool foundColor = _FindPrimvar(sceneDelegate,
-                                   HdTokens->displayColor,
-                                   colorInterpolation);
+    bool foundColor = _FindPrimvar(sceneDelegate, HdTokens->displayColor, colorInterpolation);
 
     if (foundColor && colorInterpolation == HdInterpolation::HdInterpolationConstant)
     {
@@ -241,12 +229,9 @@ void HdNeVKMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
 
     // Handle normals.
     HdInterpolation normalInterpolation;
-    bool foundNormals = _FindPrimvar(sceneDelegate,
-                                     HdTokens->normals,
-                                     normalInterpolation);
+    bool foundNormals = _FindPrimvar(sceneDelegate, HdTokens->normals, normalInterpolation);
 
-    if (foundNormals &&
-        normalInterpolation == HdInterpolation::HdInterpolationVertex)
+    if (foundNormals && normalInterpolation == HdInterpolation::HdInterpolationVertex)
     {
         VtValue boxedNormals = sceneDelegate->Get(id, HdTokens->normals);
         normals = boxedNormals.Get<VtVec3fArray>();
@@ -256,8 +241,7 @@ void HdNeVKMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
 
     HdMeshTopology topology = GetMeshTopology(sceneDelegate);
 
-    if (foundNormals &&
-        normalInterpolation == HdInterpolation::HdInterpolationFaceVarying)
+    if (foundNormals && normalInterpolation == HdInterpolation::HdInterpolationFaceVarying)
     {
         VtValue boxedFvNormals = sceneDelegate->Get(id, HdTokens->normals);
         const VtVec3fArray& fvNormals = boxedFvNormals.Get<VtVec3fArray>();
@@ -265,10 +249,7 @@ void HdNeVKMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
         HdMeshUtil meshUtil(&topology, id);
         VtValue boxedTriangulatedNormals;
         if (!meshUtil.ComputeTriangulatedFaceVaryingPrimvar(
-                fvNormals.cdata(),
-                fvNormals.size(),
-                HdTypeFloatVec3,
-                &boxedTriangulatedNormals))
+                fvNormals.cdata(), fvNormals.size(), HdTypeFloatVec3, &boxedTriangulatedNormals))
         {
             TF_CODING_ERROR("Unable to triangulate face-varying normals of %s", id.GetText());
         }
@@ -284,64 +265,56 @@ void HdNeVKMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
     indexedNormals = true;
 }
 
-const TfTokenVector BUILTIN_PRIMVAR_NAMES = {
-    HdTokens->points,
-    HdTokens->normals
-};
+const TfTokenVector BUILTIN_PRIMVAR_NAMES = { HdTokens->points, HdTokens->normals };
 
-const TfTokenVector& HdNeVKMesh::GetBuiltinPrimvarNames() const
+const TfTokenVector& HdStrelkaMesh::GetBuiltinPrimvarNames() const
 {
     return BUILTIN_PRIMVAR_NAMES;
 }
 
-const std::vector<GfVec3f>& HdNeVKMesh::GetPoints() const
+const std::vector<GfVec3f>& HdStrelkaMesh::GetPoints() const
 {
     return m_points;
 }
 
-const std::vector<GfVec3f>& HdNeVKMesh::GetNormals() const
+const std::vector<GfVec3f>& HdStrelkaMesh::GetNormals() const
 {
     return m_normals;
 }
 
-const std::vector<GfVec3i>& HdNeVKMesh::GetFaces() const
+const std::vector<GfVec3i>& HdStrelkaMesh::GetFaces() const
 {
     return m_faces;
 }
 
-const GfMatrix4d& HdNeVKMesh::GetPrototypeTransform() const
+const GfMatrix4d& HdStrelkaMesh::GetPrototypeTransform() const
 {
     return m_prototypeTransform;
 }
 
-const GfVec3f& HdNeVKMesh::GetColor() const
+const GfVec3f& HdStrelkaMesh::GetColor() const
 {
     return m_color;
 }
 
-bool HdNeVKMesh::HasColor() const
+bool HdStrelkaMesh::HasColor() const
 {
     return m_hasColor;
 }
 
-HdDirtyBits HdNeVKMesh::GetInitialDirtyBitsMask() const
+HdDirtyBits HdStrelkaMesh::GetInitialDirtyBitsMask() const
 {
-    return HdChangeTracker::DirtyPoints |
-           HdChangeTracker::DirtyNormals |
-           HdChangeTracker::DirtyTopology |
-           HdChangeTracker::DirtyInstancer |
-           HdChangeTracker::DirtyInstanceIndex |
-           HdChangeTracker::DirtyTransform |
+    return HdChangeTracker::DirtyPoints | HdChangeTracker::DirtyNormals | HdChangeTracker::DirtyTopology |
+           HdChangeTracker::DirtyInstancer | HdChangeTracker::DirtyInstanceIndex | HdChangeTracker::DirtyTransform |
            HdChangeTracker::DirtyMaterialId;
 }
 
-HdDirtyBits HdNeVKMesh::_PropagateDirtyBits(HdDirtyBits bits) const
+HdDirtyBits HdStrelkaMesh::_PropagateDirtyBits(HdDirtyBits bits) const
 {
     return bits;
 }
 
-void HdNeVKMesh::_InitRepr(const TfToken& reprName,
-                           HdDirtyBits* dirtyBits)
+void HdStrelkaMesh::_InitRepr(const TfToken& reprName, HdDirtyBits* dirtyBits)
 {
     TF_UNUSED(reprName);
     TF_UNUSED(dirtyBits);

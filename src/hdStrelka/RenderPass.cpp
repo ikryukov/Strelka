@@ -24,20 +24,26 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdNeVKRenderPass::HdNeVKRenderPass(HdRenderIndex* index,
-                                   const HdRprimCollection& collection,
-                                   const HdRenderSettingsMap& settings,
-                                   nevk::PtRender* renderer,
-                                   nevk::Scene* scene)
-    : HdRenderPass(index, collection), m_settings(settings), m_isConverged(false), m_lastSceneStateVersion(UINT32_MAX), m_lastRenderSettingsVersion(UINT32_MAX), mRenderer(renderer), mScene(scene)
+HdStrelkaRenderPass::HdStrelkaRenderPass(HdRenderIndex* index,
+                                         const HdRprimCollection& collection,
+                                         const HdRenderSettingsMap& settings,
+                                         oka::PtRender* renderer,
+                                         oka::Scene* scene)
+    : HdRenderPass(index, collection),
+      m_settings(settings),
+      m_isConverged(false),
+      m_lastSceneStateVersion(UINT32_MAX),
+      m_lastRenderSettingsVersion(UINT32_MAX),
+      mRenderer(renderer),
+      mScene(scene)
 {
 }
 
-HdNeVKRenderPass::~HdNeVKRenderPass()
+HdStrelkaRenderPass::~HdStrelkaRenderPass()
 {
 }
 
-bool HdNeVKRenderPass::IsConverged() const
+bool HdStrelkaRenderPass::IsConverged() const
 {
     return m_isConverged;
 }
@@ -51,9 +57,7 @@ uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
-void HdNeVKRenderPass::_BakeMeshInstance(const HdNeVKMesh* mesh,
-                                         GfMatrix4d transform,
-                                         uint32_t materialIndex)
+void HdStrelkaRenderPass::_BakeMeshInstance(const HdStrelkaMesh* mesh, GfMatrix4d transform, uint32_t materialIndex)
 {
     GfMatrix4d normalMatrix = transform.GetInverse().GetTranspose();
 
@@ -63,7 +67,7 @@ void HdNeVKRenderPass::_BakeMeshInstance(const HdNeVKMesh* mesh,
     TF_VERIFY(meshPoints.size() == meshNormals.size());
     const size_t vertexCount = meshPoints.size();
 
-    std::vector<nevk::Scene::Vertex> vertices(vertexCount);
+    std::vector<oka::Scene::Vertex> vertices(vertexCount);
     std::vector<uint32_t> indices(meshFaces.size() * 3);
 
     for (size_t j = 0; j < meshFaces.size(); ++j)
@@ -79,7 +83,7 @@ void HdNeVKRenderPass::_BakeMeshInstance(const HdNeVKMesh* mesh,
         const GfVec3f& point = meshPoints[j];
         const GfVec3f& normal = meshNormals[j];
 
-        nevk::Scene::Vertex& vertex = vertices[j];
+        oka::Scene::Vertex& vertex = vertices[j];
         vertex.pos[0] = point[0];
         vertex.pos[1] = point[1];
         vertex.pos[2] = point[2];
@@ -105,8 +109,7 @@ void HdNeVKRenderPass::_BakeMeshInstance(const HdNeVKMesh* mesh,
     assert(instId != -1);
 }
 
-void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
-                                   GfMatrix4d rootTransform)
+void HdStrelkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex, GfMatrix4d rootTransform)
 {
     TfHashMap<SdfPath, uint32_t, SdfPath::Hash> materialMapping;
     materialMapping[SdfPath::EmptyPath()] = 0;
@@ -120,7 +123,7 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
             continue;
         }
 
-        const HdNeVKMesh* mesh = dynamic_cast<const HdNeVKMesh*>(rprim);
+        const HdStrelkaMesh* mesh = dynamic_cast<const HdStrelkaMesh*>(rprim);
 
         VtMatrix4dArray transforms;
         const SdfPath& instancerId = mesh->GetInstancerId();
@@ -133,7 +136,7 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
         else
         {
             HdInstancer* boxedInstancer = renderIndex->GetInstancer(instancerId);
-            HdNeVKInstancer* instancer = dynamic_cast<HdNeVKInstancer*>(boxedInstancer);
+            HdStrelkaInstancer* instancer = dynamic_cast<HdStrelkaInstancer*>(boxedInstancer);
 
             const SdfPath& meshId = mesh->GetId();
             transforms = instancer->ComputeInstanceTransforms(meshId);
@@ -150,24 +153,24 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
         else
         {
             HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->material, materialId);
-            HdNeVKMaterial* material = dynamic_cast<HdNeVKMaterial*>(sprim);
+            HdStrelkaMaterial* material = dynamic_cast<HdStrelkaMaterial*>(sprim);
 
             if (material->isMdl())
             {
                 const std::string& fileUri = material->getFileUri();
                 const std::string& name = material->getSubIdentifier();
-                nevk::Scene::MaterialDescription material;
+                oka::Scene::MaterialDescription material;
                 material.file = fileUri;
                 material.name = name;
-                material.type = nevk::Scene::MaterialDescription::Type::eMdl;
+                material.type = oka::Scene::MaterialDescription::Type::eMdl;
                 materialIndex = mScene->addMaterial(material);
             }
             else
             {
-                const std::string& code = material->GetNeVKMaterial();
-                nevk::Scene::MaterialDescription material;
+                const std::string& code = material->GetStrelkaMaterial();
+                oka::Scene::MaterialDescription material;
                 material.code = code;
-                material.type = nevk::Scene::MaterialDescription::Type::eMaterialX;
+                material.type = oka::Scene::MaterialDescription::Type::eMaterialX;
                 materialIndex = mScene->addMaterial(material);
             }
             materialMapping[materialId] = materialIndex;
@@ -178,7 +181,7 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
         for (size_t i = 0; i < transforms.size(); i++)
         {
             GfMatrix4d transform = prototypeTransform * transforms[i]; // *rootTransform;
-            //GfMatrix4d transform = GfMatrix4d(1.0);
+            // GfMatrix4d transform = GfMatrix4d(1.0);
             _BakeMeshInstance(mesh, transform, materialIndex);
         }
     }
@@ -188,8 +191,7 @@ void HdNeVKRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
     fflush(stdout);
 }
 
-void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState,
-                                const TfTokenVector& renderTags)
+void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState, const TfTokenVector& renderTags)
 {
     TF_UNUSED(renderTags);
 
@@ -198,7 +200,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
 
     m_isConverged = false;
 
-    const auto* camera = dynamic_cast<const HdNeVKCamera*>(renderPassState->GetCamera());
+    const auto* camera = dynamic_cast<const HdStrelkaCamera*>(renderPassState->GetCamera());
 
     if (!camera)
     {
@@ -218,7 +220,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     {
         if (aovBinding.aovName != HdAovTokens->color)
         {
-            HdNeVKRenderBuffer* renderBuffer = dynamic_cast<HdNeVKRenderBuffer*>(aovBinding.renderBuffer);
+            HdStrelkaRenderBuffer* renderBuffer = dynamic_cast<HdStrelkaRenderBuffer*>(aovBinding.renderBuffer);
             renderBuffer->SetConverged(true);
             continue;
         }
@@ -234,20 +236,20 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     HdRenderIndex* renderIndex = GetRenderIndex();
     HdChangeTracker& changeTracker = renderIndex->GetChangeTracker();
     HdRenderDelegate* renderDelegate = renderIndex->GetRenderDelegate();
-    HdNeVKRenderBuffer* renderBuffer = dynamic_cast<HdNeVKRenderBuffer*>(colorAovBinding->renderBuffer);
+    HdStrelkaRenderBuffer* renderBuffer = dynamic_cast<HdStrelkaRenderBuffer*>(colorAovBinding->renderBuffer);
 
     uint32_t sceneStateVersion = changeTracker.GetSceneStateVersion();
     uint32_t renderSettingsStateVersion = renderDelegate->GetRenderSettingsVersion();
     bool sceneChanged = (sceneStateVersion != m_lastSceneStateVersion);
     bool renderSettingsChanged = (renderSettingsStateVersion != m_lastRenderSettingsVersion);
 
-    //if (!sceneChanged && !renderSettingsChanged)
+    // if (!sceneChanged && !renderSettingsChanged)
     //{
     //    renderBuffer->SetConverged(true);
     //    return;
     //}
 
-    nevk::Image* outputImage = renderBuffer->GetResource(false).UncheckedGet<nevk::Image*>();
+    oka::Image* outputImage = renderBuffer->GetResource(false).UncheckedGet<oka::Image*>();
 
     renderBuffer->SetConverged(false);
 
@@ -272,7 +274,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
         const uint32_t camIndex = camera->GetCameraIndex();
         mRenderer->setActiveCameraIndex(camIndex);
 
-        nevk::Scene::UniformLightDesc desc{};
+        oka::Scene::UniformLightDesc desc{};
         desc.color = glm::float3(1.0f);
         desc.height = 0.4f;
         desc.width = 0.4f;
@@ -280,36 +282,33 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
         desc.orientation = glm::float3(179.68, 29.77, -89.97);
         desc.intensity = 160.0f;
 
-        static const TfTokenVector lightTypes = { HdPrimTypeTokens->domeLight,
-                                                  HdPrimTypeTokens->simpleLight,
-                                                  HdPrimTypeTokens->sphereLight,
-                                                  HdPrimTypeTokens->rectLight,
-                                                  HdPrimTypeTokens->diskLight,
-                                                  HdPrimTypeTokens->cylinderLight,
+        static const TfTokenVector lightTypes = { HdPrimTypeTokens->domeLight,   HdPrimTypeTokens->simpleLight,
+                                                  HdPrimTypeTokens->sphereLight, HdPrimTypeTokens->rectLight,
+                                                  HdPrimTypeTokens->diskLight,   HdPrimTypeTokens->cylinderLight,
                                                   HdPrimTypeTokens->distantLight };
         size_t count = 0;
         // TF_FOR_ALL(it, lightTypes)
         {
             if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->rectLight))
             {
-                SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->rectLight,
-                                                                        SdfPath::AbsoluteRootPath());
+                SdfPathVector sprimPaths =
+                    renderIndex->GetSprimSubtree(HdPrimTypeTokens->rectLight, SdfPath::AbsoluteRootPath());
                 for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
                 {
                     HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->rectLight, sprimPaths[lightIdx]);
-                    HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
+                    HdStrelkaLight* light = dynamic_cast<HdStrelkaLight*>(sprim);
                     mScene->createLight(light->getLightDesc());
                 }
             }
 
             if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->diskLight))
             {
-                SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->diskLight,
-                                                                        SdfPath::AbsoluteRootPath());
+                SdfPathVector sprimPaths =
+                    renderIndex->GetSprimSubtree(HdPrimTypeTokens->diskLight, SdfPath::AbsoluteRootPath());
                 for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
                 {
                     HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->diskLight, sprimPaths[lightIdx]);
-                    HdNeVKLight* light = dynamic_cast<HdNeVKLight*>(sprim);
+                    HdStrelkaLight* light = dynamic_cast<HdStrelkaLight*>(sprim);
                     mScene->createLight(light->getLightDesc());
                 }
             }
@@ -322,7 +321,7 @@ void HdNeVKRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassStat
     mRenderer->drawFrame(outputImage);
 
     renderBuffer->Unmap();
-    //renderBuffer->SetConverged(true);
+    // renderBuffer->SetConverged(true);
 
     m_isConverged = true;
 }

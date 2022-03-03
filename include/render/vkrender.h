@@ -25,10 +25,7 @@
 #include <stdexcept>
 #include <vector>
 
-const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
-
+const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 
 #ifdef NDEBUG
@@ -48,7 +45,7 @@ struct QueueFamilyIndices
     }
 };
 
-namespace nevk
+namespace oka
 {
 
 class VkRender
@@ -80,9 +77,7 @@ protected:
     std::vector<const char*> mDeviceExtensions = {
 // VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 #ifdef __APPLE__
-        "VK_KHR_portability_subset",
-        "VK_KHR_maintenance3",
-        "VK_EXT_descriptor_indexing"
+        "VK_KHR_portability_subset", "VK_KHR_maintenance3", "VK_EXT_descriptor_indexing"
 #endif
     };
 
@@ -111,7 +106,9 @@ protected:
 
     VkCommandPool createCommandPool();
 
-    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+    VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates,
+                                 VkImageTiling tiling,
+                                 VkFormatFeatureFlags features);
 
     VkFormat findDepthFormat();
 
@@ -119,9 +116,29 @@ protected:
 
     VkDescriptorPool createDescriptorPool();
 
-    void recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
-    void recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage);
-    void recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
+    void recordBarrier(VkCommandBuffer& cmd,
+                       VkImage image,
+                       VkImageLayout oldLayout,
+                       VkImageLayout newLayout,
+                       VkAccessFlags srcAccess,
+                       VkAccessFlags dstAccess,
+                       VkPipelineStageFlags sourceStage,
+                       VkPipelineStageFlags destinationStage,
+                       VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
+    void recordBufferBarrier(VkCommandBuffer& cmd,
+                             Buffer* buff,
+                             VkAccessFlags srcAccess,
+                             VkAccessFlags dstAccess,
+                             VkPipelineStageFlags sourceStage,
+                             VkPipelineStageFlags destinationStage);
+    void recordImageBarrier(VkCommandBuffer& cmd,
+                            Image* image,
+                            VkImageLayout newLayout,
+                            VkAccessFlags srcAccess,
+                            VkAccessFlags dstAccess,
+                            VkPipelineStageFlags sourceStage,
+                            VkPipelineStageFlags destinationStage,
+                            VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
 
     void createCommandBuffers();
 
@@ -137,21 +154,27 @@ protected:
 
     bool checkValidationLayerSupport();
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, [[maybe_unused]] void* pUserData)
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                        [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+                                                        [[maybe_unused]] void* pUserData)
     {
         if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
         {
-            // std::cout << "Warning: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
+            // std::cout << "Warning: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":"
+            // << pCallbackData->pMessage << std::endl;
             std::cout << "Warning: " << pCallbackData->pMessage << std::endl;
         }
         else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
         {
-            // std::cerr << "Error: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
+            // std::cerr << "Error: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":"
+            // << pCallbackData->pMessage << std::endl;
             std::cout << "Error: " << pCallbackData->pMessage << std::endl;
         }
         else
         {
-            std::cerr << "Validation: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":" << pCallbackData->pMessage << std::endl;
+            std::cerr << "Validation: " << pCallbackData->messageIdNumber << ":" << pCallbackData->pMessageIdName << ":"
+                      << pCallbackData->pMessage << std::endl;
         }
         return VK_FALSE;
     }
@@ -188,4 +211,4 @@ public:
     }
 };
 
-} // namespace nevk
+} // namespace oka

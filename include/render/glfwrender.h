@@ -12,7 +12,7 @@
 
 #include <GLFW/glfw3.h>
 
-namespace nevk
+namespace oka
 {
 
 class InputHandler
@@ -50,7 +50,8 @@ public:
 protected:
     InputHandler* mInputHandler;
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
-    static void keyCallback(GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods);
+    static void keyCallback(
+        GLFWwindow* window, int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods);
     static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void handleMouseMoveCallback(GLFWwindow* window, double xpos, double ypos);
     static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
@@ -88,4 +89,4 @@ protected:
     std::vector<VkFramebuffer> swapChainFramebuffers;
 };
 
-} // namespace nevk
+} // namespace oka

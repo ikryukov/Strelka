@@ -11,7 +11,7 @@
 #include <glm/gtx/compatibility.hpp>
 #include <vulkan/vulkan.h>
 
-namespace nevk
+namespace oka
 {
 namespace debug
 {
@@ -23,4 +23,4 @@ void beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::flo
 void endLabel(VkCommandBuffer cmdBuffer);
 
 } // namespace debug
-} // namespace nevk
+} // namespace oka

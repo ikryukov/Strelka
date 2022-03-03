@@ -12,7 +12,7 @@
 
 #include <string>
 
-namespace nevk
+namespace oka
 {
 MdlNeurayLoader::MdlNeurayLoader()
     : mDsoHandle(nullptr), mNeuray(nullptr)
@@ -187,4 +187,4 @@ void MdlNeurayLoader::unloadDso()
     }
 #endif
 }
-} // namespace nevk
+} // namespace oka

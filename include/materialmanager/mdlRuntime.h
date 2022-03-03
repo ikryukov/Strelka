@@ -13,7 +13,7 @@
 #include <memory>
 #include <vector>
 
-namespace nevk
+namespace oka
 {
 class MdlRuntime
 {

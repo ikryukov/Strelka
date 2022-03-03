@@ -7,7 +7,7 @@
 #include <MaterialXFormat/File.h>
 #include <MaterialXGenShader/ShaderGenerator.h>
 
-namespace nevk
+namespace oka
 {
 class MtlxMdlCodeGen
 {

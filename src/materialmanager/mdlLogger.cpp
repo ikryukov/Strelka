@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-namespace nevk
+namespace oka
 {
 const char* _miMessageSeverityToCStr(mi::base::Message_severity severity)
 {
@@ -95,4 +95,4 @@ void MdlLogger::flushContextMessages(mi::neuraylib::IMdl_execution_context* cont
     }
     context->clear_messages();
 }
-} // namespace nevk
+} // namespace oka

@@ -13,7 +13,7 @@ namespace fs = std::filesystem;
 #include <json.hpp>
 using json = nlohmann::json;
 
-namespace nevk
+namespace oka
 {
 
 static bool mousePressed[2] = { false, false };
@@ -676,7 +676,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     ImGui::Text("MsPF = %f", renderStats.msPerFrame);
     ImGui::Text("FPS = %f", 1000.0 / renderStats.msPerFrame);
 
-    const std::vector<nevk::Camera>& cameras = scene.getCameras();
+    const std::vector<oka::Camera>& cameras = scene.getCameras();
     assert(sceneConfig.selectedCamera < cameras.size());
     const char* currentCameraName = cameras[sceneConfig.selectedCamera].name.c_str();
 
@@ -844,4 +844,4 @@ void Ui::onDestroy() const
     ImGui::DestroyContext();
 }
 
-} // namespace nevk
+} // namespace oka

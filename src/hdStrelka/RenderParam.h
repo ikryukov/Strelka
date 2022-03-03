@@ -7,17 +7,17 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdNeVKRenderParam final : public HdRenderParam
+class HdStrelkaRenderParam final : public HdRenderParam
 {
 public:
-    HdNeVKRenderParam(nevk::Scene* scene, HdRenderThread* renderThread, std::atomic<int>* sceneVersion)
+    HdStrelkaRenderParam(oka::Scene* scene, HdRenderThread* renderThread, std::atomic<int>* sceneVersion)
         : mScene(scene), mRenderThread(renderThread), mSceneVersion(sceneVersion)
     {
     }
-    virtual ~HdNeVKRenderParam() = default;
+    virtual ~HdStrelkaRenderParam() = default;
 
     /// Accessor for the top-level embree scene.
-    nevk::Scene* AcquireSceneForEdit()
+    oka::Scene* AcquireSceneForEdit()
     {
         mRenderThread->StopRender();
         (*mSceneVersion)++;
@@ -25,7 +25,7 @@ public:
     }
 
 private:
-    nevk::Scene* mScene;
+    oka::Scene* mScene;
     /// A handle to the global render thread.
     HdRenderThread* mRenderThread;
     /// A version counter for edits to mScene.

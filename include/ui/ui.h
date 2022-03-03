@@ -20,7 +20,7 @@
 #include <stdio.h> // printf, fprintf
 #include <stdlib.h> // abort
 
-namespace nevk
+namespace oka
 {
 
 class Ui
@@ -86,4 +86,4 @@ private:
     std::vector<VkFramebuffer> mFrameBuffers;
     VkFormat mFrameBufferFormat = VkFormat::VK_FORMAT_UNDEFINED;
 };
-} // namespace nevk
+} // namespace oka
