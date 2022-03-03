@@ -91,7 +91,7 @@ protected:
 
     std::array<bool, MAX_FRAMES_IN_FLIGHT> needImageViewUpdate = { false, false, false };
 
-    size_t mFrameNumber = 0;
+    //size_t mFrameNumber = 0;
     double msPerFrame = 33.33; // fps counter
 
     void createInstance();
@@ -203,11 +203,11 @@ public:
 
     size_t getCurrentFrameIndex()
     {
-        return mFrameNumber % MAX_FRAMES_IN_FLIGHT;
+        return mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT;
     }
     FrameData& getCurrentFrameData()
     {
-        return mSharedCtx.mFramesData[mFrameNumber % MAX_FRAMES_IN_FLIGHT];
+        return mSharedCtx.mFramesData[mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT];
     }
 };
 

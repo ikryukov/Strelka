@@ -53,6 +53,8 @@ public:
 
     void drawFrame(Image* result);
 
+    bool framebufferResized = false;
+
 protected:
     InputHandler* mInputHandler;
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);

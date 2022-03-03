@@ -75,14 +75,16 @@ void oka::GLFWRender::onBeginFrame()
     const uint32_t frameIndex = imageIndex;
     mSharedCtx.mFrameIndex = frameIndex;
     VkCommandBuffer& cmd = getFrameData(imageIndex).cmdBuffer;
-    vkResetCommandBuffer(cmd, 0);
+    result = vkResetCommandBuffer(cmd, 0);
+    assert(result == VK_SUCCESS);
     VkCommandBufferBeginInfo cmdBeginInfo = {};
     cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cmdBeginInfo.pNext = nullptr;
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-    vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+    result = vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+    assert(result == VK_SUCCESS);
 }
 
 void oka::GLFWRender::onEndFrame()
@@ -133,9 +135,9 @@ void oka::GLFWRender::onEndFrame()
     presentInfo.pImageIndices = &frameIndex;
 
     VkResult result = vkQueuePresentKHR(mPresentQueue, &presentInfo);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // || framebufferResized)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
     {
-        //framebufferResized = false;
+        framebufferResized = false;
         recreateSwapChain();
     }
     else if (result != VK_SUCCESS)
@@ -198,8 +200,8 @@ void oka::GLFWRender::framebufferResizeCallback(GLFWwindow* window, int width, i
         return;
     }
 
-    //auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
-    //app->framebufferResized = true;
+    auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
+    app->framebufferResized = true;
     //nevk::Scene* scene = app->getScene();
     //scene->updateCamerasParams(width, height);
 }
@@ -427,7 +429,8 @@ void oka::GLFWRender::recreateSwapChain()
         glfwGetFramebufferSize(mWindow, &width, &height);
         glfwWaitEvents();
     }
-    vkDeviceWaitIdle(mDevice);
+    VkResult res = vkDeviceWaitIdle(mDevice);
+    assert(res == VK_SUCCESS);
 
     cleanupSwapChain();
     createSwapChain();
