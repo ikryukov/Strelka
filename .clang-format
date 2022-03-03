@@ -37,7 +37,7 @@ BraceWrapping:
 BreakBeforeTernaryOperators: false
 BreakConstructorInitializersBeforeComma: false
 BreakStringLiterals: false
-ColumnLimit: 0
+ColumnLimit: 120
 CommentPragmas: ''
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 ConstructorInitializerIndentWidth: 4
