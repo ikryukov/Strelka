@@ -46,8 +46,8 @@ void UpscalePass::execute(VkCommandBuffer& cmd, const UpscaleDesc& desc, uint32_
         param.setSampler("upscaleSampler", mUpscaleSampler);
     }
     int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
-    StrelkaResult res = updatePipeline(frameVersion);
-    assert(res == StrelkaResult::eOk);
+    Result res = updatePipeline(frameVersion);
+    assert(res == Result::eOk);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
     VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
     vkCmdBindDescriptorSets(

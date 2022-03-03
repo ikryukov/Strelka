@@ -51,7 +51,7 @@ protected:
                minUniformBufferOffsetAlignment * index;
     }
 
-    StrelkaResult createConstantBuffers()
+    Result createConstantBuffers()
     {
         const size_t structSize = sizeof(T);
         // constan buffer size on must be a multiple of VkPhysicalDeviceLimits::minUniformBufferOffsetAlignment (256)
@@ -63,9 +63,9 @@ protected:
                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         if (!mConstantBuffer)
         {
-            return StrelkaResult::eOutOfMemory;
+            return Result::eOutOfMemory;
         }
-        return StrelkaResult::eOk;
+        return Result::eOk;
     }
 
     void writeConstantBufferDescriptors()
@@ -98,7 +98,7 @@ protected:
             mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
-    StrelkaResult createDescriptorSets(const VkDescriptorPool& descriptorPool)
+    Result createDescriptorSets(const VkDescriptorPool& descriptorPool)
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, mDescriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
@@ -110,12 +110,12 @@ protected:
         VkResult res = vkAllocateDescriptorSets(mDevice, &allocInfo, mDescriptorSets.data());
         if (res != VK_SUCCESS)
         {
-            return StrelkaResult::eFail;
+            return Result::eFail;
         }
-        return StrelkaResult::eOk;
+        return Result::eOk;
     }
 
-    StrelkaResult updateDescriptorSet(uint32_t descIndex)
+    Result updateDescriptorSet(uint32_t descIndex)
     {
         VkDescriptorSet& dstDescSet = mDescriptorSets[descIndex];
 
@@ -322,7 +322,7 @@ protected:
             else
             {
                 // not found
-                return StrelkaResult::eFail;
+                return Result::eFail;
             }
         }
 
@@ -332,7 +332,7 @@ protected:
 
         mResUpdate[descIndex].clear();
 
-        return StrelkaResult::eOk;
+        return Result::eOk;
     }
 
 public:
@@ -361,9 +361,9 @@ public:
         const uint32_t index = frameIndex % MAX_FRAMES_IN_FLIGHT;
         if (needDesciptorSetUpdate[index])
         {
-            StrelkaResult res = updateDescriptorSet(index);
-            assert(res == StrelkaResult::eOk);
-            if (res != StrelkaResult::eOk)
+            Result res = updateDescriptorSet(index);
+            assert(res == Result::eOk);
+            if (res != Result::eOk)
             {
                 // TODO: report error
                 printf("Error!\n");
@@ -381,12 +381,12 @@ public:
         return mDescriptorSets[index];
     }
 
-    StrelkaResult create(const SharedContext& ctx)
+    Result create(const SharedContext& ctx)
     {
         mDevice = ctx.mDevice;
         mResManager = ctx.mResManager;
 
-        StrelkaResult res = createDescriptorSets(ctx.mDescriptorPool);
+        Result res = createDescriptorSets(ctx.mDescriptorPool);
 
         res = createConstantBuffers();
         // Now we support only 1 constant buffer per shader
@@ -528,7 +528,7 @@ class ShaderParametersFactory
     std::vector<ShaderManager::ResourceDesc> mResourcesDescs;
     std::unordered_map<std::string, ShaderManager::ResourceDesc> mNameToDesc;
 
-    StrelkaResult createDescriptorSetLayout()
+    Result createDescriptorSetLayout()
     {
         std::vector<VkDescriptorSetLayoutBinding> bindings;
         bindings.reserve(mResourcesDescs.size());
@@ -595,9 +595,9 @@ class ShaderParametersFactory
         VkResult res = vkCreateDescriptorSetLayout(mSharedCtx.mDevice, &layoutInfo, nullptr, &mDescriptorSetLayout);
         if (res != VK_SUCCESS)
         {
-            return StrelkaResult::eFail;
+            return Result::eFail;
         }
-        return StrelkaResult::eOk;
+        return Result::eOk;
     }
 
 public:
@@ -631,9 +631,9 @@ public:
             vkDestroyDescriptorSetLayout(mSharedCtx.mDevice, mDescriptorSetLayout, nullptr);
         }
 
-        StrelkaResult res = createDescriptorSetLayout();
+        Result res = createDescriptorSetLayout();
         assert(mCbBinding != -1);
-        return res == StrelkaResult::eOk;
+        return res == Result::eOk;
     }
 
     ShaderParameters<T>& getNextShaderParameters(uint64_t frameIndex)
@@ -648,8 +648,8 @@ public:
         if (mIntraFrameIndex >= mShaderParams.size())
         {
             auto param = new ShaderParameters<T>(mDescriptorSetLayout, mResourcesDescs, mNameToDesc, mCbBinding);
-            StrelkaResult res = param->create(mSharedCtx);
-            assert(res == StrelkaResult::eOk);
+            Result res = param->create(mSharedCtx);
+            assert(res == Result::eOk);
             mShaderParams.push_back(param);
         }
         ++mIntraFrameIndex;
