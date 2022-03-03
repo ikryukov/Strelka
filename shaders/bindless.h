@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 
 #ifdef __APPLE__
 static const uint32_t BINDLESS_TEXTURE_COUNT = 8;

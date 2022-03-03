@@ -4,6 +4,7 @@
 #include <slang.h>
 #include <string>
 #include <vector>
+
 #include <slang-com-ptr.h>
 
 namespace oka
@@ -12,7 +13,6 @@ namespace oka
 class ShaderManager
 {
 public:
-
     enum class ResourceType
     {
         eUnknown,
@@ -39,7 +39,7 @@ public:
         uint32_t set;
     };
 
-    enum class Stage: uint32_t
+    enum class Stage : uint32_t
     {
         eNone,
         eVertex,

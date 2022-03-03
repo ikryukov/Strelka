@@ -15,9 +15,7 @@ public:
     ~HdStrelkaRenderBuffer() override;
 
 public:
-    bool Allocate(const GfVec3i& dimensions,
-                  HdFormat format,
-                  bool multiSamples) override;
+    bool Allocate(const GfVec3i& dimensions, HdFormat format, bool multiSamples) override;
 
 public:
     unsigned int GetWidth() const override;

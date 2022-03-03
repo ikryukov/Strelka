@@ -25,23 +25,16 @@ NdrNodeUniquePtr HdStrelkaMdlParserPlugin::Parse(const NdrNodeDiscoveryResult& d
     NdrTokenMap metadata = discoveryResult.metadata;
     metadata[_tokens->subIdentifier] = discoveryResult.subIdentifier;
 
-    return std::make_unique<SdrShaderNode>(
-        discoveryResult.identifier,
-        discoveryResult.version,
-        discoveryResult.name,
-        discoveryResult.family,
-        _tokens->mdl,
-        discoveryResult.sourceType,
-        discoveryResult.uri,
-        discoveryResult.resolvedUri,
-        NdrPropertyUniquePtrVec{},
-        metadata);
+    return std::make_unique<SdrShaderNode>(discoveryResult.identifier, discoveryResult.version, discoveryResult.name,
+                                           discoveryResult.family, _tokens->mdl, discoveryResult.sourceType,
+                                           discoveryResult.uri, discoveryResult.resolvedUri, NdrPropertyUniquePtrVec{},
+                                           metadata);
 }
 
 const NdrTokenVec& HdStrelkaMdlParserPlugin::GetDiscoveryTypes() const
 {
-  static NdrTokenVec s_discoveryTypes{ _tokens->mdl };
-  return s_discoveryTypes;
+    static NdrTokenVec s_discoveryTypes{ _tokens->mdl };
+    return s_discoveryTypes;
 }
 
 const TfToken& HdStrelkaMdlParserPlugin::GetSourceType() const

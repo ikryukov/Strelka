@@ -43,12 +43,16 @@ uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint
     return meshId;
 }
 
-uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId, const glm::mat4& transform, const glm::float3& massCenter, uint32_t lightId)
+uint32_t Scene::createInstance(const uint32_t meshId,
+                               const uint32_t materialId,
+                               const glm::mat4& transform,
+                               const glm::float3& massCenter,
+                               uint32_t lightId)
 {
     assert(meshId < mMeshes.size());
-    
+
     std::scoped_lock lock(mInstanceMutex);
-    
+
     Instance* inst = nullptr;
     uint32_t instId = -1;
     if (mDelInstances.empty())
@@ -70,7 +74,7 @@ uint32_t Scene::createInstance(const uint32_t meshId, const uint32_t materialId,
     inst->lightId = lightId;
 
     mOpaqueInstances.push_back(instId);
-    
+
     return instId;
 }
 
@@ -201,18 +205,12 @@ void Scene::updateAnimation(const float time)
                         break;
                     }
                     case AnimationChannel::PathType::ROTATION: {
-                        float floatRotation[4] = {
-                            (float)sampler.outputsVec4[i][3],
-                            (float)sampler.outputsVec4[i][0],
-                            (float)sampler.outputsVec4[i][1],
-                            (float)sampler.outputsVec4[i][2]
-                        };
-                        float floatRotation1[4] = {
-                            (float)sampler.outputsVec4[i + 1][3],
-                            (float)sampler.outputsVec4[i + 1][0],
-                            (float)sampler.outputsVec4[i + 1][1],
-                            (float)sampler.outputsVec4[i + 1][2]
-                        };
+                        float floatRotation[4] = { (float)sampler.outputsVec4[i][3], (float)sampler.outputsVec4[i][0],
+                                                   (float)sampler.outputsVec4[i][1], (float)sampler.outputsVec4[i][2] };
+                        float floatRotation1[4] = { (float)sampler.outputsVec4[i + 1][3],
+                                                    (float)sampler.outputsVec4[i + 1][0],
+                                                    (float)sampler.outputsVec4[i + 1][1],
+                                                    (float)sampler.outputsVec4[i + 1][2] };
                         glm::quat q1 = glm::make_quat(floatRotation);
                         glm::quat q2 = glm::make_quat(floatRotation1);
                         mNodes[channel.node].rotation = glm::normalize(glm::slerp(q1, q2, u));
@@ -243,17 +241,17 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
     {
         mRectLigthMeshId = createLightMesh();
         currentLightId = mRectLigthMeshId;
-        scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.width, desc.height, 1.0f));
+        scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.width, desc.height, 1.0f));
     }
     else if (mRectLigthMeshId == -1 && desc.type == 1)
     {
         mDiskLigthMeshId = createDiscLightMesh();
         currentLightId = mDiskLigthMeshId;
-        scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.radius, desc.radius, desc.radius));
+        scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
     }
 
     const glm::float4x4 transform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc);
-    uint32_t instId = createInstance(currentLightId, (uint32_t) -1, transform, desc.position, lightId);
+    uint32_t instId = createInstance(currentLightId, (uint32_t)-1, transform, desc.position, lightId);
     assert(instId != -1);
 
     mLightIdToInstanceId[lightId] = instId;
@@ -267,7 +265,7 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
     if (desc.type == 0)
     {
         const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, desc.width, desc.height));
-        const glm::float4x4 localTransform = desc.useXform ? scaleMatrix * desc.xform  : getTransform(desc);
+        const glm::float4x4 localTransform = desc.useXform ? scaleMatrix * desc.xform : getTransform(desc);
 
         mLights[lightId].points[1] = localTransform * glm::float4(-0.5f, 0.5f, 0.0f, 1.0f);
         mLights[lightId].points[2] = localTransform * glm::float4(-0.5f, -0.5f, 0.0f, 1.0f);
@@ -278,7 +276,8 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
     }
     else if (desc.type == 1)
     {
-        const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3( desc.radius, desc.radius, desc.radius));
+        const glm::float4x4 scaleMatrix =
+            glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
         const glm::float4x4 localTransform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc);
 
         mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
@@ -286,7 +285,7 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
         mLights[lightId].points[2] = localTransform * glm::float4(1.f, 0.f, 0.f, 0.f); // OXws
         mLights[lightId].points[3] = localTransform * glm::float4(0.f, 1.f, 0.f, 0.f); // OYws
 
-        glm::float4 normal = localTransform * glm::float4(0, 0, 1.f, 0.0f) ;
+        glm::float4 normal = localTransform * glm::float4(0, 0, 1.f, 0.0f);
         mLights[lightId].normal = normal;
         mLights[lightId].type = 1;
     }

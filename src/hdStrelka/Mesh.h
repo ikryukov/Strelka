@@ -41,18 +41,14 @@ public:
 protected:
     HdDirtyBits _PropagateDirtyBits(HdDirtyBits bits) const override;
 
-    void _InitRepr(const TfToken& reprName,
-                   HdDirtyBits* dirtyBits) override;
+    void _InitRepr(const TfToken& reprName, HdDirtyBits* dirtyBits) override;
 
 private:
-
     void _ConvertMesh();
 
     void _UpdateGeometry(HdSceneDelegate* sceneDelegate);
 
-    bool _FindPrimvar(HdSceneDelegate* sceneDelegate,
-                      TfToken primvarName,
-                      HdInterpolation& interpolation) const;
+    bool _FindPrimvar(HdSceneDelegate* sceneDelegate, TfToken primvarName, HdInterpolation& interpolation) const;
 
     void _PullPrimvars(HdSceneDelegate* sceneDelegate,
                        VtVec3fArray& points,

@@ -10,21 +10,18 @@
 
 #define STB_IMAGE_STATIC
 #define STB_IMAGE_IMPLEMENTATION
-#include "common.h"
-
-#include "vkrender.h"
-
-#include <materialmanager/materialmanager.h>
-
 #include "accumulation.h"
 #include "bvh.h"
+#include "common.h"
 #include "debugview.h"
 #include "gbuffer.h"
 #include "pathtracer.h"
+#include "reduction.h"
 #include "tonemap.h"
 #include "upscalepass.h"
-#include "reduction.h"
+#include "vkrender.h"
 
+#include <materialmanager/materialmanager.h>
 #include <scene/scene.h>
 
 #include <array>
@@ -46,7 +43,7 @@ public:
     PtRender()
     {
     }
-    
+
     void init();
     void cleanup();
 
@@ -190,7 +187,7 @@ private:
             {
                 mResManager->destroyBuffer(mIndexBuffer);
             }
-            //if (mMaterialBuffer)
+            // if (mMaterialBuffer)
             //{
             //    mResManager->destroyBuffer(mMaterialBuffer);
             //}
@@ -223,9 +220,21 @@ private:
     void createIndexBuffer(oka::Scene& scene);
     void createInstanceBuffer(oka::Scene& scene);
     void createMdlBuffers();
-    
-    void recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
-    void recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage);
+
+    void recordImageBarrier(VkCommandBuffer& cmd,
+                            Image* image,
+                            VkImageLayout newLayout,
+                            VkAccessFlags srcAccess,
+                            VkAccessFlags dstAccess,
+                            VkPipelineStageFlags sourceStage,
+                            VkPipelineStageFlags destinationStage,
+                            VkImageAspectFlags aspectMask = VK_IMAGE_ASPECT_COLOR_BIT);
+    void recordBufferBarrier(VkCommandBuffer& cmd,
+                             Buffer* buff,
+                             VkAccessFlags srcAccess,
+                             VkAccessFlags dstAccess,
+                             VkPipelineStageFlags sourceStage,
+                             VkPipelineStageFlags destinationStage);
 
 public:
     oka::ResourceManager* getResManager()

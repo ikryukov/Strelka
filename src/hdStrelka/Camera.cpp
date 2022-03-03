@@ -15,8 +15,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdStrelkaCamera::HdStrelkaCamera(const SdfPath& id, oka::Scene& scene)
-    : HdCamera(id), mScene(scene), m_vfov(M_PI_2)
+HdStrelkaCamera::HdStrelkaCamera(const SdfPath& id, oka::Scene& scene) : HdCamera(id), mScene(scene), m_vfov(M_PI_2)
 {
     const std::string& name = id.GetString();
     oka::Camera okaCamera;
@@ -38,9 +37,7 @@ uint32_t HdStrelkaCamera::GetCameraIndex() const
     return mCameraIndex;
 }
 
-void HdStrelkaCamera::Sync(HdSceneDelegate* sceneDelegate,
-                        HdRenderParam* renderParam,
-                        HdDirtyBits* dirtyBits)
+void HdStrelkaCamera::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* renderParam, HdDirtyBits* dirtyBits)
 {
     HdDirtyBits dirtyBitsCopy = *dirtyBits;
 
@@ -62,8 +59,7 @@ void HdStrelkaCamera::Sync(HdSceneDelegate* sceneDelegate,
 
 HdDirtyBits HdStrelkaCamera::GetInitialDirtyBitsMask() const
 {
-    return DirtyBits::DirtyParams |
-           DirtyBits::DirtyTransform;
+    return DirtyBits::DirtyParams | DirtyBits::DirtyTransform;
 }
 
 oka::Camera HdStrelkaCamera::_ConstructStrelkaCamera()

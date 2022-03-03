@@ -17,9 +17,9 @@ namespace oka
 // GPU structure
 struct BVHNode
 {
-    glm::float3 minBounds = {0.0f, 0.0f, 0.0f};
+    glm::float3 minBounds = { 0.0f, 0.0f, 0.0f };
     int instId = (int)0xFFFFFFFF;
-    glm::float3 maxBounds = {0.0f, 0.0f, 0.0f};
+    glm::float3 maxBounds = { 0.0f, 0.0f, 0.0f };
     int nodeOffset = (int)0xFFFFFFFF;
 };
 
@@ -172,7 +172,8 @@ private:
         {
             const AABB& leftChild = children[0]->bounds;
             const AABB& rightChild = children[1]->bounds;
-            return 1.0f + (AABB::area(leftChild) * children[0]->sah() + AABB::area(rightChild) * children[1]->sah()) / AABB::area(AABB::Union(leftChild, rightChild));
+            return 1.0f + (AABB::area(leftChild) * children[0]->sah() + AABB::area(rightChild) * children[1]->sah()) /
+                              AABB::area(AABB::Union(leftChild, rightChild));
         }
 
         static void* create(RTCThreadLocalAllocator alloc, unsigned int numChildren, void* userPtr)
@@ -202,8 +203,11 @@ private:
             assert(numChildren == 2);
             const RTCBounds* leftChildBounds = bounds[0];
             const RTCBounds* rightChildBounds = bounds[1];
-            AABB leftChildAABB(glm::float3(leftChildBounds->lower_x, leftChildBounds->lower_y, leftChildBounds->lower_z), glm::float3(leftChildBounds->upper_x, leftChildBounds->upper_y, leftChildBounds->upper_z));
-            AABB rightChildAABB(glm::float3(rightChildBounds->lower_x, rightChildBounds->lower_y, rightChildBounds->lower_z), glm::float3(rightChildBounds->upper_x, rightChildBounds->upper_y, rightChildBounds->upper_z));
+            AABB leftChildAABB(glm::float3(leftChildBounds->lower_x, leftChildBounds->lower_y, leftChildBounds->lower_z),
+                               glm::float3(leftChildBounds->upper_x, leftChildBounds->upper_y, leftChildBounds->upper_z));
+            AABB rightChildAABB(
+                glm::float3(rightChildBounds->lower_x, rightChildBounds->lower_y, rightChildBounds->lower_z),
+                glm::float3(rightChildBounds->upper_x, rightChildBounds->upper_y, rightChildBounds->upper_z));
             ((InnerNode*)nodePtr)->bounds = AABB::Union(leftChildAABB, rightChildAABB);
         }
     };
@@ -213,9 +217,7 @@ private:
         unsigned mTriangleId;
         unsigned mInstId;
 
-        LeafNode(unsigned triangleId, unsigned instId, const AABB& bounds)
-            : mTriangleId(triangleId),
-              mInstId(instId)
+        LeafNode(unsigned triangleId, unsigned instId, const AABB& bounds) : mTriangleId(triangleId), mInstId(instId)
         {
             this->bounds = bounds;
         }
@@ -258,10 +260,19 @@ private:
 
     // embree
     BVH buildEmbree(const std::vector<BVHInputPosition>& positions);
-    BVH repackEmbree(const Node* root, const std::vector<BVHInputPosition>& positions, const uint32_t totalNodes, const uint32_t totalTriangles);
+    BVH repackEmbree(const Node* root,
+                     const std::vector<BVHInputPosition>& positions,
+                     const uint32_t totalNodes,
+                     const uint32_t totalTriangles);
     void setDepthFirstVisitOrder(Node* current, uint32_t& order);
-    void repackEmbree(const Node* current, const std::vector<BVHInputPosition>& positions, BVH& outBvh, uint32_t& positionInArray, uint32_t& positionInTrianglesArray, const uint32_t nextId);
-    static void splitPrimitive(const RTCBuildPrimitive* prim, unsigned int dim, float pos, RTCBounds* lprim, RTCBounds* rprim, void* userPtr);
+    void repackEmbree(const Node* current,
+                      const std::vector<BVHInputPosition>& positions,
+                      BVH& outBvh,
+                      uint32_t& positionInArray,
+                      uint32_t& positionInTrianglesArray,
+                      const uint32_t nextId);
+    static void splitPrimitive(
+        const RTCBuildPrimitive* prim, unsigned int dim, float pos, RTCBounds* lprim, RTCBounds* rprim, void* userPtr);
 };
 
-} // namespace nevk
+} // namespace oka

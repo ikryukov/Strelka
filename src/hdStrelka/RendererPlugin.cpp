@@ -22,7 +22,7 @@ HdStrelkaRendererPlugin::HdStrelkaRendererPlugin()
     std::string mtlxmdlPath = resourcePath + "/mtlxmdl";
     std::string mtlxlibPath = resourcePath + "/mtlxlib";
 
-    //m_translator = std::make_unique<MaterialNetworkTranslator>(mtlxlibPath);
+    // m_translator = std::make_unique<MaterialNetworkTranslator>(mtlxlibPath);
     const char* envUSDPath = std::getenv("USD_PATH");
     if (!envUSDPath)
     {

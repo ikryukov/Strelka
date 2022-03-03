@@ -36,7 +36,10 @@ BvhBuilder::AABB BvhBuilder::computeCentroids(const std::vector<BvhNodeInternal>
     return result;
 }
 
-void BvhBuilder::setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, uint32_t nodeId, uint32_t nextId, uint32_t& order)
+void BvhBuilder::setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes,
+                                         uint32_t nodeId,
+                                         uint32_t nextId,
+                                         uint32_t& order)
 {
     BvhNodeInternal& node = nodes[nodeId];
     node.visitOrder = order++;
@@ -58,7 +61,7 @@ void BvhBuilder::setDepthFirstVisitOrder(std::vector<BvhNodeInternal>& nodes, ui
 }
 
 /* This function is called by the builder to signal progress and to
-   * report memory consumption. */
+ * report memory consumption. */
 bool memoryMonitor(void* userPtr, ssize_t bytes, bool post)
 {
     (void)userPtr;
@@ -74,11 +77,12 @@ bool buildProgress(void* userPtr, double f)
     return true;
 }
 
-void BvhBuilder::splitPrimitive(const RTCBuildPrimitive* prim, unsigned int dim, float pos, RTCBounds* lprim, RTCBounds* rprim, void* userPtr)
+void BvhBuilder::splitPrimitive(
+    const RTCBuildPrimitive* prim, unsigned int dim, float pos, RTCBounds* lprim, RTCBounds* rprim, void* userPtr)
 {
     (void)userPtr;
     assert(dim < 3);
-    //assert(prim->geomID == 0);
+    // assert(prim->geomID == 0);
 
     lprim->lower_x = prim->lower_x;
     lprim->lower_y = prim->lower_y;
@@ -141,7 +145,7 @@ BVH BvhBuilder::buildEmbree(const std::vector<BVHInputPosition>& positions)
     arguments.intersectionCost = 1.0f;
     arguments.bvh = embreeBvh;
     arguments.primitives = prims.data();
-    arguments.primitiveCount = totalTriangles; //prims.size();
+    arguments.primitiveCount = totalTriangles; // prims.size();
     arguments.primitiveArrayCapacity = prims.capacity();
     arguments.createNode = InnerNode::create;
     arguments.setNodeChildren = InnerNode::setChildren;
@@ -175,7 +179,12 @@ void BvhBuilder::setDepthFirstVisitOrder(Node* current, uint32_t& order)
     }
 }
 
-void BvhBuilder::repackEmbree(const Node* current, const std::vector<BVHInputPosition>& positions, BVH& outBvh, uint32_t& positionInArray, uint32_t& positionInTrianglesArray, const uint32_t nextId)
+void BvhBuilder::repackEmbree(const Node* current,
+                              const std::vector<BVHInputPosition>& positions,
+                              BVH& outBvh,
+                              uint32_t& positionInArray,
+                              uint32_t& positionInTrianglesArray,
+                              const uint32_t nextId)
 {
     outBvh.nodes.push_back({});
     BVHNode& curr = outBvh.nodes[positionInArray++];
@@ -210,7 +219,10 @@ void BvhBuilder::repackEmbree(const Node* current, const std::vector<BVHInputPos
     }
 }
 
-BVH BvhBuilder::repackEmbree(const Node* root, const std::vector<BVHInputPosition>& positions, const uint32_t totalNodes, const uint32_t totalTriangles)
+BVH BvhBuilder::repackEmbree(const Node* root,
+                             const std::vector<BVHInputPosition>& positions,
+                             const uint32_t totalNodes,
+                             const uint32_t totalTriangles)
 {
     (void)totalTriangles;
     BVH res;

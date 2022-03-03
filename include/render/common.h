@@ -1,10 +1,10 @@
 #pragma once
-#include <vulkan/vulkan.h>
-
-#include <shadermanager/ShaderManager.h>
-#include <resourcemanager/resourcemanager.h>
-#include <texturemanager/texturemanager.h>
 #include "bindless.h"
+
+#include <resourcemanager/resourcemanager.h>
+#include <shadermanager/ShaderManager.h>
+#include <texturemanager/texturemanager.h>
+#include <vulkan/vulkan.h>
 
 namespace oka
 {
@@ -31,7 +31,7 @@ struct SharedContext
     FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
     uint64_t mFrameNumber = 0;
     uint32_t mFrameIndex = 0;
-    VkFormat depthFormat = VK_FORMAT_UNDEFINED;   
+    VkFormat depthFormat = VK_FORMAT_UNDEFINED;
 
 
     FrameData& getCurrentFrameData()

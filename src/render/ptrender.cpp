@@ -3,10 +3,10 @@
 //#include "debugUtils.h"
 #include "instanceconstants.h"
 
+#include <glm/ext/matrix_relational.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
-#include <glm/ext/matrix_relational.hpp>
 
 #include <chrono>
 #include <filesystem>
@@ -26,17 +26,17 @@ void PtRender::init()
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         mView[i] = createView(800, 600, 1);
-    }    
+    }
 
     {
         ResourceManager* resManager = getResManager();
         TextureManager* texManager = getTexManager();
         const std::string imageName = "Accumulation Image";
-        mAccumulatedPt = resManager->createImage(800, 600, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                                        VK_IMAGE_TILING_OPTIMAL,
-                                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
-        texManager->transitionImageLayout(resManager->getVkImage(mAccumulatedPt), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        mAccumulatedPt = resManager->createImage(800, 600, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                                 VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        texManager->transitionImageLayout(resManager->getVkImage(mAccumulatedPt), VK_FORMAT_R32G32B32A32_SFLOAT,
+                                          VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         resManager->setImageLayout(mAccumulatedPt, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 
@@ -62,8 +62,8 @@ void PtRender::init()
     }
     const std::string usdMdlLibPath = std::string(envUSDPath) + "/mdl";
 
-    const char* paths[4] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/", 
-        "./misc/test_data/mdl/resources/", usdMdlLibPath.c_str() };
+    const char* paths[4] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
+                             usdMdlLibPath.c_str() };
     bool res = mMaterialManager->addMdlSearchPath(paths, 4);
     if (!res)
     {
@@ -91,7 +91,8 @@ void PtRender::init()
         {
             MaterialManager::Module* mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
             assert(mdlModule);
-            MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
+            MaterialManager::MaterialInstance* materialInst =
+                mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
             assert(materialInst);
             MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
             assert(materialComp);
@@ -130,9 +131,9 @@ void PtRender::init()
     mAccumulationPathTracer = new Accumulation(getSharedContext());
     mAccumulationPathTracer->initialize();
 
-    TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
+    TextureManager::TextureSamplerDesc defSamplerDesc{ VK_FILTER_NEAREST, VK_FILTER_NEAREST,
+                                                       VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT };
     getTexManager()->createTextureSampler(defSamplerDesc);
-
 }
 
 void PtRender::cleanup()
@@ -166,7 +167,8 @@ void oka::PtRender::reloadPt()
         {
             MaterialManager::Module* mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
             assert(mdlModule);
-            MaterialManager::MaterialInstance* materialInst = mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
+            MaterialManager::MaterialInstance* materialInst =
+                mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
             assert(materialInst);
             MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
             assert(materialComp);
@@ -214,46 +216,55 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32
     view->renderHeight = (uint32_t)(height * 0.5f); // mRenderConfig.upscaleFactor
     view->mResManager = resManager;
     view->gbuffer = createGbuffer(view->renderWidth, view->renderHeight);
-    view->prevDepth = resManager->createImage(view->renderWidth, view->renderHeight, view->gbuffer->depthFormat, VK_IMAGE_TILING_OPTIMAL,
-                                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Prev depth");
-    texManager->transitionImageLayout(resManager->getVkImage(view->prevDepth), view->gbuffer->depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+    view->prevDepth = resManager->createImage(
+        view->renderWidth, view->renderHeight, view->gbuffer->depthFormat, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Prev depth");
+    texManager->transitionImageLayout(resManager->getVkImage(view->prevDepth), view->gbuffer->depthFormat,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     resManager->setImageLayout(view->prevDepth, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    view->textureDebugViewImage = resManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                          VK_IMAGE_TILING_OPTIMAL,
-                                                          VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
-    texManager->transitionImageLayout(resManager->getVkImage(view->textureDebugViewImage), VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    view->textureDebugViewImage = resManager->createImage(
+        width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "DebugView result");
+    texManager->transitionImageLayout(resManager->getVkImage(view->textureDebugViewImage),
+                                      VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     resManager->setImageLayout(view->textureDebugViewImage, VK_IMAGE_LAYOUT_GENERAL);
 
-    view->textureTonemapImage = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                        VK_IMAGE_TILING_OPTIMAL,
-                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
-    view->textureUpscaleImage = resManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                        VK_IMAGE_TILING_OPTIMAL,
-                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Upscale Output");
-    texManager->transitionImageLayout(resManager->getVkImage(view->textureUpscaleImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
+    view->textureTonemapImage = resManager->createImage(
+        view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Tonemap result");
+    view->textureUpscaleImage = resManager->createImage(
+        width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Upscale Output");
+    texManager->transitionImageLayout(resManager->getVkImage(view->textureUpscaleImage), VK_FORMAT_R32G32B32A32_SFLOAT,
+                                      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL);
     resManager->setImageLayout(view->textureUpscaleImage, VK_IMAGE_LAYOUT_GENERAL);
 
     const size_t compositingBufferSize = view->renderWidth * view->renderHeight * 3 * sizeof(float); // 3 - rgb
     const size_t sampleBufferSize = compositingBufferSize * spp;
-    view->mSampleBuffer = resManager->createBuffer(sampleBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Sample buffer");
-    view->mCompositingBuffer = resManager->createBuffer(compositingBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Compositing buffer");
+    view->mSampleBuffer = resManager->createBuffer(
+        sampleBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Sample buffer");
+    view->mCompositingBuffer = resManager->createBuffer(compositingBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Compositing buffer");
 
-    view->mPathTracerImage = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                     VK_IMAGE_TILING_OPTIMAL,
-                                                     VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
-    //for (int i = 0; i < 2; ++i)
+    view->mPathTracerImage =
+        resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
+    // for (int i = 0; i < 2; ++i)
     {
         const std::string imageName = "PT Accumulation Image";
-        view->mAccumulationPathTracerImage = resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                                                        VK_IMAGE_TILING_OPTIMAL,
-                                                                        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
-        texManager->transitionImageLayout(resManager->getVkImage(view->mAccumulationPathTracerImage), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        view->mAccumulationPathTracerImage =
+            resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
+                                    VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        texManager->transitionImageLayout(resManager->getVkImage(view->mAccumulationPathTracerImage),
+                                          VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
+                                          VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
         resManager->setImageLayout(view->mAccumulationPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
     return view;
@@ -270,29 +281,38 @@ GBuffer* PtRender::createGbuffer(uint32_t width, uint32_t height)
     res->height = height;
     // Depth
     res->depthFormat = getSharedContext().depthFormat;
-    res->depth = resManager->createImage(width, height, res->depthFormat, VK_IMAGE_TILING_OPTIMAL,
-                                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
+    res->depth = resManager->createImage(
+        width, height, res->depthFormat, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "depth");
     // Normals
     res->normal = resManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "normal");
     // Tangent
     res->tangent = resManager->createImage(width, height, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
+                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "tangent");
     // wPos
     res->wPos = resManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
+                                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "wPos");
     // UV
     res->uv = resManager->createImage(width, height, VK_FORMAT_R16G16_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
+                                      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "UV");
     // InstId
     res->instId = resManager->createImage(width, height, VK_FORMAT_R32_SINT, VK_IMAGE_TILING_OPTIMAL,
-                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "instId");
     // Motion
     res->motion = resManager->createImage(width, height, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
+                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Motion");
     // Debug
     res->debug = resManager->createImage(width, height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
-                                         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Debug");
+                                         VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Debug");
     return res;
 }
 
@@ -306,11 +326,17 @@ void PtRender::createVertexBuffer(oka::Scene& scene)
     {
         return;
     }
-    Buffer* stagingBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    Buffer* stagingBuffer =
+        resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = resManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneVertices.data(), (size_t)bufferSize);
-    mCurrentSceneRenderData->mVertexBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "VB");
-    resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer), resManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), bufferSize);
+    mCurrentSceneRenderData->mVertexBuffer = resManager->createBuffer(
+        bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "VB");
+    resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer),
+                           resManager->getVkBuffer(mCurrentSceneRenderData->mVertexBuffer), bufferSize);
     resManager->destroyBuffer(stagingBuffer);
 }
 
@@ -321,14 +347,19 @@ void PtRender::createLightsBuffer(oka::Scene& scene)
     std::vector<oka::Scene::Light>& sceneLights = scene.getLights();
 
     VkDeviceSize bufferSize = sizeof(oka::Scene::Light) * MAX_LIGHT_COUNT;
-    mCurrentSceneRenderData->mLightsBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Lights");
+    mCurrentSceneRenderData->mLightsBuffer =
+        resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Lights");
 
     if (!sceneLights.empty())
     {
-        Buffer* stagingBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        Buffer* stagingBuffer =
+            resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         void* stagingBufferMemory = resManager->getMappedMemory(stagingBuffer);
         memcpy(stagingBufferMemory, sceneLights.data(), sceneLights.size() * sizeof(oka::Scene::Light));
-        resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer), resManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), bufferSize);
+        resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer),
+                               resManager->getVkBuffer(mCurrentSceneRenderData->mLightsBuffer), bufferSize);
         resManager->destroyBuffer(stagingBuffer);
     }
 }
@@ -393,11 +424,16 @@ void PtRender::createBvhBuffer(oka::Scene& scene)
         {
             return;
         }
-        Buffer* stagingBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        Buffer* stagingBuffer =
+            resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         void* stagingBufferMemory = resManager->getMappedMemory(stagingBuffer);
         memcpy(stagingBufferMemory, sceneBvh.nodes.data(), (size_t)bufferSize);
-        mCurrentSceneRenderData->mBvhNodeBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
-        resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer), resManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), bufferSize);
+        mCurrentSceneRenderData->mBvhNodeBuffer =
+            resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "BVH");
+        resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer),
+                               resManager->getVkBuffer(mCurrentSceneRenderData->mBvhNodeBuffer), bufferSize);
         resManager->destroyBuffer(stagingBuffer);
     }
 }
@@ -414,11 +450,17 @@ void PtRender::createIndexBuffer(oka::Scene& scene)
         return;
     }
 
-    Buffer* stagingBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    Buffer* stagingBuffer =
+        resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = resManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, sceneIndices.data(), (size_t)bufferSize);
-    mCurrentSceneRenderData->mIndexBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "IB");
-    resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer), resManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), bufferSize);
+    mCurrentSceneRenderData->mIndexBuffer = resManager->createBuffer(
+        bufferSize,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "IB");
+    resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer),
+                           resManager->getVkBuffer(mCurrentSceneRenderData->mIndexBuffer), bufferSize);
     resManager->destroyBuffer(stagingBuffer);
 }
 
@@ -429,7 +471,9 @@ void PtRender::createInstanceBuffer(oka::Scene& scene)
     const std::vector<Mesh>& meshes = scene.getMeshes();
     const std::vector<oka::Instance>& sceneInstances = scene.getInstances();
     mCurrentSceneRenderData->mInstanceCount = (uint32_t)sceneInstances.size();
-    VkDeviceSize bufferSize = sizeof(InstanceConstants) * (sceneInstances.size() + MAX_LIGHT_COUNT); // Reserve some extra space for lights
+    VkDeviceSize bufferSize = sizeof(InstanceConstants) * (sceneInstances.size() + MAX_LIGHT_COUNT); // Reserve some
+                                                                                                     // extra space for
+                                                                                                     // lights
     if (bufferSize == 0)
     {
         return;
@@ -449,11 +493,17 @@ void PtRender::createInstanceBuffer(oka::Scene& scene)
         instanceConsts[i].lightId = sceneInstances[i].lightId;
     }
 
-    Buffer* stagingBuffer = resManager->createBuffer(sizeof(InstanceConstants) * sceneInstances.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    Buffer* stagingBuffer =
+        resManager->createBuffer(sizeof(InstanceConstants) * sceneInstances.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     void* stagingBufferMemory = resManager->getMappedMemory(stagingBuffer);
     memcpy(stagingBufferMemory, instanceConsts.data(), sizeof(InstanceConstants) * sceneInstances.size());
-    mCurrentSceneRenderData->mInstanceBuffer = resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
-    resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer), resManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer), sizeof(InstanceConstants) * sceneInstances.size());
+    mCurrentSceneRenderData->mInstanceBuffer =
+        resManager->createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Instance consts");
+    resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer),
+                           resManager->getVkBuffer(mCurrentSceneRenderData->mInstanceBuffer),
+                           sizeof(InstanceConstants) * sceneInstances.size());
     resManager->destroyBuffer(stagingBuffer);
 }
 
@@ -471,19 +521,26 @@ void oka::PtRender::createMdlBuffers()
 
     VkDeviceSize stagingSize = std::max(std::max(roSize, mdlMaterialSize), std::max(argSize, infoSize));
 
-    Buffer* stagingBuffer = resManager->createBuffer(stagingSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, "Staging MDL");
+    Buffer* stagingBuffer = resManager->createBuffer(
+        stagingSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, "Staging MDL");
     void* stagingBufferMemory = resManager->getMappedMemory(stagingBuffer);
 
     auto createGpuBuffer = [&](Buffer*& dest, const uint8_t* src, uint32_t size, const char* name) {
         memcpy(stagingBufferMemory, src, size);
-        dest = resManager->createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, name);
+        dest = resManager->createBuffer(size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+                                        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, name);
         resManager->copyBuffer(resManager->getVkBuffer(stagingBuffer), resManager->getVkBuffer(dest), size);
     };
 
-    createGpuBuffer(mCurrentSceneRenderData->mMdlArgBuffer, mMaterialManager->getArgBufferData(code), argSize, "MDL args");
-    createGpuBuffer(mCurrentSceneRenderData->mMdlInfoBuffer, mMaterialManager->getResourceInfoData(code), infoSize, "MDL info");
-    createGpuBuffer(mCurrentSceneRenderData->mMdlRoBuffer, mMaterialManager->getReadOnlyBlockData(code), roSize, "MDL read only");
-    createGpuBuffer(mCurrentSceneRenderData->mMdlMaterialBuffer, mMaterialManager->getMdlMaterialData(code), mdlMaterialSize, "MDL mdl material");
+    createGpuBuffer(
+        mCurrentSceneRenderData->mMdlArgBuffer, mMaterialManager->getArgBufferData(code), argSize, "MDL args");
+    createGpuBuffer(
+        mCurrentSceneRenderData->mMdlInfoBuffer, mMaterialManager->getResourceInfoData(code), infoSize, "MDL info");
+    createGpuBuffer(
+        mCurrentSceneRenderData->mMdlRoBuffer, mMaterialManager->getReadOnlyBlockData(code), roSize, "MDL read only");
+    createGpuBuffer(mCurrentSceneRenderData->mMdlMaterialBuffer, mMaterialManager->getMdlMaterialData(code),
+                    mdlMaterialSize, "MDL mdl material");
 
     resManager->destroyBuffer(stagingBuffer);
 }
@@ -498,7 +555,7 @@ void PtRender::drawFrame(Image* result)
     assert(mScene);
     // ZoneScoped;
 
-    //FrameData& currFrame = mSharedCtx.getCurrentFrameData();
+    // FrameData& currFrame = mSharedCtx.getCurrentFrameData();
     const uint32_t imageIndex = getSharedContext().mFrameNumber % MAX_FRAMES_IN_FLIGHT;
     const uint64_t frameIndex = getSharedContext().mFrameNumber;
 
@@ -512,7 +569,7 @@ void PtRender::drawFrame(Image* result)
         createBvhBuffer(*mScene); // need to update descriptors after it
 
         reloadPt();
-        //createMaterialBuffer(*mScene);
+        // createMaterialBuffer(*mScene);
         createMdlBuffers();
     }
 
@@ -526,13 +583,12 @@ void PtRender::drawFrame(Image* result)
 
     Camera& cam = mScene->getCamera(getActiveCameraIndex());
     cam.updateViewMatrix();
-    
+
     currView->mCamMatrices = cam.matrices;
-    
+
     // check if camera is dirty?
-    if (mPrevView &&
-        (glm::any(glm::notEqual(currView->mCamMatrices.perspective, mPrevView->mCamMatrices.perspective)) 
-        || glm::any(glm::notEqual(currView->mCamMatrices.view, mPrevView->mCamMatrices.view))))
+    if (mPrevView && (glm::any(glm::notEqual(currView->mCamMatrices.perspective, mPrevView->mCamMatrices.perspective)) ||
+                      glm::any(glm::notEqual(currView->mCamMatrices.view, mPrevView->mCamMatrices.view))))
     {
         // need to reset pt iteration and accumulation
         currView->mPtIteration = 0;
@@ -554,7 +610,7 @@ void PtRender::drawFrame(Image* result)
         ptDesc.ib = mCurrentSceneRenderData->mIndexBuffer;
         ptDesc.instanceConst = mCurrentSceneRenderData->mInstanceBuffer;
         ptDesc.lights = mCurrentSceneRenderData->mLightsBuffer;
-        //ptDesc.materials = mCurrentSceneRenderData->mMaterialBuffer;
+        // ptDesc.materials = mCurrentSceneRenderData->mMaterialBuffer;
         ptDesc.matSampler = texManager->mMdlSampler;
         ptDesc.matTextures = texManager->textureImages;
         ptDesc.sampleBuffer = currView->mSampleBuffer;
@@ -597,22 +653,24 @@ void PtRender::drawFrame(Image* result)
                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         // image barrier
-        recordImageBarrier(cmd, currView->mPathTracerImage, VK_IMAGE_LAYOUT_GENERAL,
-                           VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        recordImageBarrier(cmd, currView->mPathTracerImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT,
+                           VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         mReductionPass->execute(cmd, reductionDesc, renderWidth * renderHeight, 1, frameIndex);
 
         recordImageBarrier(cmd, currView->mPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+                           VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
         finalPathTracerImage = currView->mPathTracerImage;
 
         if (mPrevView)
         {
             // Accumulation pass
-            //Image* accHist = mView[imageIndex]->mAccumulationPathTracerImage[i % 2];
+            // Image* accHist = mView[imageIndex]->mAccumulationPathTracerImage[i % 2];
             Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
-            
+
             AccumulationDesc accDesc{};
             AccumulationParam& accParam = accDesc.constants;
             accParam.alpha = 0.1f;
@@ -629,17 +687,21 @@ void PtRender::drawFrame(Image* result)
             accParam.clipToView = cam.matrices.invPerspective;
             accParam.viewToWorld = glm::inverse(cam.matrices.view);
             accParam.isPt = 1;
-            //currView->mPtIteration = i + (uint32_t)getSharedContext().mFrameNumber * 1; // TODO: need to recalc properly
+            // currView->mPtIteration = i + (uint32_t)getSharedContext().mFrameNumber * 1; // TODO: need to recalc
+            // properly
             accParam.iteration = currView->mPtIteration;
 
             accDesc.input = finalPathTracerImage;
             accDesc.history = mPrevView->mAccumulationPathTracerImage;
             accDesc.output = accOut;
 
-            recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT,
+                               VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mAccumulationPathTracer->execute(cmd, accDesc, renderWidth, renderHeight, frameIndex);
-            //recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            //                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            // recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            //                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+            //                   VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
             finalPathTracerImage = accOut;
         }
@@ -651,8 +713,11 @@ void PtRender::drawFrame(Image* result)
         // Tonemap
         {
             recordImageBarrier(cmd, mView[imageIndex]->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL,
-                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             TonemapDesc toneDesc{};
             Tonemapparam& toneParams = toneDesc.constants;
             toneParams.dimension.x = renderWidth;
@@ -666,28 +731,31 @@ void PtRender::drawFrame(Image* result)
         // Upscale
         if (1)
         {
-            recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            
+            recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
+                               VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
             UpscaleDesc upscaleDesc{};
             Upscalepassparam& upscalePassParam = upscaleDesc.constants;
             upscalePassParam.dimension.x = finalWidth;
             upscalePassParam.dimension.y = finalHeight;
             upscalePassParam.invDimension.x = 1.0f / (float)finalWidth;
             upscalePassParam.invDimension.y = 1.0f / (float)finalHeight;
-            
+
             upscaleDesc.input = finalImage;
             upscaleDesc.output = mView[imageIndex]->textureUpscaleImage;
 
             mUpscalePass->execute(cmd, upscaleDesc, finalWidth, finalHeight, frameIndex);
 
-            //recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL,
-            //                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            // recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL,
+            //                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
+            //                   VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             finalImage = mView[imageIndex]->textureUpscaleImage;
         }
     }
 
-    recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
+                       VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
 
     VkOffset3D blitSize{};
     blitSize.x = finalWidth;
@@ -700,15 +768,25 @@ void PtRender::drawFrame(Image* result)
     imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     imageBlitRegion.dstSubresource.layerCount = 1;
     imageBlitRegion.dstOffsets[1] = blitSize;
-    vkCmdBlitImage(cmd, resManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, resManager->getVkImage(result), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
+    vkCmdBlitImage(cmd, resManager->getVkImage(finalImage), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                   resManager->getVkImage(result), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion,
+                   VK_FILTER_NEAREST);
 
-    recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+    recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_TRANSFER_READ_BIT,
+                       VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     // assign prev resources for next frame rendering
     mPrevView = mView[imageIndex];
 }
 
-void PtRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask)
+void PtRender::recordImageBarrier(VkCommandBuffer& cmd,
+                                  Image* image,
+                                  VkImageLayout newLayout,
+                                  VkAccessFlags srcAccess,
+                                  VkAccessFlags dstAccess,
+                                  VkPipelineStageFlags sourceStage,
+                                  VkPipelineStageFlags destinationStage,
+                                  VkImageAspectFlags aspectMask)
 {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -728,16 +806,15 @@ void PtRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLay
 
     getSharedContext().mResManager->setImageLayout(image, newLayout);
 
-    vkCmdPipelineBarrier(
-        cmd,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier);
+    vkCmdPipelineBarrier(cmd, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
-void PtRender::recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage)
+void PtRender::recordBufferBarrier(VkCommandBuffer& cmd,
+                                   Buffer* buff,
+                                   VkAccessFlags srcAccess,
+                                   VkAccessFlags dstAccess,
+                                   VkPipelineStageFlags sourceStage,
+                                   VkPipelineStageFlags destinationStage)
 {
     VkBufferMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -749,11 +826,5 @@ void PtRender::recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessF
     barrier.srcAccessMask = srcAccess;
     barrier.dstAccessMask = dstAccess;
 
-    vkCmdPipelineBarrier(
-        cmd,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        1, &barrier,
-        0, nullptr);
+    vkCmdPipelineBarrier(cmd, sourceStage, destinationStage, 0, 0, nullptr, 1, &barrier, 0, nullptr);
 }

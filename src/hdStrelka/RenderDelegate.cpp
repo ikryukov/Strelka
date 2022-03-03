@@ -20,13 +20,16 @@ TF_DEFINE_PRIVATE_TOKENS(
     (HdStrelkaDriver)
  );
 
-HdStrelkaRenderDelegate::HdStrelkaRenderDelegate(const HdRenderSettingsMap& settingsMap, const MaterialNetworkTranslator& translator)
+HdStrelkaRenderDelegate::HdStrelkaRenderDelegate(const HdRenderSettingsMap& settingsMap,
+                                                 const MaterialNetworkTranslator& translator)
     : m_translator(translator)
 {
     m_resourceRegistry = std::make_shared<HdResourceRegistry>();
 
-    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Samples per pixel", HdStrelkaSettingsTokens->spp, VtValue{ 8 } });
-    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Max bounces", HdStrelkaSettingsTokens->max_bounces, VtValue{ 4 } });
+    m_settingDescriptors.push_back(
+        HdRenderSettingDescriptor{ "Samples per pixel", HdStrelkaSettingsTokens->spp, VtValue{ 8 } });
+    m_settingDescriptors.push_back(
+        HdRenderSettingDescriptor{ "Max bounces", HdStrelkaSettingsTokens->max_bounces, VtValue{ 4 } });
 
     _PopulateDefaultSettings(m_settingDescriptors);
 
@@ -49,8 +52,7 @@ void HdStrelkaRenderDelegate::SetDrivers(HdDriverVector const& drivers)
 {
     for (HdDriver* hdDriver : drivers)
     {
-        if (hdDriver->name == _Tokens->HdStrelkaDriver &&
-            hdDriver->driver.IsHolding<oka::SharedContext*>())
+        if (hdDriver->name == _Tokens->HdStrelkaDriver && hdDriver->driver.IsHolding<oka::SharedContext*>())
         {
             mSharedCtx = hdDriver->driver.UncheckedGet<oka::SharedContext*>();
             mRenderer.setSharedContext(mSharedCtx);
@@ -65,8 +67,7 @@ HdRenderSettingDescriptorList HdStrelkaRenderDelegate::GetRenderSettingDescripto
     return m_settingDescriptors;
 }
 
-HdRenderPassSharedPtr HdStrelkaRenderDelegate::CreateRenderPass(HdRenderIndex* index,
-                                                             const HdRprimCollection& collection)
+HdRenderPassSharedPtr HdStrelkaRenderDelegate::CreateRenderPass(HdRenderIndex* index, const HdRprimCollection& collection)
 {
     return HdRenderPassSharedPtr(new HdStrelkaRenderPass(index, collection, _settingsMap, &mRenderer, &mScene));
 }
@@ -83,8 +84,7 @@ void HdStrelkaRenderDelegate::CommitResources(HdChangeTracker* tracker)
     // We delay BVH building and GPU uploads to the next render call.
 }
 
-HdInstancer* HdStrelkaRenderDelegate::CreateInstancer(HdSceneDelegate* delegate,
-                                                   const SdfPath& id)
+HdInstancer* HdStrelkaRenderDelegate::CreateInstancer(HdSceneDelegate* delegate, const SdfPath& id)
 {
     return new HdStrelkaInstancer(delegate, id);
 }
@@ -105,17 +105,14 @@ HdAovDescriptor HdStrelkaRenderDelegate::GetDefaultAovDescriptor(const TfToken& 
     return aovDescriptor;
 }
 
-const TfTokenVector SUPPORTED_RPRIM_TYPES = {
-    HdPrimTypeTokens->mesh
-};
+const TfTokenVector SUPPORTED_RPRIM_TYPES = { HdPrimTypeTokens->mesh };
 
 const TfTokenVector& HdStrelkaRenderDelegate::GetSupportedRprimTypes() const
 {
     return SUPPORTED_RPRIM_TYPES;
 }
 
-HdRprim* HdStrelkaRenderDelegate::CreateRprim(const TfToken& typeId,
-                                           const SdfPath& rprimId)
+HdRprim* HdStrelkaRenderDelegate::CreateRprim(const TfToken& typeId, const SdfPath& rprimId)
 {
     if (typeId == HdPrimTypeTokens->mesh)
     {
@@ -130,21 +127,16 @@ void HdStrelkaRenderDelegate::DestroyRprim(HdRprim* rprim)
     delete rprim;
 }
 
-const TfTokenVector SUPPORTED_SPRIM_TYPES = {
-    HdPrimTypeTokens->camera,
-    HdPrimTypeTokens->material,
-    HdPrimTypeTokens->light,
-    HdPrimTypeTokens->rectLight,
-    HdPrimTypeTokens->diskLight
-};
+const TfTokenVector SUPPORTED_SPRIM_TYPES = { HdPrimTypeTokens->camera, HdPrimTypeTokens->material,
+                                              HdPrimTypeTokens->light, HdPrimTypeTokens->rectLight,
+                                              HdPrimTypeTokens->diskLight };
 
 const TfTokenVector& HdStrelkaRenderDelegate::GetSupportedSprimTypes() const
 {
     return SUPPORTED_SPRIM_TYPES;
 }
 
-HdSprim* HdStrelkaRenderDelegate::CreateSprim(const TfToken& typeId,
-                                           const SdfPath& sprimId)
+HdSprim* HdStrelkaRenderDelegate::CreateSprim(const TfToken& typeId, const SdfPath& sprimId)
 {
     TF_STATUS("CreateSprim Type: %s", typeId.GetText());
     if (typeId == HdPrimTypeTokens->camera)
@@ -164,7 +156,7 @@ HdSprim* HdStrelkaRenderDelegate::CreateSprim(const TfToken& typeId,
     {
         return new HdStrelkaLight(sprimId, typeId);
     }
-    
+
     TF_CODING_ERROR("Unknown Sprim Type %s", typeId.GetText());
 
     return nullptr;
@@ -182,17 +174,14 @@ void HdStrelkaRenderDelegate::DestroySprim(HdSprim* sprim)
     delete sprim;
 }
 
-const TfTokenVector SUPPORTED_BPRIM_TYPES = {
-    HdPrimTypeTokens->renderBuffer
-};
+const TfTokenVector SUPPORTED_BPRIM_TYPES = { HdPrimTypeTokens->renderBuffer };
 
 const TfTokenVector& HdStrelkaRenderDelegate::GetSupportedBprimTypes() const
 {
     return SUPPORTED_BPRIM_TYPES;
 }
 
-HdBprim* HdStrelkaRenderDelegate::CreateBprim(const TfToken& typeId,
-                                           const SdfPath& bprimId)
+HdBprim* HdStrelkaRenderDelegate::CreateBprim(const TfToken& typeId, const SdfPath& bprimId)
 {
     if (typeId == HdPrimTypeTokens->renderBuffer)
     {

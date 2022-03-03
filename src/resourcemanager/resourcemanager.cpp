@@ -41,9 +41,7 @@ class ResourceManager::Context
 
 public:
     Context(VkDevice device, VkPhysicalDevice physicalDevice, VkInstance instance)
-        : mDevice(device),
-          mPhysicalDevice(physicalDevice),
-          mInstance(instance)
+        : mDevice(device), mPhysicalDevice(physicalDevice), mInstance(instance)
     {
         createAllocator();
     }
@@ -56,7 +54,10 @@ public:
         }
     }
 
-    Buffer* createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr)
+    Buffer* createBuffer(VkDeviceSize size,
+                         VkBufferUsageFlags usage,
+                         VkMemoryPropertyFlags properties,
+                         const char* name = nullptr)
     {
         VkBufferCreateInfo bufferInfo{};
         bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -137,7 +138,13 @@ public:
             return nullptr;
     }
 
-    Image* createCubeMapImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr)
+    Image* createCubeMapImage(uint32_t width,
+                              uint32_t height,
+                              VkFormat format,
+                              VkImageTiling tiling,
+                              VkImageUsageFlags usage,
+                              VkMemoryPropertyFlags properties,
+                              const char* name = nullptr)
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -154,7 +161,7 @@ public:
         imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
         imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
-        
+
         VmaAllocationCreateInfo vmaAllocInfo = {};
         vmaAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
         VmaAllocationInfo allocInfo = {};
@@ -204,7 +211,13 @@ public:
         return imageView;
     }
 
-    Image* createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name = nullptr)
+    Image* createImage(uint32_t width,
+                       uint32_t height,
+                       VkFormat format,
+                       VkImageTiling tiling,
+                       VkImageUsageFlags usage,
+                       VkMemoryPropertyFlags properties,
+                       const char* name = nullptr)
     {
         VkImageCreateInfo imageInfo{};
         imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -304,7 +317,11 @@ public:
     }
 };
 
-ResourceManager::ResourceManager(VkDevice device, VkPhysicalDevice physicalDevice, VkInstance instance, VkCommandPool commandPool, VkQueue graphicsQueue)
+ResourceManager::ResourceManager(VkDevice device,
+                                 VkPhysicalDevice physicalDevice,
+                                 VkInstance instance,
+                                 VkCommandPool commandPool,
+                                 VkQueue graphicsQueue)
 {
     mDevice = device;
     mPhysicalDevice = physicalDevice;
@@ -320,7 +337,10 @@ ResourceManager::~ResourceManager()
     mContext.reset(nullptr);
 }
 
-Buffer* ResourceManager::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, const char* name)
+Buffer* ResourceManager::createBuffer(VkDeviceSize size,
+                                      VkBufferUsageFlags usage,
+                                      VkMemoryPropertyFlags properties,
+                                      const char* name)
 {
     return mContext->createBuffer(size, usage, properties, name);
 }
@@ -345,12 +365,24 @@ size_t ResourceManager::getSize(const Buffer* buffer)
     return buffer->allocation->GetSize();
 }
 
-Image* ResourceManager::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name)
+Image* ResourceManager::createImage(uint32_t width,
+                                    uint32_t height,
+                                    VkFormat format,
+                                    VkImageTiling tiling,
+                                    VkImageUsageFlags usage,
+                                    VkMemoryPropertyFlags properties,
+                                    const char* name)
 {
     return mContext->createImage(width, height, format, tiling, usage, properties, name);
 }
 
-Image* ResourceManager::createCubeMapImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, const char* name)
+Image* ResourceManager::createCubeMapImage(uint32_t width,
+                                           uint32_t height,
+                                           VkFormat format,
+                                           VkImageTiling tiling,
+                                           VkImageUsageFlags usage,
+                                           VkMemoryPropertyFlags properties,
+                                           const char* name)
 {
     return mContext->createCubeMapImage(width, height, format, tiling, usage, properties, name);
 }

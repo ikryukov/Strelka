@@ -13,27 +13,23 @@ PXR_NAMESPACE_OPEN_SCOPE
 class HdStrelkaRenderDelegate final : public HdRenderDelegate
 {
 public:
-    HdStrelkaRenderDelegate(const HdRenderSettingsMap& settingsMap,
-                         const MaterialNetworkTranslator& translator);
+    HdStrelkaRenderDelegate(const HdRenderSettingsMap& settingsMap, const MaterialNetworkTranslator& translator);
 
     ~HdStrelkaRenderDelegate() override;
 
 public:
-
     void SetDrivers(HdDriverVector const& drivers) override;
 
     HdRenderSettingDescriptorList GetRenderSettingDescriptors() const override;
 
 public:
-    HdRenderPassSharedPtr CreateRenderPass(HdRenderIndex* index,
-                                           const HdRprimCollection& collection) override;
+    HdRenderPassSharedPtr CreateRenderPass(HdRenderIndex* index, const HdRprimCollection& collection) override;
 
     HdResourceRegistrySharedPtr GetResourceRegistry() const override;
 
     void CommitResources(HdChangeTracker* tracker) override;
 
-    HdInstancer* CreateInstancer(HdSceneDelegate* delegate,
-                                 const SdfPath& id) override;
+    HdInstancer* CreateInstancer(HdSceneDelegate* delegate, const SdfPath& id) override;
 
     void DestroyInstancer(HdInstancer* instancer) override;
 

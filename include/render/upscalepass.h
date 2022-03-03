@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "computepass.h"
-
 #include "upscalepassparam.h"
 
 #include <vector>
@@ -21,6 +20,7 @@ class UpscalePass : public UpscalePassBase
 {
 private:
     VkSampler mUpscaleSampler = VK_NULL_HANDLE;
+
 public:
     UpscalePass(const SharedContext& ctx);
     ~UpscalePass();

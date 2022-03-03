@@ -25,11 +25,17 @@
 PXR_NAMESPACE_OPEN_SCOPE
 
 HdStrelkaRenderPass::HdStrelkaRenderPass(HdRenderIndex* index,
-                                   const HdRprimCollection& collection,
-                                   const HdRenderSettingsMap& settings,
-                                   oka::PtRender* renderer,
-                                   oka::Scene* scene)
-    : HdRenderPass(index, collection), m_settings(settings), m_isConverged(false), m_lastSceneStateVersion(UINT32_MAX), m_lastRenderSettingsVersion(UINT32_MAX), mRenderer(renderer), mScene(scene)
+                                         const HdRprimCollection& collection,
+                                         const HdRenderSettingsMap& settings,
+                                         oka::PtRender* renderer,
+                                         oka::Scene* scene)
+    : HdRenderPass(index, collection),
+      m_settings(settings),
+      m_isConverged(false),
+      m_lastSceneStateVersion(UINT32_MAX),
+      m_lastRenderSettingsVersion(UINT32_MAX),
+      mRenderer(renderer),
+      mScene(scene)
 {
 }
 
@@ -51,9 +57,7 @@ uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
-void HdStrelkaRenderPass::_BakeMeshInstance(const HdStrelkaMesh* mesh,
-                                         GfMatrix4d transform,
-                                         uint32_t materialIndex)
+void HdStrelkaRenderPass::_BakeMeshInstance(const HdStrelkaMesh* mesh, GfMatrix4d transform, uint32_t materialIndex)
 {
     GfMatrix4d normalMatrix = transform.GetInverse().GetTranspose();
 
@@ -105,8 +109,7 @@ void HdStrelkaRenderPass::_BakeMeshInstance(const HdStrelkaMesh* mesh,
     assert(instId != -1);
 }
 
-void HdStrelkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
-                                   GfMatrix4d rootTransform)
+void HdStrelkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex, GfMatrix4d rootTransform)
 {
     TfHashMap<SdfPath, uint32_t, SdfPath::Hash> materialMapping;
     materialMapping[SdfPath::EmptyPath()] = 0;
@@ -178,7 +181,7 @@ void HdStrelkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
         for (size_t i = 0; i < transforms.size(); i++)
         {
             GfMatrix4d transform = prototypeTransform * transforms[i]; // *rootTransform;
-            //GfMatrix4d transform = GfMatrix4d(1.0);
+            // GfMatrix4d transform = GfMatrix4d(1.0);
             _BakeMeshInstance(mesh, transform, materialIndex);
         }
     }
@@ -188,8 +191,7 @@ void HdStrelkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
     fflush(stdout);
 }
 
-void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState,
-                                const TfTokenVector& renderTags)
+void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState, const TfTokenVector& renderTags)
 {
     TF_UNUSED(renderTags);
 
@@ -241,7 +243,7 @@ void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassS
     bool sceneChanged = (sceneStateVersion != m_lastSceneStateVersion);
     bool renderSettingsChanged = (renderSettingsStateVersion != m_lastRenderSettingsVersion);
 
-    //if (!sceneChanged && !renderSettingsChanged)
+    // if (!sceneChanged && !renderSettingsChanged)
     //{
     //    renderBuffer->SetConverged(true);
     //    return;
@@ -280,20 +282,17 @@ void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassS
         desc.orientation = glm::float3(179.68, 29.77, -89.97);
         desc.intensity = 160.0f;
 
-        static const TfTokenVector lightTypes = { HdPrimTypeTokens->domeLight,
-                                                  HdPrimTypeTokens->simpleLight,
-                                                  HdPrimTypeTokens->sphereLight,
-                                                  HdPrimTypeTokens->rectLight,
-                                                  HdPrimTypeTokens->diskLight,
-                                                  HdPrimTypeTokens->cylinderLight,
+        static const TfTokenVector lightTypes = { HdPrimTypeTokens->domeLight,   HdPrimTypeTokens->simpleLight,
+                                                  HdPrimTypeTokens->sphereLight, HdPrimTypeTokens->rectLight,
+                                                  HdPrimTypeTokens->diskLight,   HdPrimTypeTokens->cylinderLight,
                                                   HdPrimTypeTokens->distantLight };
         size_t count = 0;
         // TF_FOR_ALL(it, lightTypes)
         {
             if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->rectLight))
             {
-                SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->rectLight,
-                                                                        SdfPath::AbsoluteRootPath());
+                SdfPathVector sprimPaths =
+                    renderIndex->GetSprimSubtree(HdPrimTypeTokens->rectLight, SdfPath::AbsoluteRootPath());
                 for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
                 {
                     HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->rectLight, sprimPaths[lightIdx]);
@@ -304,8 +303,8 @@ void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassS
 
             if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->diskLight))
             {
-                SdfPathVector sprimPaths = renderIndex->GetSprimSubtree(HdPrimTypeTokens->diskLight,
-                                                                        SdfPath::AbsoluteRootPath());
+                SdfPathVector sprimPaths =
+                    renderIndex->GetSprimSubtree(HdPrimTypeTokens->diskLight, SdfPath::AbsoluteRootPath());
                 for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
                 {
                     HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->diskLight, sprimPaths[lightIdx]);
@@ -322,7 +321,7 @@ void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassS
     mRenderer->drawFrame(outputImage);
 
     renderBuffer->Unmap();
-    //renderBuffer->SetConverged(true);
+    // renderBuffer->SetConverged(true);
 
     m_isConverged = true;
 }

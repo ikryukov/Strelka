@@ -50,7 +50,8 @@ protected:
         VkDescriptorSetLayout layout = mShaderParamFactory.getDescriptorSetLayout();
         pipelineLayoutInfo.pSetLayouts = &layout;
 
-        if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayouts[frameVersion]) != VK_SUCCESS)
+        if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayouts[frameVersion]) !=
+            VK_SUCCESS)
         {
             return StrelkaResult::eFail;
         }
@@ -61,7 +62,8 @@ protected:
         pipelineInfo.layout = mPipelineLayouts[frameVersion];
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-        if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[frameVersion]) != VK_SUCCESS)
+        if (vkCreateComputePipelines(
+                mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[frameVersion]) != VK_SUCCESS)
         {
             return StrelkaResult::eFail;
         }
@@ -69,9 +71,7 @@ protected:
     }
 
 public:
-    ComputePass(const SharedContext& ctx)
-        : mSharedCtx(ctx),
-          mShaderParamFactory(ctx)
+    ComputePass(const SharedContext& ctx) : mSharedCtx(ctx), mShaderParamFactory(ctx)
     {
     }
     virtual ~ComputePass()
@@ -110,7 +110,8 @@ public:
     {
         const char* csShaderCode = nullptr;
         uint32_t csShaderCodeSize = 0;
-        uint32_t csId = mSharedCtx.mShaderManager->loadShader(shaderFile, "computeMain", oka::ShaderManager::Stage::eCompute);
+        uint32_t csId =
+            mSharedCtx.mShaderManager->loadShader(shaderFile, "computeMain", oka::ShaderManager::Stage::eCompute);
         mSharedCtx.mShaderManager->getShaderCode(csId, csShaderCode, csShaderCodeSize);
         mCS = createShaderModule(csShaderCode, csShaderCodeSize);
 
@@ -161,4 +162,4 @@ public:
         vkDestroyShaderModule(mSharedCtx.mDevice, mCS, nullptr);
     }
 };
-} // namespace nevk
+} // namespace oka

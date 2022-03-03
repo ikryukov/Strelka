@@ -79,7 +79,7 @@ HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, SdfPath&
     return camera;
 }
 
-class CameraController: public oka::InputHandler
+class CameraController : public oka::InputHandler
 {
     GfCamera mGfCam;
     GfQuatd mOrientation;
@@ -104,7 +104,7 @@ public:
         bool right = false;
         bool middle = false;
     } mouseButtons;
-    
+
     GfVec2d mMousePos;
 
 public:
@@ -122,7 +122,8 @@ public:
     }
     bool moving()
     {
-        return keys.left || keys.right || keys.up || keys.down || keys.forward || keys.back || mouseButtons.right || mouseButtons.left || mouseButtons.middle;
+        return keys.left || keys.right || keys.up || keys.down || keys.forward || keys.back || mouseButtons.right ||
+               mouseButtons.left || mouseButtons.middle;
     }
     void update(double deltaTime)
     {
@@ -148,10 +149,10 @@ public:
     void rotate(double rightAngle, double upAngle)
     {
         GfRotation a(GfVec3d(1.0, 0.0, 0.0), upAngle * rotationSpeed);
-        //GfRotation a(getRight(), upAngle * rotationSpeed);
+        // GfRotation a(getRight(), upAngle * rotationSpeed);
         GfRotation b(GfVec3d(0.0, 1.0, 0.0), rightAngle * rotationSpeed);
-        //GfRotation b(getUp(), rightAngle * rotationSpeed);
-        //mOrientation = a.GetQuat() * mOrientation * b.GetQuat();
+        // GfRotation b(getUp(), rightAngle * rotationSpeed);
+        // mOrientation = a.GetQuat() * mOrientation * b.GetQuat();
         mOrientation = mOrientation * (a * b).GetQuat();
         mOrientation.Normalize();
         updateViewMatrix();
@@ -246,15 +247,15 @@ public:
             }
         }
     }
-    
+
     void handleMouseMoveCallback([[maybe_unused]] double xpos, [[maybe_unused]] double ypos)
     {
         const float dx = mMousePos[0] - xpos;
         const float dy = mMousePos[1] - ypos;
 
-        //ImGuiIO& io = ImGui::GetIO();
-        //bool handled = io.WantCaptureMouse;
-        //if (handled)
+        // ImGuiIO& io = ImGui::GetIO();
+        // bool handled = io.WantCaptureMouse;
+        // if (handled)
         //{
         //    camera.mousePos = glm::vec2((float)xpos, (float)ypos);
         //    return;
@@ -293,7 +294,7 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "HdStrelka plugin is not supported!\n");
         return EXIT_FAILURE;
     }
-    
+
     HdDriverVector drivers;
 
     oka::GLFWRender render;
@@ -317,11 +318,11 @@ int main(int argc, const char* argv[])
     TfStopwatch timerLoad;
     timerLoad.Start();
 
-    //ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
+    // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
     // std::string usdPath = "./misc/glassCube.usda";
     std::string usdPath = "./misc/glassLens.usda";
-    //std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
+    // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
 
@@ -370,7 +371,7 @@ int main(int argc, const char* argv[])
         renderBuffers[i] = (HdRenderBuffer*)renderDelegate->CreateFallbackBprim(HdPrimTypeTokens->renderBuffer);
         renderBuffers[i]->Allocate(GfVec3i(imageWidth, imageHeight, 1), HdFormatFloat32Vec4, false);
     }
-    
+
     CameraUtilFraming framing;
     framing.dataWindow = GfRect2i(GfVec2i(0, 0), GfVec2i(imageWidth, imageHeight));
     framing.displayWindow = GfRange2f(GfVec2f(0.0f, 0.0f), GfVec2f((float)imageWidth, (float)imageHeight));
@@ -393,9 +394,9 @@ int main(int argc, const char* argv[])
         aovBindings[0].renderBuffer = renderBuffers[i];
 
         renderPassState[i]->SetAovBindings(aovBindings);
-        renderTasks[i] = std::make_shared<SimpleRenderTask>(renderPass, renderPassState[i], renderTags);    
+        renderTasks[i] = std::make_shared<SimpleRenderTask>(renderPass, renderPassState[i], renderTags);
     }
-    
+
     // Perform rendering.
     TfStopwatch timerRender;
     timerRender.Start();
@@ -413,7 +414,7 @@ int main(int argc, const char* argv[])
         HdTaskSharedPtrVector tasks;
         tasks.push_back(renderTasks[frameCount % 3]);
         sceneDelegate.SetTime(1.0f);
-        
+
         render.pollEvents();
 
         static auto prevTime = std::chrono::high_resolution_clock::now();
@@ -429,15 +430,15 @@ int main(int argc, const char* argv[])
         oka::Image* outputImage = renderBuffers[frameCount % 3]->GetResource(false).UncheckedGet<oka::Image*>();
         render.drawFrame(outputImage);
         render.onEndFrame();
-        
+
         auto finish = std::chrono::high_resolution_clock::now();
         double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
         render.setWindowTitle((std::string("Strelka") + " [" + std::to_string(frameTime) + " ms]").c_str());
         ++frameCount;
     }
 
-    //renderBuffer->Resolve();
-    //TF_VERIFY(renderBuffer->IsConverged());
+    // renderBuffer->Resolve();
+    // TF_VERIFY(renderBuffer->IsConverged());
 
     timerRender.Stop();
 
@@ -445,12 +446,12 @@ int main(int argc, const char* argv[])
     fflush(stdout);
 
     // Gamma correction.
-    //float* mappedMem = (float*)renderBuffer->Map();
-    //TF_VERIFY(mappedMem != nullptr);
+    // float* mappedMem = (float*)renderBuffer->Map();
+    // TF_VERIFY(mappedMem != nullptr);
 
-    //int pixelCount = renderBuffer->GetWidth() * renderBuffer->GetHeight();
+    // int pixelCount = renderBuffer->GetWidth() * renderBuffer->GetHeight();
 
-    //for (int i = 0; i < pixelCount; i++)
+    // for (int i = 0; i < pixelCount; i++)
     //{
     //    mappedMem[i * 4 + 0] = GfConvertLinearToDisplay(mappedMem[i * 4 + 0]);
     //    mappedMem[i * 4 + 1] = GfConvertLinearToDisplay(mappedMem[i * 4 + 1]);
@@ -458,35 +459,35 @@ int main(int argc, const char* argv[])
     //}
 
     //// Write image to file.
-    //TfStopwatch timerWrite;
-    //timerWrite.Start();
+    // TfStopwatch timerWrite;
+    // timerWrite.Start();
 
-    //std::string outputFilePath = "res.png";
+    // std::string outputFilePath = "res.png";
 
-    //HioImageSharedPtr image = HioImage::OpenForWriting(outputFilePath);
+    // HioImageSharedPtr image = HioImage::OpenForWriting(outputFilePath);
 
-    //if (!image)
+    // if (!image)
     //{
     //    fprintf(stderr, "Unable to open output file for writing!\n");
     //    return EXIT_FAILURE;
     //}
 
-    //HioImage::StorageSpec storage;
-    //storage.width = (int)renderBuffer->GetWidth();
-    //storage.height = (int)renderBuffer->GetHeight();
-    //storage.depth = (int)renderBuffer->GetDepth();
-    //storage.format = HioFormat::HioFormatFloat32Vec4;
-    //storage.flipped = false;
-    //storage.data = mappedMem;
+    // HioImage::StorageSpec storage;
+    // storage.width = (int)renderBuffer->GetWidth();
+    // storage.height = (int)renderBuffer->GetHeight();
+    // storage.depth = (int)renderBuffer->GetDepth();
+    // storage.format = HioFormat::HioFormatFloat32Vec4;
+    // storage.flipped = false;
+    // storage.data = mappedMem;
 
-    //VtDictionary metadata;
-    //image->Write(storage, metadata);
+    // VtDictionary metadata;
+    // image->Write(storage, metadata);
 
-    //renderBuffer->Unmap();
-    //timerWrite.Stop();
+    // renderBuffer->Unmap();
+    // timerWrite.Stop();
 
-    //printf("Wrote image (%.3fs)\n", timerWrite.GetSeconds());
-    //fflush(stdout);
+    // printf("Wrote image (%.3fs)\n", timerWrite.GetSeconds());
+    // fflush(stdout);
 
     for (int i = 0; i < 3; ++i)
     {

@@ -4,8 +4,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdStrelkaRenderBuffer::HdStrelkaRenderBuffer(const SdfPath& id, oka::SharedContext* ctx)
-    : HdRenderBuffer(id), mCtx(ctx)
+HdStrelkaRenderBuffer::HdStrelkaRenderBuffer(const SdfPath& id, oka::SharedContext* ctx) : HdRenderBuffer(id), mCtx(ctx)
 {
     m_isMapped = false;
     m_isConverged = false;
@@ -16,9 +15,7 @@ HdStrelkaRenderBuffer::~HdStrelkaRenderBuffer()
 {
 }
 
-bool HdStrelkaRenderBuffer::Allocate(const GfVec3i& dimensions,
-                                     HdFormat format,
-                                     bool multiSampled)
+bool HdStrelkaRenderBuffer::Allocate(const GfVec3i& dimensions, HdFormat format, bool multiSampled)
 {
     if (dimensions[2] != 1)
     {
@@ -43,11 +40,12 @@ bool HdStrelkaRenderBuffer::Allocate(const GfVec3i& dimensions,
     {
         mCtx->mResManager->destroyImage(mResult);
     }
-    mResult = mCtx->mResManager->createImage(m_width, m_height, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                             VK_IMAGE_TILING_OPTIMAL,
-                                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+    mResult = mCtx->mResManager->createImage(m_width, m_height, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+                                             VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                                                 VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "HdOkaRenderBuffer");
-    mCtx->mTextureManager->transitionImageLayout(mCtx->mResManager->getVkImage(mResult), VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+    mCtx->mTextureManager->transitionImageLayout(mCtx->mResManager->getVkImage(mResult), VK_FORMAT_R32G32B32A32_SFLOAT,
+                                                 VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 
     return true;
 }
@@ -79,7 +77,7 @@ bool HdStrelkaRenderBuffer::IsMultiSampled() const
 
 VtValue HdStrelkaRenderBuffer::GetResource(bool multiSampled) const
 {
-    return VtValue((uint8_t*) mResult);
+    return VtValue((uint8_t*)mResult);
 }
 
 bool HdStrelkaRenderBuffer::IsConverged() const

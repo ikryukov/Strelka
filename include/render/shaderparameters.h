@@ -47,15 +47,20 @@ protected:
     size_t getConstantBufferOffset(const uint32_t index)
     {
         const size_t structSize = sizeof(T);
-        return ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) * minUniformBufferOffsetAlignment * index;
+        return ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) *
+               minUniformBufferOffsetAlignment * index;
     }
 
     StrelkaResult createConstantBuffers()
     {
         const size_t structSize = sizeof(T);
         // constan buffer size on must be a multiple of VkPhysicalDeviceLimits::minUniformBufferOffsetAlignment (256)
-        const VkDeviceSize bufferSize = ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) * minUniformBufferOffsetAlignment * MAX_FRAMES_IN_FLIGHT;
-        mConstantBuffer = mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        const VkDeviceSize bufferSize =
+            ((structSize + minUniformBufferOffsetAlignment - 1) / minUniformBufferOffsetAlignment) *
+            minUniformBufferOffsetAlignment * MAX_FRAMES_IN_FLIGHT;
+        mConstantBuffer =
+            mResManager->createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
         if (!mConstantBuffer)
         {
             return StrelkaResult::eOutOfMemory;
@@ -89,7 +94,8 @@ protected:
             descriptorWrites.push_back(descWrite);
         }
 
-        vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(
+            mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 
     StrelkaResult createDescriptorSets(const VkDescriptorPool& descriptorPool)
@@ -171,7 +177,8 @@ protected:
                     for (uint32_t i = 0; i < descriptorCount; ++i)
                     {
                         imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        imageInfos[imageInfosOffset + i].imageView = (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
+                        imageInfos[imageInfosOffset + i].imageView =
+                            (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
                         imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
                     }
 
@@ -216,7 +223,8 @@ protected:
                     for (uint32_t i = 0; i < descriptorCount; ++i)
                     {
                         imageInfos[imageInfosOffset + i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-                        imageInfos[imageInfosOffset + i].imageView = (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
+                        imageInfos[imageInfosOffset + i].imageView =
+                            (i < descriptor.handles.size()) ? descriptor.handles[i].imageView : VK_NULL_HANDLE;
                         imageInfos[imageInfosOffset + i].sampler = VK_NULL_HANDLE;
                     }
 
@@ -257,9 +265,10 @@ protected:
                     break;
                 }
                 case ShaderManager::ResourceType::eSampler: {
-                    //for (uint32_t i = 0; i < descriptorCount; ++i)
+                    // for (uint32_t i = 0; i < descriptorCount; ++i)
                     //{
-                    //    imageInfos[imageInfosOffset + i].sampler = (i < descriptor.handles.size()) ? descriptor.handles[i].sampler : VK_NULL_HANDLE;
+                    //    imageInfos[imageInfosOffset + i].sampler = (i < descriptor.handles.size()) ?
+                    //    descriptor.handles[i].sampler : VK_NULL_HANDLE;
                     //}
                     assert(descriptor.handles.size() > 0);
                     for (uint32_t i = 0; i < (uint32_t)descriptor.handles.size(); ++i)
@@ -273,7 +282,7 @@ protected:
                     descWrite.dstBinding = resDesc.binding;
                     descWrite.dstArrayElement = 0;
                     descWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                    //descWrite.descriptorCount = descriptorCount;
+                    // descWrite.descriptorCount = descriptorCount;
                     descWrite.descriptorCount = (uint32_t)descriptor.handles.size();
                     descWrite.pImageInfo = &imageInfos[imageInfosOffset];
 
@@ -317,7 +326,8 @@ protected:
             }
         }
 
-        vkUpdateDescriptorSets(mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+        vkUpdateDescriptorSets(
+            mDevice, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
         needDesciptorSetUpdate[descIndex] = false;
 
         mResUpdate[descIndex].clear();
@@ -330,7 +340,10 @@ public:
                      std::vector<ShaderManager::ResourceDesc>& resourcesDescs,
                      std::unordered_map<std::string, ShaderManager::ResourceDesc>& nameToDesc,
                      int cbBinding)
-        :  mCbBinding(cbBinding), mDescriptorSetLayout(descriptorSetLayout), mResourcesDescs(resourcesDescs), mNameToDesc(nameToDesc)
+        : mCbBinding(cbBinding),
+          mDescriptorSetLayout(descriptorSetLayout),
+          mResourcesDescs(resourcesDescs),
+          mNameToDesc(nameToDesc)
     {
     }
 
@@ -588,8 +601,7 @@ class ShaderParametersFactory
     }
 
 public:
-    ShaderParametersFactory(const SharedContext& ctx)
-        : mSharedCtx(ctx)
+    ShaderParametersFactory(const SharedContext& ctx) : mSharedCtx(ctx)
     {
     }
     virtual ~ShaderParametersFactory()

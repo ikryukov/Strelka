@@ -130,7 +130,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
 
                 float2 uvCoord = interpolateAttrib(uv0, uv1, uv2, bcoords);
 
-                if (ubo.debug == 1)
+                //if (ubo.debug == 1)
                 {
                     // float3 debugN = (worldNormal + 1.0) * 0.5;
                     float3 debugN = (worldNormal);

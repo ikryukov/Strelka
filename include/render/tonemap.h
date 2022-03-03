@@ -2,7 +2,6 @@
 
 #include "common.h"
 #include "computepass.h"
-
 #include "tonemapparam.h"
 
 #include <vector>
