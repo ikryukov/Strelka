@@ -51,7 +51,7 @@ void nevk::GLFWRender::onBeginFrame()
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        //recreateSwapChain();
+        recreateSwapChain();
         return;
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
@@ -135,7 +135,7 @@ void nevk::GLFWRender::onEndFrame()
     if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // || framebufferResized)
     {
         //framebufferResized = false;
-        //recreateSwapChain();
+        recreateSwapChain();
     }
     else if (result != VK_SUCCESS)
     {
@@ -192,6 +192,7 @@ void nevk::GLFWRender::framebufferResizeCallback(GLFWwindow* window, int width, 
     {
         return;
     }
+
     //auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
     //app->framebufferResized = true;
     //nevk::Scene* scene = app->getScene();
@@ -403,6 +404,26 @@ void nevk::GLFWRender::createSwapChain()
 
     swapChainImageFormat = surfaceFormat.format;
     mSwapChainExtent = extent;
+}
+
+void nevk::GLFWRender::recreateSwapChain()
+{
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(mWindow, &width, &height);
+    while (width == 0 || height == 0)
+    {
+        glfwGetFramebufferSize(mWindow, &width, &height);
+        glfwWaitEvents();
+    }
+    vkDeviceWaitIdle(mDevice);
+
+    cleanupSwapChain();
+    createSwapChain();
+}
+
+void nevk::GLFWRender::cleanupSwapChain()
+{
+    vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
 }
 
 nevk::GLFWRender::SwapChainSupportDetails nevk::GLFWRender::querySwapChainSupport(VkPhysicalDevice device)

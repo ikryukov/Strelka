@@ -64,6 +64,8 @@ protected:
     void createLogicalDevice() override;
     void createSurface() override;
     void createSwapChain();
+    void recreateSwapChain();
+    void cleanupSwapChain();
 
     struct SwapChainSupportDetails
     {

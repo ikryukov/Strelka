@@ -277,6 +277,19 @@ public:
     }
 };
 
+class RenderSurfaceController : public nevk::ResizeHandler
+{
+    uint32_t imageWidth = 800;
+    uint32_t imageHeight = 600;
+
+public:
+
+    void framebufferResize(int newWidth, int newHeight)
+    {
+    
+    }
+};
+
 int main(int argc, const char* argv[])
 {
     // Init plugin.
@@ -320,8 +333,8 @@ int main(int argc, const char* argv[])
     //ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
     // std::string usdPath = "./misc/glassCube.usda";
-    std::string usdPath = "./misc/glassLens.usda";
-    //std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
+    //std::string usdPath = "./misc/glassLens.usda";
+    std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
 
