@@ -7,12 +7,12 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaRenderBuffer final : public HdRenderBuffer
+class HdStrelkaRenderBuffer final : public HdRenderBuffer
 {
 public:
-    HdOkaRenderBuffer(const SdfPath& id, oka::SharedContext* ctx);
+    HdStrelkaRenderBuffer(const SdfPath& id, oka::SharedContext* ctx);
 
-    ~HdOkaRenderBuffer() override;
+    ~HdStrelkaRenderBuffer() override;
 
 public:
     bool Allocate(const GfVec3i& dimensions,

@@ -11,9 +11,9 @@ TF_DEFINE_PRIVATE_TOKENS(_tokens,
 );
 // clang-format on
 
-NDR_REGISTER_DISCOVERY_PLUGIN(HdOkaMdlDiscoveryPlugin);
+NDR_REGISTER_DISCOVERY_PLUGIN(HdStrelkaMdlDiscoveryPlugin);
 
-NdrNodeDiscoveryResultVec HdOkaMdlDiscoveryPlugin::DiscoverNodes(const Context& ctx)
+NdrNodeDiscoveryResultVec HdStrelkaMdlDiscoveryPlugin::DiscoverNodes(const Context& ctx)
 {
     NdrNodeDiscoveryResultVec result;
 
@@ -31,7 +31,7 @@ NdrNodeDiscoveryResultVec HdOkaMdlDiscoveryPlugin::DiscoverNodes(const Context& 
     return result;
 }
 
-const NdrStringVec& HdOkaMdlDiscoveryPlugin::GetSearchURIs() const
+const NdrStringVec& HdStrelkaMdlDiscoveryPlugin::GetSearchURIs() const
 {
   static const NdrStringVec s_searchURIs;
   return s_searchURIs;

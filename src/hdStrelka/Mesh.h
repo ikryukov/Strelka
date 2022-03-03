@@ -7,14 +7,14 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaMesh final : public HdMesh
+class HdStrelkaMesh final : public HdMesh
 {
 public:
-    HF_MALLOC_TAG_NEW("new HdOkaMesh");
+    HF_MALLOC_TAG_NEW("new HdStrelkaMesh");
 
-    HdOkaMesh(const SdfPath& id, oka::Scene* scene);
+    HdStrelkaMesh(const SdfPath& id, oka::Scene* scene);
 
-    ~HdOkaMesh() override;
+    ~HdStrelkaMesh() override;
 
 public:
     void Sync(HdSceneDelegate* delegate,

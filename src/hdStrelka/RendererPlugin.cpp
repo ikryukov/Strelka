@@ -9,10 +9,10 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 TF_REGISTRY_FUNCTION(TfType)
 {
-    HdRendererPluginRegistry::Define<HdOkaRendererPlugin>();
+    HdRendererPluginRegistry::Define<HdStrelkaRendererPlugin>();
 }
 
-HdOkaRendererPlugin::HdOkaRendererPlugin()
+HdStrelkaRendererPlugin::HdStrelkaRendererPlugin()
 {
     PlugPluginPtr plugin = PLUG_THIS_PLUGIN;
 
@@ -38,28 +38,28 @@ HdOkaRendererPlugin::HdOkaRendererPlugin()
     }
 }
 
-HdOkaRendererPlugin::~HdOkaRendererPlugin()
+HdStrelkaRendererPlugin::~HdStrelkaRendererPlugin()
 {
 }
 
-HdRenderDelegate* HdOkaRendererPlugin::CreateRenderDelegate()
+HdRenderDelegate* HdStrelkaRendererPlugin::CreateRenderDelegate()
 {
     HdRenderSettingsMap settingsMap;
 
-    return new HdOkaRenderDelegate(settingsMap, *m_translator);
+    return new HdStrelkaRenderDelegate(settingsMap, *m_translator);
 }
 
-HdRenderDelegate* HdOkaRendererPlugin::CreateRenderDelegate(const HdRenderSettingsMap& settingsMap)
+HdRenderDelegate* HdStrelkaRendererPlugin::CreateRenderDelegate(const HdRenderSettingsMap& settingsMap)
 {
-    return new HdOkaRenderDelegate(settingsMap, *m_translator);
+    return new HdStrelkaRenderDelegate(settingsMap, *m_translator);
 }
 
-void HdOkaRendererPlugin::DeleteRenderDelegate(HdRenderDelegate* renderDelegate)
+void HdStrelkaRendererPlugin::DeleteRenderDelegate(HdRenderDelegate* renderDelegate)
 {
     delete renderDelegate;
 }
 
-bool HdOkaRendererPlugin::IsSupported() const
+bool HdStrelkaRendererPlugin::IsSupported() const
 {
     return m_isSupported;
 }

@@ -17,16 +17,16 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DEFINE_PRIVATE_TOKENS(
     _Tokens,
-    (HdOkaDriver)
+    (HdStrelkaDriver)
  );
 
-HdOkaRenderDelegate::HdOkaRenderDelegate(const HdRenderSettingsMap& settingsMap, const MaterialNetworkTranslator& translator)
+HdStrelkaRenderDelegate::HdStrelkaRenderDelegate(const HdRenderSettingsMap& settingsMap, const MaterialNetworkTranslator& translator)
     : m_translator(translator)
 {
     m_resourceRegistry = std::make_shared<HdResourceRegistry>();
 
-    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Samples per pixel", HdOkaSettingsTokens->spp, VtValue{ 8 } });
-    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Max bounces", HdOkaSettingsTokens->max_bounces, VtValue{ 4 } });
+    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Samples per pixel", HdStrelkaSettingsTokens->spp, VtValue{ 8 } });
+    m_settingDescriptors.push_back(HdRenderSettingDescriptor{ "Max bounces", HdStrelkaSettingsTokens->max_bounces, VtValue{ 4 } });
 
     _PopulateDefaultSettings(m_settingDescriptors);
 
@@ -41,15 +41,15 @@ HdOkaRenderDelegate::HdOkaRenderDelegate(const HdRenderSettingsMap& settingsMap,
     mRenderer.setScene(&mScene);
 }
 
-HdOkaRenderDelegate::~HdOkaRenderDelegate()
+HdStrelkaRenderDelegate::~HdStrelkaRenderDelegate()
 {
 }
 
-void HdOkaRenderDelegate::SetDrivers(HdDriverVector const& drivers)
+void HdStrelkaRenderDelegate::SetDrivers(HdDriverVector const& drivers)
 {
     for (HdDriver* hdDriver : drivers)
     {
-        if (hdDriver->name == _Tokens->HdOkaDriver &&
+        if (hdDriver->name == _Tokens->HdStrelkaDriver &&
             hdDriver->driver.IsHolding<oka::SharedContext*>())
         {
             mSharedCtx = hdDriver->driver.UncheckedGet<oka::SharedContext*>();
@@ -60,41 +60,41 @@ void HdOkaRenderDelegate::SetDrivers(HdDriverVector const& drivers)
     }
 }
 
-HdRenderSettingDescriptorList HdOkaRenderDelegate::GetRenderSettingDescriptors() const
+HdRenderSettingDescriptorList HdStrelkaRenderDelegate::GetRenderSettingDescriptors() const
 {
     return m_settingDescriptors;
 }
 
-HdRenderPassSharedPtr HdOkaRenderDelegate::CreateRenderPass(HdRenderIndex* index,
+HdRenderPassSharedPtr HdStrelkaRenderDelegate::CreateRenderPass(HdRenderIndex* index,
                                                              const HdRprimCollection& collection)
 {
-    return HdRenderPassSharedPtr(new HdOkaRenderPass(index, collection, _settingsMap, &mRenderer, &mScene));
+    return HdRenderPassSharedPtr(new HdStrelkaRenderPass(index, collection, _settingsMap, &mRenderer, &mScene));
 }
 
-HdResourceRegistrySharedPtr HdOkaRenderDelegate::GetResourceRegistry() const
+HdResourceRegistrySharedPtr HdStrelkaRenderDelegate::GetResourceRegistry() const
 {
     return m_resourceRegistry;
 }
 
-void HdOkaRenderDelegate::CommitResources(HdChangeTracker* tracker)
+void HdStrelkaRenderDelegate::CommitResources(HdChangeTracker* tracker)
 {
     TF_UNUSED(tracker);
 
     // We delay BVH building and GPU uploads to the next render call.
 }
 
-HdInstancer* HdOkaRenderDelegate::CreateInstancer(HdSceneDelegate* delegate,
+HdInstancer* HdStrelkaRenderDelegate::CreateInstancer(HdSceneDelegate* delegate,
                                                    const SdfPath& id)
 {
-    return new HdOkaInstancer(delegate, id);
+    return new HdStrelkaInstancer(delegate, id);
 }
 
-void HdOkaRenderDelegate::DestroyInstancer(HdInstancer* instancer)
+void HdStrelkaRenderDelegate::DestroyInstancer(HdInstancer* instancer)
 {
     delete instancer;
 }
 
-HdAovDescriptor HdOkaRenderDelegate::GetDefaultAovDescriptor(const TfToken& name) const
+HdAovDescriptor HdStrelkaRenderDelegate::GetDefaultAovDescriptor(const TfToken& name) const
 {
     TF_UNUSED(name);
 
@@ -109,23 +109,23 @@ const TfTokenVector SUPPORTED_RPRIM_TYPES = {
     HdPrimTypeTokens->mesh
 };
 
-const TfTokenVector& HdOkaRenderDelegate::GetSupportedRprimTypes() const
+const TfTokenVector& HdStrelkaRenderDelegate::GetSupportedRprimTypes() const
 {
     return SUPPORTED_RPRIM_TYPES;
 }
 
-HdRprim* HdOkaRenderDelegate::CreateRprim(const TfToken& typeId,
+HdRprim* HdStrelkaRenderDelegate::CreateRprim(const TfToken& typeId,
                                            const SdfPath& rprimId)
 {
     if (typeId == HdPrimTypeTokens->mesh)
     {
-        return new HdOkaMesh(rprimId, &mScene);
+        return new HdStrelkaMesh(rprimId, &mScene);
     }
     TF_CODING_ERROR("Unknown Rprim Type %s", typeId.GetText());
     return nullptr;
 }
 
-void HdOkaRenderDelegate::DestroyRprim(HdRprim* rprim)
+void HdStrelkaRenderDelegate::DestroyRprim(HdRprim* rprim)
 {
     delete rprim;
 }
@@ -138,31 +138,31 @@ const TfTokenVector SUPPORTED_SPRIM_TYPES = {
     HdPrimTypeTokens->diskLight
 };
 
-const TfTokenVector& HdOkaRenderDelegate::GetSupportedSprimTypes() const
+const TfTokenVector& HdStrelkaRenderDelegate::GetSupportedSprimTypes() const
 {
     return SUPPORTED_SPRIM_TYPES;
 }
 
-HdSprim* HdOkaRenderDelegate::CreateSprim(const TfToken& typeId,
+HdSprim* HdStrelkaRenderDelegate::CreateSprim(const TfToken& typeId,
                                            const SdfPath& sprimId)
 {
     TF_STATUS("CreateSprim Type: %s", typeId.GetText());
     if (typeId == HdPrimTypeTokens->camera)
     {
-        return new HdOkaCamera(sprimId, mScene);
+        return new HdStrelkaCamera(sprimId, mScene);
     }
     else if (typeId == HdPrimTypeTokens->material)
     {
-        return new HdOkaMaterial(sprimId, m_translator);
+        return new HdStrelkaMaterial(sprimId, m_translator);
     }
     else if (typeId == HdPrimTypeTokens->rectLight)
     {
         // unified light, but currently only rect light supported
-        return new HdOkaLight(sprimId, typeId);
+        return new HdStrelkaLight(sprimId, typeId);
     }
     else if (typeId == HdPrimTypeTokens->diskLight)
     {
-        return new HdOkaLight(sprimId, typeId);
+        return new HdStrelkaLight(sprimId, typeId);
     }
     
     TF_CODING_ERROR("Unknown Sprim Type %s", typeId.GetText());
@@ -170,14 +170,14 @@ HdSprim* HdOkaRenderDelegate::CreateSprim(const TfToken& typeId,
     return nullptr;
 }
 
-HdSprim* HdOkaRenderDelegate::CreateFallbackSprim(const TfToken& typeId)
+HdSprim* HdStrelkaRenderDelegate::CreateFallbackSprim(const TfToken& typeId)
 {
     const SdfPath& sprimId = SdfPath::EmptyPath();
 
     return CreateSprim(typeId, sprimId);
 }
 
-void HdOkaRenderDelegate::DestroySprim(HdSprim* sprim)
+void HdStrelkaRenderDelegate::DestroySprim(HdSprim* sprim)
 {
     delete sprim;
 }
@@ -186,50 +186,50 @@ const TfTokenVector SUPPORTED_BPRIM_TYPES = {
     HdPrimTypeTokens->renderBuffer
 };
 
-const TfTokenVector& HdOkaRenderDelegate::GetSupportedBprimTypes() const
+const TfTokenVector& HdStrelkaRenderDelegate::GetSupportedBprimTypes() const
 {
     return SUPPORTED_BPRIM_TYPES;
 }
 
-HdBprim* HdOkaRenderDelegate::CreateBprim(const TfToken& typeId,
+HdBprim* HdStrelkaRenderDelegate::CreateBprim(const TfToken& typeId,
                                            const SdfPath& bprimId)
 {
     if (typeId == HdPrimTypeTokens->renderBuffer)
     {
-        return new HdOkaRenderBuffer(bprimId, mSharedCtx);
+        return new HdStrelkaRenderBuffer(bprimId, mSharedCtx);
     }
 
     return nullptr;
 }
 
-HdBprim* HdOkaRenderDelegate::CreateFallbackBprim(const TfToken& typeId)
+HdBprim* HdStrelkaRenderDelegate::CreateFallbackBprim(const TfToken& typeId)
 {
     const SdfPath& bprimId = SdfPath::EmptyPath();
 
     return CreateBprim(typeId, bprimId);
 }
 
-void HdOkaRenderDelegate::DestroyBprim(HdBprim* bprim)
+void HdStrelkaRenderDelegate::DestroyBprim(HdBprim* bprim)
 {
     delete bprim;
 }
 
-TfToken HdOkaRenderDelegate::GetMaterialBindingPurpose() const
+TfToken HdStrelkaRenderDelegate::GetMaterialBindingPurpose() const
 {
     return HdTokens->full;
 }
 
-TfTokenVector HdOkaRenderDelegate::GetMaterialRenderContexts() const
+TfTokenVector HdStrelkaRenderDelegate::GetMaterialRenderContexts() const
 {
-    return TfTokenVector{ HdOkaRenderContexts->mtlx, HdOkaRenderContexts->mdl };
+    return TfTokenVector{ HdStrelkaRenderContexts->mtlx, HdStrelkaRenderContexts->mdl };
 }
 
-TfTokenVector HdOkaRenderDelegate::GetShaderSourceTypes() const
+TfTokenVector HdStrelkaRenderDelegate::GetShaderSourceTypes() const
 {
-    return TfTokenVector{ HdOkaSourceTypes->mtlx, HdOkaSourceTypes->mdl };
+    return TfTokenVector{ HdStrelkaSourceTypes->mtlx, HdStrelkaSourceTypes->mdl };
 }
 
-oka::SharedContext& HdOkaRenderDelegate::getSharedContext()
+oka::SharedContext& HdStrelkaRenderDelegate::getSharedContext()
 {
     return mRenderer.getSharedContext();
 }

@@ -437,4 +437,4 @@ void ResourceManager::copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDevic
     endSingleTimeCommands(commandBuffer);
 }
 
-} // namespace nevk
+} // namespace oka

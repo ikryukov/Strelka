@@ -44,7 +44,7 @@ struct SharedContext
     }
 };
 
-enum class OkaResult : uint32_t
+enum class StrelkaResult : uint32_t
 {
     eOk,
     eFail,

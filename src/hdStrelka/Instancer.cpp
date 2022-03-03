@@ -5,17 +5,17 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdOkaInstancer::HdOkaInstancer(HdSceneDelegate* delegate,
+HdStrelkaInstancer::HdStrelkaInstancer(HdSceneDelegate* delegate,
                                        const SdfPath& id)
     : HdInstancer(delegate, id)
 {
 }
 
-HdOkaInstancer::~HdOkaInstancer()
+HdStrelkaInstancer::~HdStrelkaInstancer()
 {
 }
 
-void HdOkaInstancer::Sync(HdSceneDelegate* sceneDelegate,
+void HdStrelkaInstancer::Sync(HdSceneDelegate* sceneDelegate,
                               HdRenderParam* renderParam,
                               HdDirtyBits* dirtyBits)
 {
@@ -55,7 +55,7 @@ void HdOkaInstancer::Sync(HdSceneDelegate* sceneDelegate,
     }
 }
 
-VtMatrix4dArray HdOkaInstancer::ComputeInstanceTransforms(const SdfPath& prototypeId)
+VtMatrix4dArray HdStrelkaInstancer::ComputeInstanceTransforms(const SdfPath& prototypeId)
 {
     HdSceneDelegate* sceneDelegate = GetDelegate();
 
@@ -155,7 +155,7 @@ VtMatrix4dArray HdOkaInstancer::ComputeInstanceTransforms(const SdfPath& prototy
 
     const HdRenderIndex& renderIndex = sceneDelegate->GetRenderIndex();
     HdInstancer* boxedParentInstancer = renderIndex.GetInstancer(parentId);
-    HdOkaInstancer* parentInstancer = dynamic_cast<HdOkaInstancer*>(boxedParentInstancer);
+    HdStrelkaInstancer* parentInstancer = dynamic_cast<HdStrelkaInstancer*>(boxedParentInstancer);
 
     VtMatrix4dArray parentTransforms = parentInstancer->ComputeInstanceTransforms(id);
 

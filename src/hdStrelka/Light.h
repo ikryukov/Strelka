@@ -8,14 +8,14 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaLight final : public HdLight
+class HdStrelkaLight final : public HdLight
 {
 public:
-    HF_MALLOC_TAG_NEW("new HdOkaLight");
+    HF_MALLOC_TAG_NEW("new HdStrelkaLight");
 
-    HdOkaLight(const SdfPath& id, TfToken const& lightType);
+    HdStrelkaLight(const SdfPath& id, TfToken const& lightType);
 
-    ~HdOkaLight() override;
+    ~HdStrelkaLight() override;
 
 public:
     void Sync(HdSceneDelegate* delegate,

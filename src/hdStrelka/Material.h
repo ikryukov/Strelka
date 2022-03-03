@@ -8,15 +8,15 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaMaterial final : public HdMaterial
+class HdStrelkaMaterial final : public HdMaterial
 {
 public:
-    HF_MALLOC_TAG_NEW("new HdOkaMaterial");
+    HF_MALLOC_TAG_NEW("new HdStrelkaMaterial");
 
-    HdOkaMaterial(const SdfPath& id,
+    HdStrelkaMaterial(const SdfPath& id,
                    const MaterialNetworkTranslator& translator);
 
-    ~HdOkaMaterial() override;
+    ~HdStrelkaMaterial() override;
 
     HdDirtyBits GetInitialDirtyBitsMask() const override;
 
@@ -24,7 +24,7 @@ public:
               HdRenderParam* renderParam,
               HdDirtyBits* dirtyBits) override;
 
-    const std::string& GetOkaMaterial() const;
+    const std::string& GetStrelkaMaterial() const;
     bool isMdl()
     {
         return mIsMdl;

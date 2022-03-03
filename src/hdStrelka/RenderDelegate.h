@@ -10,13 +10,13 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaRenderDelegate final : public HdRenderDelegate
+class HdStrelkaRenderDelegate final : public HdRenderDelegate
 {
 public:
-    HdOkaRenderDelegate(const HdRenderSettingsMap& settingsMap,
+    HdStrelkaRenderDelegate(const HdRenderSettingsMap& settingsMap,
                          const MaterialNetworkTranslator& translator);
 
-    ~HdOkaRenderDelegate() override;
+    ~HdStrelkaRenderDelegate() override;
 
 public:
 

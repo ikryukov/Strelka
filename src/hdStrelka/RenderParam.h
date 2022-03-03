@@ -7,14 +7,14 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaRenderParam final : public HdRenderParam
+class HdStrelkaRenderParam final : public HdRenderParam
 {
 public:
-    HdOkaRenderParam(oka::Scene* scene, HdRenderThread* renderThread, std::atomic<int>* sceneVersion)
+    HdStrelkaRenderParam(oka::Scene* scene, HdRenderThread* renderThread, std::atomic<int>* sceneVersion)
         : mScene(scene), mRenderThread(renderThread), mSceneVersion(sceneVersion)
     {
     }
-    virtual ~HdOkaRenderParam() = default;
+    virtual ~HdStrelkaRenderParam() = default;
 
     /// Accessor for the top-level embree scene.
     oka::Scene* AcquireSceneForEdit()

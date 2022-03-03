@@ -36,10 +36,10 @@ PXR_NAMESPACE_USING_DIRECTIVE
 
 TF_DEFINE_PRIVATE_TOKENS(
     _AppTokens,
-    (HdOkaDriver)
-    (HdOkaRendererPlugin));
+    (HdStrelkaDriver)
+    (HdStrelkaRendererPlugin));
 
-HdRendererPluginHandle GetHdOkaPlugin()
+HdRendererPluginHandle GetHdStrelkaPlugin()
 {
     HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
 
@@ -50,7 +50,7 @@ HdRendererPluginHandle GetHdOkaPlugin()
     {
         const TfToken& pluginId = pluginDesc.id;
 
-        if (pluginId != _AppTokens->HdOkaRendererPlugin)
+        if (pluginId != _AppTokens->HdStrelkaRendererPlugin)
         {
             continue;
         }
@@ -280,17 +280,17 @@ public:
 int main(int argc, const char* argv[])
 {
     // Init plugin.
-    HdRendererPluginHandle pluginHandle = GetHdOkaPlugin();
+    HdRendererPluginHandle pluginHandle = GetHdStrelkaPlugin();
 
     if (!pluginHandle)
     {
-        fprintf(stderr, "HdOka plugin not found!\n");
+        fprintf(stderr, "HdStrelka plugin not found!\n");
         return EXIT_FAILURE;
     }
 
     if (!pluginHandle->IsSupported())
     {
-        fprintf(stderr, "HdOka plugin is not supported!\n");
+        fprintf(stderr, "HdStrelka plugin is not supported!\n");
         return EXIT_FAILURE;
     }
     
@@ -303,7 +303,7 @@ int main(int argc, const char* argv[])
     oka::SharedContext* ctx = &render.getSharedContext();
 
     HdDriver driver;
-    driver.name = _AppTokens->HdOkaDriver;
+    driver.name = _AppTokens->HdStrelkaDriver;
     driver.driver = VtValue(ctx);
 
     drivers.push_back(&driver);

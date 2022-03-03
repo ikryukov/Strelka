@@ -15,7 +15,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdOkaCamera::HdOkaCamera(const SdfPath& id, oka::Scene& scene)
+HdStrelkaCamera::HdStrelkaCamera(const SdfPath& id, oka::Scene& scene)
     : HdCamera(id), mScene(scene), m_vfov(M_PI_2)
 {
     const std::string& name = id.GetString();
@@ -24,21 +24,21 @@ HdOkaCamera::HdOkaCamera(const SdfPath& id, oka::Scene& scene)
     mCameraIndex = mScene.addCamera(okaCamera);
 }
 
-HdOkaCamera::~HdOkaCamera()
+HdStrelkaCamera::~HdStrelkaCamera()
 {
 }
 
-float HdOkaCamera::GetVFov() const
+float HdStrelkaCamera::GetVFov() const
 {
     return m_vfov;
 }
 
-uint32_t HdOkaCamera::GetCameraIndex() const
+uint32_t HdStrelkaCamera::GetCameraIndex() const
 {
     return mCameraIndex;
 }
 
-void HdOkaCamera::Sync(HdSceneDelegate* sceneDelegate,
+void HdStrelkaCamera::Sync(HdSceneDelegate* sceneDelegate,
                         HdRenderParam* renderParam,
                         HdDirtyBits* dirtyBits)
 {
@@ -53,22 +53,22 @@ void HdOkaCamera::Sync(HdSceneDelegate* sceneDelegate,
         float vfov = 2.0f * std::atanf(aperture / (2.0f * focalLength));
 
         m_vfov = vfov;
-        oka::Camera cam = _ConstructOkaCamera();
+        oka::Camera cam = _ConstructStrelkaCamera();
         mScene.updateCamera(cam, mCameraIndex);
     }
 
     *dirtyBits = DirtyBits::Clean;
 }
 
-HdDirtyBits HdOkaCamera::GetInitialDirtyBitsMask() const
+HdDirtyBits HdStrelkaCamera::GetInitialDirtyBitsMask() const
 {
     return DirtyBits::DirtyParams |
            DirtyBits::DirtyTransform;
 }
 
-oka::Camera HdOkaCamera::_ConstructOkaCamera()
+oka::Camera HdStrelkaCamera::_ConstructStrelkaCamera()
 {
-    oka::Camera okaCamera;
+    oka::Camera strelkaCamera;
 
 #ifdef __APPLE__
     GfMatrix4d perspMatrix = ComputeProjectionMatrix();
@@ -101,17 +101,17 @@ oka::Camera HdOkaCamera::_ConstructOkaCamera()
         glm::vec4 perspective;
         glm::decompose(xform, scale, rotation, translation, skew, perspective);
         rotation = glm::conjugate(rotation);
-        okaCamera.position = translation * scale;
-        okaCamera.mOrientation = rotation;
+        strelkaCamera.position = translation * scale;
+        strelkaCamera.mOrientation = rotation;
     }
-    okaCamera.matrices.perspective = persp;
-    okaCamera.matrices.invPerspective = glm::inverse(persp);
-    okaCamera.fov = glm::degrees(GetVFov());
+    strelkaCamera.matrices.perspective = persp;
+    strelkaCamera.matrices.invPerspective = glm::inverse(persp);
+    strelkaCamera.fov = glm::degrees(GetVFov());
 
     const std::string& name = GetId().GetString();
-    okaCamera.name = name;
+    strelkaCamera.name = name;
 
-    return okaCamera;
+    return strelkaCamera;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

@@ -4,7 +4,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdOkaRenderBuffer::HdOkaRenderBuffer(const SdfPath& id, oka::SharedContext* ctx)
+HdStrelkaRenderBuffer::HdStrelkaRenderBuffer(const SdfPath& id, oka::SharedContext* ctx)
     : HdRenderBuffer(id), mCtx(ctx)
 {
     m_isMapped = false;
@@ -12,11 +12,11 @@ HdOkaRenderBuffer::HdOkaRenderBuffer(const SdfPath& id, oka::SharedContext* ctx)
     m_bufferMem = nullptr;
 }
 
-HdOkaRenderBuffer::~HdOkaRenderBuffer()
+HdStrelkaRenderBuffer::~HdStrelkaRenderBuffer()
 {
 }
 
-bool HdOkaRenderBuffer::Allocate(const GfVec3i& dimensions,
+bool HdStrelkaRenderBuffer::Allocate(const GfVec3i& dimensions,
                                      HdFormat format,
                                      bool multiSampled)
 {
@@ -52,68 +52,68 @@ bool HdOkaRenderBuffer::Allocate(const GfVec3i& dimensions,
     return true;
 }
 
-unsigned int HdOkaRenderBuffer::GetWidth() const
+unsigned int HdStrelkaRenderBuffer::GetWidth() const
 {
     return m_width;
 }
 
-unsigned int HdOkaRenderBuffer::GetHeight() const
+unsigned int HdStrelkaRenderBuffer::GetHeight() const
 {
     return m_height;
 }
 
-unsigned int HdOkaRenderBuffer::GetDepth() const
+unsigned int HdStrelkaRenderBuffer::GetDepth() const
 {
     return 1u;
 }
 
-HdFormat HdOkaRenderBuffer::GetFormat() const
+HdFormat HdStrelkaRenderBuffer::GetFormat() const
 {
     return m_format;
 }
 
-bool HdOkaRenderBuffer::IsMultiSampled() const
+bool HdStrelkaRenderBuffer::IsMultiSampled() const
 {
     return m_isMultiSampled;
 }
 
-VtValue HdOkaRenderBuffer::GetResource(bool multiSampled) const
+VtValue HdStrelkaRenderBuffer::GetResource(bool multiSampled) const
 {
     return VtValue((uint8_t*) mResult);
 }
 
-bool HdOkaRenderBuffer::IsConverged() const
+bool HdStrelkaRenderBuffer::IsConverged() const
 {
     return m_isConverged;
 }
 
-void HdOkaRenderBuffer::SetConverged(bool converged)
+void HdStrelkaRenderBuffer::SetConverged(bool converged)
 {
     m_isConverged = converged;
 }
 
-void* HdOkaRenderBuffer::Map()
+void* HdStrelkaRenderBuffer::Map()
 {
     m_isMapped = true;
 
     return m_bufferMem;
 }
 
-bool HdOkaRenderBuffer::IsMapped() const
+bool HdStrelkaRenderBuffer::IsMapped() const
 {
     return m_isMapped;
 }
 
-void HdOkaRenderBuffer::Unmap()
+void HdStrelkaRenderBuffer::Unmap()
 {
     m_isMapped = false;
 }
 
-void HdOkaRenderBuffer::Resolve()
+void HdStrelkaRenderBuffer::Resolve()
 {
 }
 
-void HdOkaRenderBuffer::_Deallocate()
+void HdStrelkaRenderBuffer::_Deallocate()
 {
     free(m_bufferMem);
 }

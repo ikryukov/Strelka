@@ -4,7 +4,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaMdlParserPlugin final : public NdrParserPlugin
+class HdStrelkaMdlParserPlugin final : public NdrParserPlugin
 {
 public:
   NdrNodeUniquePtr Parse(const NdrNodeDiscoveryResult& discoveryResult) override;

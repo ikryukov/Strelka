@@ -10,19 +10,19 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaCamera;
-class HdOkaMesh;
+class HdStrelkaCamera;
+class HdStrelkaMesh;
 
-class HdOkaRenderPass final : public HdRenderPass
+class HdStrelkaRenderPass final : public HdRenderPass
 {
 public:
-    HdOkaRenderPass(HdRenderIndex* index,
+    HdStrelkaRenderPass(HdRenderIndex* index,
                      const HdRprimCollection& collection,
                      const HdRenderSettingsMap& settings,
                      oka::PtRender* renderer,
                      oka::Scene* scene);
 
-    ~HdOkaRenderPass() override;
+    ~HdStrelkaRenderPass() override;
 
 public:
     bool IsConverged() const override;
@@ -32,7 +32,7 @@ protected:
                   const TfTokenVector& renderTags) override;
 
 private:
-    void _BakeMeshInstance(const HdOkaMesh* mesh,
+    void _BakeMeshInstance(const HdStrelkaMesh* mesh,
                            GfMatrix4d transform,
                            uint32_t materialIndex);
 

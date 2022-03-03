@@ -4,7 +4,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaMdlDiscoveryPlugin final : public NdrDiscoveryPlugin
+class HdStrelkaMdlDiscoveryPlugin final : public NdrDiscoveryPlugin
 {
 public:
   NdrNodeDiscoveryResultVec DiscoverNodes(const Context& ctx) override;

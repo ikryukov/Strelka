@@ -24,7 +24,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-HdOkaRenderPass::HdOkaRenderPass(HdRenderIndex* index,
+HdStrelkaRenderPass::HdStrelkaRenderPass(HdRenderIndex* index,
                                    const HdRprimCollection& collection,
                                    const HdRenderSettingsMap& settings,
                                    oka::PtRender* renderer,
@@ -33,11 +33,11 @@ HdOkaRenderPass::HdOkaRenderPass(HdRenderIndex* index,
 {
 }
 
-HdOkaRenderPass::~HdOkaRenderPass()
+HdStrelkaRenderPass::~HdStrelkaRenderPass()
 {
 }
 
-bool HdOkaRenderPass::IsConverged() const
+bool HdStrelkaRenderPass::IsConverged() const
 {
     return m_isConverged;
 }
@@ -51,7 +51,7 @@ uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
-void HdOkaRenderPass::_BakeMeshInstance(const HdOkaMesh* mesh,
+void HdStrelkaRenderPass::_BakeMeshInstance(const HdStrelkaMesh* mesh,
                                          GfMatrix4d transform,
                                          uint32_t materialIndex)
 {
@@ -105,7 +105,7 @@ void HdOkaRenderPass::_BakeMeshInstance(const HdOkaMesh* mesh,
     assert(instId != -1);
 }
 
-void HdOkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
+void HdStrelkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
                                    GfMatrix4d rootTransform)
 {
     TfHashMap<SdfPath, uint32_t, SdfPath::Hash> materialMapping;
@@ -120,7 +120,7 @@ void HdOkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
             continue;
         }
 
-        const HdOkaMesh* mesh = dynamic_cast<const HdOkaMesh*>(rprim);
+        const HdStrelkaMesh* mesh = dynamic_cast<const HdStrelkaMesh*>(rprim);
 
         VtMatrix4dArray transforms;
         const SdfPath& instancerId = mesh->GetInstancerId();
@@ -133,7 +133,7 @@ void HdOkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
         else
         {
             HdInstancer* boxedInstancer = renderIndex->GetInstancer(instancerId);
-            HdOkaInstancer* instancer = dynamic_cast<HdOkaInstancer*>(boxedInstancer);
+            HdStrelkaInstancer* instancer = dynamic_cast<HdStrelkaInstancer*>(boxedInstancer);
 
             const SdfPath& meshId = mesh->GetId();
             transforms = instancer->ComputeInstanceTransforms(meshId);
@@ -150,7 +150,7 @@ void HdOkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
         else
         {
             HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->material, materialId);
-            HdOkaMaterial* material = dynamic_cast<HdOkaMaterial*>(sprim);
+            HdStrelkaMaterial* material = dynamic_cast<HdStrelkaMaterial*>(sprim);
 
             if (material->isMdl())
             {
@@ -164,7 +164,7 @@ void HdOkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
             }
             else
             {
-                const std::string& code = material->GetOkaMaterial();
+                const std::string& code = material->GetStrelkaMaterial();
                 oka::Scene::MaterialDescription material;
                 material.code = code;
                 material.type = oka::Scene::MaterialDescription::Type::eMaterialX;
@@ -188,7 +188,7 @@ void HdOkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex,
     fflush(stdout);
 }
 
-void HdOkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState,
+void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState,
                                 const TfTokenVector& renderTags)
 {
     TF_UNUSED(renderTags);
@@ -198,7 +198,7 @@ void HdOkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState
 
     m_isConverged = false;
 
-    const auto* camera = dynamic_cast<const HdOkaCamera*>(renderPassState->GetCamera());
+    const auto* camera = dynamic_cast<const HdStrelkaCamera*>(renderPassState->GetCamera());
 
     if (!camera)
     {
@@ -218,7 +218,7 @@ void HdOkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState
     {
         if (aovBinding.aovName != HdAovTokens->color)
         {
-            HdOkaRenderBuffer* renderBuffer = dynamic_cast<HdOkaRenderBuffer*>(aovBinding.renderBuffer);
+            HdStrelkaRenderBuffer* renderBuffer = dynamic_cast<HdStrelkaRenderBuffer*>(aovBinding.renderBuffer);
             renderBuffer->SetConverged(true);
             continue;
         }
@@ -234,7 +234,7 @@ void HdOkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState
     HdRenderIndex* renderIndex = GetRenderIndex();
     HdChangeTracker& changeTracker = renderIndex->GetChangeTracker();
     HdRenderDelegate* renderDelegate = renderIndex->GetRenderDelegate();
-    HdOkaRenderBuffer* renderBuffer = dynamic_cast<HdOkaRenderBuffer*>(colorAovBinding->renderBuffer);
+    HdStrelkaRenderBuffer* renderBuffer = dynamic_cast<HdStrelkaRenderBuffer*>(colorAovBinding->renderBuffer);
 
     uint32_t sceneStateVersion = changeTracker.GetSceneStateVersion();
     uint32_t renderSettingsStateVersion = renderDelegate->GetRenderSettingsVersion();
@@ -297,7 +297,7 @@ void HdOkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState
                 for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
                 {
                     HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->rectLight, sprimPaths[lightIdx]);
-                    HdOkaLight* light = dynamic_cast<HdOkaLight*>(sprim);
+                    HdStrelkaLight* light = dynamic_cast<HdStrelkaLight*>(sprim);
                     mScene->createLight(light->getLightDesc());
                 }
             }
@@ -309,7 +309,7 @@ void HdOkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassState
                 for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
                 {
                     HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->diskLight, sprimPaths[lightIdx]);
-                    HdOkaLight* light = dynamic_cast<HdOkaLight*>(sprim);
+                    HdStrelkaLight* light = dynamic_cast<HdStrelkaLight*>(sprim);
                     mScene->createLight(light->getLightDesc());
                 }
             }

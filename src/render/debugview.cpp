@@ -27,8 +27,8 @@ void DebugView::execute(VkCommandBuffer& cmd, const DebugDesc& desc, uint32_t wi
     }
     
     int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
-    OkaResult res = updatePipeline(frameVersion);
-    assert(res == OkaResult::eOk);
+    StrelkaResult res = updatePipeline(frameVersion);
+    assert(res == StrelkaResult::eOk);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
     VkDescriptorSet descSet = param.getDescriptorSet(frameIndex);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);

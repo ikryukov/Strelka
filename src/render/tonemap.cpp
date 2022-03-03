@@ -23,8 +23,8 @@ void Tonemap::execute(VkCommandBuffer& cmd, const TonemapDesc& desc, uint32_t wi
         param.setTexture("output", mSharedCtx.mResManager->getView(desc.output));
     }
     int frameVersion = frameIndex % MAX_FRAMES_IN_FLIGHT;
-    OkaResult res = updatePipeline(frameVersion);
-    assert(res == OkaResult::eOk);
+    StrelkaResult res = updatePipeline(frameVersion);
+    assert(res == StrelkaResult::eOk);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeline(frameVersion));
     VkDescriptorSet descSet = param.getDescriptorSet(frameVersion);
     vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, getPipeLineLayout(frameVersion), 0, 1, &descSet, 0, nullptr);

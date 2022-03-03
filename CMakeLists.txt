@@ -313,35 +313,35 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 
 # Hydra plugin
 set(HD_PLUGIN_SOURCES
-    include/HdOka/RendererPlugin.h
-    src/HdOka/RendererPlugin.cpp
-    src/HdOka/RenderParam.h
-    src/HdOka/RenderBuffer.h
-    src/HdOka/RenderDelegate.h
-    src/HdOka/RenderPass.h
-    src/HdOka/RenderBuffer.cpp
-    src/HdOka/RenderDelegate.cpp
-    src/HdOka/RenderPass.cpp
-    src/HdOka/Instancer.h
-    src/HdOka/Instancer.cpp
-    src/HdOka/Material.h
-    src/HdOka/Material.cpp
-    src/HdOka/Camera.h
-    src/HdOka/Camera.cpp
-    src/HdOka/Mesh.h
-    src/HdOka/Mesh.cpp
-    src/HdOka/Light.h
-    src/HdOka/Light.cpp
-    src/HdOka/Tokens.h
-    src/HdOka/Tokens.cpp
-    src/HdOka/MaterialNetworkTranslator.h
-    src/HdOka/MaterialNetworkTranslator.cpp
-    src/HdOka/MdlParserPlugin.h
-    src/HdOka/MdlParserPlugin.cpp
-    src/HdOka/MdlDiscoveryPlugin.h
-    src/HdOka/MdlDiscoveryPlugin.cpp
+    include/HdStrelka/RendererPlugin.h
+    src/HdStrelka/RendererPlugin.cpp
+    src/HdStrelka/RenderParam.h
+    src/HdStrelka/RenderBuffer.h
+    src/HdStrelka/RenderDelegate.h
+    src/HdStrelka/RenderPass.h
+    src/HdStrelka/RenderBuffer.cpp
+    src/HdStrelka/RenderDelegate.cpp
+    src/HdStrelka/RenderPass.cpp
+    src/HdStrelka/Instancer.h
+    src/HdStrelka/Instancer.cpp
+    src/HdStrelka/Material.h
+    src/HdStrelka/Material.cpp
+    src/HdStrelka/Camera.h
+    src/HdStrelka/Camera.cpp
+    src/HdStrelka/Mesh.h
+    src/HdStrelka/Mesh.cpp
+    src/HdStrelka/Light.h
+    src/HdStrelka/Light.cpp
+    src/HdStrelka/Tokens.h
+    src/HdStrelka/Tokens.cpp
+    src/HdStrelka/MaterialNetworkTranslator.h
+    src/HdStrelka/MaterialNetworkTranslator.cpp
+    src/HdStrelka/MdlParserPlugin.h
+    src/HdStrelka/MdlParserPlugin.cpp
+    src/HdStrelka/MdlDiscoveryPlugin.h
+    src/HdStrelka/MdlDiscoveryPlugin.cpp
 )
-set(HD_PLUGIN_NAME HdOka)
+set(HD_PLUGIN_NAME HdStrelka)
 add_library(${HD_PLUGIN_NAME} SHARED ${HD_PLUGIN_SOURCES})
 set_target_properties(
   ${HD_PLUGIN_NAME}
@@ -379,8 +379,8 @@ set(Boost_USE_STATIC_LIBS OFF)
 set(BUILD_SHARED_LIBS ON)
 # find_package(Boost COMPONENTS python REQUIRED)
 
-target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/hdOka)
-target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/hdOka)
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/hdStrelka)
+target_include_directories(${HD_PLUGIN_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/src/hdStrelka)
 target_include_directories(${HD_PLUGIN_NAME} PUBLIC hd)
 target_include_directories(${HD_PLUGIN_NAME} PRIVATE 
     usdImaging
@@ -400,7 +400,7 @@ target_link_libraries(
 
 set(PLUGINFO_PATH "${CMAKE_CURRENT_BINARY_DIR}/plugInfo.json")
 
-file(READ ${PROJECT_SOURCE_DIR}/src/hdOka/plugInfo.json.in PLUGINFO)
+file(READ ${PROJECT_SOURCE_DIR}/src/hdStrelka/plugInfo.json.in PLUGINFO)
 file(
   GENERATE
   OUTPUT
@@ -413,7 +413,7 @@ install(
   FILES
     "${PLUGINFO_PATH}"
   DESTINATION
-    "${CMAKE_INSTALL_PREFIX}/HdOka/resources"
+    "${CMAKE_INSTALL_PREFIX}/HdStrelka/resources"
   COMPONENT
     ${HD_PLUGIN_NAME}
 )
@@ -525,9 +525,9 @@ endif ()
 # CXXOPTS
 target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
 
-option(OKA_TESTS "enable tests" OFF)
+option(STRELKA_TESTS "enable tests" OFF)
 
-if (NOT OKA_TESTS)
+if (NOT STRELKA_TESTS)
     message(STATUS "tests are disabled")
 else ()
     add_subdirectory(tests)

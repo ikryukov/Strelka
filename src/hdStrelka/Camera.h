@@ -6,12 +6,12 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-class HdOkaCamera final : public HdCamera
+class HdStrelkaCamera final : public HdCamera
 {
 public:
-    HdOkaCamera(const SdfPath& id, oka::Scene& scene);
+    HdStrelkaCamera(const SdfPath& id, oka::Scene& scene);
 
-    ~HdOkaCamera() override;
+    ~HdStrelkaCamera() override;
 
 public:
     float GetVFov() const;
@@ -26,7 +26,7 @@ public:
     HdDirtyBits GetInitialDirtyBitsMask() const override;
 
 private:
-    oka::Camera _ConstructOkaCamera();
+    oka::Camera _ConstructStrelkaCamera();
 
     float m_vfov;
     oka::Scene& mScene;

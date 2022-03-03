@@ -35,7 +35,7 @@ protected:
 
         return shaderModule;
     }
-    OkaResult createComputePipeline(VkShaderModule& shaderModule, int frameVersion)
+    StrelkaResult createComputePipeline(VkShaderModule& shaderModule, int frameVersion)
     {
         assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
         VkPipelineShaderStageCreateInfo shaderStageInfo{};
@@ -52,7 +52,7 @@ protected:
 
         if (vkCreatePipelineLayout(mSharedCtx.mDevice, &pipelineLayoutInfo, nullptr, &mPipelineLayouts[frameVersion]) != VK_SUCCESS)
         {
-            return OkaResult::eFail;
+            return StrelkaResult::eFail;
         }
 
         VkComputePipelineCreateInfo pipelineInfo{};
@@ -63,9 +63,9 @@ protected:
 
         if (vkCreateComputePipelines(mSharedCtx.mDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &mPipelines[frameVersion]) != VK_SUCCESS)
         {
-            return OkaResult::eFail;
+            return StrelkaResult::eFail;
         }
-        return OkaResult::eOk;
+        return StrelkaResult::eOk;
     }
 
 public:
@@ -117,18 +117,18 @@ public:
         mShaderParamFactory.initialize(csId);
     }
 
-    OkaResult updatePipeline(int frameVersion)
+    StrelkaResult updatePipeline(int frameVersion)
     {
         assert((frameVersion >= 0) && (frameVersion < MAX_FRAMES_IN_FLIGHT));
         if (mNeedUpdatePipeline[frameVersion])
         {
             vkDestroyPipeline(mSharedCtx.mDevice, mPipelines[frameVersion], nullptr);
             vkDestroyPipelineLayout(mSharedCtx.mDevice, mPipelineLayouts[frameVersion], nullptr);
-            OkaResult res = createComputePipeline(mCS, frameVersion);
+            StrelkaResult res = createComputePipeline(mCS, frameVersion);
             mNeedUpdatePipeline[frameVersion] = false;
             return res;
         }
-        return OkaResult::eOk;
+        return StrelkaResult::eOk;
     }
 
     VkPipeline getPipeline(int frameVersion)
