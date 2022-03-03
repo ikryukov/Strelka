@@ -32,14 +32,14 @@
 namespace fs = std::filesystem;
 
 
-namespace nevk
+namespace oka
 {
 struct MaterialManager::TargetCode
 {
     mi::base::Handle<const mi::neuraylib::ITarget_code> targetCode;
     std::string targetHlsl;
     std::vector<Mdl_resource_info> resourceInfo;
-    std::vector<nevk::MdlHlslCodeGen::InternalMaterialInfo> internalsInfo;
+    std::vector<oka::MdlHlslCodeGen::InternalMaterialInfo> internalsInfo;
     std::vector<MdlMaterial> mdlMaterials;
     std::vector<uint8_t> argBlockData;
     std::vector<uint8_t> roData;
@@ -180,15 +180,15 @@ public:
     // paths is array of resource pathes + mdl path
     bool addMdlSearchPath(const char* paths[], uint32_t numPaths)
     {
-        mRuntime = std::make_unique<nevk::MdlRuntime>();
+        mRuntime = std::make_unique<oka::MdlRuntime>();
         if (!mRuntime->init(paths, numPaths, mPathso.c_str(), mImagePluginPath.c_str()))
         {
             return false;
         }
 
-        mMtlxCodeGen = std::make_unique<nevk::MtlxMdlCodeGen>(mtlxLibPath.c_str());
+        mMtlxCodeGen = std::make_unique<oka::MtlxMdlCodeGen>(mtlxLibPath.c_str());
 
-        mMatCompiler = std::make_unique<nevk::MdlMaterialCompiler>(*mRuntime);
+        mMatCompiler = std::make_unique<oka::MdlMaterialCompiler>(*mRuntime);
         mTransaction = mi::base::Handle<mi::neuraylib::ITransaction>(mRuntime->getTransaction());
         mNeuray = mRuntime->getNeuray();
 
@@ -280,16 +280,16 @@ public:
         mi::base::Handle<mi::neuraylib::IValue> value;
         switch (type)
         {
-        case nevk::MaterialManager::ParamType::eFloat: {
+        case oka::MaterialManager::ParamType::eFloat: {
             value = value_factory->create_float(*((float*)paramData));
             break;
         }
-        case nevk::MaterialManager::ParamType::eColor: {
+        case oka::MaterialManager::ParamType::eColor: {
             float* dataPtr = (float*)paramData;
             value = value_factory->create_color(dataPtr[0], dataPtr[1], dataPtr[2]);
             break;
         }
-        case nevk::MaterialManager::ParamType::eTexture: {
+        case oka::MaterialManager::ParamType::eTexture: {
             const TextureDescription* texDesc = (const TextureDescription*)paramData;
             value = value_factory->create_texture(texDesc->textureType.get(), texDesc->dbName.c_str());
             break;
@@ -603,10 +603,10 @@ private:
 #endif
     }
 
-    std::unique_ptr<nevk::MdlHlslCodeGen> mCodeGen = nullptr;
-    std::unique_ptr<nevk::MdlMaterialCompiler> mMatCompiler = nullptr;
-    std::unique_ptr<nevk::MdlRuntime> mRuntime = nullptr;
-    std::unique_ptr<nevk::MtlxMdlCodeGen> mMtlxCodeGen = nullptr;
+    std::unique_ptr<oka::MdlHlslCodeGen> mCodeGen = nullptr;
+    std::unique_ptr<oka::MdlMaterialCompiler> mMatCompiler = nullptr;
+    std::unique_ptr<oka::MdlRuntime> mRuntime = nullptr;
+    std::unique_ptr<oka::MtlxMdlCodeGen> mMtlxCodeGen = nullptr;
 
     mi::base::Handle<mi::neuraylib::ITransaction> mTransaction;
     mi::base::Handle<MdlLogger> mLogger;
@@ -848,4 +848,4 @@ std::vector<uint8_t> MaterialManager::Context::loadROData(const TargetCode* targ
 
     return roData;
 }
-} // namespace nevk
+} // namespace oka

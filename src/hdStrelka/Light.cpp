@@ -57,13 +57,10 @@ static GfVec3f const _blackbodyRGB[] = {
 
 // Catmull-Rom basis
 static const float _basis[4][4] = {
-    {-0.5f,  1.5f, -1.5f,  0.5f},
-    { 1.f,  -2.5f,  2.0f, -0.5f},
-    {-0.5f,  0.0f,  0.5f,  0.0f},
-    { 0.f,   1.0f,  0.0f,  0.0f}
+    { -0.5f, 1.5f, -1.5f, 0.5f }, { 1.f, -2.5f, 2.0f, -0.5f }, { -0.5f, 0.0f, 0.5f, 0.0f }, { 0.f, 1.0f, 0.0f, 0.0f }
 };
 
-static inline float _Rec709RgbToLuma(const GfVec3f &rgb)
+static inline float _Rec709RgbToLuma(const GfVec3f& rgb)
 {
     return GfDot(rgb, GfVec3f(0.2126f, 0.7152f, 0.0722f));
 }
@@ -76,23 +73,23 @@ static GfVec3f _BlackbodyTemperatureAsRgb(float temp)
     const float u_spline = GfClamp((temp - 1000.0f) / 9000.0f, 0.0f, 1.0f);
     // Last 4 knots represent a trailing segment starting at u_spline==1.0,
     // to simplify boundary behavior
-    constexpr int numSegs = (numKnots-4);
+    constexpr int numSegs = (numKnots - 4);
     const float x = u_spline * numSegs;
     const int seg = int(floor(x));
-    const float u_seg = x-seg; // Parameter within segment
+    const float u_seg = x - seg; // Parameter within segment
     // Knot values for this segment
-    GfVec3f k0 = _blackbodyRGB[seg+0];
-    GfVec3f k1 = _blackbodyRGB[seg+1];
-    GfVec3f k2 = _blackbodyRGB[seg+2];
-    GfVec3f k3 = _blackbodyRGB[seg+3];
+    GfVec3f k0 = _blackbodyRGB[seg + 0];
+    GfVec3f k1 = _blackbodyRGB[seg + 1];
+    GfVec3f k2 = _blackbodyRGB[seg + 2];
+    GfVec3f k3 = _blackbodyRGB[seg + 3];
     // Compute cubic coefficients.  Could fold constants (zero, one) here
     // if speed is a concern.
-    GfVec3f a=_basis[0][0]*k0+_basis[0][1]*k1+_basis[0][2]*k2+_basis[0][3]*k3;
-    GfVec3f b=_basis[1][0]*k0+_basis[1][1]*k1+_basis[1][2]*k2+_basis[1][3]*k3;
-    GfVec3f c=_basis[2][0]*k0+_basis[2][1]*k1+_basis[2][2]*k2+_basis[2][3]*k3;
-    GfVec3f d=_basis[3][0]*k0+_basis[3][1]*k1+_basis[3][2]*k2+_basis[3][3]*k3;
+    GfVec3f a = _basis[0][0] * k0 + _basis[0][1] * k1 + _basis[0][2] * k2 + _basis[0][3] * k3;
+    GfVec3f b = _basis[1][0] * k0 + _basis[1][1] * k1 + _basis[1][2] * k2 + _basis[1][3] * k3;
+    GfVec3f c = _basis[2][0] * k0 + _basis[2][1] * k1 + _basis[2][2] * k2 + _basis[2][3] * k3;
+    GfVec3f d = _basis[3][0] * k0 + _basis[3][1] * k1 + _basis[3][2] * k2 + _basis[3][3] * k3;
     // Eval cubic polynomial.
-    GfVec3f rgb = ((a*u_seg+b)*u_seg+c)*u_seg+d;
+    GfVec3f rgb = ((a * u_seg + b) * u_seg + c) * u_seg + d;
     // Normalize to the same luminance as (1,1,1)
     rgb /= _Rec709RgbToLuma(rgb);
     // Clamp at zero, since the spline can produce small negative values,
@@ -103,61 +100,50 @@ static GfVec3f _BlackbodyTemperatureAsRgb(float temp)
     return rgb;
 }
 
-HdNeVKLight::HdNeVKLight(const SdfPath& id, TfToken const& lightType)
-    : HdLight(id), mLightType(lightType)
+HdStrelkaLight::HdStrelkaLight(const SdfPath& id, TfToken const& lightType) : HdLight(id), mLightType(lightType)
 {
 }
 
-HdNeVKLight::~HdNeVKLight()
+HdStrelkaLight::~HdStrelkaLight()
 {
 }
 
-void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
-                      HdRenderParam* renderParam,
-                      HdDirtyBits* dirtyBits)
+void HdStrelkaLight::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* renderParam, HdDirtyBits* dirtyBits)
 {
     TF_UNUSED(renderParam);
 
     bool pullLight = (*dirtyBits & DirtyBits::DirtyParams);
-    
+
     *dirtyBits = DirtyBits::Clean;
-    
+
     if (!pullLight)
     {
         return;
     }
 
     const SdfPath& id = GetId();
-    //const VtValue& resource = sceneDelegate->GetMaterialResource(id);
+    // const VtValue& resource = sceneDelegate->GetMaterialResource(id);
 
     // Get the color of the light
-    GfVec3f hdc = sceneDelegate->GetLightParamValue(id, HdLightTokens->color)
-                      .Get<GfVec3f>();
+    GfVec3f hdc = sceneDelegate->GetLightParamValue(id, HdLightTokens->color).Get<GfVec3f>();
 
     // Color temperature
-    VtValue enableColorTemperatureVal = sceneDelegate->GetLightParamValue(id,
-                                                                          HdLightTokens->enableColorTemperature);
+    VtValue enableColorTemperatureVal = sceneDelegate->GetLightParamValue(id, HdLightTokens->enableColorTemperature);
     if (enableColorTemperatureVal.GetWithDefault<bool>(false))
     {
-        VtValue colorTemperatureVal = sceneDelegate->GetLightParamValue(id,
-                                                                        HdLightTokens->colorTemperature);
+        VtValue colorTemperatureVal = sceneDelegate->GetLightParamValue(id, HdLightTokens->colorTemperature);
         if (colorTemperatureVal.IsHolding<float>())
         {
             float colorTemperature = colorTemperatureVal.Get<float>();
-            hdc = GfCompMult(hdc,
-                             _BlackbodyTemperatureAsRgb(colorTemperature));
+            hdc = GfCompMult(hdc, _BlackbodyTemperatureAsRgb(colorTemperature));
         }
     }
 
     // Intensity
-    float intensity =
-        sceneDelegate->GetLightParamValue(id, HdLightTokens->intensity)
-            .Get<float>();
+    float intensity = sceneDelegate->GetLightParamValue(id, HdLightTokens->intensity).Get<float>();
 
     // Exposure
-    float exposure =
-        sceneDelegate->GetLightParamValue(id, HdLightTokens->exposure)
-            .Get<float>();
+    float exposure = sceneDelegate->GetLightParamValue(id, HdLightTokens->exposure).Get<float>();
     intensity *= powf(2.0f, GfClamp(exposure, -50.0f, 50.0f));
 
     // Transform
@@ -183,14 +169,12 @@ void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
         float width = 0.0f;
         float height = 0.0f;
 
-        VtValue widthVal =
-            sceneDelegate->GetLightParamValue(id, HdLightTokens->width);
+        VtValue widthVal = sceneDelegate->GetLightParamValue(id, HdLightTokens->width);
         if (widthVal.IsHolding<float>())
         {
             width = widthVal.Get<float>();
         }
-        VtValue heightVal =
-            sceneDelegate->GetLightParamValue(id, HdLightTokens->height);
+        VtValue heightVal = sceneDelegate->GetLightParamValue(id, HdLightTokens->height);
         if (heightVal.IsHolding<float>())
         {
             height = heightVal.Get<float>();
@@ -203,21 +187,21 @@ void HdNeVKLight::Sync(HdSceneDelegate* sceneDelegate,
     {
         mLightDesc.type = 1;
         float radius = 0.0;
-        VtValue radiusVal =
-            sceneDelegate->GetLightParamValue(id, HdLightTokens->radius);
-        if (radiusVal.IsHolding<float>()) {
+        VtValue radiusVal = sceneDelegate->GetLightParamValue(id, HdLightTokens->radius);
+        if (radiusVal.IsHolding<float>())
+        {
             radius = radiusVal.Get<float>();
         }
         mLightDesc.radius = radius * mLightDesc.xform[0][0]; // uniform scale
     }
 }
 
-HdDirtyBits HdNeVKLight::GetInitialDirtyBitsMask() const
+HdDirtyBits HdStrelkaLight::GetInitialDirtyBitsMask() const
 {
     return (DirtyParams | DirtyTransform);
 }
 
-nevk::Scene::UniformLightDesc HdNeVKLight::getLightDesc()
+oka::Scene::UniformLightDesc HdStrelkaLight::getLightDesc()
 {
     return mLightDesc;
 }

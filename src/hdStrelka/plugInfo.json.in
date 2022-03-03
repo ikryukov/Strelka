@@ -3,25 +3,25 @@
         {
             "Info": {
                 "Types": {
-                    "HdNeVKRendererPlugin": {
+                    "HdStrelkaRendererPlugin": {
                         "bases": [
                             "HdRendererPlugin"
                         ],
-                        "displayName": "NeVK",
+                        "displayName": "Strelka",
                         "priority": 99
                     },
-                    "HdNeVKMdlDiscoveryPlugin": {
+                    "HdStrelkaMdlDiscoveryPlugin": {
                         "bases": ["NdrDiscoveryPlugin"],
                         "displayName": "MDL Discovery"
                     },
-                    "HdNeVKMdlParserPlugin": {
+                    "HdStrelkaMdlParserPlugin": {
                         "bases": ["NdrParserPlugin"],
                         "displayName": "MDL Node Parser"
                     }
                 }
             },
-            "LibraryPath": "../$<TARGET_FILE_NAME:HdNeVK>",
-            "Name": "HdNeVK",
+            "LibraryPath": "../$<TARGET_FILE_NAME:HdStrelka>",
+            "Name": "HdStrelka",
             "ResourcePath": "resources",
             "Root": "..",
             "Type": "library"

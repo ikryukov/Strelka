@@ -8,7 +8,7 @@ const int compDir = 1;
 const int compDir = 0;
 #endif
 
-namespace nevk
+namespace oka
 {
 
 ShaderManager::ShaderManager()
@@ -35,7 +35,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShaderFromString(const char* sou
     SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_MAXIMAL;
     spSetOptimizationLevel(slangRequest, optLevel);
     spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(compDir).c_str());
-    //spAddPreprocessorDefine(slangRequest, "MDL_NUM_TEXTURE_RESULTS", "0");
+    // spAddPreprocessorDefine(slangRequest, "MDL_NUM_TEXTURE_RESULTS", "0");
     spAddSearchPath(slangRequest, "./shaders/");
     int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
     spAddTranslationUnitSourceString(slangRequest, translationUnitIndex, "memory", source);
@@ -43,13 +43,13 @@ ShaderManager::ShaderDesc ShaderManager::compileShaderFromString(const char* sou
     SlangStage slangStage = SLANG_STAGE_NONE;
     switch (stage)
     {
-    case nevk::ShaderManager::Stage::eVertex:
+    case oka::ShaderManager::Stage::eVertex:
         slangStage = SLANG_STAGE_VERTEX;
         break;
-    case nevk::ShaderManager::Stage::ePixel:
+    case oka::ShaderManager::Stage::ePixel:
         slangStage = SLANG_STAGE_PIXEL;
         break;
-    case nevk::ShaderManager::Stage::eCompute:
+    case oka::ShaderManager::Stage::eCompute:
         slangStage = SLANG_STAGE_COMPUTE;
         break;
     default:
@@ -85,7 +85,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShaderFromString(const char* sou
     desc.slangReflection = (slang::ShaderReflection*)spGetReflection(slangRequest);
     desc.slangRequest = slangRequest;
 
-    //spDestroyCompileRequest(slangRequest);
+    // spDestroyCompileRequest(slangRequest);
     return desc;
 }
 
@@ -99,7 +99,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     SlangOptimizationLevel optLevel = SLANG_OPTIMIZATION_LEVEL_DEFAULT;
     spSetOptimizationLevel(slangRequest, optLevel);
     spAddPreprocessorDefine(slangRequest, "__APPLE__", std::to_string(compDir).c_str());
-    //spAddPreprocessorDefine(slangRequest, "MDL_NUM_TEXTURE_RESULTS", "0");
+    // spAddPreprocessorDefine(slangRequest, "MDL_NUM_TEXTURE_RESULTS", "0");
 
     int translationUnitIndex = spAddTranslationUnit(slangRequest, SLANG_SOURCE_LANGUAGE_SLANG, nullptr);
     spAddTranslationUnitSourceFile(slangRequest, translationUnitIndex, fileName);
@@ -107,13 +107,13 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     SlangStage slangStage = SLANG_STAGE_NONE;
     switch (stage)
     {
-    case nevk::ShaderManager::Stage::eVertex:
+    case oka::ShaderManager::Stage::eVertex:
         slangStage = SLANG_STAGE_VERTEX;
         break;
-    case nevk::ShaderManager::Stage::ePixel:
+    case oka::ShaderManager::Stage::ePixel:
         slangStage = SLANG_STAGE_PIXEL;
         break;
-    case nevk::ShaderManager::Stage::eCompute:
+    case oka::ShaderManager::Stage::eCompute:
         slangStage = SLANG_STAGE_COMPUTE;
         break;
     default:
@@ -149,7 +149,7 @@ ShaderManager::ShaderDesc ShaderManager::compileShader(const char* fileName, con
     desc.slangReflection = (slang::ShaderReflection*)spGetReflection(slangRequest);
     desc.slangRequest = slangRequest;
 
-    //spDestroyCompileRequest(slangRequest);
+    // spDestroyCompileRequest(slangRequest);
     return desc;
 }
 uint32_t ShaderManager::loadShader(const char* fileName, const char* entryPointName, Stage stage)
@@ -405,7 +405,7 @@ void print(slang::VariableLayoutReflection* var)
 void fillResDesc(slang::VariableLayoutReflection* var, ShaderManager::ResourceDesc& desc)
 {
     const char* name = var->getName();
-    //printf("name: %s\t", name);
+    // printf("name: %s\t", name);
     desc.name = std::string(name);
     slang::TypeLayoutReflection* typeLayout = var->getTypeLayout();
     auto categoryCount = var->getCategoryCount();
@@ -419,17 +419,17 @@ void fillResDesc(slang::VariableLayoutReflection* var, ShaderManager::ResourceDe
             auto count = typeLayout->getSize(category);
             if (category == SLANG_PARAMETER_CATEGORY_UNIFORM)
             {
-                //printf("offset=%d, size=%d\n", (uint32_t)index, (uint32_t)count);
+                // printf("offset=%d, size=%d\n", (uint32_t)index, (uint32_t)count);
             }
             else
             {
-                //printf("binding=%d, set=%d\n", (uint32_t)index, (uint32_t)space);
+                // printf("binding=%d, set=%d\n", (uint32_t)index, (uint32_t)space);
                 desc.binding = index;
                 desc.set = space;
             }
         }
     }
-    //print(typeLayout);
+    // print(typeLayout);
     desc.type = getType(typeLayout);
     if (typeLayout->getKind() == slang::TypeReflection::Kind::Array)
     {
@@ -455,14 +455,14 @@ std::vector<ShaderManager::ResourceDesc> ShaderManager::getResourcesDesc(uint32_
         unsigned index = parameter->getOffset();
         unsigned space = parameter->getBindingSpace();
         auto categoryCount = parameter->getCategoryCount();
-        //auto count = typeLayout->getSize(category);
+        // auto count = typeLayout->getSize(category);
         const char* name = parameter->getName();
 
         fillResDesc(parameter, descs[i]);
 
-        //printf("name = %s, binding=%d, set=%d\n", name, index, space);
+        // printf("name = %s, binding=%d, set=%d\n", name, index, space);
     }
     return descs;
 }
 
-} // namespace nevk
+} // namespace oka

@@ -4,7 +4,7 @@
 #include "gbuffer.h"
 #include "pathtracerparam.h"
 
-namespace nevk
+namespace oka
 {
 struct PathTracerDesc
 {
@@ -16,7 +16,7 @@ struct PathTracerDesc
     Buffer* mdl_resource_infos = VK_NULL_HANDLE;
     Buffer* mdl_mdlMaterial = nullptr;
 
-    //GBuffer* gbuffer = VK_NULL_HANDLE;
+    // GBuffer* gbuffer = VK_NULL_HANDLE;
     Buffer* bvhNodes = VK_NULL_HANDLE;
     Buffer* lights = VK_NULL_HANDLE;
     Buffer* vb = VK_NULL_HANDLE;
@@ -48,4 +48,4 @@ public:
 
     void initialize();
 };
-} // namespace nevk
+} // namespace oka

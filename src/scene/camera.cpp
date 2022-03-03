@@ -4,7 +4,7 @@
 
 #include <scene/glm-wrapper.hpp>
 
-namespace nevk
+namespace oka
 {
 
 void Camera::updateViewMatrix()
@@ -212,4 +212,4 @@ void Camera::update(float deltaTime)
     }
 }
 
-} // namespace nevk
+} // namespace oka

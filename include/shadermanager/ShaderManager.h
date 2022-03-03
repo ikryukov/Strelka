@@ -4,15 +4,15 @@
 #include <slang.h>
 #include <string>
 #include <vector>
+
 #include <slang-com-ptr.h>
 
-namespace nevk
+namespace oka
 {
 
 class ShaderManager
 {
 public:
-
     enum class ResourceType
     {
         eUnknown,
@@ -39,7 +39,7 @@ public:
         uint32_t set;
     };
 
-    enum class Stage: uint32_t
+    enum class Stage : uint32_t
     {
         eNone,
         eVertex,
@@ -76,4 +76,4 @@ private:
     ShaderDesc compileShader(const char* fileName, const char* entryPointName, Stage stage);
     ShaderDesc compileShaderFromString(const char* source, const char* entryPointName, Stage stage);
 };
-} // namespace nevk
+} // namespace oka

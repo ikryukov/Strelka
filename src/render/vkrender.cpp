@@ -9,7 +9,10 @@
 // profiler
 //#include "Tracy.hpp"
 
-[[maybe_unused]] static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+[[maybe_unused]] static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+                                                              const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                                                              const VkAllocationCallbacks* pAllocator,
+                                                              VkDebugUtilsMessengerEXT* pDebugMessenger)
 {
     auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
     if (func != nullptr)
@@ -22,7 +25,9 @@
     }
 }
 
-[[maybe_unused]] static void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+[[maybe_unused]] static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+                                                           VkDebugUtilsMessengerEXT debugMessenger,
+                                                           const VkAllocationCallbacks* pAllocator)
 {
     auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
     if (func != nullptr)
@@ -31,7 +36,7 @@
     }
 }
 
-using namespace nevk;
+using namespace oka;
 
 void VkRender::initVulkan()
 {
@@ -39,7 +44,7 @@ void VkRender::initVulkan()
     setupDebugMessenger();
     if (enableValidationLayers)
     {
-        // nevk::debug::setupDebug(mInstance);
+        // oka::debug::setupDebug(mInstance);
     }
     createSurface();
     pickPhysicalDevice();
@@ -56,17 +61,20 @@ void VkRender::initVulkan()
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        mUploadBuffer[i] = mSharedCtx.mResManager->createBuffer(MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        mUploadBuffer[i] = mSharedCtx.mResManager->createBuffer(
+            MAX_UPLOAD_SIZE, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
-void nevk::VkRender::initSharedContext()
+void oka::VkRender::initSharedContext()
 {
     mSharedCtx.mDevice = mDevice;
     mSharedCtx.mDescriptorPool = createDescriptorPool();
     mSharedCtx.mShaderManager = new ShaderManager;
-    mSharedCtx.mResManager = new nevk::ResourceManager(mDevice, mPhysicalDevice, mInstance, getCurrentFrameData().cmdPool, mGraphicsQueue);
-    mSharedCtx.mTextureManager = new nevk::TextureManager(mDevice, mPhysicalDevice, mSharedCtx.mResManager);
+    mSharedCtx.mResManager =
+        new oka::ResourceManager(mDevice, mPhysicalDevice, mInstance, getCurrentFrameData().cmdPool, mGraphicsQueue);
+    mSharedCtx.mTextureManager = new oka::TextureManager(mDevice, mPhysicalDevice, mSharedCtx.mResManager);
     mSharedCtx.depthFormat = findDepthFormat();
 }
 
@@ -86,7 +94,7 @@ void VkRender::cleanup()
         vkDestroyCommandPool(mDevice, fd.cmdPool, nullptr);
     }
 
-    for (nevk::Buffer* buff : mUploadBuffer)
+    for (oka::Buffer* buff : mUploadBuffer)
     {
         if (buff)
         {
@@ -106,7 +114,7 @@ void VkRender::cleanup()
     vkDestroyInstance(mInstance, nullptr);
 }
 
-void nevk::VkRender::createSurface()
+void oka::VkRender::createSurface()
 {
 }
 
@@ -119,7 +127,7 @@ void VkRender::createInstance()
 
     VkApplicationInfo appInfo{};
     appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pApplicationName = "NEVK";
+    appInfo.pApplicationName = "STRELKA";
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "NoErrorVulkan Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -159,8 +167,12 @@ void VkRender::populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoE
 {
     createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
     createInfo.pfnUserCallback = debugCallback;
 }
 
@@ -302,7 +314,9 @@ VkCommandPool VkRender::createCommandPool()
     return pool;
 }
 
-VkFormat VkRender::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat VkRender::findSupportedFormat(const std::vector<VkFormat>& candidates,
+                                       VkImageTiling tiling,
+                                       VkFormatFeatureFlags features)
 {
     for (VkFormat format : candidates)
     {
@@ -324,10 +338,8 @@ VkFormat VkRender::findSupportedFormat(const std::vector<VkFormat>& candidates, 
 
 VkFormat VkRender::findDepthFormat()
 {
-    return findSupportedFormat(
-        { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    return findSupportedFormat({ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+                               VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
 bool VkRender::hasStencilComponent(VkFormat format)
@@ -337,19 +349,17 @@ bool VkRender::hasStencilComponent(VkFormat format)
 
 VkDescriptorPool VkRender::createDescriptorPool()
 {
-    VkDescriptorPoolSize pool_sizes[] = {
-        { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-        { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-    };
+    VkDescriptorPoolSize pool_sizes[] = { { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+                                          { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+                                          { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 10000 },
+                                          { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+                                          { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+                                          { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+                                          { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+                                          { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+                                          { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+                                          { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+                                          { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 } };
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -365,7 +375,15 @@ VkDescriptorPool VkRender::createDescriptorPool()
     return pool;
 }
 
-void VkRender::recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout oldLayout, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask)
+void VkRender::recordBarrier(VkCommandBuffer& cmd,
+                             VkImage image,
+                             VkImageLayout oldLayout,
+                             VkImageLayout newLayout,
+                             VkAccessFlags srcAccess,
+                             VkAccessFlags dstAccess,
+                             VkPipelineStageFlags sourceStage,
+                             VkPipelineStageFlags destinationStage,
+                             VkImageAspectFlags aspectMask)
 {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -383,16 +401,15 @@ void VkRender::recordBarrier(VkCommandBuffer& cmd, VkImage image, VkImageLayout 
     barrier.srcAccessMask = srcAccess;
     barrier.dstAccessMask = dstAccess;
 
-    vkCmdPipelineBarrier(
-        cmd,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier);
+    vkCmdPipelineBarrier(cmd, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
-void VkRender::recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage)
+void VkRender::recordBufferBarrier(VkCommandBuffer& cmd,
+                                   Buffer* buff,
+                                   VkAccessFlags srcAccess,
+                                   VkAccessFlags dstAccess,
+                                   VkPipelineStageFlags sourceStage,
+                                   VkPipelineStageFlags destinationStage)
 {
     VkBufferMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -404,16 +421,17 @@ void VkRender::recordBufferBarrier(VkCommandBuffer& cmd, Buffer* buff, VkAccessF
     barrier.srcAccessMask = srcAccess;
     barrier.dstAccessMask = dstAccess;
 
-    vkCmdPipelineBarrier(
-        cmd,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        1, &barrier,
-        0, nullptr);
+    vkCmdPipelineBarrier(cmd, sourceStage, destinationStage, 0, 0, nullptr, 1, &barrier, 0, nullptr);
 }
 
-void VkRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLayout newLayout, VkAccessFlags srcAccess, VkAccessFlags dstAccess, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags aspectMask)
+void VkRender::recordImageBarrier(VkCommandBuffer& cmd,
+                                  Image* image,
+                                  VkImageLayout newLayout,
+                                  VkAccessFlags srcAccess,
+                                  VkAccessFlags dstAccess,
+                                  VkPipelineStageFlags sourceStage,
+                                  VkPipelineStageFlags destinationStage,
+                                  VkImageAspectFlags aspectMask)
 {
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -433,13 +451,7 @@ void VkRender::recordImageBarrier(VkCommandBuffer& cmd, Image* image, VkImageLay
 
     mSharedCtx.mResManager->setImageLayout(image, newLayout);
 
-    vkCmdPipelineBarrier(
-        cmd,
-        sourceStage, destinationStage,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier);
+    vkCmdPipelineBarrier(cmd, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
 void VkRender::createCommandBuffers()

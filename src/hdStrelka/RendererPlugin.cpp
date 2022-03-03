@@ -9,10 +9,10 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 TF_REGISTRY_FUNCTION(TfType)
 {
-    HdRendererPluginRegistry::Define<HdNeVKRendererPlugin>();
+    HdRendererPluginRegistry::Define<HdStrelkaRendererPlugin>();
 }
 
-HdNeVKRendererPlugin::HdNeVKRendererPlugin()
+HdStrelkaRendererPlugin::HdStrelkaRendererPlugin()
 {
     PlugPluginPtr plugin = PLUG_THIS_PLUGIN;
 
@@ -22,7 +22,7 @@ HdNeVKRendererPlugin::HdNeVKRendererPlugin()
     std::string mtlxmdlPath = resourcePath + "/mtlxmdl";
     std::string mtlxlibPath = resourcePath + "/mtlxlib";
 
-    //m_translator = std::make_unique<MaterialNetworkTranslator>(mtlxlibPath);
+    // m_translator = std::make_unique<MaterialNetworkTranslator>(mtlxlibPath);
     const char* envUSDPath = std::getenv("USD_PATH");
     if (!envUSDPath)
     {
@@ -38,28 +38,28 @@ HdNeVKRendererPlugin::HdNeVKRendererPlugin()
     }
 }
 
-HdNeVKRendererPlugin::~HdNeVKRendererPlugin()
+HdStrelkaRendererPlugin::~HdStrelkaRendererPlugin()
 {
 }
 
-HdRenderDelegate* HdNeVKRendererPlugin::CreateRenderDelegate()
+HdRenderDelegate* HdStrelkaRendererPlugin::CreateRenderDelegate()
 {
     HdRenderSettingsMap settingsMap;
 
-    return new HdNeVKRenderDelegate(settingsMap, *m_translator);
+    return new HdStrelkaRenderDelegate(settingsMap, *m_translator);
 }
 
-HdRenderDelegate* HdNeVKRendererPlugin::CreateRenderDelegate(const HdRenderSettingsMap& settingsMap)
+HdRenderDelegate* HdStrelkaRendererPlugin::CreateRenderDelegate(const HdRenderSettingsMap& settingsMap)
 {
-    return new HdNeVKRenderDelegate(settingsMap, *m_translator);
+    return new HdStrelkaRenderDelegate(settingsMap, *m_translator);
 }
 
-void HdNeVKRendererPlugin::DeleteRenderDelegate(HdRenderDelegate* renderDelegate)
+void HdStrelkaRendererPlugin::DeleteRenderDelegate(HdRenderDelegate* renderDelegate)
 {
     delete renderDelegate;
 }
 
-bool HdNeVKRendererPlugin::IsSupported() const
+bool HdStrelkaRendererPlugin::IsSupported() const
 {
     return m_isSupported;
 }

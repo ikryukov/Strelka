@@ -15,7 +15,7 @@
 #include <mutex>
 
 
-namespace nevk
+namespace oka
 {
 
 struct Mesh
@@ -413,4 +413,4 @@ private:
     uint32_t mRectLigthMeshId = (uint32_t)-1;
     uint32_t mDiskLigthMeshId = (uint32_t)-1;
 };
-} // namespace nevk
+} // namespace oka

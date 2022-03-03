@@ -10,7 +10,7 @@
 
 #include <string>
 
-namespace nevk
+namespace oka
 {
 
 class Camera
@@ -87,4 +87,4 @@ public:
     void translate(glm::float3 delta);
     void update(float deltaTime);
 };
-} // namespace nevk
+} // namespace oka

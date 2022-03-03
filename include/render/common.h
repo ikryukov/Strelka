@@ -1,12 +1,12 @@
 #pragma once
-#include <vulkan/vulkan.h>
-
-#include <shadermanager/ShaderManager.h>
-#include <resourcemanager/resourcemanager.h>
-#include <texturemanager/texturemanager.h>
 #include "bindless.h"
 
-namespace nevk
+#include <resourcemanager/resourcemanager.h>
+#include <shadermanager/ShaderManager.h>
+#include <texturemanager/texturemanager.h>
+#include <vulkan/vulkan.h>
+
+namespace oka
 {
 static constexpr int MAX_FRAMES_IN_FLIGHT = 3;
 
@@ -31,7 +31,7 @@ struct SharedContext
     FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
     uint64_t mFrameNumber = 0;
     uint32_t mFrameIndex = 0;
-    VkFormat depthFormat = VK_FORMAT_UNDEFINED;   
+    VkFormat depthFormat = VK_FORMAT_UNDEFINED;
 
 
     FrameData& getCurrentFrameData()
@@ -44,11 +44,11 @@ struct SharedContext
     }
 };
 
-enum class NeVkResult: uint32_t
+enum class Result : uint32_t
 {
     eOk,
     eFail,
     eOutOfMemory,
 };
 
-} // namespace nevk
+} // namespace oka

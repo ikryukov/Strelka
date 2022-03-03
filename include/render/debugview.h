@@ -6,7 +6,7 @@
 
 #include <vector>
 
-namespace nevk
+namespace oka
 {
 struct DebugDesc
 {
@@ -15,7 +15,7 @@ struct DebugDesc
     Image* motion = VK_NULL_HANDLE;
     Image* debug = VK_NULL_HANDLE;
     Image* pathTracer = VK_NULL_HANDLE;
-    
+
     Image* input = VK_NULL_HANDLE;
     Image* output = VK_NULL_HANDLE;
 };
@@ -29,4 +29,4 @@ public:
     void initialize();
     void execute(VkCommandBuffer& cmd, const DebugDesc& desc, uint32_t width, uint32_t height, uint64_t frameIndex);
 };
-} // namespace nevk
+} // namespace oka

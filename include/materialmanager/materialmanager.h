@@ -6,7 +6,7 @@
 #include <string>
 #include <mi/mdl_sdk.h>
 
-namespace nevk
+namespace oka
 {
 
 class MaterialManager

@@ -4,7 +4,7 @@
 
 #include <vector>
 
-namespace nevk
+namespace oka
 {
 MdlRuntime::MdlRuntime()
 {
@@ -85,4 +85,4 @@ mi::base::Handle<mi::neuraylib::IMdl_backend_api> MdlRuntime::getBackendApi()
 {
     return mBackendApi;
 }
-} // namespace nevk
+} // namespace oka

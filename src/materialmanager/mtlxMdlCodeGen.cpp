@@ -18,7 +18,7 @@
 
 namespace mx = MaterialX;
 
-namespace nevk
+namespace oka
 {
 MtlxMdlCodeGen::MtlxMdlCodeGen(const char* mtlxlibPath)
     : mMtlxlibPath(mtlxlibPath)
@@ -123,4 +123,4 @@ bool MtlxMdlCodeGen::translate(const char* mtlxSrc, std::string& mdlSrc, std::st
     mdlSrc = pixelStage.getSourceCode();
     return true;
 }
-} // namespace nevk
+} // namespace oka

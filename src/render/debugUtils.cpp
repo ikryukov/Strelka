@@ -3,13 +3,15 @@
 PFN_vkCmdBeginDebugUtilsLabelEXT _vkCmdBeginDebugUtilsLabelEXT;
 PFN_vkCmdEndDebugUtilsLabelEXT _vkCmdEndDebugUtilsLabelEXT;
 
-void nevk::debug::setupDebug(VkInstance instance)
+void oka::debug::setupDebug(VkInstance instance)
 {
-    _vkCmdBeginDebugUtilsLabelEXT = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(instance, "vkCmdBeginDebugUtilsLabelEXT");
-    _vkCmdEndDebugUtilsLabelEXT = (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(instance, "vkCmdEndDebugUtilsLabelEXT");
+    _vkCmdBeginDebugUtilsLabelEXT =
+        (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr(instance, "vkCmdBeginDebugUtilsLabelEXT");
+    _vkCmdEndDebugUtilsLabelEXT =
+        (PFN_vkCmdEndDebugUtilsLabelEXT)vkGetInstanceProcAddr(instance, "vkCmdEndDebugUtilsLabelEXT");
 }
 
-void nevk::debug::beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::float4& color)
+void oka::debug::beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, const glm::float4& color)
 {
     if (!_vkCmdBeginDebugUtilsLabelEXT)
     {
@@ -25,7 +27,7 @@ void nevk::debug::beginLabel(VkCommandBuffer cmdBuffer, const char* labelName, c
     _vkCmdBeginDebugUtilsLabelEXT(cmdBuffer, &label);
 }
 
-void nevk::debug::endLabel(VkCommandBuffer cmdBuffer)
+void oka::debug::endLabel(VkCommandBuffer cmdBuffer)
 {
     if (!_vkCmdEndDebugUtilsLabelEXT)
     {
