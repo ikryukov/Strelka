@@ -556,8 +556,8 @@ void PtRender::drawFrame(Image* result)
     // ZoneScoped;
 
     // FrameData& currFrame = mSharedCtx.getCurrentFrameData();
-    const uint32_t imageIndex = getSharedContext().mFrameNumber % MAX_FRAMES_IN_FLIGHT;
-    const uint64_t frameIndex = getSharedContext().mFrameNumber;
+    const uint32_t frameIndex = getSharedContext().mFrameIndex;
+    const uint64_t frameNumber = getSharedContext().mFrameNumber;
 
     // TODO: handle changes: resize, update
     if (getSharedContext().mFrameNumber == 0)
@@ -573,7 +573,7 @@ void PtRender::drawFrame(Image* result)
         createMdlBuffers();
     }
 
-    ViewData* currView = mView[imageIndex];
+    ViewData* currView = mView[frameIndex];
     uint32_t renderWidth = currView->renderWidth;
     uint32_t renderHeight = currView->renderHeight;
     uint32_t finalWidth = currView->finalWidth;
@@ -595,7 +595,7 @@ void PtRender::drawFrame(Image* result)
     }
 
     // at this point we reseive opened cmd buffer
-    VkCommandBuffer& cmd = getSharedContext().getFrameData(imageIndex).cmdBuffer;
+    VkCommandBuffer& cmd = getSharedContext().getFrameData(frameIndex).cmdBuffer;
 
     Image* finalPathTracerImage = currView->mPathTracerImage;
     Image* finalImage = nullptr;
@@ -641,7 +641,7 @@ void PtRender::drawFrame(Image* result)
         recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        mPathTracer->execute(cmd, ptDesc, renderWidth * renderHeight * pathTracerParam.spp, 1, frameIndex);
+        mPathTracer->execute(cmd, ptDesc, renderWidth * renderHeight * pathTracerParam.spp, 1, frameNumber);
 
         ReductionDesc reductionDesc{};
         reductionDesc.constants = ptDesc.constants;
@@ -657,7 +657,7 @@ void PtRender::drawFrame(Image* result)
                            VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
-        mReductionPass->execute(cmd, reductionDesc, renderWidth * renderHeight, 1, frameIndex);
+        mReductionPass->execute(cmd, reductionDesc, renderWidth * renderHeight, 1, frameNumber);
 
         recordImageBarrier(cmd, currView->mPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                            VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -669,7 +669,7 @@ void PtRender::drawFrame(Image* result)
         {
             // Accumulation pass
             // Image* accHist = mView[imageIndex]->mAccumulationPathTracerImage[i % 2];
-            Image* accOut = mView[imageIndex]->mAccumulationPathTracerImage;
+            Image* accOut = currView->mAccumulationPathTracerImage;
 
             AccumulationDesc accDesc{};
             AccumulationParam& accParam = accDesc.constants;
@@ -698,7 +698,7 @@ void PtRender::drawFrame(Image* result)
             recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            mAccumulationPathTracer->execute(cmd, accDesc, renderWidth, renderHeight, frameIndex);
+            mAccumulationPathTracer->execute(cmd, accDesc, renderWidth, renderHeight, frameNumber);
             // recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             //                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
             //                   VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
@@ -712,7 +712,7 @@ void PtRender::drawFrame(Image* result)
     {
         // Tonemap
         {
-            recordImageBarrier(cmd, mView[imageIndex]->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL,
+            recordImageBarrier(cmd, currView->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -723,9 +723,9 @@ void PtRender::drawFrame(Image* result)
             toneParams.dimension.x = renderWidth;
             toneParams.dimension.y = renderHeight;
             toneDesc.input = finalPathTracerImage;
-            toneDesc.output = mView[imageIndex]->textureTonemapImage;
-            mTonemap->execute(cmd, toneDesc, renderWidth, renderHeight, frameIndex);
-            finalImage = mView[imageIndex]->textureTonemapImage;
+            toneDesc.output = currView->textureTonemapImage;
+            mTonemap->execute(cmd, toneDesc, renderWidth, renderHeight, frameNumber);
+            finalImage = currView->textureTonemapImage;
         }
 
         // Upscale
@@ -743,14 +743,14 @@ void PtRender::drawFrame(Image* result)
             upscalePassParam.invDimension.y = 1.0f / (float)finalHeight;
 
             upscaleDesc.input = finalImage;
-            upscaleDesc.output = mView[imageIndex]->textureUpscaleImage;
+            upscaleDesc.output = currView->textureUpscaleImage;
 
-            mUpscalePass->execute(cmd, upscaleDesc, finalWidth, finalHeight, frameIndex);
+            mUpscalePass->execute(cmd, upscaleDesc, finalWidth, finalHeight, frameNumber);
 
             // recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_GENERAL,
             //                   VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
             //                   VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            finalImage = mView[imageIndex]->textureUpscaleImage;
+            finalImage = currView->textureUpscaleImage;
         }
     }
 
@@ -776,7 +776,7 @@ void PtRender::drawFrame(Image* result)
                        VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
 
     // assign prev resources for next frame rendering
-    mPrevView = mView[imageIndex];
+    mPrevView = currView;
 }
 
 void PtRender::recordImageBarrier(VkCommandBuffer& cmd,
