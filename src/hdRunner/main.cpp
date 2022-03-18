@@ -455,6 +455,8 @@ int main(int argc, const char* argv[])
 
     timerRender.Stop();
 
+    render.destroy();
+
     printf("Rendering finished (%.3fs)\n", timerRender.GetSeconds());
     fflush(stdout);
 

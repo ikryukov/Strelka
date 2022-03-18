@@ -33,6 +33,7 @@ class GLFWRender : public VkRender
 {
 public:
     void init(int width, int height);
+    void destroy();
 
     void setWindowTitle(const char* title);
 
@@ -59,7 +60,6 @@ protected:
     FrameSyncData mSyncData[MAX_FRAMES_IN_FLIGHT] = {};
     FrameSyncData& getCurrentFrameSyncData();
     FrameSyncData& getFrameSyncData(uint32_t idx);
-
     void createSyncObjects();
 
     InputHandler* mInputHandler;

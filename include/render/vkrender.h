@@ -142,8 +142,6 @@ protected:
 
     void createCommandBuffers();
 
-    // void createSyncObjects();
-
     bool isDeviceSuitable(VkPhysicalDevice device);
 
     bool checkDeviceExtensionSupport(VkPhysicalDevice device);

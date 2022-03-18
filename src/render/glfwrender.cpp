@@ -27,6 +27,17 @@ void oka::GLFWRender::init(int width, int height)
     createSwapChain();
 }
 
+void oka::GLFWRender::destroy()
+{
+    vkDeviceWaitIdle(mDevice);
+    for (FrameSyncData& fd : mSyncData)
+    {
+        vkDestroySemaphore(mDevice, fd.renderFinished, nullptr);
+        vkDestroySemaphore(mDevice, fd.imageAvailable, nullptr);
+        vkDestroyFence(mDevice, fd.inFlightFence, nullptr);
+    }
+}
+
 void oka::GLFWRender::setWindowTitle(const char* title)
 {
     glfwSetWindowTitle(mWindow, title);
@@ -106,10 +117,8 @@ void oka::GLFWRender::onBeginFrame()
 
     const uint32_t frameIndex = imageIndex;
     mSharedCtx.mFrameIndex = frameIndex;
-
-    printf("Image index: %d\n", frameIndex);
     
-    VkCommandBuffer& cmd = getFrameData(mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT).cmdBuffer;
+    VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
     result = vkResetCommandBuffer(cmd, 0);
     assert(result == VK_SUCCESS);
     VkCommandBufferBeginInfo cmdBeginInfo = {};
@@ -127,7 +136,7 @@ void oka::GLFWRender::onEndFrame()
     FrameSyncData& currFrame = getCurrentFrameSyncData();
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
 
-    VkCommandBuffer& cmd = getFrameData(mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT).cmdBuffer;
+    VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
 
     if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
     {
@@ -185,10 +194,8 @@ void oka::GLFWRender::onEndFrame()
 
 void oka::GLFWRender::drawFrame(Image* result)
 {
-    // FrameData& currFrame = getCurrentFrameData();
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
-
-    VkCommandBuffer& cmd = getFrameData(mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT).cmdBuffer;
+    VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
 
     // Copy to swapchain image
     if (result)
