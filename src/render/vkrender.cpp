@@ -57,7 +57,7 @@ void VkRender::initVulkan()
     initSharedContext();
 
     createCommandBuffers();
-    createSyncObjects();
+    // createSyncObjects();
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -87,9 +87,9 @@ void VkRender::cleanup()
 
     for (FrameData& fd : mSharedCtx.mFramesData)
     {
-        vkDestroySemaphore(mDevice, fd.renderFinished, nullptr);
-        vkDestroySemaphore(mDevice, fd.imageAvailable, nullptr);
-        vkDestroyFence(mDevice, fd.inFlightFence, nullptr);
+        // vkDestroySemaphore(mDevice, fd.renderFinished, nullptr);
+        // vkDestroySemaphore(mDevice, fd.imageAvailable, nullptr);
+        // vkDestroyFence(mDevice, fd.inFlightFence, nullptr);
 
         vkDestroyCommandPool(mDevice, fd.cmdPool, nullptr);
     }
@@ -471,25 +471,25 @@ void VkRender::createCommandBuffers()
     }
 }
 
-void VkRender::createSyncObjects()
-{
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+// void VkRender::createSyncObjects()
+// {
+//     VkSemaphoreCreateInfo semaphoreInfo{};
+//     semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+//     VkFenceCreateInfo fenceInfo{};
+//     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+//     fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        if (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSharedCtx.mFramesData[i].renderFinished) != VK_SUCCESS ||
-            vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSharedCtx.mFramesData[i].imageAvailable) != VK_SUCCESS ||
-            vkCreateFence(mDevice, &fenceInfo, nullptr, &mSharedCtx.mFramesData[i].inFlightFence) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create synchronization objects for a frame!");
-        }
-    }
-}
+//     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+//     {
+//         if (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSharedCtx.mFramesData[i].renderFinished) != VK_SUCCESS ||
+//             vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSharedCtx.mFramesData[i].imageAvailable) != VK_SUCCESS ||
+//             vkCreateFence(mDevice, &fenceInfo, nullptr, &mSharedCtx.mFramesData[i].inFlightFence) != VK_SUCCESS)
+//         {
+//             throw std::runtime_error("failed to create synchronization objects for a frame!");
+//         }
+//     }
+// }
 
 bool VkRender::isDeviceSuitable(VkPhysicalDevice device)
 {

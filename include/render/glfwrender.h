@@ -56,6 +56,12 @@ public:
     bool framebufferResized = false;
 
 protected:
+    FrameSyncData mSyncData[MAX_FRAMES_IN_FLIGHT] = {};
+    FrameSyncData& getCurrentFrameSyncData();
+    FrameSyncData& getFrameSyncData(uint32_t idx);
+
+    void createSyncObjects();
+
     InputHandler* mInputHandler;
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     static void keyCallback(

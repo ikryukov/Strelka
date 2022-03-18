@@ -142,7 +142,7 @@ protected:
 
     void createCommandBuffers();
 
-    void createSyncObjects();
+    // void createSyncObjects();
 
     bool isDeviceSuitable(VkPhysicalDevice device);
 

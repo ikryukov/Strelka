@@ -556,7 +556,7 @@ void PtRender::drawFrame(Image* result)
     // ZoneScoped;
 
     // FrameData& currFrame = mSharedCtx.getCurrentFrameData();
-    const uint32_t frameIndex = getSharedContext().mFrameIndex;
+    const uint32_t frameIndex = getSharedContext().mFrameNumber % MAX_FRAMES_IN_FLIGHT;
     const uint64_t frameNumber = getSharedContext().mFrameNumber;
 
     // TODO: handle changes: resize, update

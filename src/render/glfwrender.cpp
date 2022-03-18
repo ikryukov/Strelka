@@ -21,6 +21,8 @@ void oka::GLFWRender::init(int width, int height)
     // swapchain support
     mDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     initVulkan();
+    
+    createSyncObjects();
 
     createSwapChain();
 }
@@ -40,9 +42,39 @@ void oka::GLFWRender::pollEvents()
     glfwPollEvents();
 }
 
+FrameSyncData& oka::GLFWRender::getCurrentFrameSyncData()
+{
+    return mSyncData[mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT];
+}
+
+FrameSyncData& oka::GLFWRender::getFrameSyncData(uint32_t idx)
+{
+    return mSyncData[idx];
+}
+
+void oka::GLFWRender::createSyncObjects()
+{
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        if (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSyncData[i].renderFinished) != VK_SUCCESS ||
+            vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSyncData[i].imageAvailable) != VK_SUCCESS ||
+            vkCreateFence(mDevice, &fenceInfo, nullptr, &mSyncData[i].inFlightFence) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create synchronization objects for a frame!");
+        }
+    }
+}
+
 void oka::GLFWRender::onBeginFrame()
 {
-    FrameData& currFrame = getCurrentFrameData();
+    FrameSyncData& currFrame = getCurrentFrameSyncData();
 
     vkWaitForFences(mDevice, 1, &currFrame.inFlightFence, VK_TRUE, UINT64_MAX);
 
@@ -60,11 +92,11 @@ void oka::GLFWRender::onBeginFrame()
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
+    if (getFrameSyncData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
     {
-        vkWaitForFences(mDevice, 1, &getFrameData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
+        vkWaitForFences(mDevice, 1, &getFrameSyncData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
     }
-    getFrameData(imageIndex).imagesInFlight = currFrame.inFlightFence;
+    getFrameSyncData(imageIndex).imagesInFlight = currFrame.inFlightFence;
 
     static auto prevTime = std::chrono::high_resolution_clock::now();
 
@@ -74,7 +106,10 @@ void oka::GLFWRender::onBeginFrame()
 
     const uint32_t frameIndex = imageIndex;
     mSharedCtx.mFrameIndex = frameIndex;
-    VkCommandBuffer& cmd = getFrameData(imageIndex).cmdBuffer;
+
+    printf("Image index: %d\n", frameIndex);
+    
+    VkCommandBuffer& cmd = getFrameData(mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT).cmdBuffer;
     result = vkResetCommandBuffer(cmd, 0);
     assert(result == VK_SUCCESS);
     VkCommandBufferBeginInfo cmdBeginInfo = {};
@@ -89,10 +124,10 @@ void oka::GLFWRender::onBeginFrame()
 
 void oka::GLFWRender::onEndFrame()
 {
-    FrameData& currFrame = getCurrentFrameData();
+    FrameSyncData& currFrame = getCurrentFrameSyncData();
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
 
-    VkCommandBuffer& cmd = getFrameData(frameIndex).cmdBuffer;
+    VkCommandBuffer& cmd = getFrameData(mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT).cmdBuffer;
 
     if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
     {
@@ -153,7 +188,7 @@ void oka::GLFWRender::drawFrame(Image* result)
     // FrameData& currFrame = getCurrentFrameData();
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
 
-    VkCommandBuffer& cmd = getFrameData(frameIndex).cmdBuffer;
+    VkCommandBuffer& cmd = getFrameData(mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT).cmdBuffer;
 
     // Copy to swapchain image
     if (result)
