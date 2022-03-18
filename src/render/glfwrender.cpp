@@ -21,8 +21,21 @@ void oka::GLFWRender::init(int width, int height)
     // swapchain support
     mDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     initVulkan();
+    
+    createSyncObjects();
 
     createSwapChain();
+}
+
+void oka::GLFWRender::destroy()
+{
+    vkDeviceWaitIdle(mDevice);
+    for (FrameSyncData& fd : mSyncData)
+    {
+        vkDestroySemaphore(mDevice, fd.renderFinished, nullptr);
+        vkDestroySemaphore(mDevice, fd.imageAvailable, nullptr);
+        vkDestroyFence(mDevice, fd.inFlightFence, nullptr);
+    }
 }
 
 void oka::GLFWRender::setWindowTitle(const char* title)
@@ -40,9 +53,39 @@ void oka::GLFWRender::pollEvents()
     glfwPollEvents();
 }
 
+FrameSyncData& oka::GLFWRender::getCurrentFrameSyncData()
+{
+    return mSyncData[mSharedCtx.mFrameNumber % MAX_FRAMES_IN_FLIGHT];
+}
+
+FrameSyncData& oka::GLFWRender::getFrameSyncData(uint32_t idx)
+{
+    return mSyncData[idx];
+}
+
+void oka::GLFWRender::createSyncObjects()
+{
+    VkSemaphoreCreateInfo semaphoreInfo{};
+    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+    VkFenceCreateInfo fenceInfo{};
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        if (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSyncData[i].renderFinished) != VK_SUCCESS ||
+            vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSyncData[i].imageAvailable) != VK_SUCCESS ||
+            vkCreateFence(mDevice, &fenceInfo, nullptr, &mSyncData[i].inFlightFence) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to create synchronization objects for a frame!");
+        }
+    }
+}
+
 void oka::GLFWRender::onBeginFrame()
 {
-    FrameData& currFrame = getCurrentFrameData();
+    FrameSyncData& currFrame = getCurrentFrameSyncData();
 
     vkWaitForFences(mDevice, 1, &currFrame.inFlightFence, VK_TRUE, UINT64_MAX);
 
@@ -52,7 +95,7 @@ void oka::GLFWRender::onBeginFrame()
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        // recreateSwapChain();
+        recreateSwapChain();
         return;
     }
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
@@ -60,11 +103,11 @@ void oka::GLFWRender::onBeginFrame()
         throw std::runtime_error("failed to acquire swap chain image!");
     }
 
-    if (getFrameData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
+    if (getFrameSyncData(imageIndex).imagesInFlight != VK_NULL_HANDLE)
     {
-        vkWaitForFences(mDevice, 1, &getFrameData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
+        vkWaitForFences(mDevice, 1, &getFrameSyncData(imageIndex).imagesInFlight, VK_TRUE, UINT64_MAX);
     }
-    getFrameData(imageIndex).imagesInFlight = currFrame.inFlightFence;
+    getFrameSyncData(imageIndex).imagesInFlight = currFrame.inFlightFence;
 
     static auto prevTime = std::chrono::high_resolution_clock::now();
 
@@ -74,23 +117,26 @@ void oka::GLFWRender::onBeginFrame()
 
     const uint32_t frameIndex = imageIndex;
     mSharedCtx.mFrameIndex = frameIndex;
-    VkCommandBuffer& cmd = getFrameData(imageIndex).cmdBuffer;
-    vkResetCommandBuffer(cmd, 0);
+    
+    VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
+    result = vkResetCommandBuffer(cmd, 0);
+    assert(result == VK_SUCCESS);
     VkCommandBufferBeginInfo cmdBeginInfo = {};
     cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cmdBeginInfo.pNext = nullptr;
     cmdBeginInfo.pInheritanceInfo = nullptr;
     cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 
-    vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+    result = vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+    assert(result == VK_SUCCESS);
 }
 
 void oka::GLFWRender::onEndFrame()
 {
-    FrameData& currFrame = getCurrentFrameData();
+    FrameSyncData& currFrame = getCurrentFrameSyncData();
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
 
-    VkCommandBuffer& cmd = getFrameData(frameIndex).cmdBuffer;
+    VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
 
     if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
     {
@@ -133,10 +179,10 @@ void oka::GLFWRender::onEndFrame()
     presentInfo.pImageIndices = &frameIndex;
 
     VkResult result = vkQueuePresentKHR(mPresentQueue, &presentInfo);
-    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) // || framebufferResized)
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized)
     {
-        // framebufferResized = false;
-        // recreateSwapChain();
+        framebufferResized = false;
+        recreateSwapChain();
     }
     else if (result != VK_SUCCESS)
     {
@@ -148,12 +194,11 @@ void oka::GLFWRender::onEndFrame()
 
 void oka::GLFWRender::drawFrame(Image* result)
 {
-    // FrameData& currFrame = getCurrentFrameData();
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
-
-    VkCommandBuffer& cmd = getFrameData(frameIndex).cmdBuffer;
+    VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
 
     // Copy to swapchain image
+    if (result)
     {
         recordImageBarrier(cmd, result, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT,
                            VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
@@ -186,7 +231,7 @@ void oka::GLFWRender::drawFrame(Image* result)
 
         recordBarrier(cmd, mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT,
-                      VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
+                      VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
     }
 }
 
@@ -197,10 +242,11 @@ void oka::GLFWRender::framebufferResizeCallback(GLFWwindow* window, int width, i
     {
         return;
     }
-    // auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
-    // app->framebufferResized = true;
-    // oka::Scene* scene = app->getScene();
-    // scene->updateCamerasParams(width, height);
+
+    auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
+    app->framebufferResized = true;
+    //nevk::Scene* scene = app->getScene();
+    //scene->updateCamerasParams(width, height);
 }
 
 void oka::GLFWRender::keyCallback(GLFWwindow* window,
@@ -415,6 +461,27 @@ void oka::GLFWRender::createSwapChain()
 
     swapChainImageFormat = surfaceFormat.format;
     mSwapChainExtent = extent;
+}
+
+void oka::GLFWRender::recreateSwapChain()
+{
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(mWindow, &width, &height);
+    while (width == 0 || height == 0)
+    {
+        glfwGetFramebufferSize(mWindow, &width, &height);
+        glfwWaitEvents();
+    }
+    VkResult res = vkDeviceWaitIdle(mDevice);
+    assert(res == VK_SUCCESS);
+
+    cleanupSwapChain();
+    createSwapChain();
+}
+
+void oka::GLFWRender::cleanupSwapChain()
+{
+    vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
 }
 
 oka::GLFWRender::SwapChainSupportDetails oka::GLFWRender::querySwapChainSupport(VkPhysicalDevice device)

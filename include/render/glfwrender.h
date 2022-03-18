@@ -23,10 +23,17 @@ public:
     virtual void handleMouseMoveCallback([[maybe_unused]] double xpos, [[maybe_unused]] double ypos) = 0;
 };
 
+class ResizeHandler
+{
+public:
+    virtual void framebufferResize(int newWidth, int newHeight) = 0;
+};
+
 class GLFWRender : public VkRender
 {
 public:
     void init(int width, int height);
+    void destroy();
 
     void setWindowTitle(const char* title);
 
@@ -47,7 +54,14 @@ public:
 
     void drawFrame(Image* result);
 
+    bool framebufferResized = false;
+
 protected:
+    FrameSyncData mSyncData[MAX_FRAMES_IN_FLIGHT] = {};
+    FrameSyncData& getCurrentFrameSyncData();
+    FrameSyncData& getFrameSyncData(uint32_t idx);
+    void createSyncObjects();
+
     InputHandler* mInputHandler;
     static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
     static void keyCallback(
@@ -59,6 +73,8 @@ protected:
     void createLogicalDevice() override;
     void createSurface() override;
     void createSwapChain();
+    void recreateSwapChain();
+    void cleanupSwapChain();
 
     struct SwapChainSupportDetails
     {

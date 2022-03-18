@@ -55,9 +55,7 @@ void VkRender::initVulkan()
     }
 
     initSharedContext();
-
     createCommandBuffers();
-    createSyncObjects();
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
@@ -87,10 +85,6 @@ void VkRender::cleanup()
 
     for (FrameData& fd : mSharedCtx.mFramesData)
     {
-        vkDestroySemaphore(mDevice, fd.renderFinished, nullptr);
-        vkDestroySemaphore(mDevice, fd.imageAvailable, nullptr);
-        vkDestroyFence(mDevice, fd.inFlightFence, nullptr);
-
         vkDestroyCommandPool(mDevice, fd.cmdPool, nullptr);
     }
 
@@ -471,26 +465,6 @@ void VkRender::createCommandBuffers()
     }
 }
 
-void VkRender::createSyncObjects()
-{
-    VkSemaphoreCreateInfo semaphoreInfo{};
-    semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-    {
-        if (vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSharedCtx.mFramesData[i].renderFinished) != VK_SUCCESS ||
-            vkCreateSemaphore(mDevice, &semaphoreInfo, nullptr, &mSharedCtx.mFramesData[i].imageAvailable) != VK_SUCCESS ||
-            vkCreateFence(mDevice, &fenceInfo, nullptr, &mSharedCtx.mFramesData[i].inFlightFence) != VK_SUCCESS)
-        {
-            throw std::runtime_error("failed to create synchronization objects for a frame!");
-        }
-    }
-}
-
 bool VkRender::isDeviceSuitable(VkPhysicalDevice device)
 {
     QueueFamilyIndices indices = findQueueFamilies(device);
@@ -539,7 +513,6 @@ QueueFamilyIndices VkRender::findQueueFamilies(VkPhysicalDevice device)
             indices.graphicsFamily = i;
         }
 
-
         {
             indices.presentFamily = i;
         }
@@ -557,19 +530,12 @@ QueueFamilyIndices VkRender::findQueueFamilies(VkPhysicalDevice device)
 
 std::vector<const char*> VkRender::getRequiredExtensions()
 {
-    // uint32_t glfwExtensionCount = 0;
-    // const char** glfwExtensions;
-    /// glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-    // std::vector<const char*> extensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
     std::vector<const char*> extensions;
-
     if (enableValidationLayers)
     {
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
     extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-
     return extensions;
 }
 

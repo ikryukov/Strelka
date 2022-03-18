@@ -14,6 +14,10 @@ struct FrameData
 {
     VkCommandBuffer cmdBuffer;
     VkCommandPool cmdPool;
+};
+
+struct FrameSyncData
+{
     VkFence inFlightFence;
     VkFence imagesInFlight;
     VkSemaphore renderFinished;

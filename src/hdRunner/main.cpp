@@ -278,6 +278,19 @@ public:
     }
 };
 
+class RenderSurfaceController : public oka::ResizeHandler
+{
+    uint32_t imageWidth = 800;
+    uint32_t imageHeight = 600;
+
+public:
+
+    void framebufferResize(int newWidth, int newHeight)
+    {
+    
+    }
+};
+
 int main(int argc, const char* argv[])
 {
     // Init plugin.
@@ -441,6 +454,8 @@ int main(int argc, const char* argv[])
     // TF_VERIFY(renderBuffer->IsConverged());
 
     timerRender.Stop();
+
+    render.destroy();
 
     printf("Rendering finished (%.3fs)\n", timerRender.GetSeconds());
     fflush(stdout);
