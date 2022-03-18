@@ -29,9 +29,12 @@ RWStructuredBuffer<float> sampleBuffer;
 // RWTexture2D<float4> output;
 
 // Matrices version
-Ray generateCameraRay(uint2 pixelIndex)
+Ray generateCameraRay(uint2 pixelIndex, uint rngState)
 {
-    float2 pixelPos = float2(pixelIndex) + 0.5f;
+    float2 pixelPos = float2(0.0f, 0.0f);
+    pixelPos.x = float2(pixelIndex).x + rand(rngState);
+    pixelPos.y = float2(pixelIndex).y + rand(rngState);
+
     float2 pixelNDC = (pixelPos / float2(ubo.dimension)) * 2.0f - 1.0f;
 
     float4 clip = float4(pixelNDC, 1.0f, 1.0f);
@@ -79,7 +82,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
     int depth = 0;
     const int maxDepth = ubo.maxDepth;
 
-    Ray ray = generateCameraRay(pixelIndex);
+    Ray ray = generateCameraRay(pixelIndex, rngState);
 
     bool inside = 0; // 1 - inside
 
