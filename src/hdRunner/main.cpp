@@ -42,25 +42,9 @@ TF_DEFINE_PRIVATE_TOKENS(
 HdRendererPluginHandle GetHdStrelkaPlugin()
 {
     HdRendererPluginRegistry& registry = HdRendererPluginRegistry::GetInstance();
-
-    HfPluginDescVector pluginDescriptors;
-    registry.GetPluginDescs(&pluginDescriptors);
-
-    for (const HfPluginDesc& pluginDesc : pluginDescriptors)
-    {
-        const TfToken& pluginId = pluginDesc.id;
-
-        if (pluginId != _AppTokens->HdStrelkaRendererPlugin)
-        {
-            continue;
-        }
-
-        HdRendererPluginHandle plugin = registry.GetOrCreateRendererPlugin(pluginId);
-
-        return plugin;
-    }
-
-    return HdRendererPluginHandle();
+    const TfToken& pluginId = _AppTokens->HdStrelkaRendererPlugin;
+    HdRendererPluginHandle plugin = registry.GetOrCreateRendererPlugin(pluginId);
+    return plugin;
 }
 
 HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, SdfPath& cameraPath)
