@@ -17,15 +17,20 @@ public:
     ~SettingsManager();
 
     template <typename T>
-    void setAs(std::string& name, T& value)
+    void setAs(const char* name, const T& value)
     {
         mMap[name] = std::to_string(value);
     }
-
     template <typename T>
-    T getAs(std::string& name)
+    T getAs(const char* name)
     {
         return mMap[name];
+    }
+
+    template <>
+    uint32_t getAs(const char* name)
+    {
+        return atoi(mMap[name].c_str());
     }
 };
 

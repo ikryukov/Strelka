@@ -624,7 +624,8 @@ void PtRender::drawFrame(Image* result)
         PathTracerParam& pathTracerParam = ptDesc.constants;
         pathTracerParam.dimension = glm::int2(renderWidth, renderHeight);
         pathTracerParam.frameNumber = (uint32_t)getSharedContext().mFrameNumber;
-        pathTracerParam.maxDepth = 6;
+        const uint32_t depth = getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/depth");
+        pathTracerParam.maxDepth = depth;
         pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
         pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
         pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);

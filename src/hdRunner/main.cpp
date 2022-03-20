@@ -300,6 +300,10 @@ int main(int argc, const char* argv[])
 
     oka::SharedContext* ctx = &render.getSharedContext();
 
+    ctx->mSettingsManager = new oka::SettingsManager();
+
+    ctx->mSettingsManager->setAs<uint32_t>("render/pt/depth", 6);
+
     HdDriver driver;
     driver.name = _AppTokens->HdStrelkaDriver;
     driver.driver = VtValue(ctx);

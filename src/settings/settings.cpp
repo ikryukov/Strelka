@@ -1,6 +1,7 @@
 #include "settings/settings.h"
 
-using namespace oka;
+namespace oka
+{
 
 SettingsManager::SettingsManager(/* args */)
 {
@@ -9,3 +10,5 @@ SettingsManager::SettingsManager(/* args */)
 SettingsManager::~SettingsManager()
 {
 }
+
+} // namespace oka

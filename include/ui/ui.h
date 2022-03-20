@@ -66,7 +66,7 @@ public:
 
     bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
     void updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig);
-    void updateUI(RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig);
+    void updateUI(oka::SettingsManager* settingsManager, RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig);
     
     void render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);

@@ -262,7 +262,7 @@ void oka::GLFWRender::drawUI()
     mRenderConfig.animTime = 0.0;
     mRenderConfig.samples = 16;
 
-    mUi.updateUI(mRenderConfig, mRenderStats, mSceneConfig);
+    mUi.updateUI(mSharedCtx.mSettingsManager, mRenderConfig, mRenderStats, mSceneConfig);
 
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
     VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;

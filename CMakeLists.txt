@@ -304,16 +304,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC external/glfw/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-    ${RESMNGR_NAME} 
-    ${SHADERLIB_NAME} 
+    ${SETTINGSLIB_NAME}
+    ${RESMNGR_NAME}
+    ${SHADERLIB_NAME}
     ${MATERIALLIB_NAME}
     MaterialXCore
     MaterialXFormat
     MaterialXGenMdl
-    ${SCENELIB_NAME} 
-    ${RENDERLIB_NAME} 
-    ${UILIB_NAME} 
-    ${TEXTURELIB_NAME} 
+    ${SCENELIB_NAME}
+    ${RENDERLIB_NAME}
+    ${UILIB_NAME}
+    ${TEXTURELIB_NAME}
     ${TRACY_LIB}
     ${Vulkan_LIBRARY}
     ar cameraUtil hd hf hgi hio usd usdGeom usdImaging    
