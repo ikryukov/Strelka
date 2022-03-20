@@ -122,6 +122,16 @@ target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include
 target_include_directories(${SCENELIB_NAME} PUBLIC shaders/)
 target_include_directories(${SCENELIB_NAME} PUBLIC external/glm)
 
+# Settings
+set(SETTINGSLIB_SOURCES
+        include/settings/settings.h
+        src/settings/settings.cpp
+        )
+set(SETTINGSLIB_NAME settings)
+add_library(${SETTINGSLIB_NAME} OBJECT ${SETTINGSLIB_SOURCES})
+target_include_directories(${SETTINGSLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${SETTINGSLIB_NAME} PUBLIC external/glm)
+
 # UI
 set(UI_SOURCES
         include/ui/ui.h
