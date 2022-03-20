@@ -25,6 +25,23 @@ void oka::GLFWRender::init(int width, int height)
     createSyncObjects();
 
     createSwapChain();
+
+    // UI
+    QueueFamilyIndices indicesFamily = findQueueFamilies(mPhysicalDevice);
+
+    ImGui_ImplVulkan_InitInfo init_info{};
+    init_info.DescriptorPool = mSharedCtx.mDescriptorPool;
+    init_info.Device = mDevice;
+    init_info.ImageCount = MAX_FRAMES_IN_FLIGHT;
+    init_info.Instance = mInstance;
+    init_info.MinImageCount = 2;
+    init_info.PhysicalDevice = mPhysicalDevice;
+    init_info.Queue = mGraphicsQueue;
+    init_info.QueueFamily = indicesFamily.graphicsFamily.value();
+
+    FrameData& frameData = getCurrentFrameData();
+    mUi.init(init_info, swapChainImageFormat, mWindow, frameData.cmdPool, frameData.cmdBuffer, mSwapChainExtent.width, mSwapChainExtent.height);
+    mUi.createFrameBuffers(mDevice, mSwapChainImageViews, mSwapChainExtent.width, mSwapChainExtent.height);
 }
 
 void oka::GLFWRender::destroy()
@@ -233,6 +250,24 @@ void oka::GLFWRender::drawFrame(Image* result)
                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT,
                       VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
     }
+}
+
+void oka::GLFWRender::drawUI()
+{
+    std::string newModelPath;
+
+    mRenderStats.msPerFrame = 16.0f;
+    mSceneConfig.selectedCamera = 0;
+    mSceneConfig.newModelPath = newModelPath;
+    mRenderConfig.animTime = 0.0;
+    mRenderConfig.samples = 16;
+
+    mUi.updateUI(mRenderConfig, mRenderStats, mSceneConfig);
+
+    const uint32_t frameIndex = mSharedCtx.mFrameIndex;
+    VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
+
+    mUi.render(cmd, frameIndex);
 }
 
 void oka::GLFWRender::framebufferResizeCallback(GLFWwindow* window, int width, int height)
@@ -461,6 +496,13 @@ void oka::GLFWRender::createSwapChain()
 
     swapChainImageFormat = surfaceFormat.format;
     mSwapChainExtent = extent;
+
+    mSwapChainImageViews.resize(mSwapChainImages.size());
+
+    for (uint32_t i = 0; i < mSwapChainImages.size(); i++)
+    {
+        mSwapChainImageViews[i] =  mSharedCtx.mTextureManager->createImageView(mSwapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+    }
 }
 
 void oka::GLFWRender::recreateSwapChain()
@@ -477,11 +519,18 @@ void oka::GLFWRender::recreateSwapChain()
 
     cleanupSwapChain();
     createSwapChain();
+
+    mUi.onResize(mSwapChainImageViews, mSwapChainExtent.width, mSwapChainExtent.height);
 }
 
 void oka::GLFWRender::cleanupSwapChain()
 {
     vkDestroySwapchainKHR(mDevice, mSwapChain, nullptr);
+
+    for (auto& imageView : mSwapChainImageViews)
+    {
+        vkDestroyImageView(mDevice, imageView, nullptr);
+    }
 }
 
 oka::GLFWRender::SwapChainSupportDetails oka::GLFWRender::querySwapChainSupport(VkPhysicalDevice device)

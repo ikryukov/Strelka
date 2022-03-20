@@ -749,6 +749,68 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     ImGui::End(); // end window
 }
 
+void Ui::updateUI(RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    bool openFD = false;
+    static uint32_t showPropertiesId = -1;
+    static uint32_t lightId = -1;
+    static bool isLight = false;
+    static bool openInspector = false;
+    const char* items[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer"};
+    static const char* current_item = items[0];
+
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("Menu:"); // begin window
+    
+    // open new window w/ scene tree
+    // simple settings
+    ImGui::Text("MsPF = %f", renderStats.msPerFrame);
+    ImGui::Text("FPS = %f", 1000.0 / renderStats.msPerFrame);
+
+    if (ImGui::BeginCombo("Debug view", current_item))
+    {
+        for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+        {
+            bool is_selected = (current_item == items[n]);
+            if (ImGui::Selectable(items[n], is_selected))
+            {
+                current_item = items[n];
+                // scene.mDebugViewSettings = (Scene::DebugView)n;
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    // Common for bilateral filters
+    ImGui::Checkbox("Use swizzle threads in filters", &renderConfig.useSwizzleTid);
+
+    ImGui::Checkbox("Enable Upscale", &renderConfig.enableUpscale);
+    if (renderConfig.enableUpscale)
+    {
+        renderConfig.upscaleFactor = 0.5f;
+    }
+    else
+    {
+        renderConfig.upscaleFactor = 1.0f;
+    }
+
+    bool isRecreate = ImGui::Button("Recreate BVH");
+    renderConfig.recreateBVH = isRecreate ? true : false;
+
+    bool isCPU = ImGui::Button("Render CPU");
+    renderConfig.renderCPU = isCPU ? true : false;
+
+    ImGui::End(); // end window
+}
+
 void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
     // Rendering
@@ -790,7 +852,8 @@ void Ui::createVkRenderPass(VkFormat framebufferFormat)
     attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    // attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     VkAttachmentReference color_attachment = {};
     color_attachment.attachment = 0;

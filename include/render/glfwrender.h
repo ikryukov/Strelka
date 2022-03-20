@@ -12,6 +12,8 @@
 
 #include <GLFW/glfw3.h>
 
+#include <ui.h>
+
 namespace oka
 {
 
@@ -53,6 +55,7 @@ public:
     void onEndFrame();
 
     void drawFrame(Image* result);
+    void drawUI();
 
     bool framebufferResized = false;
 
@@ -101,8 +104,13 @@ protected:
     std::vector<VkImage> mSwapChainImages;
     VkFormat swapChainImageFormat;
     VkExtent2D mSwapChainExtent;
-    std::vector<VkImageView> swapChainImageViews;
-    std::vector<VkFramebuffer> swapChainFramebuffers;
+    std::vector<VkImageView> mSwapChainImageViews;
+    std::vector<VkFramebuffer> mSwapChainFramebuffers;
+
+    oka::Ui::RenderConfig mRenderConfig = {};
+    oka::Ui::RenderStats mRenderStats = {};
+    oka::Ui::SceneConfig mSceneConfig = {};
+    oka::Ui mUi;
 };
 
 } // namespace oka

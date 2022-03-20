@@ -34,7 +34,7 @@ struct SharedContext
 
     FrameData mFramesData[MAX_FRAMES_IN_FLIGHT] = {};
     uint64_t mFrameNumber = 0;
-    uint32_t mFrameIndex = 0;
+    uint32_t mFrameIndex = 0; // swapchain image index
     VkFormat depthFormat = VK_FORMAT_UNDEFINED;
 
 

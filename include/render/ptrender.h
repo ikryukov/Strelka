@@ -66,6 +66,11 @@ public:
         mScene = scene;
     }
 
+    Scene* getScene()
+    {
+        return mScene;
+    }
+
     void setActiveCameraIndex(const uint32_t index)
     {
         mCurrentSceneRenderData->cameraIndex = index;
@@ -241,12 +246,6 @@ public:
     {
         return mSharedCtx->mResManager;
     }
-
-    oka::Scene* getScene()
-    {
-        return mScene;
-    }
-
 
     oka::TextureManager* getTexManager()
     {

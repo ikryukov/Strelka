@@ -423,10 +423,11 @@ int main(int argc, const char* argv[])
         cam.SetFromCamera(cameraController.getCamera(), 0.0);
 
         render.onBeginFrame();
-        engine.Execute(renderIndex, &tasks);
+        engine.Execute(renderIndex, &tasks); // main path tracing rendering in fixed render resolution
         oka::Image* outputImage = renderBuffers[frameCount % 3]->GetResource(false).UncheckedGet<oka::Image*>();
-        render.drawFrame(outputImage);
-        render.onEndFrame();
+        render.drawFrame(outputImage); // blit rendered image to swapchain
+        render.drawUI(); // render ui to swapchain image in window resolution
+        render.onEndFrame(); // submit command buffer and present
 
         auto finish = std::chrono::high_resolution_clock::now();
         double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
