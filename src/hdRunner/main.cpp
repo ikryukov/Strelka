@@ -303,6 +303,8 @@ int main(int argc, const char* argv[])
     ctx->mSettingsManager = new oka::SettingsManager();
 
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/depth", 6);
+    ctx->mSettingsManager->setAs<float>("render/pt/upscaleFactor", 0.5f);
+    ctx->mSettingsManager->setAs<bool>("render/pt/enableUpscale", true);
 
     HdDriver driver;
     driver.name = _AppTokens->HdStrelkaDriver;

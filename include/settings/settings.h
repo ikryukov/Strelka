@@ -28,6 +28,18 @@ public:
     }
 
     template <>
+    bool getAs(const char* name)
+    {
+        return (bool) atoi(mMap[name].c_str());
+    }
+
+    template <>
+    float getAs(const char* name)
+    {
+        return atof(mMap[name].c_str());
+    }
+
+    template <>
     uint32_t getAs(const char* name)
     {
         return atoi(mMap[name].c_str());

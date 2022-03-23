@@ -108,7 +108,6 @@ protected:
     std::vector<VkFramebuffer> mSwapChainFramebuffers;
 
     oka::Ui::RenderConfig mRenderConfig = {};
-    oka::Ui::RenderStats mRenderStats = {};
     oka::Ui::SceneConfig mSceneConfig = {};
     oka::Ui mUi;
 };

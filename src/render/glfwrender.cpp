@@ -256,13 +256,7 @@ void oka::GLFWRender::drawUI()
 {
     std::string newModelPath;
 
-    mRenderStats.msPerFrame = 16.0f;
-    mSceneConfig.selectedCamera = 0;
-    mSceneConfig.newModelPath = newModelPath;
-    mRenderConfig.animTime = 0.0;
-    mRenderConfig.samples = 16;
-
-    mUi.updateUI(mSharedCtx.mSettingsManager, mRenderConfig, mRenderStats, mSceneConfig);
+    mUi.updateUI(mSharedCtx.mSettingsManager);
 
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
     VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;

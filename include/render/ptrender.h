@@ -261,6 +261,11 @@ public:
     {
         return mSharedCtx->mShaderManager;
     }
+
+    SettingsManager* getSettingsManager()
+    {
+        return mSharedCtx->mSettingsManager;
+    }
 };
 
 } // namespace oka

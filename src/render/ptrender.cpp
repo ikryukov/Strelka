@@ -208,12 +208,14 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32
     assert(mSharedCtx->mTextureManager);
     ResourceManager* resManager = getResManager();
     TextureManager* texManager = getTexManager();
+    SettingsManager* settingsManager = getSettingsManager();
     ViewData* view = new ViewData();
     view->spp = spp;
     view->finalWidth = width;
     view->finalHeight = height;
-    view->renderWidth = (uint32_t)(width * 0.5f); // mRenderConfig.upscaleFactor
-    view->renderHeight = (uint32_t)(height * 0.5f); // mRenderConfig.upscaleFactor
+    const float upscaleFactor = settingsManager->getAs<float>("render/pt/upscaleFactor");
+    view->renderWidth = (uint32_t)(width * upscaleFactor);
+    view->renderHeight = (uint32_t)(height * upscaleFactor);
     view->mResManager = resManager;
     view->gbuffer = createGbuffer(view->renderWidth, view->renderHeight);
     view->prevDepth = resManager->createImage(
@@ -730,7 +732,8 @@ void PtRender::drawFrame(Image* result)
         }
 
         // Upscale
-        if (1)
+        const bool enableUpscale = getSharedContext().mSettingsManager->getAs<bool>("render/pt/enableUpscale");
+        if (enableUpscale)
         {
             recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
                                VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,

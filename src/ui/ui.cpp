@@ -755,7 +755,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     ImGui::End(); // end window
 }
 
-void Ui::updateUI(oka::SettingsManager* settingsManager, RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig)
+void Ui::updateUI(oka::SettingsManager* settingsManager)
 {
     ImGuiIO& io = ImGui::GetIO();
     bool openFD = false;
@@ -771,11 +771,6 @@ void Ui::updateUI(oka::SettingsManager* settingsManager, RenderConfig& renderCon
     ImGui::NewFrame();
 
     ImGui::Begin("Menu:"); // begin window
-
-    // open new window w/ scene tree
-    // simple settings
-    ImGui::Text("MsPF = %f", renderStats.msPerFrame);
-    ImGui::Text("FPS = %f", 1000.0 / renderStats.msPerFrame);
 
     if (ImGui::BeginCombo("Debug view", current_item))
     {
@@ -796,32 +791,33 @@ void Ui::updateUI(oka::SettingsManager* settingsManager, RenderConfig& renderCon
     }
     if (ImGui::TreeNode("Path Tracer"))
     {
-        renderConfig.maxDepth = settingsManager->getAs<uint32_t>("render/pt/depth");
-        ImGui::SliderInt("Max Depth", &renderConfig.maxDepth, 1, 16);
-        settingsManager->setAs<uint32_t>("render/pt/depth", renderConfig.maxDepth);
+        uint32_t maxDepth = settingsManager->getAs<uint32_t>("render/pt/depth");
+        ImGui::SliderInt("Max Depth", (int*) &maxDepth, 1, 16);
+        settingsManager->setAs<uint32_t>("render/pt/depth", maxDepth);
 
-        ImGui::Checkbox("Enable Path Tracer Acc", &renderConfig.enablePathTracerAcc);
+        bool enablePathTracerAcc = settingsManager->getAs<bool>("render/pt/enableAcc");
+        ImGui::Checkbox("Enable Path Tracer Acc", &enablePathTracerAcc);
+        settingsManager->setAs<bool>("render/pt/enableAcc", enablePathTracerAcc);
 
         ImGui::TreePop();
     }
-    // Common for bilateral filters
-    ImGui::Checkbox("Use swizzle threads in filters", &renderConfig.useSwizzleTid);
+    bool enableUpscale = settingsManager->getAs<bool>("render/pt/enableUpscale");
+    ImGui::Checkbox("Enable Upscale", &enableUpscale);
+    settingsManager->setAs<bool>("render/pt/enableUpscale", enableUpscale);
 
-    ImGui::Checkbox("Enable Upscale", &renderConfig.enableUpscale);
-    if (renderConfig.enableUpscale)
+    float upscaleFactor = 0.0f;
+    if (enableUpscale)
     {
-        renderConfig.upscaleFactor = 0.5f;
+        upscaleFactor = 0.5f;
     }
     else
     {
-        renderConfig.upscaleFactor = 1.0f;
+        upscaleFactor = 1.0f;
     }
+    settingsManager->setAs<float>("render/pt/upscaleFactor", upscaleFactor);
 
-    bool isRecreate = ImGui::Button("Recreate BVH");
-    renderConfig.recreateBVH = isRecreate ? true : false;
-
-    bool isCPU = ImGui::Button("Render CPU");
-    renderConfig.renderCPU = isCPU ? true : false;
+    // bool isRecreate = ImGui::Button("Recreate BVH");
+    // renderConfig.recreateBVH = isRecreate ? true : false;
 
     ImGui::End(); // end window
 }
