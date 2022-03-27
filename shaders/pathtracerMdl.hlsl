@@ -46,6 +46,21 @@ float2 stratifiedSamplingOptimized(int s, int p = 25, float a = 1.0f){
     return r;
 }
 
+float2 stratifiedSampling1(uint s, uint rngState, uint N = 9)
+{
+    int m = int(sqrt(N));
+    int n = m;
+
+    int x = s / n;
+    int y = s % m;
+
+    float2 jitter = float2(0.0f, 0.0f);
+    jitter.x = (x + (y + rand(rngState)) / m) / n;
+    jitter.y = (y + (x + rand(rngState)) / n) / m;
+
+    return jitter;
+}
+
 float2 stratifiedSampling(uint s, uint rngState, uint N = 25)
 {
     float2 p[25]; // [N]
@@ -95,7 +110,8 @@ Ray generateCameraRay(uint2 pixelIndex, uint rngState, uint s)
 
 // Stratified sampling
 //      pixelPos = float2(pixelIndex) + stratifiedSampling(s, rngState);
-      pixelPos = float2(pixelIndex) + stratifiedSamplingOptimized(s);
+    pixelPos = float2(pixelIndex) + stratifiedSampling1(s, rngState);
+//     pixelPos = float2(pixelIndex) + stratifiedSamplingOptimized(s);
 
     float2 pixelNDC = (pixelPos / float2(ubo.dimension)) * 2.0f - 1.0f;
 
