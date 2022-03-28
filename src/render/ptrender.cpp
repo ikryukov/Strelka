@@ -21,8 +21,20 @@ const uint32_t MAX_LIGHT_COUNT = 100;
 
 using namespace oka;
 
+void PtRender::initDefaultSettings()
+{
+    mSettings.enableUpscale = true;
+}
+
+void PtRender::readSettings()
+{
+    mSettings.enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
+}
+
 void PtRender::init()
 {
+    initDefaultSettings();
+
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         mView[i] = createView(800, 600, 1);
@@ -70,7 +82,6 @@ void PtRender::init()
         // failed to load MDL
         return;
     }
-
 
     // default material
     {
@@ -575,6 +586,28 @@ void PtRender::drawFrame(Image* result)
         createMdlBuffers();
     }
 
+    bool needRecreateView = false;
+    const bool enableAccumulation = getSettingsManager()->getAs<bool>("render/pt/enableAcc");
+    const bool enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
+    if (mSettings.enableUpscale != enableUpscale)
+    {
+        needRecreateView = true;
+    }
+    mSettings.enableUpscale = enableUpscale;
+
+    if (needRecreateView)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            mNeedRecreateView[i] = true;
+        }
+    }
+    if (mNeedRecreateView[frameIndex])
+    {
+        mView[frameIndex] = createView(800, 600, 1);
+        mNeedRecreateView[frameIndex] = false;
+    }
+
     ViewData* currView = mView[frameIndex];
     uint32_t renderWidth = currView->renderWidth;
     uint32_t renderHeight = currView->renderHeight;
@@ -668,12 +701,9 @@ void PtRender::drawFrame(Image* result)
 
         finalPathTracerImage = currView->mPathTracerImage;
 
-        if (mPrevView)
+        if (enableAccumulation && mPrevView)
         {
             // Accumulation pass
-            // Image* accHist = mView[imageIndex]->mAccumulationPathTracerImage[i % 2];
-            Image* accOut = currView->mAccumulationPathTracerImage;
-
             AccumulationDesc accDesc{};
             AccumulationParam& accParam = accDesc.constants;
             accParam.alpha = 0.1f;
@@ -690,22 +720,17 @@ void PtRender::drawFrame(Image* result)
             accParam.clipToView = cam.matrices.invPerspective;
             accParam.viewToWorld = glm::inverse(cam.matrices.view);
             accParam.isPt = 1;
-            // currView->mPtIteration = i + (uint32_t)getSharedContext().mFrameNumber * 1; // TODO: need to recalc
-            // properly
             accParam.iteration = currView->mPtIteration;
 
             accDesc.input = finalPathTracerImage;
             accDesc.history = mPrevView->mAccumulationPathTracerImage;
+            Image* accOut = currView->mAccumulationPathTracerImage;
             accDesc.output = accOut;
 
             recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mAccumulationPathTracer->execute(cmd, accDesc, renderWidth, renderHeight, frameNumber);
-            // recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            //                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-            //                   VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
             finalPathTracerImage = accOut;
         }
 
@@ -715,9 +740,9 @@ void PtRender::drawFrame(Image* result)
     {
         // Tonemap
         {
-            recordImageBarrier(cmd, currView->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL,
-                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            recordImageBarrier(cmd, currView->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT,
+                               VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
@@ -732,7 +757,6 @@ void PtRender::drawFrame(Image* result)
         }
 
         // Upscale
-        const bool enableUpscale = getSharedContext().mSettingsManager->getAs<bool>("render/pt/enableUpscale");
         if (enableUpscale)
         {
             recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,

@@ -93,6 +93,13 @@ private:
     ReductionPass* mReductionPass;
     DebugView* mDebugView;
 
+    struct RenderSettings
+    {
+        bool enableUpscale = false;
+    };
+    RenderSettings
+    mSettings;
+
     struct ViewData
     {
         // could be scaled
@@ -155,6 +162,7 @@ private:
     Image* mAccumulatedPt = nullptr;
 
     std::array<ViewData*, MAX_FRAMES_IN_FLIGHT> mView;
+    std::array<bool, MAX_FRAMES_IN_FLIGHT> mNeedRecreateView = {false, false, false};
 
     struct SceneRenderData
     {
@@ -240,6 +248,9 @@ private:
                              VkAccessFlags dstAccess,
                              VkPipelineStageFlags sourceStage,
                              VkPipelineStageFlags destinationStage);
+    
+    void initDefaultSettings();
+    void readSettings();
 
 public:
     oka::ResourceManager* getResManager()
