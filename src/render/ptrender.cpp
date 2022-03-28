@@ -21,8 +21,20 @@ const uint32_t MAX_LIGHT_COUNT = 100;
 
 using namespace oka;
 
+void PtRender::initDefaultSettings()
+{
+    mSettings.enableUpscale = true;
+}
+
+void PtRender::readSettings()
+{
+    mSettings.enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
+}
+
 void PtRender::init()
 {
+    initDefaultSettings();
+
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
         mView[i] = createView(800, 600, 1);
@@ -70,7 +82,6 @@ void PtRender::init()
         // failed to load MDL
         return;
     }
-
 
     // default material
     {
@@ -208,12 +219,14 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32
     assert(mSharedCtx->mTextureManager);
     ResourceManager* resManager = getResManager();
     TextureManager* texManager = getTexManager();
+    SettingsManager* settingsManager = getSettingsManager();
     ViewData* view = new ViewData();
     view->spp = spp;
     view->finalWidth = width;
     view->finalHeight = height;
-    view->renderWidth = (uint32_t)(width * 0.5f); // mRenderConfig.upscaleFactor
-    view->renderHeight = (uint32_t)(height * 0.5f); // mRenderConfig.upscaleFactor
+    const float upscaleFactor = settingsManager->getAs<float>("render/pt/upscaleFactor");
+    view->renderWidth = (uint32_t)(width * upscaleFactor);
+    view->renderHeight = (uint32_t)(height * upscaleFactor);
     view->mResManager = resManager;
     view->gbuffer = createGbuffer(view->renderWidth, view->renderHeight);
     view->prevDepth = resManager->createImage(
@@ -573,6 +586,28 @@ void PtRender::drawFrame(Image* result)
         createMdlBuffers();
     }
 
+    bool needRecreateView = false;
+    const bool enableAccumulation = getSettingsManager()->getAs<bool>("render/pt/enableAcc");
+    const bool enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
+    if (mSettings.enableUpscale != enableUpscale)
+    {
+        needRecreateView = true;
+    }
+    mSettings.enableUpscale = enableUpscale;
+
+    if (needRecreateView)
+    {
+        for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+        {
+            mNeedRecreateView[i] = true;
+        }
+    }
+    if (mNeedRecreateView[frameIndex])
+    {
+        mView[frameIndex] = createView(800, 600, 1);
+        mNeedRecreateView[frameIndex] = false;
+    }
+
     ViewData* currView = mView[frameIndex];
     uint32_t renderWidth = currView->renderWidth;
     uint32_t renderHeight = currView->renderHeight;
@@ -624,7 +659,8 @@ void PtRender::drawFrame(Image* result)
         PathTracerParam& pathTracerParam = ptDesc.constants;
         pathTracerParam.dimension = glm::int2(renderWidth, renderHeight);
         pathTracerParam.frameNumber = (uint32_t)getSharedContext().mFrameNumber;
-        pathTracerParam.maxDepth = 6;
+        const uint32_t depth = getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/depth");
+        pathTracerParam.maxDepth = depth;
         pathTracerParam.debug = (uint32_t)(mScene->mDebugViewSettings == Scene::DebugView::ePTDebug);
         pathTracerParam.camPos = glm::float4(cam.getPosition(), 1.0f);
         pathTracerParam.viewToWorld = glm::inverse(cam.matrices.view);
@@ -665,12 +701,9 @@ void PtRender::drawFrame(Image* result)
 
         finalPathTracerImage = currView->mPathTracerImage;
 
-        if (mPrevView)
+        if (enableAccumulation && mPrevView)
         {
             // Accumulation pass
-            // Image* accHist = mView[imageIndex]->mAccumulationPathTracerImage[i % 2];
-            Image* accOut = currView->mAccumulationPathTracerImage;
-
             AccumulationDesc accDesc{};
             AccumulationParam& accParam = accDesc.constants;
             accParam.alpha = 0.1f;
@@ -687,22 +720,17 @@ void PtRender::drawFrame(Image* result)
             accParam.clipToView = cam.matrices.invPerspective;
             accParam.viewToWorld = glm::inverse(cam.matrices.view);
             accParam.isPt = 1;
-            // currView->mPtIteration = i + (uint32_t)getSharedContext().mFrameNumber * 1; // TODO: need to recalc
-            // properly
             accParam.iteration = currView->mPtIteration;
 
             accDesc.input = finalPathTracerImage;
             accDesc.history = mPrevView->mAccumulationPathTracerImage;
+            Image* accOut = currView->mAccumulationPathTracerImage;
             accDesc.output = accOut;
 
             recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             mAccumulationPathTracer->execute(cmd, accDesc, renderWidth, renderHeight, frameNumber);
-            // recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            //                   VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-            //                   VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-
             finalPathTracerImage = accOut;
         }
 
@@ -712,9 +740,9 @@ void PtRender::drawFrame(Image* result)
     {
         // Tonemap
         {
-            recordImageBarrier(cmd, currView->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL,
-                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            recordImageBarrier(cmd, currView->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT,
+                               VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
@@ -729,7 +757,7 @@ void PtRender::drawFrame(Image* result)
         }
 
         // Upscale
-        if (1)
+        if (enableUpscale)
         {
             recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
                                VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,

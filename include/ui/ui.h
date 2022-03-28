@@ -13,12 +13,8 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
-#include "scene/scene.h"
-
-
-#include <array>
-#include <stdio.h> // printf, fprintf
-#include <stdlib.h> // abort
+#include <scene/scene.h>
+#include <settings/settings.h>
 
 namespace oka
 {
@@ -70,6 +66,8 @@ public:
 
     bool init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height);
     void updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderStats, SceneConfig& sceneConfig);
+    void updateUI(oka::SettingsManager* settingsManager);
+    
     void render(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     bool createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageViews, uint32_t width, uint32_t height);
     void createVkRenderPass(VkFormat framebufferFormat);
@@ -79,6 +77,12 @@ public:
     void onDestroy() const;
 
     void loadFromJson(Scene& scene);
+
+    bool wantCaptureMouse()
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        return io.WantCaptureMouse;
+    }
 
 private:
     ImGui_ImplVulkan_InitInfo mInitInfo{};

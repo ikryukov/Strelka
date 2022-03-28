@@ -66,6 +66,11 @@ public:
         mScene = scene;
     }
 
+    Scene* getScene()
+    {
+        return mScene;
+    }
+
     void setActiveCameraIndex(const uint32_t index)
     {
         mCurrentSceneRenderData->cameraIndex = index;
@@ -87,6 +92,13 @@ private:
     UpscalePass* mUpscalePass;
     ReductionPass* mReductionPass;
     DebugView* mDebugView;
+
+    struct RenderSettings
+    {
+        bool enableUpscale = false;
+    };
+    RenderSettings
+    mSettings;
 
     struct ViewData
     {
@@ -150,6 +162,7 @@ private:
     Image* mAccumulatedPt = nullptr;
 
     std::array<ViewData*, MAX_FRAMES_IN_FLIGHT> mView;
+    std::array<bool, MAX_FRAMES_IN_FLIGHT> mNeedRecreateView = {false, false, false};
 
     struct SceneRenderData
     {
@@ -235,18 +248,15 @@ private:
                              VkAccessFlags dstAccess,
                              VkPipelineStageFlags sourceStage,
                              VkPipelineStageFlags destinationStage);
+    
+    void initDefaultSettings();
+    void readSettings();
 
 public:
     oka::ResourceManager* getResManager()
     {
         return mSharedCtx->mResManager;
     }
-
-    oka::Scene* getScene()
-    {
-        return mScene;
-    }
-
 
     oka::TextureManager* getTexManager()
     {
@@ -261,6 +271,11 @@ public:
     ShaderManager* getShaderManager()
     {
         return mSharedCtx->mShaderManager;
+    }
+
+    SettingsManager* getSettingsManager()
+    {
+        return mSharedCtx->mSettingsManager;
     }
 };
 

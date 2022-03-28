@@ -57,7 +57,13 @@ static void glfw_char_callback(GLFWwindow* window, unsigned int c)
 }
 
 
-bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, GLFWwindow* window, VkCommandPool command_pool, VkCommandBuffer command_buffer, int width, int height)
+bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info,
+              VkFormat framebufferFormat,
+              GLFWwindow* window,
+              VkCommandPool command_pool,
+              VkCommandBuffer command_buffer,
+              int width,
+              int height)
 {
     mInitInfo = init_info;
     wd.Width = width;
@@ -68,7 +74,7 @@ bool Ui::init(ImGui_ImplVulkan_InitInfo& init_info, VkFormat framebufferFormat, 
 
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext(); //this initializes the core structures of imgui
+    ImGui::CreateContext(); // this initializes the core structures of imgui
 
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(width, height);
@@ -207,10 +213,7 @@ bool Ui::createFrameBuffers(VkDevice device, std::vector<VkImageView>& imageView
 }
 
 static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
-static const float identityMatrix[16] = { 1.f, 0.f, 0.f, 0.f,
-                                          0.f, 1.f, 0.f, 0.f,
-                                          0.f, 0.f, 1.f, 0.f,
-                                          0.f, 0.f, 0.f, 1.f };
+static const float identityMatrix[16] = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
 static bool useWindow = false;
 static int gizmoCount = 1;
 
@@ -312,18 +315,16 @@ void EditTransform(Camera& cam, float camDistance, float* matrix, bool editTrans
     glm::float4x4 cameraView = cam.getView();
     glm::float4x4 cameraProjection = cam.getPerspective();
 
-    const glm::float4x4 convRHtoLH = {
-        { 1, 0, 0, 0 },
-        { 0, -1, 0, 0 },
-        { 0, 0, 1, 0 },
-        { 0, 0, 0, 1 }
-    };
+    const glm::float4x4 convRHtoLH = { { 1, 0, 0, 0 }, { 0, -1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } };
     cameraProjection = cameraProjection * convRHtoLH;
 
     ImGuizmo::DrawGrid(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), identityMatrix, 100.f);
 
-    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL);
-    ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), camDistance, ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
+    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), mCurrentGizmoOperation,
+                         mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL,
+                         boundSizingSnap ? boundsSnap : NULL);
+    ImGuizmo::ViewManipulate(glm::value_ptr(cameraView), camDistance,
+                             ImVec2(viewManipulateRight - 128, viewManipulateTop), ImVec2(128, 128), 0x10101010);
 
     cam.matrices.view = cameraView;
 
@@ -341,24 +342,23 @@ void showGizmo(Camera& cam, float camDistance, float* matrix, ImGuizmo::OPERATIO
     ImGuizmo::SetRect(0, 0, io.DisplaySize.x, io.DisplaySize.y);
     glm::float4x4 cameraView = cam.getView();
     glm::float4x4 cameraProjection = cam.getPerspective();
-    const glm::float4x4 convRHtoLH = {
-        { 1, 0, 0, 0 },
-        { 0, -1, 0, 0 },
-        { 0, 0, 1, 0 },
-        { 0, 0, 0, 1 }
-    };
+    const glm::float4x4 convRHtoLH = { { 1, 0, 0, 0 }, { 0, -1, 0, 0 }, { 0, 0, 1, 0 }, { 0, 0, 0, 1 } };
     cameraProjection = cameraProjection * convRHtoLH;
-    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, mCurrentGizmoMode, matrix, NULL, nullptr, nullptr, nullptr);
+    ImGuizmo::Manipulate(glm::value_ptr(cameraView), glm::value_ptr(cameraProjection), operation, mCurrentGizmoMode,
+                         matrix, NULL, nullptr, nullptr, nullptr);
 }
 
 Scene::UniformLightDesc parseFromJson(json light, uint32_t j)
 {
     Scene::UniformLightDesc desc;
-    desc.position = glm::float3(light["lights"][j]["position"][0], light["lights"][j]["position"][1], light["lights"][j]["position"][2]);
-    desc.orientation = glm::float3(light["lights"][j]["orientation"][0], light["lights"][j]["orientation"][1], light["lights"][j]["orientation"][2]);
+    desc.position = glm::float3(
+        light["lights"][j]["position"][0], light["lights"][j]["position"][1], light["lights"][j]["position"][2]);
+    desc.orientation = glm::float3(light["lights"][j]["orientation"][0], light["lights"][j]["orientation"][1],
+                                   light["lights"][j]["orientation"][2]);
     desc.width = float(light["lights"][j]["width"]);
     desc.height = light["lights"][j]["height"];
-    desc.color = glm::float3(light["lights"][j]["color"][0], light["lights"][j]["color"][1], light["lights"][j]["color"][2]);
+    desc.color =
+        glm::float3(light["lights"][j]["color"][0], light["lights"][j]["color"][1], light["lights"][j]["color"][2]);
     desc.intensity = float(light["lights"][j]["intensity"]);
 
     return desc;
@@ -373,7 +373,8 @@ void saveToJson(Scene& scene)
     for (uint32_t i = 0; i < lightDescs.size(); ++i)
     {
         lightSettings[i]["position"] = { lightDescs[i].position.x, lightDescs[i].position.y, lightDescs[i].position.z };
-        lightSettings[i]["orientation"] = { lightDescs[i].orientation.x, lightDescs[i].orientation.y, lightDescs[i].orientation.z };
+        lightSettings[i]["orientation"] = { lightDescs[i].orientation.x, lightDescs[i].orientation.y,
+                                            lightDescs[i].orientation.z };
         lightSettings[i]["width"] = lightDescs[i].width;
         lightSettings[i]["height"] = lightDescs[i].height;
         lightSettings[i]["color"] = { lightDescs[i].color.x, lightDescs[i].color.y, lightDescs[i].color.z };
@@ -455,7 +456,8 @@ void displayLightSettings(uint32_t& lightId, Scene& scene, const uint32_t& selec
     glm::quat rotation = glm::quat(glm::radians(currLightDesc.orientation)); // to quaternion
     const glm::float4x4 rotationMatrix{ rotation };
     // light have o-y o-z scaling
-    const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, currLightDesc.width, currLightDesc.height));
+    const glm::float4x4 scaleMatrix =
+        glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, currLightDesc.width, currLightDesc.height));
 
     float camDist = glm::distance(camPos, currLightDesc.position);
     glm::float4x4 lightXform = translationMatrix * rotationMatrix * scaleMatrix;
@@ -493,7 +495,7 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer"};
+    const char* items[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer" };
     static const char* current_item = items[0];
 
     ImGui_ImplVulkan_NewFrame();
@@ -574,7 +576,8 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     // open new window w/ scene tree
     if (openInspector)
     {
-        ImGui::Begin("Inspector", &openInspector); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        ImGui::Begin("Inspector", &openInspector); // Pass a pointer to our bool variable (the window will have a
+                                                   // closing button that will clear the bool when clicked)
         {
             ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
             ImGui::BeginChild("Properties", ImVec2(0, 225), true, ImGuiWindowFlags_MenuBar);
@@ -594,7 +597,8 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
                     scene.updateInstanceTransform(showPropertiesId, xform);
 
                     ImGui::Text("Material ID: %d", instances[showPropertiesId].mMaterialId);
-                    ImGui::Text("Mass Center: %f %f %f", instances[showPropertiesId].massCenter.x, instances[showPropertiesId].massCenter.y, instances[showPropertiesId].massCenter.z);
+                    ImGui::Text("Mass Center: %f %f %f", instances[showPropertiesId].massCenter.x,
+                                instances[showPropertiesId].massCenter.y, instances[showPropertiesId].massCenter.z);
                 }
                 else
                 {
@@ -660,12 +664,14 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     }
     if (!scene.mAnimations.empty())
     {
-        bool valueChanged = ImGui::SliderFloat("Animation time", &renderConfig.animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
+        bool valueChanged = ImGui::SliderFloat(
+            "Animation time", &renderConfig.animTime, scene.mAnimations[0].start, scene.mAnimations[0].end);
         ImGuiDir dir = scene.mAnimState == Scene::AnimationState::ePlay ? ImGuiDir_Right : ImGuiDir_Down;
         bool isClicked = ImGui::ArrowButton("Play", ImGuiDir_Right);
         if (isClicked)
         {
-            scene.mAnimState = scene.mAnimState == Scene::AnimationState::ePlay ? Scene::AnimationState::eStop : Scene::AnimationState::ePlay;
+            scene.mAnimState = scene.mAnimState == Scene::AnimationState::ePlay ? Scene::AnimationState::eStop :
+                                                                                  Scene::AnimationState::ePlay;
         }
         if (valueChanged)
         {
@@ -749,6 +755,73 @@ void Ui::updateUI(Scene& scene, RenderConfig& renderConfig, RenderStats& renderS
     ImGui::End(); // end window
 }
 
+void Ui::updateUI(oka::SettingsManager* settingsManager)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    bool openFD = false;
+    static uint32_t showPropertiesId = -1;
+    static uint32_t lightId = -1;
+    static bool isLight = false;
+    static bool openInspector = false;
+    const char* items[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer" };
+    static const char* current_item = items[0];
+
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::Begin("Menu:"); // begin window
+
+    if (ImGui::BeginCombo("Debug view", current_item))
+    {
+        for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+        {
+            bool is_selected = (current_item == items[n]);
+            if (ImGui::Selectable(items[n], is_selected))
+            {
+                current_item = items[n];
+                // scene.mDebugViewSettings = (Scene::DebugView)n;
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    if (ImGui::TreeNode("Path Tracer"))
+    {
+        uint32_t maxDepth = settingsManager->getAs<uint32_t>("render/pt/depth");
+        ImGui::SliderInt("Max Depth", (int*) &maxDepth, 1, 16);
+        settingsManager->setAs<uint32_t>("render/pt/depth", maxDepth);
+
+        bool enablePathTracerAcc = settingsManager->getAs<bool>("render/pt/enableAcc");
+        ImGui::Checkbox("Enable Path Tracer Acc", &enablePathTracerAcc);
+        settingsManager->setAs<bool>("render/pt/enableAcc", enablePathTracerAcc);
+
+        ImGui::TreePop();
+    }
+    bool enableUpscale = settingsManager->getAs<bool>("render/pt/enableUpscale");
+    ImGui::Checkbox("Enable Upscale", &enableUpscale);
+    settingsManager->setAs<bool>("render/pt/enableUpscale", enableUpscale);
+
+    float upscaleFactor = 0.0f;
+    if (enableUpscale)
+    {
+        upscaleFactor = 0.5f;
+    }
+    else
+    {
+        upscaleFactor = 1.0f;
+    }
+    settingsManager->setAs<float>("render/pt/upscaleFactor", upscaleFactor);
+
+    // bool isRecreate = ImGui::Button("Recreate BVH");
+    // renderConfig.recreateBVH = isRecreate ? true : false;
+
+    ImGui::End(); // end window
+}
+
 void Ui::render(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
     // Rendering
@@ -790,7 +863,7 @@ void Ui::createVkRenderPass(VkFormat framebufferFormat)
     attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-    attachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     VkAttachmentReference color_attachment = {};
     color_attachment.attachment = 0;

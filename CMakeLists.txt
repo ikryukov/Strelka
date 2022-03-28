@@ -122,6 +122,16 @@ target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include
 target_include_directories(${SCENELIB_NAME} PUBLIC shaders/)
 target_include_directories(${SCENELIB_NAME} PUBLIC external/glm)
 
+# Settings
+set(SETTINGSLIB_SOURCES
+        include/settings/settings.h
+        src/settings/settings.cpp
+        )
+set(SETTINGSLIB_NAME settings)
+add_library(${SETTINGSLIB_NAME} OBJECT ${SETTINGSLIB_SOURCES})
+target_include_directories(${SETTINGSLIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
+target_include_directories(${SETTINGSLIB_NAME} PUBLIC external/glm)
+
 # UI
 set(UI_SOURCES
         include/ui/ui.h
@@ -294,16 +304,17 @@ target_include_directories(${PROJECT_NAME} PUBLIC external/glfw/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
-    ${RESMNGR_NAME} 
-    ${SHADERLIB_NAME} 
+    ${SETTINGSLIB_NAME}
+    ${RESMNGR_NAME}
+    ${SHADERLIB_NAME}
     ${MATERIALLIB_NAME}
     MaterialXCore
     MaterialXFormat
     MaterialXGenMdl
-    ${SCENELIB_NAME} 
-    ${RENDERLIB_NAME} 
-    ${UILIB_NAME} 
-    ${TEXTURELIB_NAME} 
+    ${SCENELIB_NAME}
+    ${RENDERLIB_NAME}
+    ${UILIB_NAME}
+    ${TEXTURELIB_NAME}
     ${TRACY_LIB}
     ${Vulkan_LIBRARY}
     ar cameraUtil hd hf hgi hio usd usdGeom usdImaging    
