@@ -46,22 +46,22 @@ float2 stratifiedSamplingOptimized(int s, int p = 25, float a = 1.0f){
     return r;
 }
 
-float2 stratifiedSampling1(uint s, uint rngState, uint N = 9)
+float2 stratifiedSampling1(uint s, in out uint rngState, uint N = 25)
 {
     int m = int(sqrt(N));
-    int n = m;
+    int n = (N + m - 1) / m;
 
-    int x = s / n;
-    int y = s % m;
+    int x = (s / n) % n;
+    int y = (s % m) % m;
 
     float2 jitter = float2(0.0f, 0.0f);
-    jitter.x = (x + (y + rand(rngState)) / m) / n;
-    jitter.y = (y + (x + rand(rngState)) / n) / m;
+    jitter.x = (x + (y + rand(rngState)) / n) / m;
+    jitter.y = (y + (x + rand(rngState)) / m) / n;
 
     return jitter;
 }
 
-float2 stratifiedSampling(uint s, uint rngState, uint N = 25)
+float2 stratifiedSampling(uint s, in out uint rngState, uint N = 25)
 {
     float2 p[25]; // [N]
     int m = int(sqrt(N));
@@ -95,12 +95,11 @@ float2 stratifiedSampling(uint s, uint rngState, uint N = 25)
         }
      }
 
-
     return p[s % N];
 }
 
 // Matrices version
-Ray generateCameraRay(uint2 pixelIndex, uint rngState, uint s)
+Ray generateCameraRay(uint2 pixelIndex, in out uint rngState, uint s)
 {
     float2 pixelPos = float2(0.0f, 0.0f);
 
@@ -109,7 +108,7 @@ Ray generateCameraRay(uint2 pixelIndex, uint rngState, uint s)
 //     pixelPos.y = float2(pixelIndex).y + rand(rngState);
 
 // Stratified sampling
-//      pixelPos = float2(pixelIndex) + stratifiedSampling(s, rngState);
+//     pixelPos = float2(pixelIndex) + stratifiedSampling(s, rngState);
     pixelPos = float2(pixelIndex) + stratifiedSampling1(s, rngState);
 //     pixelPos = float2(pixelIndex) + stratifiedSamplingOptimized(s);
 
