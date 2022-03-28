@@ -21,7 +21,7 @@ void oka::GLFWRender::init(int width, int height)
     // swapchain support
     mDeviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
     initVulkan();
-    
+
     createSyncObjects();
 
     createSwapChain();
@@ -40,7 +40,8 @@ void oka::GLFWRender::init(int width, int height)
     init_info.QueueFamily = indicesFamily.graphicsFamily.value();
 
     FrameData& frameData = getCurrentFrameData();
-    mUi.init(init_info, swapChainImageFormat, mWindow, frameData.cmdPool, frameData.cmdBuffer, mSwapChainExtent.width, mSwapChainExtent.height);
+    mUi.init(init_info, swapChainImageFormat, mWindow, frameData.cmdPool, frameData.cmdBuffer, mSwapChainExtent.width,
+             mSwapChainExtent.height);
     mUi.createFrameBuffers(mDevice, mSwapChainImageViews, mSwapChainExtent.width, mSwapChainExtent.height);
 }
 
@@ -134,7 +135,7 @@ void oka::GLFWRender::onBeginFrame()
 
     const uint32_t frameIndex = imageIndex;
     mSharedCtx.mFrameIndex = frameIndex;
-    
+
     VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
     result = vkResetCommandBuffer(cmd, 0);
     assert(result == VK_SUCCESS);
@@ -274,8 +275,8 @@ void oka::GLFWRender::framebufferResizeCallback(GLFWwindow* window, int width, i
 
     auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
-    //nevk::Scene* scene = app->getScene();
-    //scene->updateCamerasParams(width, height);
+    // nevk::Scene* scene = app->getScene();
+    // scene->updateCamerasParams(width, height);
 }
 
 void oka::GLFWRender::keyCallback(GLFWwindow* window,
@@ -365,10 +366,16 @@ void oka::GLFWRender::mouseButtonCallback(GLFWwindow* window,
 void oka::GLFWRender::handleMouseMoveCallback(GLFWwindow* window, [[maybe_unused]] double xpos, [[maybe_unused]] double ypos)
 {
     assert(window);
+
     auto app = reinterpret_cast<GLFWRender*>(glfwGetWindowUserPointer(window));
+    if (app->Ui().wantCaptureMouse())
+    {
+        return;
+    }
     InputHandler* handler = app->getInputHandler();
     assert(handler);
     handler->handleMouseMoveCallback(xpos, ypos);
+
 
     // auto app = reinterpret_cast<Render*>(glfwGetWindowUserPointer(window));
     // oka::Scene* scene = app->getScene();
@@ -495,7 +502,8 @@ void oka::GLFWRender::createSwapChain()
 
     for (uint32_t i = 0; i < mSwapChainImages.size(); i++)
     {
-        mSwapChainImageViews[i] =  mSharedCtx.mTextureManager->createImageView(mSwapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+        mSwapChainImageViews[i] = mSharedCtx.mTextureManager->createImageView(
+            mSwapChainImages[i], swapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 

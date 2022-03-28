@@ -48,6 +48,11 @@ public:
         return mInputHandler;
     }
 
+    Ui& Ui()
+    {
+        return mUi;
+    }
+
     bool windowShouldClose();
     void pollEvents();
 

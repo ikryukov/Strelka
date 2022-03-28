@@ -78,6 +78,12 @@ public:
 
     void loadFromJson(Scene& scene);
 
+    bool wantCaptureMouse()
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        return io.WantCaptureMouse;
+    }
+
 private:
     ImGui_ImplVulkan_InitInfo mInitInfo{};
     ImGui_ImplVulkanH_Window wd{};
