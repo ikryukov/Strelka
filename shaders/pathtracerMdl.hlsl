@@ -29,11 +29,11 @@ RWStructuredBuffer<float> sampleBuffer;
 // RWTexture2D<float4> output;
 
 // https://graphics.pixar.com/library/MultiJitteredSampling/paper.pdf
-float2 stratifiedSamplingOptimized(int s, int p = 25, float a = 1.0f){
-    int m = int(sqrt(ubo.spp * a));
-    int n = (ubo.spp + m - 1) / m;
+float2 stratifiedSamplingOptimized(int s, int N = 16, int p = 16, float a = 1.0f){
+    int m = int(sqrt(N * a));
+    int n = (N + m - 1) / m;
 
-    s = permute(s, ubo.spp, p * 0x51633e2d);
+    s = permute(s, N, p * 0x51633e2d);
 
     int sx = permute(s % m, m, p * 0x68bc21eb);
     int sy = permute(s / m, n, p * 0x02e5be93);
@@ -41,12 +41,12 @@ float2 stratifiedSamplingOptimized(int s, int p = 25, float a = 1.0f){
     float jx = randfloat(s, p * 0x967a889b);
     float jy = randfloat(s, p * 0x368cc8b7);
 
-    float2 r = { (sx + (sy + jx) / n) / m, (s + jy) / ubo.spp};
+    float2 r = { (sx + (sy + jx) / n) / m, (s + jy) / N};
 
     return r;
 }
 
-float2 stratifiedSampling1(uint s, in out uint rngState, uint N = 25)
+float2 stratifiedSampling1(uint s, in out uint rngState, uint N = 16)
 {
     int m = int(sqrt(N));
     int n = (N + m - 1) / m;
@@ -61,9 +61,9 @@ float2 stratifiedSampling1(uint s, in out uint rngState, uint N = 25)
     return jitter;
 }
 
-float2 stratifiedSampling(uint s, in out uint rngState, uint N = 25)
+float2 stratifiedSampling(uint s, in out uint rngState, uint N = 16)
 {
-    float2 p[25]; // [N]
+    float2 p[16]; // [N]
     int m = int(sqrt(N));
     int n = (N + m - 1) / m;
 
