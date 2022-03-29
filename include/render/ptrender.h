@@ -96,6 +96,7 @@ private:
     struct RenderSettings
     {
         bool enableUpscale = false;
+        bool enableAccumulation = false;
     };
     RenderSettings
     mSettings;
