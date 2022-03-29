@@ -28,10 +28,90 @@ StructuredBuffer<UniformLight> lights;
 RWStructuredBuffer<float> sampleBuffer;
 // RWTexture2D<float4> output;
 
-// Matrices version
-Ray generateCameraRay(uint2 pixelIndex)
+// https://graphics.pixar.com/library/MultiJitteredSampling/paper.pdf
+float2 stratifiedSamplingOptimized(int s, int N = 16, int p = 16, float a = 1.0f){
+    int m = int(sqrt(N * a));
+    int n = (N + m - 1) / m;
+
+    s = permute(s, N, p * 0x51633e2d);
+
+    int sx = permute(s % m, m, p * 0x68bc21eb);
+    int sy = permute(s / m, n, p * 0x02e5be93);
+
+    float jx = randfloat(s, p * 0x967a889b);
+    float jy = randfloat(s, p * 0x368cc8b7);
+
+    float2 r = { (sx + (sy + jx) / n) / m, (s + jy) / N};
+
+    return r;
+}
+
+float2 stratifiedSampling1(uint s, in out uint rngState, uint N = 16)
 {
-    float2 pixelPos = float2(pixelIndex) + 0.5f;
+    int m = int(sqrt(N));
+    int n = (N + m - 1) / m;
+
+    int x = (s / n) % n;
+    int y = (s % m) % m;
+
+    float2 jitter = float2(0.0f, 0.0f);
+    jitter.x = (x + (y + rand(rngState)) / n) / m;
+    jitter.y = (y + (x + rand(rngState)) / m) / n;
+
+    return jitter;
+}
+
+float2 stratifiedSampling(uint s, in out uint rngState, uint N = 16)
+{
+    float2 p[16]; // [N]
+    int m = int(sqrt(N));
+    int n = (N + m - 1) / m;
+
+    // Producing the canonical arrangement.
+    for (int j = 0; j < n; ++j){
+        for (int i = 0; i < m; ++i) {
+            p[j * m + i].x = (i + (j + rand(rngState)) / n) / m;
+            p[j * m + i].y = (j + (i + rand(rngState)) / m) / n;
+        }
+    }
+
+    // Shuffling the canonical arrangement.
+    for (int j = 0; j < n; ++j){
+        for (int i = 0; i < m; ++i) {
+            int k = j + rand(rngState) * (n - j);
+            float tmp = p[j * m + i].x;
+            p[j * m + i].x = p[k * m + i].x;
+            p[k * m + i].x = tmp;
+
+        }
+    }
+
+     for (int i = 0; i < m; ++i){
+        for (int j = 0; j < n; ++j) {
+            int k = i + rand(rngState) * (m - i);
+            float tmp = p[j * m + i].y;
+            p[j * m + i].y = p[j * m + k].y;
+            p[j * m + k].y = tmp;
+        }
+     }
+
+    return p[s % N];
+}
+
+// Matrices version
+Ray generateCameraRay(uint2 pixelIndex, in out uint rngState, uint s)
+{
+    float2 pixelPos = float2(0.0f, 0.0f);
+
+// Random sampling
+//     pixelPos.x = float2(pixelIndex).x + rand(rngState);
+//     pixelPos.y = float2(pixelIndex).y + rand(rngState);
+
+// Stratified sampling
+//     pixelPos = float2(pixelIndex) + stratifiedSampling(s, rngState);
+    pixelPos = float2(pixelIndex) + stratifiedSampling1(s, rngState);
+//     pixelPos = float2(pixelIndex) + stratifiedSamplingOptimized(s);
+
     float2 pixelNDC = (pixelPos / float2(ubo.dimension)) * 2.0f - 1.0f;
 
     float4 clip = float4(pixelNDC, 1.0f, 1.0f);
@@ -65,7 +145,7 @@ float3 offset_ray(const float3 p, const float3 n)
                   abs(p.z) < origin ? p.z + float_scale * n.z : p_i.z);
 }
 
-float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
+float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
 {
     Accel accel;
     accel.bvhNodes = bvhNodes;
@@ -79,7 +159,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState)
     int depth = 0;
     const int maxDepth = ubo.maxDepth;
 
-    Ray ray = generateCameraRay(pixelIndex);
+    Ray ray = generateCameraRay(pixelIndex, rngState, s);
 
     bool inside = 0; // 1 - inside
 
@@ -278,7 +358,8 @@ void computeMain(uint2 dispatchIndex : SV_DispatchThreadID)
     uint sampleNum = dispatchIndex.x % ubo.spp;
 
     uint rngState = initRNG(pixelIndex, ubo.dimension, (ubo.frameNumber + 1) * (sampleNum + 1) * (ubo.iteration + 1));
-    float3 color = pathTraceCameraRays(pixelIndex, rngState);
+    float3 color = pathTraceCameraRays(pixelIndex, rngState, sampleNum);
+
     sampleBuffer[dispatchIndex.x * 3 + 0] = color.r;
     sampleBuffer[dispatchIndex.x * 3 + 1] = color.g;
     sampleBuffer[dispatchIndex.x * 3 + 2] = color.b;
