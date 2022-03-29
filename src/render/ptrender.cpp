@@ -24,6 +24,7 @@ using namespace oka;
 void PtRender::initDefaultSettings()
 {
     mSettings.enableUpscale = true;
+    mSettings.enableAccumulation = true;
 }
 
 void PtRender::readSettings()
@@ -587,6 +588,7 @@ void PtRender::drawFrame(Image* result)
     }
 
     bool needRecreateView = false;
+    bool needResetAccumulation = false;
     const bool enableAccumulation = getSettingsManager()->getAs<bool>("render/pt/enableAcc");
     const bool enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
     if (mSettings.enableUpscale != enableUpscale)
@@ -594,6 +596,12 @@ void PtRender::drawFrame(Image* result)
         needRecreateView = true;
     }
     mSettings.enableUpscale = enableUpscale;
+
+    if (mSettings.enableAccumulation != enableAccumulation)
+    {
+        needResetAccumulation = true;
+    }
+    mSettings.enableAccumulation = enableAccumulation;
 
     if (needRecreateView)
     {
@@ -622,8 +630,9 @@ void PtRender::drawFrame(Image* result)
     currView->mCamMatrices = cam.matrices;
 
     // check if camera is dirty?
-    if (mPrevView && (glm::any(glm::notEqual(currView->mCamMatrices.perspective, mPrevView->mCamMatrices.perspective)) ||
-                      glm::any(glm::notEqual(currView->mCamMatrices.view, mPrevView->mCamMatrices.view))))
+    if (needResetAccumulation ||
+        (mPrevView && (glm::any(glm::notEqual(currView->mCamMatrices.perspective, mPrevView->mCamMatrices.perspective)) ||
+                       glm::any(glm::notEqual(currView->mCamMatrices.view, mPrevView->mCamMatrices.view)))))
     {
         // need to reset pt iteration and accumulation
         currView->mPtIteration = 0;
