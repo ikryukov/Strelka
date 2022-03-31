@@ -306,7 +306,7 @@ HdDirtyBits HdStrelkaMesh::GetInitialDirtyBitsMask() const
 {
     return HdChangeTracker::DirtyPoints | HdChangeTracker::DirtyNormals | HdChangeTracker::DirtyTopology |
            HdChangeTracker::DirtyInstancer | HdChangeTracker::DirtyInstanceIndex | HdChangeTracker::DirtyTransform |
-           HdChangeTracker::DirtyMaterialId;
+           HdChangeTracker::DirtyMaterialId | HdChangeTracker::DirtyPrimvar;
 }
 
 HdDirtyBits HdStrelkaMesh::_PropagateDirtyBits(HdDirtyBits bits) const
