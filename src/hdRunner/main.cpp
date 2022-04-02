@@ -172,25 +172,6 @@ public:
         mPosition = xform.ExtractTranslation();
     }
 
-    CameraController(UsdGeomCamera& cam, GfMatrix4d& defaultxform)
-    {
-        mGfCam = cam.GetCamera(0.0);
-
-        mGfCam.SetFocalLength(50);
-        GfRange1f clippingRange = GfRange1f{0.1, 1000};
-        mGfCam.SetClippingRange(clippingRange);
-        mGfCam.SetVerticalAperture(20.25);
-        mGfCam.SetVerticalApertureOffset(0);
-        mGfCam.SetHorizontalAperture(36);
-        mGfCam.SetVerticalApertureOffset(0);
-
-        GfMatrix4d xform = defaultxform;
-        xform.Orthonormalize();
-        mOrientation = xform.ExtractRotationQuat();
-        mOrientation.Normalize();
-        mPosition = xform.ExtractTranslation();
-    }
-
     void keyCallback(int key, [[maybe_unused]] int scancode, int action, [[maybe_unused]] int mods)
     {
         const bool keyState = ((GLFW_REPEAT == action) || (GLFW_PRESS == action)) ? true : false;
@@ -294,6 +275,32 @@ public:
     }
 };
 
+void setDefaultCamera(UsdGeomCamera& cam)
+{
+    std::vector<float> r0 = {0.1269921064376831, -0.9918715357780457, -0.007994583807885647, 0};
+    std::vector<float> r1 = {0.6746357679367065, 0.08046140521764755, 0.7337523698806763, 0};
+    std::vector<float> r2 = {-0.7271447777748108, -0.0985741913318634, 0.6793699860572815, 0};
+    std::vector<float> r3 = {-2.080613613128662, -0.22476722300052643, 1.9320838451385498, 1};
+
+    GfMatrix4d xform(r0, r1, r2, r3);
+    GfCamera mGfCam{};
+
+    mGfCam.SetTransform(xform);
+
+    GfRange1f clippingRange = GfRange1f{0.1, 1000};
+    mGfCam.SetClippingRange(clippingRange);
+    mGfCam.SetVerticalAperture(20.25);
+    mGfCam.SetVerticalApertureOffset(0);
+    mGfCam.SetHorizontalAperture(36);
+    mGfCam.SetHorizontalApertureOffset(0);
+    mGfCam.SetFocalLength(50);
+
+    GfCamera::Projection projection = GfCamera::Projection::Perspective;
+    mGfCam.SetProjection(projection);
+
+    cam.SetFromCamera(mGfCam, 0.0);
+}
+
 int main(int argc, const char* argv[])
 {
     // Init plugin.
@@ -344,7 +351,7 @@ int main(int argc, const char* argv[])
     // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
     // std::string usdPath = "./misc/glassCube.usda";
-    std::string usdPath = "./misc/glassBallsWithoutCamera.usda";
+    std::string usdPath = "./misc/glassLens.usda";
     // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
@@ -366,6 +373,11 @@ int main(int argc, const char* argv[])
     // Print the stage's linear units, or "meters per unit"
     std::cout << "Meters per unit: " << UsdGeomGetStageMetersPerUnit(stage) << std::endl;
 
+    // Init default camera
+    SdfPath cameraPath = SdfPath("/defaultCamera");
+    UsdGeomCamera cam = UsdGeomCamera::Define(stage, cameraPath);
+    setDefaultCamera(cam);
+
     HdRenderIndex* renderIndex = HdRenderIndex::New(renderDelegate, HdDriverVector());
     TF_VERIFY(renderIndex);
 
@@ -377,27 +389,15 @@ int main(int argc, const char* argv[])
     double meterPerUnit = UsdGeomGetStageMetersPerUnit(stage);
 
     // Init camera from scene
-    SdfPath cameraPath = SdfPath::EmptyPath();
+    cameraPath = SdfPath::EmptyPath();
     HdCamera* camera = FindCamera(stage, renderIndex, cameraPath);
-    UsdGeomCamera cam = UsdGeomCamera::Get(stage, cameraPath);
+    cam = UsdGeomCamera::Get(stage, cameraPath);
     CameraController cameraController(cam);
 
     if (!camera)
     {
         fprintf(stderr, "Camera not found!\n");
-        // Init default camera
-        cameraPath = SdfPath("/defaultCamera");
-        cam = UsdGeomCamera::Define(stage, cameraPath);
-
-        std::vector<float> r0 = {0.1269921064376831, -0.9918715357780457, -0.007994583807885647, 0};
-        std::vector<float> r1 = {0.6746357679367065, 0.08046140521764755, 0.7337523698806763, 0};
-        std::vector<float> r2 = {-0.7271447777748108, -0.0985741913318634, 0.6793699860572815, 0};
-        std::vector<float> r3 = {-2.080613613128662, -0.22476722300052643, 1.9320838451385498, 1};
-
-        GfMatrix4d xform(r0, r1, r2, r3);
-
-        cameraController = CameraController(cam, xform);
-        //return EXIT_FAILURE;
+        return EXIT_FAILURE;
     }
 
     // Set up rendering context.
