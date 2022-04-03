@@ -25,6 +25,8 @@ void PtRender::initDefaultSettings()
 {
     mSettings.enableUpscale = true;
     mSettings.enableAccumulation = true;
+    mSettings.enableSampling = true;
+    mSettings.enableOptimized = true;
 }
 
 void PtRender::readSettings()
@@ -591,17 +593,22 @@ void PtRender::drawFrame(Image* result)
     bool needResetAccumulation = false;
     const bool enableAccumulation = getSettingsManager()->getAs<bool>("render/pt/enableAcc");
     const bool enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
+    const bool enableSampling = getSettingsManager()->getAs<bool>("render/pt/sampling/stratifiedClassic");
+    const bool enableOptimized = getSettingsManager()->getAs<bool>("render/pt/sampling/stratifiedOptimized");
     if (mSettings.enableUpscale != enableUpscale)
     {
         needRecreateView = true;
     }
     mSettings.enableUpscale = enableUpscale;
 
-    if (mSettings.enableAccumulation != enableAccumulation)
+    if (mSettings.enableAccumulation != enableAccumulation || mSettings.enableSampling != enableSampling ||
+        mSettings.enableOptimized != enableOptimized)
     {
         needResetAccumulation = true;
     }
     mSettings.enableAccumulation = enableAccumulation;
+    mSettings.enableSampling = enableSampling;
+    mSettings.enableOptimized = enableOptimized;
 
     if (needRecreateView)
     {
@@ -681,6 +688,12 @@ void PtRender::drawFrame(Image* result)
         pathTracerParam.spp = currView->spp;
         pathTracerParam.iteration = currView->mPtIteration;
         pathTracerParam.numLights = (uint32_t)mScene->getLights().size();
+        const uint32_t stratifiedSampling =
+            getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/sampling/stratifiedClassic");
+        pathTracerParam.stratifiedSampling = stratifiedSampling;
+        const uint32_t stratifiedOptimized =
+            getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/sampling/stratifiedOptimized");
+        pathTracerParam.stratifiedOptimized = stratifiedOptimized;
         pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
         pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
         recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,

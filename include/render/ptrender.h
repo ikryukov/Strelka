@@ -97,7 +97,10 @@ private:
     {
         bool enableUpscale = false;
         bool enableAccumulation = false;
+        bool enableSampling = false;
+        bool enableOptimized = false;
     };
+
     RenderSettings
     mSettings;
 
