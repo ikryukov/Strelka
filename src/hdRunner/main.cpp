@@ -63,6 +63,27 @@ HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, SdfPath&
     return camera;
 }
 
+std::vector<std::pair<HdCamera*, SdfPath>> FindAllCameras(UsdStageRefPtr& stage, HdRenderIndex* renderIndex)
+{
+    UsdPrimRange primRange = stage->TraverseAll();
+    HdCamera* camera{};
+    SdfPath cameraPath{};
+    std::vector<std::pair<HdCamera*, SdfPath>> cameras{};
+    for (auto prim = primRange.cbegin(); prim != primRange.cend(); prim++)
+    {
+        if (!prim->IsA<UsdGeomCamera>())
+        {
+            continue;
+        }
+        cameraPath = prim->GetPath();
+        camera = (HdCamera*)dynamic_cast<HdCamera*>(renderIndex->GetSprim(HdTokens->camera, cameraPath));
+
+        cameras.emplace_back(std::make_pair(camera, cameraPath));
+    }
+
+    return cameras;
+}
+
 class CameraController : public oka::InputHandler
 {
     GfCamera mGfCam;
@@ -400,6 +421,8 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
+    std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
+    
     // Set up rendering context.
     uint32_t imageWidth = 800;
     uint32_t imageHeight = 600;
