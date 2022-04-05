@@ -824,7 +824,7 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
 
     if (ImGui::BeginCombo("Tonemap", currentTonemapItem))
     {
-        for (int n = 0; n < IM_ARRAYSIZE(debugItems); n++)
+        for (int n = 0; n < IM_ARRAYSIZE(tonemapItems); n++)
         {
             bool is_selected = (currentTonemapItem == tonemapItems[n]);
             if (ImGui::Selectable(tonemapItems[n], is_selected))

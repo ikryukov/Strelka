@@ -766,7 +766,7 @@ void PtRender::drawFrame(Image* result)
 
     {
         // Tonemap
-        if (enableTonemap == true)
+        if (enableTonemap)
         {
             recordImageBarrier(cmd, currView->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT,
                                VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -787,6 +787,9 @@ void PtRender::drawFrame(Image* result)
         }
         else
         {
+            recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             finalImage = finalPathTracerImage;
         }
 
