@@ -804,7 +804,7 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
         settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedClassic", enableSampling);
         if (enableSampling == true)
         {
-            settingsManager->setAs<uint32_t>("render/pt/stratifiedOptimized", 0);
+            settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedOptimized", 0);
         }
 
         bool enableOptimized = settingsManager->getAs<bool>("render/pt/sampling/stratifiedOptimized");
