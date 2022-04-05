@@ -795,9 +795,25 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
         ImGui::SliderInt("Max Depth", (int*) &maxDepth, 1, 16);
         settingsManager->setAs<uint32_t>("render/pt/depth", maxDepth);
 
-        bool enablePathTracerAcc = settingsManager->getAs<bool>("render/pt/enableAcc");
-        ImGui::Checkbox("Enable Path Tracer Acc", &enablePathTracerAcc);
-        settingsManager->setAs<bool>("render/pt/enableAcc", enablePathTracerAcc);
+        bool enableAccumulation = settingsManager->getAs<bool>("render/pt/enableAcc");
+        ImGui::Checkbox("Enable Path Tracer Acc", &enableAccumulation);
+        settingsManager->setAs<bool>("render/pt/enableAcc", enableAccumulation);
+
+        bool enableSampling = settingsManager->getAs<bool>("render/pt/sampling/stratifiedClassic");
+        ImGui::Checkbox("Enable Stratified Sampling", &enableSampling);
+        settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedClassic", enableSampling);
+        if (enableSampling == true)
+        {
+            settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedOptimized", 0);
+        }
+
+        bool enableOptimized = settingsManager->getAs<bool>("render/pt/sampling/stratifiedOptimized");
+        ImGui::Checkbox("Enable Optimized Stratified Sampling", &enableOptimized);
+        settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedOptimized", enableOptimized);
+        if (enableOptimized == true)
+        {
+            settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedClassic", 0);
+        }
 
         ImGui::TreePop();
     }

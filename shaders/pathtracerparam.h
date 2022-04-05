@@ -37,7 +37,10 @@ struct PathTracerParam
     int len;
     int spp;
     int iteration;
-    int pad1;
+    uint stratifiedOptimized;
+
+    uint stratifiedSampling;
+    float3 pad0;
 };
 
 #ifdef __cplusplus
