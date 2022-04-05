@@ -99,6 +99,7 @@ private:
         bool enableAccumulation = false;
         bool enableSampling = false;
         bool enableOptimized = false;
+        bool enableTonemap = false;
     };
 
     RenderSettings

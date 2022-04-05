@@ -27,6 +27,7 @@ void PtRender::initDefaultSettings()
     mSettings.enableAccumulation = true;
     mSettings.enableSampling = true;
     mSettings.enableOptimized = true;
+    mSettings.enableTonemap = true;
 }
 
 void PtRender::readSettings()
@@ -595,6 +596,8 @@ void PtRender::drawFrame(Image* result)
     const bool enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
     const bool enableSampling = getSettingsManager()->getAs<bool>("render/pt/sampling/stratifiedClassic");
     const bool enableOptimized = getSettingsManager()->getAs<bool>("render/pt/sampling/stratifiedOptimized");
+    const bool enableTonemap = getSharedContext().mSettingsManager->getAs<bool>("render/pt/enableTonemap");
+
     if (mSettings.enableUpscale != enableUpscale)
     {
         needRecreateView = true;
@@ -602,13 +605,14 @@ void PtRender::drawFrame(Image* result)
     mSettings.enableUpscale = enableUpscale;
 
     if (mSettings.enableAccumulation != enableAccumulation || mSettings.enableSampling != enableSampling ||
-        mSettings.enableOptimized != enableOptimized)
+        mSettings.enableOptimized != enableOptimized || mSettings.enableTonemap != enableTonemap)
     {
         needResetAccumulation = true;
     }
     mSettings.enableAccumulation = enableAccumulation;
     mSettings.enableSampling = enableSampling;
     mSettings.enableOptimized = enableOptimized;
+    mSettings.enableTonemap = enableTonemap;
 
     if (needRecreateView)
     {
@@ -759,8 +763,10 @@ void PtRender::drawFrame(Image* result)
         ++currView->mPtIteration;
     }
 
+
     {
         // Tonemap
+        if (enableTonemap == true)
         {
             recordImageBarrier(cmd, currView->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT,
                                VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
@@ -776,6 +782,10 @@ void PtRender::drawFrame(Image* result)
             toneDesc.output = currView->textureTonemapImage;
             mTonemap->execute(cmd, toneDesc, renderWidth, renderHeight, frameNumber);
             finalImage = currView->textureTonemapImage;
+        }
+        else
+        {
+            finalImage = finalPathTracerImage;
         }
 
         // Upscale

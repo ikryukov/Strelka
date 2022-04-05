@@ -308,6 +308,7 @@ int main(int argc, const char* argv[])
     ctx->mSettingsManager->setAs<float>("render/pt/upscaleFactor", 0.5f);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableUpscale", true);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableAcc", true);
+    ctx->mSettingsManager->setAs<bool>("render/pt/enableTonemap", true);
 
     HdDriver driver;
     driver.name = _AppTokens->HdStrelkaDriver;

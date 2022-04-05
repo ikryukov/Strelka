@@ -817,6 +817,11 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
 
         ImGui::TreePop();
     }
+
+    bool enableTonemap = settingsManager->getAs<bool>("render/pt/enableTonemap");
+    ImGui::Checkbox("Enable Tonemap", &enableTonemap);
+    settingsManager->setAs<bool>("render/pt/enableTonemap", enableTonemap);
+
     bool enableUpscale = settingsManager->getAs<bool>("render/pt/enableUpscale");
     ImGui::Checkbox("Enable Upscale", &enableUpscale);
     settingsManager->setAs<bool>("render/pt/enableUpscale", enableUpscale);
