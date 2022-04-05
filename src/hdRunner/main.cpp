@@ -303,12 +303,14 @@ int main(int argc, const char* argv[])
     ctx->mSettingsManager = new oka::SettingsManager();
 
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/depth", 6);
-    ctx->mSettingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedClassic", 0);
-    ctx->mSettingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedOptimized", 0);
     ctx->mSettingsManager->setAs<float>("render/pt/upscaleFactor", 0.5f);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableUpscale", true);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableAcc", true);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableTonemap", true);
+    ctx->mSettingsManager->setAs<bool>("render/pt/sampling/stratifiedClassic", false);
+    ctx->mSettingsManager->setAs<bool>("render/pt/sampling/stratifiedOptimized", false);
+    ctx->mSettingsManager->setAs<bool>("render/pt/tonemap/enableACES", false);
+    ctx->mSettingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", false);
 
     HdDriver driver;
     driver.name = _AppTokens->HdStrelkaDriver;

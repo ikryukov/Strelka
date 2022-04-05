@@ -623,7 +623,7 @@ void PtRender::drawFrame(Image* result)
     }
     if (mNeedRecreateView[frameIndex])
     {
-        mView[frameIndex] = createView(800, 600, 1);
+        mView[frameIndex] = createView(800, 600, 10);
         mNeedRecreateView[frameIndex] = false;
     }
 
@@ -778,6 +778,8 @@ void PtRender::drawFrame(Image* result)
             Tonemapparam& toneParams = toneDesc.constants;
             toneParams.dimension.x = renderWidth;
             toneParams.dimension.y = renderHeight;
+            toneParams.aces = getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/tonemap/enableACES");
+            toneParams.filmic = getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/tonemap/enableFilmic");
             toneDesc.input = finalPathTracerImage;
             toneDesc.output = currView->textureTonemapImage;
             mTonemap->execute(cmd, toneDesc, renderWidth, renderHeight, frameNumber);

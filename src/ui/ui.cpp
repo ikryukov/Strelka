@@ -763,8 +763,12 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer" };
-    static const char* current_item = items[0];
+
+    const char* debugItems[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer" };
+    static const char* currentDebugItem = debugItems[0];
+
+    const char* tonemapItems[] = { "None", "Reinhard", "ACES", "Filmic" };
+    static const char* currentTonemapItem = tonemapItems[1];
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -772,14 +776,14 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
 
     ImGui::Begin("Menu:"); // begin window
 
-    if (ImGui::BeginCombo("Debug view", current_item))
+    if (ImGui::BeginCombo("Debug view", currentDebugItem))
     {
-        for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+        for (int n = 0; n < IM_ARRAYSIZE(debugItems); n++)
         {
-            bool is_selected = (current_item == items[n]);
-            if (ImGui::Selectable(items[n], is_selected))
+            bool is_selected = (currentDebugItem == debugItems[n]);
+            if (ImGui::Selectable(debugItems[n], is_selected))
             {
-                current_item = items[n];
+                currentDebugItem = debugItems[n];
                 // scene.mDebugViewSettings = (Scene::DebugView)n;
             }
             if (is_selected)
@@ -792,7 +796,7 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
     if (ImGui::TreeNode("Path Tracer"))
     {
         uint32_t maxDepth = settingsManager->getAs<uint32_t>("render/pt/depth");
-        ImGui::SliderInt("Max Depth", (int*) &maxDepth, 1, 16);
+        ImGui::SliderInt("Max Depth", (int*)&maxDepth, 1, 16);
         settingsManager->setAs<uint32_t>("render/pt/depth", maxDepth);
 
         bool enableAccumulation = settingsManager->getAs<bool>("render/pt/enableAcc");
@@ -818,9 +822,48 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
         ImGui::TreePop();
     }
 
-    bool enableTonemap = settingsManager->getAs<bool>("render/pt/enableTonemap");
-    ImGui::Checkbox("Enable Tonemap", &enableTonemap);
-    settingsManager->setAs<bool>("render/pt/enableTonemap", enableTonemap);
+    if (ImGui::BeginCombo("Tonemap", currentTonemapItem))
+    {
+        for (int n = 0; n < IM_ARRAYSIZE(debugItems); n++)
+        {
+            bool is_selected = (currentTonemapItem == tonemapItems[n]);
+            if (ImGui::Selectable(tonemapItems[n], is_selected))
+            {
+                currentTonemapItem = tonemapItems[n];
+                // scene.mDebugViewSettings = (Scene::DebugView)n;
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    if (currentTonemapItem == tonemapItems[0])
+    {
+        settingsManager->setAs<bool>("render/pt/enableTonemap", false);
+        settingsManager->setAs<bool>("render/pt/tonemap/enableACES", false);
+        settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", false);
+    }
+    else if (currentTonemapItem == tonemapItems[1])
+    {
+        settingsManager->setAs<bool>("render/pt/enableTonemap", true);
+        settingsManager->setAs<bool>("render/pt/tonemap/enableACES", false);
+        settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", false);
+    }
+    else if (currentTonemapItem == tonemapItems[2])
+    {
+        settingsManager->setAs<bool>("render/pt/enableTonemap", true);
+        settingsManager->setAs<bool>("render/pt/tonemap/enableACES", true);
+        settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", false);
+    }
+    else if (currentTonemapItem == tonemapItems[3])
+    {
+        settingsManager->setAs<bool>("render/pt/enableTonemap", true);
+        settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", true);
+        settingsManager->setAs<bool>("render/pt/tonemap/enableACES", false);
+    }
 
     bool enableUpscale = settingsManager->getAs<bool>("render/pt/enableUpscale");
     ImGui::Checkbox("Enable Upscale", &enableUpscale);
