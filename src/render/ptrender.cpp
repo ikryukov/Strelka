@@ -18,6 +18,9 @@
 
 namespace fs = std::filesystem;
 const uint32_t MAX_LIGHT_COUNT = 100;
+const uint32_t HEIGHT = 600;
+const uint32_t WIDTH = 800;
+const uint32_t SPP = 1;
 
 using namespace oka;
 
@@ -41,14 +44,14 @@ void PtRender::init()
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        mView[i] = createView(800, 600, 1);
+        mView[i] = createView(WIDTH, HEIGHT, SPP);
     }
 
     {
         ResourceManager* resManager = getResManager();
         TextureManager* texManager = getTexManager();
         const std::string imageName = "Accumulation Image";
-        mAccumulatedPt = resManager->createImage(800, 600, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+        mAccumulatedPt = resManager->createImage(WIDTH, HEIGHT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
         texManager->transitionImageLayout(resManager->getVkImage(mAccumulatedPt), VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -623,7 +626,7 @@ void PtRender::drawFrame(Image* result)
     }
     if (mNeedRecreateView[frameIndex])
     {
-        mView[frameIndex] = createView(800, 600, 10);
+        mView[frameIndex] = createView(WIDTH, HEIGHT, SPP);
         mNeedRecreateView[frameIndex] = false;
     }
 
@@ -787,9 +790,6 @@ void PtRender::drawFrame(Image* result)
         }
         else
         {
-            recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             finalImage = finalPathTracerImage;
         }
 

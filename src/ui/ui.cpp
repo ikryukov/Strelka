@@ -840,30 +840,9 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
         ImGui::EndCombo();
     }
 
-    if (currentTonemapItem == tonemapItems[0])
-    {
-        settingsManager->setAs<bool>("render/pt/enableTonemap", false);
-        settingsManager->setAs<bool>("render/pt/tonemap/enableACES", false);
-        settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", false);
-    }
-    else if (currentTonemapItem == tonemapItems[1])
-    {
-        settingsManager->setAs<bool>("render/pt/enableTonemap", true);
-        settingsManager->setAs<bool>("render/pt/tonemap/enableACES", false);
-        settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", false);
-    }
-    else if (currentTonemapItem == tonemapItems[2])
-    {
-        settingsManager->setAs<bool>("render/pt/enableTonemap", true);
-        settingsManager->setAs<bool>("render/pt/tonemap/enableACES", true);
-        settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", false);
-    }
-    else if (currentTonemapItem == tonemapItems[3])
-    {
-        settingsManager->setAs<bool>("render/pt/enableTonemap", true);
-        settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", true);
-        settingsManager->setAs<bool>("render/pt/tonemap/enableACES", false);
-    }
+    settingsManager->setAs<bool>("render/pt/enableTonemap", currentTonemapItem != tonemapItems[0] ? true : false);
+    settingsManager->setAs<bool>("render/pt/tonemap/enableACES", currentTonemapItem == tonemapItems[2] ? true : false);
+    settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", currentTonemapItem == tonemapItems[3] ? true : false);
 
     bool enableUpscale = settingsManager->getAs<bool>("render/pt/enableUpscale");
     ImGui::Checkbox("Enable Upscale", &enableUpscale);
