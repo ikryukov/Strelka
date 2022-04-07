@@ -257,7 +257,6 @@ public:
             materialName = module->identifier.c_str();
         }
 
-
         if (!mMatCompiler->createMaterialInstace(module->moduleName.c_str(), materialName, material->instance))
         {
             return nullptr;

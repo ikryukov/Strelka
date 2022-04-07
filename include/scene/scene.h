@@ -46,6 +46,8 @@ public:
         std::string code;
         std::string file;
         std::string name;
+        bool hasColor = false;
+        glm::float3 color;
     };
 
     struct Vertex

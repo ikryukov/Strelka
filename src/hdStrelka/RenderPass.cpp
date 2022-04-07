@@ -146,36 +146,53 @@ void HdStrelkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex, GfMatrix4d roo
         std::string materialName = materialId.GetString();
 
         uint32_t materialIndex = 0;
-        if (materialMapping.find(materialId) != materialMapping.end())
+
+        if (mesh->HasColor())
         {
-            materialIndex = materialMapping[materialId];
+            materialName += "_color";
+            GfVec3f color = mesh->GetColor();
+            const std::string& fileUri = "tutorials.mdl";
+            const std::string& name = "example_material";
+            oka::Scene::MaterialDescription material;
+            material.file = fileUri;
+            material.name = name;
+            material.type = oka::Scene::MaterialDescription::Type::eMdl;
+            material.color = glm::float3(color[0], color[1], color[2]);
+            material.hasColor = true;
+            materialIndex = mScene->addMaterial(material);
         }
         else
         {
-            HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->material, materialId);
-            HdStrelkaMaterial* material = dynamic_cast<HdStrelkaMaterial*>(sprim);
-
-            if (material->isMdl())
+            if (materialMapping.find(materialId) != materialMapping.end())
             {
-                const std::string& fileUri = material->getFileUri();
-                const std::string& name = material->getSubIdentifier();
-                oka::Scene::MaterialDescription material;
-                material.file = fileUri;
-                material.name = name;
-                material.type = oka::Scene::MaterialDescription::Type::eMdl;
-                materialIndex = mScene->addMaterial(material);
+                materialIndex = materialMapping[materialId];
             }
             else
             {
-                const std::string& code = material->GetStrelkaMaterial();
-                oka::Scene::MaterialDescription material;
-                material.code = code;
-                material.type = oka::Scene::MaterialDescription::Type::eMaterialX;
-                materialIndex = mScene->addMaterial(material);
-            }
-            materialMapping[materialId] = materialIndex;
-        }
+                HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->material, materialId);
+                HdStrelkaMaterial* material = dynamic_cast<HdStrelkaMaterial*>(sprim);
 
+                if (material->isMdl())
+                {
+                    const std::string& fileUri = material->getFileUri();
+                    const std::string& name = material->getSubIdentifier();
+                    oka::Scene::MaterialDescription material;
+                    material.file = fileUri;
+                    material.name = name;
+                    material.type = oka::Scene::MaterialDescription::Type::eMdl;
+                    materialIndex = mScene->addMaterial(material);
+                }
+                else
+                {
+                    const std::string& code = material->GetStrelkaMaterial();
+                    oka::Scene::MaterialDescription material;
+                    material.code = code;
+                    material.type = oka::Scene::MaterialDescription::Type::eMaterialX;
+                    materialIndex = mScene->addMaterial(material);
+                }
+                materialMapping[materialId] = materialIndex;
+            }
+        }
         const GfMatrix4d& prototypeTransform = mesh->GetPrototypeTransform();
 
         for (size_t i = 0; i < transforms.size(); i++)

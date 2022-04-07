@@ -93,6 +93,7 @@ void PtRender::init()
         mScene->addMaterial(defaultMaterial);
     }
 
+    std::unordered_map<std::string, MaterialManager::Module*> mNameToModule;
     std::vector<MaterialManager::CompiledMaterial*> materials;
 
     std::vector<Scene::MaterialDescription> matDescs = mScene->getMaterials();
@@ -101,11 +102,26 @@ void PtRender::init()
         oka::Scene::MaterialDescription& currMatDesc = matDescs[i];
         if (currMatDesc.type == oka::Scene::MaterialDescription::Type::eMdl)
         {
-            MaterialManager::Module* mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
+            MaterialManager::Module* mdlModule = nullptr;
+            if (mNameToModule.find(currMatDesc.file) != mNameToModule.end())
+            {
+                mdlModule = mNameToModule[currMatDesc.file];
+            }
+            else
+            {
+                mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
+                mNameToModule[currMatDesc.file] = mdlModule;
+            }
             assert(mdlModule);
             MaterialManager::MaterialInstance* materialInst =
                 mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
             assert(materialInst);
+            if (currMatDesc.hasColor)
+            {
+                bool res = mMaterialManager->changeParam(
+                    materialInst, oka::MaterialManager::ParamType::eColor, "tint", (void*)&currMatDesc.color);
+                assert(res);
+            }
             MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
             assert(materialComp);
             materials.push_back(materialComp);
@@ -170,6 +186,8 @@ void PtRender::cleanup()
 
 void oka::PtRender::reloadPt()
 {
+    std::unordered_map<std::string, MaterialManager::Module*> mNameToModule;
+
     std::vector<MaterialManager::CompiledMaterial*> materials;
     std::vector<Scene::MaterialDescription> matDescs = mScene->getMaterials();
     for (uint32_t i = 0; i < matDescs.size(); ++i)
@@ -177,11 +195,26 @@ void oka::PtRender::reloadPt()
         oka::Scene::MaterialDescription& currMatDesc = matDescs[i];
         if (currMatDesc.type == oka::Scene::MaterialDescription::Type::eMdl)
         {
-            MaterialManager::Module* mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
+            MaterialManager::Module* mdlModule = nullptr;
+            if (mNameToModule.find(currMatDesc.file) != mNameToModule.end())
+            {
+                mdlModule = mNameToModule[currMatDesc.file];
+            }
+            else
+            {
+                mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
+                mNameToModule[currMatDesc.file] = mdlModule;
+            }
             assert(mdlModule);
             MaterialManager::MaterialInstance* materialInst =
                 mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
             assert(materialInst);
+            if (currMatDesc.hasColor)
+            {
+                bool res = mMaterialManager->changeParam(
+                    materialInst, oka::MaterialManager::ParamType::eColor, "tint", (void*)&currMatDesc.color);
+                assert(res);
+            }
             MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
             assert(materialComp);
             materials.push_back(materialComp);

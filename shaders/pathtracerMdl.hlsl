@@ -46,7 +46,7 @@ float2 stratifiedSamplingOptimized(int s, int N = 16, int p = 16, float a = 1.0f
     return r;
 }
 
-float2 stratifiedSampling1(uint s, in out uint rngState, uint N = 16)
+float2 stratifiedSampling1(uint s, inout uint rngState, uint N = 16)
 {
     int m = int(sqrt(N));
     int n = (N + m - 1) / m;
@@ -99,17 +99,17 @@ float2 stratifiedSampling(uint s, in out uint rngState, uint N = 16)
 }
 
 // Matrices version
-Ray generateCameraRay(uint2 pixelIndex, in out uint rngState, uint s)
+Ray generateCameraRay(uint2 pixelIndex, inout uint rngState, uint s)
 {
     float2 pixelPos = float2(0.0f, 0.0f);
 
 // Random sampling
-//     pixelPos.x = float2(pixelIndex).x + rand(rngState);
-//     pixelPos.y = float2(pixelIndex).y + rand(rngState);
+    pixelPos.x = float2(pixelIndex).x + rand(rngState);
+    pixelPos.y = float2(pixelIndex).y + rand(rngState);
 
 // Stratified sampling
 //     pixelPos = float2(pixelIndex) + stratifiedSampling(s, rngState);
-    pixelPos = float2(pixelIndex) + stratifiedSampling1(s, rngState);
+    // pixelPos = float2(pixelIndex) + stratifiedSampling1(s, rngState);
 //     pixelPos = float2(pixelIndex) + stratifiedSamplingOptimized(s);
 
     float2 pixelNDC = (pixelPos / float2(ubo.dimension)) * 2.0f - 1.0f;
@@ -336,7 +336,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
             //float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
             //finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
 
-            finalColor += throughput * float3(0.f);
+            finalColor += throughput * float3(1.f);
 
             break;
         }

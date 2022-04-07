@@ -323,9 +323,9 @@ int main(int argc, const char* argv[])
     timerLoad.Start();
 
     // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
-    // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
+    std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
     // std::string usdPath = "./misc/glassCube.usda";
-    std::string usdPath = "./misc/glassLens.usda";
+    // std::string usdPath = "./misc/glassLens.usda";
     // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
@@ -347,6 +347,11 @@ int main(int argc, const char* argv[])
     // Print the stage's linear units, or "meters per unit"
     std::cout << "Meters per unit: " << UsdGeomGetStageMetersPerUnit(stage) << std::endl;
 
+    SdfPath cameraPath = SdfPath("/defaultCamera");
+    {
+        UsdGeomCamera cam = UsdGeomCamera::Define(stage, cameraPath);
+    }
+
     HdRenderIndex* renderIndex = HdRenderIndex::New(renderDelegate, HdDriverVector());
     TF_VERIFY(renderIndex);
 
@@ -357,12 +362,16 @@ int main(int argc, const char* argv[])
 
     double meterPerUnit = UsdGeomGetStageMetersPerUnit(stage);
 
-    SdfPath cameraPath = SdfPath::EmptyPath();
+    cameraPath = SdfPath::EmptyPath();
     HdCamera* camera = FindCamera(stage, renderIndex, cameraPath);
     if (!camera)
     {
+        // return EXIT_FAILURE;
+        cameraPath = SdfPath("/defaultCamera");
+
+        camera = FindCamera(stage, renderIndex, cameraPath);
+
         fprintf(stderr, "Camera not found!\n");
-        return EXIT_FAILURE;
     }
 
     // Set up rendering context.
@@ -407,6 +416,7 @@ int main(int argc, const char* argv[])
 
     HdEngine engine;
     UsdGeomCamera cam = UsdGeomCamera::Get(stage, cameraPath);
+
     CameraController cameraController(cam);
 
     render.setInputHandler(&cameraController);

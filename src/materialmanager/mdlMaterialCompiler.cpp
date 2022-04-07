@@ -83,7 +83,7 @@ bool MdlMaterialCompiler::compileMaterial(mi::base::Handle<mi::neuraylib::IMater
         return false;
     }
     mi::base::Handle<mi::neuraylib::IMdl_execution_context> context(mFactory->create_execution_context());
-    auto flags = mi::neuraylib::IMaterial_instance::DEFAULT_OPTIONS;
+    auto flags = mi::neuraylib::IMaterial_instance::CLASS_COMPILATION;
     compiledMaterial = mi::base::Handle<mi::neuraylib::ICompiled_material>(instance->create_compiled_material(flags, context.get()));
 
     mLogger->flushContextMessages(context.get());
