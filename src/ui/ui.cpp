@@ -765,10 +765,10 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
     static bool openInspector = false;
 
     const char* debugItems[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer" };
-    static const char* currentDebugItem = debugItems[0];
+    static int currentDebugItemId = 0;
 
     const char* tonemapItems[] = { "None", "Reinhard", "ACES", "Filmic" };
-    static const char* currentTonemapItem = tonemapItems[1];
+    static int currentTonemapItemId = 1;
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -776,14 +776,14 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
 
     ImGui::Begin("Menu:"); // begin window
 
-    if (ImGui::BeginCombo("Debug view", currentDebugItem))
+    if (ImGui::BeginCombo("Debug view", debugItems[currentDebugItemId]))
     {
         for (int n = 0; n < IM_ARRAYSIZE(debugItems); n++)
         {
-            bool is_selected = (currentDebugItem == debugItems[n]);
+            bool is_selected = (currentDebugItemId == n);
             if (ImGui::Selectable(debugItems[n], is_selected))
             {
-                currentDebugItem = debugItems[n];
+                currentDebugItemId = n;
                 // scene.mDebugViewSettings = (Scene::DebugView)n;
             }
             if (is_selected)
@@ -803,33 +803,36 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
         ImGui::Checkbox("Enable Path Tracer Acc", &enableAccumulation);
         settingsManager->setAs<bool>("render/pt/enableAcc", enableAccumulation);
 
-        bool enableSampling = settingsManager->getAs<bool>("render/pt/sampling/stratifiedClassic");
+        bool enableSampling = settingsManager->getAs<uint32_t>("render/pt/startifiedSamplingType") == 1 ? true : false;
         ImGui::Checkbox("Enable Stratified Sampling", &enableSampling);
-        settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedClassic", enableSampling);
         if (enableSampling == true)
         {
-            settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedOptimized", 0);
+            settingsManager->setAs<uint32_t>("render/pt/startifiedSamplingType", 1);
         }
 
-        bool enableOptimized = settingsManager->getAs<bool>("render/pt/sampling/stratifiedOptimized");
+        bool enableOptimized = settingsManager->getAs<uint32_t>("render/pt/startifiedSamplingType") == 2 ? true : false;
         ImGui::Checkbox("Enable Optimized Stratified Sampling", &enableOptimized);
-        settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedOptimized", enableOptimized);
         if (enableOptimized == true)
         {
-            settingsManager->setAs<uint32_t>("render/pt/sampling/stratifiedClassic", 0);
+            settingsManager->setAs<uint32_t>("render/pt/startifiedSamplingType", 2);
+        }
+
+        if (!enableSampling && !enableOptimized)
+        {
+            settingsManager->setAs<uint32_t>("render/pt/startifiedSamplingType", 0);
         }
 
         ImGui::TreePop();
     }
 
-    if (ImGui::BeginCombo("Tonemap", currentTonemapItem))
+    if (ImGui::BeginCombo("Tonemap", tonemapItems[currentTonemapItemId]))
     {
         for (int n = 0; n < IM_ARRAYSIZE(tonemapItems); n++)
         {
-            bool is_selected = (currentTonemapItem == tonemapItems[n]);
+            bool is_selected = (currentTonemapItemId == n);
             if (ImGui::Selectable(tonemapItems[n], is_selected))
             {
-                currentTonemapItem = tonemapItems[n];
+                currentTonemapItemId = n;
                 // scene.mDebugViewSettings = (Scene::DebugView)n;
             }
             if (is_selected)
@@ -839,10 +842,8 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
         }
         ImGui::EndCombo();
     }
-
-    settingsManager->setAs<bool>("render/pt/enableTonemap", currentTonemapItem != tonemapItems[0] ? true : false);
-    settingsManager->setAs<bool>("render/pt/tonemap/enableACES", currentTonemapItem == tonemapItems[2] ? true : false);
-    settingsManager->setAs<bool>("render/pt/tonemap/enableFilmic", currentTonemapItem == tonemapItems[3] ? true : false);
+    settingsManager->setAs<bool>("render/pt/enableTonemap", currentTonemapItemId != 0 ? true : false);
+    settingsManager->setAs<uint32_t>("render/pt/tonemapperType", currentTonemapItemId - 1);
 
     bool enableUpscale = settingsManager->getAs<bool>("render/pt/enableUpscale");
     ImGui::Checkbox("Enable Upscale", &enableUpscale);

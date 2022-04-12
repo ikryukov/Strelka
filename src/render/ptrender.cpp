@@ -597,8 +597,7 @@ void PtRender::drawFrame(Image* result)
     bool needResetAccumulation = false;
     const bool enableAccumulation = getSettingsManager()->getAs<bool>("render/pt/enableAcc");
     const bool enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
-    const bool enableSampling = getSettingsManager()->getAs<bool>("render/pt/sampling/stratifiedClassic");
-    const bool enableOptimized = getSettingsManager()->getAs<bool>("render/pt/sampling/stratifiedOptimized");
+    const bool enableStratifiedSampling = getSettingsManager()->getAs<uint32_t>("render/pt/stratifiedSamplingType");
     const bool enableTonemap = getSharedContext().mSettingsManager->getAs<bool>("render/pt/enableTonemap");
 
     if (mSettings.enableUpscale != enableUpscale)
@@ -607,14 +606,14 @@ void PtRender::drawFrame(Image* result)
     }
     mSettings.enableUpscale = enableUpscale;
 
-    if (mSettings.enableAccumulation != enableAccumulation || mSettings.enableSampling != enableSampling ||
-        mSettings.enableOptimized != enableOptimized || mSettings.enableTonemap != enableTonemap)
+    if (mSettings.enableAccumulation != enableAccumulation ||
+        (enableStratifiedSampling && mSettings.enableSampling == 0 && (enableStratifiedSampling != 0 || mSettings.enableSampling == 0)) ||
+        mSettings.enableTonemap != enableTonemap)
     {
         needResetAccumulation = true;
     }
     mSettings.enableAccumulation = enableAccumulation;
-    mSettings.enableSampling = enableSampling;
-    mSettings.enableOptimized = enableOptimized;
+    mSettings.enableSampling = enableStratifiedSampling;
     mSettings.enableTonemap = enableTonemap;
 
     if (needRecreateView)
@@ -695,12 +694,8 @@ void PtRender::drawFrame(Image* result)
         pathTracerParam.spp = currView->spp;
         pathTracerParam.iteration = currView->mPtIteration;
         pathTracerParam.numLights = (uint32_t)mScene->getLights().size();
-        const uint32_t stratifiedSampling =
-            getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/sampling/stratifiedClassic");
-        pathTracerParam.stratifiedSampling = stratifiedSampling;
-        const uint32_t stratifiedOptimized =
-            getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/sampling/stratifiedOptimized");
-        pathTracerParam.stratifiedOptimized = stratifiedOptimized;
+        pathTracerParam.stratifiedSamplingType =
+            getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/stratifiedSamplingType");
         pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
         pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
         recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
@@ -781,8 +776,7 @@ void PtRender::drawFrame(Image* result)
             Tonemapparam& toneParams = toneDesc.constants;
             toneParams.dimension.x = renderWidth;
             toneParams.dimension.y = renderHeight;
-            toneParams.aces = getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/tonemap/enableACES");
-            toneParams.filmic = getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/tonemap/enableFilmic");
+            toneParams.tonemapperType = getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/tonemapperType");
             toneDesc.input = finalPathTracerImage;
             toneDesc.output = currView->textureTonemapImage;
             mTonemap->execute(cmd, toneDesc, renderWidth, renderHeight, frameNumber);

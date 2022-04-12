@@ -73,16 +73,16 @@ void computeMain(uint2 pixelIndex : SV_DispatchThreadID)
     }
     float3 color = input[pixelIndex].rgb;
 
-    if (ubo.aces == 1)
+    if (ubo.tonemapperType == 0)
+    {
+        output[pixelIndex] = float4(reinhard(color), 1.0f);
+    }
+    else if (ubo.tonemapperType == 1)
     {
         output[pixelIndex] = float4(ACESFitted(color), 1.0f);
     }
-    else if (ubo.filmic)
+    else if (ubo.tonemapperType == 2)
     {
         output[pixelIndex] = float4(ACESFilm(color), 1.0f);
-    }
-    else
-    {
-        output[pixelIndex] = float4(reinhard(color), 1.0f);
     }
 }
