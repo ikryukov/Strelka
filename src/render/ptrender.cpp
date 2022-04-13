@@ -751,6 +751,10 @@ void PtRender::drawFrame(Image* result)
             Image* accOut = currView->mAccumulationPathTracerImage;
             accDesc.output = accOut;
 
+            recordImageBarrier(cmd, accDesc.history, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
             recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
@@ -760,7 +764,7 @@ void PtRender::drawFrame(Image* result)
 
         ++currView->mPtIteration;
     }
-
+    finalImage = finalPathTracerImage;
 
     {
         // Tonemap
@@ -769,26 +773,26 @@ void PtRender::drawFrame(Image* result)
             recordImageBarrier(cmd, currView->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT,
                                VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
+                               VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             TonemapDesc toneDesc{};
             Tonemapparam& toneParams = toneDesc.constants;
             toneParams.dimension.x = renderWidth;
             toneParams.dimension.y = renderHeight;
             toneParams.tonemapperType = getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/tonemapperType");
-            toneDesc.input = finalPathTracerImage;
+            toneDesc.input = finalImage;
             toneDesc.output = currView->textureTonemapImage;
             mTonemap->execute(cmd, toneDesc, renderWidth, renderHeight, frameNumber);
             finalImage = currView->textureTonemapImage;
         }
-        else
-        {
-            recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT,
-                               VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            finalImage = finalPathTracerImage;
-        }
+        // else
+        // {
+        //     recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT,
+        //                        VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        //     finalImage = finalPathTracerImage;
+        // }
 
         // Upscale
         if (enableUpscale)
@@ -814,12 +818,12 @@ void PtRender::drawFrame(Image* result)
             //                   VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             finalImage = currView->textureUpscaleImage;
         }
-        else
-        {
-            recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
-                               VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-        }
+        // else
+        // {
+        //     recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
+        //                        VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        //                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+        // }
     }
 
     recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
