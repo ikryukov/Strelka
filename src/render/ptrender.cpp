@@ -28,7 +28,7 @@ void PtRender::initDefaultSettings()
 {
     mSettings.enableUpscale = true;
     mSettings.enableAccumulation = true;
-    mSettings.enableStratifiedSampling = true;
+    mSettings.stratifiedSamplingType = 0;
 }
 
 void PtRender::readSettings()
@@ -595,8 +595,8 @@ void PtRender::drawFrame(Image* result)
     bool needResetAccumulation = false;
     const bool enableAccumulation = getSettingsManager()->getAs<bool>("render/pt/enableAcc");
     const bool enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
-    const bool enableStratifiedSampling = getSettingsManager()->getAs<uint32_t>("render/pt/stratifiedSamplingType");
     const bool enableTonemap = getSharedContext().mSettingsManager->getAs<bool>("render/pt/enableTonemap");
+    const uint32_t stratifiedSamplingType = getSettingsManager()->getAs<uint32_t>("render/pt/stratifiedSamplingType");
 
     if (mSettings.enableUpscale != enableUpscale)
     {
@@ -604,14 +604,12 @@ void PtRender::drawFrame(Image* result)
     }
     mSettings.enableUpscale = enableUpscale;
 
-    if (mSettings.enableAccumulation != enableAccumulation ||
-        (enableStratifiedSampling && mSettings.enableStratifiedSampling == 0 &&
-         (enableStratifiedSampling != 0 || mSettings.enableStratifiedSampling == 0)))
+    if (mSettings.enableAccumulation != enableAccumulation || stratifiedSamplingType != mSettings.stratifiedSamplingType)
     {
         needResetAccumulation = true;
     }
     mSettings.enableAccumulation = enableAccumulation;
-    mSettings.enableStratifiedSampling = enableStratifiedSampling;
+    mSettings.stratifiedSamplingType = stratifiedSamplingType;
 
     if (needRecreateView)
     {

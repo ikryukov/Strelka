@@ -97,7 +97,7 @@ private:
     {
         bool enableUpscale = false;
         bool enableAccumulation = false;
-        bool enableStratifiedSampling = false;
+        uint32_t stratifiedSamplingType = 0;
     };
 
     RenderSettings mSettings;

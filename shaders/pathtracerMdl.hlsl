@@ -105,15 +105,19 @@ Ray generateCameraRay(uint2 pixelIndex, in out uint rngState, uint s)
 
     if (ubo.stratifiedSamplingType == 0)
     {
+        pixelPos = float2(pixelIndex) + 0.5f;
+    }
+    else if (ubo.stratifiedSamplingType == 1)
+    {
         pixelPos.x = float2(pixelIndex).x + rand(rngState);
         pixelPos.y = float2(pixelIndex).y + rand(rngState);
     }
-    else if (ubo.stratifiedSamplingType == 1)
+    else if (ubo.stratifiedSamplingType == 2)
     {
 //         pixelPos = float2(pixelIndex) + stratifiedSampling(s, rngState);
         pixelPos = float2(pixelIndex) + stratifiedSampling1(s, rngState);
     }
-    else if (ubo.stratifiedSamplingType == 2)
+    else if (ubo.stratifiedSamplingType == 3)
     {
         pixelPos = float2(pixelIndex) + stratifiedSamplingOptimized(s);
     }

@@ -770,6 +770,9 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
     const char* tonemapItems[] = { "None", "Reinhard", "ACES", "Filmic" };
     static int currentTonemapItemId = 1;
 
+    const char* stratifiedSamplingItems[] = { "None", "Random", "Stratified", "Optimized" };
+    static int currentSamplingItemId = 0;
+
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
@@ -803,25 +806,23 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
         ImGui::Checkbox("Enable Path Tracer Acc", &enableAccumulation);
         settingsManager->setAs<bool>("render/pt/enableAcc", enableAccumulation);
 
-        bool enableSampling = settingsManager->getAs<uint32_t>("render/pt/stratifiedSamplingType") == 1 ? true : false;
-        ImGui::Checkbox("Enable Stratified Sampling", &enableSampling);
-        if (enableSampling == true)
+        if (ImGui::BeginCombo("Stratified Sampling", stratifiedSamplingItems[currentSamplingItemId]))
         {
-            settingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 1);
+            for (int n = 0; n < IM_ARRAYSIZE(stratifiedSamplingItems); n++)
+            {
+                bool is_selected = (currentSamplingItemId == n);
+                if (ImGui::Selectable(stratifiedSamplingItems[n], is_selected))
+                {
+                    currentSamplingItemId = n;
+                }
+                if (is_selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
         }
-
-        bool enableOptimized = settingsManager->getAs<uint32_t>("render/pt/stratifiedSamplingType") == 2 ? true : false;
-        ImGui::Checkbox("Enable Optimized Stratified Sampling", &enableOptimized);
-        if (enableOptimized == true)
-        {
-            settingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 2);
-        }
-
-        if (!enableSampling && !enableOptimized)
-        {
-            settingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 0);
-        }
-
+        settingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", currentSamplingItemId);
         ImGui::TreePop();
     }
 
@@ -833,7 +834,6 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
             if (ImGui::Selectable(tonemapItems[n], is_selected))
             {
                 currentTonemapItemId = n;
-                // scene.mDebugViewSettings = (Scene::DebugView)n;
             }
             if (is_selected)
             {

@@ -37,7 +37,7 @@ struct PathTracerParam
     int len;
     int spp;
     int iteration;
-    uint stratifiedSamplingType; // 0 - random, 1 - stratified sampling, 2 - optimized sampling
+    uint stratifiedSamplingType; // 0 - none, 1 - random, 2 - stratified sampling, 3 - optimized sampling
 
     float4 pad0;
 };
