@@ -157,7 +157,8 @@ float3 UniformSampleLight(in UniformLight l, float2 u)
 {
     float3 uniformSample = float3(0.0);
 
-    if (l.type == 0) {
+    if (l.type == 0)
+    {
         float3 e1 = l.points[1].xyz - l.points[0].xyz;
         float3 e2 = l.points[3].xyz - l.points[0].xyz;
 
@@ -171,6 +172,13 @@ float3 UniformSampleLight(in UniformLight l, float2 u)
         float y = l.points[0].x * pd.y;
 
         uniformSample = l.points[1].xyz + x * l.points[2].xyz + y * l.points[3].xyz;
+    }
+    else if (l.type == 2)
+    {
+        float3 e1 = l.points[1].xyz - l.points[0].xyz;
+        float3 e2 = l.points[3].xyz - l.points[0].xyz;
+
+        uniformSample = l.points[0].xyz + e1 * u.x + e2 * u.y;
     }
 
     return uniformSample;
@@ -188,6 +196,10 @@ float3 calcLightNormal(in UniformLight l)
         norm = -normalize(cross(e1, e2));
     }
     else if (l.type == 1)
+    {
+        norm = l.normal.xyz;
+    }
+    else if (l.type == 2)
     {
         norm = l.normal.xyz;
     }
@@ -209,7 +221,10 @@ float calcLightArea(in UniformLight l)
     {
         area = PI * l.points[0].x * l.points[0].x; // pi * radius^2
     }
-
+    else if (l.type == 2) // sphere area
+    {
+        area = 4 * PI * l.points[0].z * l.points[0].z; // 4 * pi * radius^2
+    }
     return area;
 }
 

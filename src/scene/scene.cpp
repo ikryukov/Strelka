@@ -129,6 +129,105 @@ uint32_t Scene::createLightMesh()
     return meshId;
 }
 
+glm::float3 computeFaceNormal(Scene::Vertex v1, Scene::Vertex v2, Scene::Vertex v3)
+{
+    const float EPSILON = 0.000001f;
+
+    // default return value (0, 0, 0)
+    glm::float3 n = glm::float3(0.f);
+
+    // find 2 edge vectors: v1-v2, v1-v3
+    float ex1 = v2.pos[0] - v1.pos[0];
+    float ey1 = v2.pos[1] - v1.pos[1];
+    float ez1 = v2.pos[2] - v1.pos[2];
+    float ex2 = v3.pos[0] - v1.pos[0];
+    float ey2 = v3.pos[1] - v1.pos[1];
+    float ez2 = v3.pos[2] - v1.pos[2];
+
+    // cross product: e1 x e2
+    float nx, ny, nz;
+    nx = ey1 * ez2 - ez1 * ey2;
+    ny = ez1 * ex2 - ex1 * ez2;
+    nz = ex1 * ey2 - ey1 * ex2;
+
+    // normalize only if the length is > 0
+    float length = sqrtf(nx * nx + ny * ny + nz * nz);
+    if(length > EPSILON)
+    {
+        // normalize
+        float lengthInv = 1.0f / length;
+        n[0] = nx * lengthInv;
+        n[1] = ny * lengthInv;
+        n[2] = nz * lengthInv;
+    }
+
+    return n;
+}
+
+uint32_t Scene::createSphereLightMesh()
+{
+    std::vector<Scene::Vertex> vertices(12); // 12 vertices
+    std::vector<uint32_t> indices;
+
+    const float PI = acos(-1);
+    const float H_ANGLE = PI / 180 * 72; // 72 degree = 360 / 5
+    const float V_ANGLE = atanf(1.0f / 2); // elevation = 26.565 degree
+
+    int i1, i2; // indices
+    float z, xy; // coords
+    float hAngle1 = -PI / 2 - H_ANGLE / 2; // start from -126 deg at 2nd row
+    float hAngle2 = -PI / 2; // start from -90 deg at 3rd row
+
+    // the first top vertex (0, 0, r)
+    float radius = 1.0f;
+    Scene::Vertex v0, v1, v2, prevV;
+    v0.pos = glm::float4(0, 0, radius, 1.f);
+
+    glm::float3 normal = glm::float3(0.f, 0.f, 1.f);
+    v0.normal = packNormals(normal);
+
+    vertices[0] = v0;
+    indices.push_back(0);
+    prevV = v0;
+    // 10 vertices at 2nd and 3rd rows
+    for (int i = 1; i <= 5; ++i)
+    {
+        i1 = i;
+        i2 = (i + 5);
+
+        z = radius * sinf(V_ANGLE); // elevaton
+        xy = radius * cosf(V_ANGLE);
+
+        v1.pos = { xy * cosf(hAngle1), xy * sinf(hAngle1), z };
+        v2.pos = { xy * cosf(hAngle2), xy * sinf(hAngle2), -z };
+        v1.normal = v2.normal = packNormals(computeFaceNormal(prevV, v1, v2));
+        vertices[i1] = v1;
+        vertices[i2] = v2;
+
+        indices.push_back(i1);
+        indices.push_back(i2);
+
+        // next horizontal angles
+        hAngle1 += H_ANGLE;
+        hAngle2 += H_ANGLE;
+
+        prevV = v1;
+    }
+
+    // the last bottom vertex (0, 0, -r)
+    normal = glm::float3(0.f, 0.f, -1.f);
+    v1.normal = packNormals(normal);
+    v1.pos = {0, 0, -radius};
+    i1 = 11;
+    vertices[i1] = v1;
+    indices.push_back(i1);
+
+    uint32_t meshId = createMesh(vertices, indices);
+    assert(meshId != -1);
+
+    return meshId;
+}
+
 uint32_t Scene::createDiscLightMesh()
 {
     std::vector<Scene::Vertex> vertices;
@@ -237,16 +336,22 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
     // Lazy init light mesh
     glm::float4x4 scaleMatrix = glm::float4x4(0.f);
     uint32_t currentLightId = 0;
-    if (mRectLigthMeshId == -1 && desc.type == 0)
+    if (mRectLightMeshId == -1 && desc.type == 0)
     {
-        mRectLigthMeshId = createLightMesh();
-        currentLightId = mRectLigthMeshId;
+        mRectLightMeshId = createLightMesh();
+        currentLightId = mRectLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.width, desc.height, 1.0f));
     }
-    else if (mRectLigthMeshId == -1 && desc.type == 1)
+    else if (mDiskLightMeshId == -1 && desc.type == 1)
     {
-        mDiskLigthMeshId = createDiscLightMesh();
-        currentLightId = mDiskLigthMeshId;
+        mDiskLightMeshId = createDiscLightMesh();
+        currentLightId = mDiskLightMeshId;
+        scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
+    }
+    else if (mSphereLightMeshId == -1 && desc.type == 2)
+    {
+        mSphereLightMeshId = createSphereLightMesh();
+        currentLightId = mDiskLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
     }
 
@@ -288,6 +393,9 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
         glm::float4 normal = localTransform * glm::float4(0, 0, 1.f, 0.0f);
         mLights[lightId].normal = normal;
         mLights[lightId].type = 1;
+    }
+    else if (desc.type == 2)
+    {
     }
 
     mLights[lightId].color = glm::float4(desc.color, 1.0f) * desc.intensity;

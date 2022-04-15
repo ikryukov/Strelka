@@ -144,7 +144,6 @@ public:
     };
 
     std::vector<UniformLightDesc> mLightDesc;
-    uint32_t createDiscLightMesh();
     enum class DebugView : uint32_t
     {
         eNone = 0,
@@ -406,11 +405,15 @@ private:
 
     std::vector<MaterialDescription> mMaterialsDescs;
 
+    uint32_t createDiscLightMesh();
+    uint32_t createSphereLightMesh();
+
     bool FrMod{};
 
     std::set<uint32_t> mDirtyInstances;
 
-    uint32_t mRectLigthMeshId = (uint32_t)-1;
-    uint32_t mDiskLigthMeshId = (uint32_t)-1;
+    uint32_t mRectLightMeshId = (uint32_t)-1;
+    uint32_t mDiskLightMeshId = (uint32_t)-1;
+    uint32_t mSphereLightMeshId = (uint32_t)-1;
 };
 } // namespace oka
