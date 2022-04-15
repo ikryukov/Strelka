@@ -803,23 +803,23 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
         ImGui::Checkbox("Enable Path Tracer Acc", &enableAccumulation);
         settingsManager->setAs<bool>("render/pt/enableAcc", enableAccumulation);
 
-        bool enableSampling = settingsManager->getAs<uint32_t>("render/pt/startifiedSamplingType") == 1 ? true : false;
+        bool enableSampling = settingsManager->getAs<uint32_t>("render/pt/stratifiedSamplingType") == 1 ? true : false;
         ImGui::Checkbox("Enable Stratified Sampling", &enableSampling);
         if (enableSampling == true)
         {
-            settingsManager->setAs<uint32_t>("render/pt/startifiedSamplingType", 1);
+            settingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 1);
         }
 
-        bool enableOptimized = settingsManager->getAs<uint32_t>("render/pt/startifiedSamplingType") == 2 ? true : false;
+        bool enableOptimized = settingsManager->getAs<uint32_t>("render/pt/stratifiedSamplingType") == 2 ? true : false;
         ImGui::Checkbox("Enable Optimized Stratified Sampling", &enableOptimized);
         if (enableOptimized == true)
         {
-            settingsManager->setAs<uint32_t>("render/pt/startifiedSamplingType", 2);
+            settingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 2);
         }
 
         if (!enableSampling && !enableOptimized)
         {
-            settingsManager->setAs<uint32_t>("render/pt/startifiedSamplingType", 0);
+            settingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 0);
         }
 
         ImGui::TreePop();
