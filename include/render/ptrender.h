@@ -97,12 +97,10 @@ private:
     {
         bool enableUpscale = false;
         bool enableAccumulation = false;
-        bool enableSampling = false;
-        bool enableOptimized = false;
+        uint32_t stratifiedSamplingType = 0;
     };
 
-    RenderSettings
-    mSettings;
+    RenderSettings mSettings;
 
     struct ViewData
     {
@@ -166,7 +164,7 @@ private:
     Image* mAccumulatedPt = nullptr;
 
     std::array<ViewData*, MAX_FRAMES_IN_FLIGHT> mView;
-    std::array<bool, MAX_FRAMES_IN_FLIGHT> mNeedRecreateView = {false, false, false};
+    std::array<bool, MAX_FRAMES_IN_FLIGHT> mNeedRecreateView = { false, false, false };
 
     struct SceneRenderData
     {
@@ -252,7 +250,7 @@ private:
                              VkAccessFlags dstAccess,
                              VkPipelineStageFlags sourceStage,
                              VkPipelineStageFlags destinationStage);
-    
+
     void initDefaultSettings();
     void readSettings();
 
