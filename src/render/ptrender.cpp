@@ -18,6 +18,9 @@
 
 namespace fs = std::filesystem;
 const uint32_t MAX_LIGHT_COUNT = 100;
+const uint32_t HEIGHT = 600;
+const uint32_t WIDTH = 800;
+const uint32_t SPP = 1;
 
 using namespace oka;
 
@@ -25,6 +28,7 @@ void PtRender::initDefaultSettings()
 {
     mSettings.enableUpscale = true;
     mSettings.enableAccumulation = true;
+    mSettings.stratifiedSamplingType = 0;
 }
 
 void PtRender::readSettings()
@@ -38,14 +42,14 @@ void PtRender::init()
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        mView[i] = createView(800, 600, 1);
+        mView[i] = createView(WIDTH, HEIGHT, SPP);
     }
 
     {
         ResourceManager* resManager = getResManager();
         TextureManager* texManager = getTexManager();
         const std::string imageName = "Accumulation Image";
-        mAccumulatedPt = resManager->createImage(800, 600, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+        mAccumulatedPt = resManager->createImage(WIDTH, HEIGHT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
                                                  VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
         texManager->transitionImageLayout(resManager->getVkImage(mAccumulatedPt), VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -298,17 +302,17 @@ PtRender::ViewData* PtRender::createView(uint32_t width, uint32_t height, uint32
     view->mCompositingBuffer = resManager->createBuffer(compositingBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                                                         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Compositing buffer");
 
-    view->mPathTracerImage =
-        resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
+    view->mPathTracerImage = resManager->createImage(
+        view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, "Path Tracer Output");
     // for (int i = 0; i < 2; ++i)
     {
         const std::string imageName = "PT Accumulation Image";
-        view->mAccumulationPathTracerImage =
-            resManager->createImage(view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT,
-                                    VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
+        view->mAccumulationPathTracerImage = resManager->createImage(
+            view->renderWidth, view->renderHeight, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, imageName.c_str());
         texManager->transitionImageLayout(resManager->getVkImage(view->mAccumulationPathTracerImage),
                                           VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_LAYOUT_UNDEFINED,
                                           VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -624,17 +628,21 @@ void PtRender::drawFrame(Image* result)
     bool needResetAccumulation = false;
     const bool enableAccumulation = getSettingsManager()->getAs<bool>("render/pt/enableAcc");
     const bool enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
+    const bool enableTonemap = getSharedContext().mSettingsManager->getAs<bool>("render/pt/enableTonemap");
+    const uint32_t stratifiedSamplingType = getSettingsManager()->getAs<uint32_t>("render/pt/stratifiedSamplingType");
+
     if (mSettings.enableUpscale != enableUpscale)
     {
         needRecreateView = true;
     }
     mSettings.enableUpscale = enableUpscale;
 
-    if (mSettings.enableAccumulation != enableAccumulation)
+    if (mSettings.enableAccumulation != enableAccumulation || stratifiedSamplingType != mSettings.stratifiedSamplingType)
     {
         needResetAccumulation = true;
     }
     mSettings.enableAccumulation = enableAccumulation;
+    mSettings.stratifiedSamplingType = stratifiedSamplingType;
 
     if (needRecreateView)
     {
@@ -645,7 +653,7 @@ void PtRender::drawFrame(Image* result)
     }
     if (mNeedRecreateView[frameIndex])
     {
-        mView[frameIndex] = createView(800, 600, 1);
+        mView[frameIndex] = createView(WIDTH, HEIGHT, SPP);
         mNeedRecreateView[frameIndex] = false;
     }
 
@@ -714,6 +722,8 @@ void PtRender::drawFrame(Image* result)
         pathTracerParam.spp = currView->spp;
         pathTracerParam.iteration = currView->mPtIteration;
         pathTracerParam.numLights = (uint32_t)mScene->getLights().size();
+        pathTracerParam.stratifiedSamplingType =
+            getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/stratifiedSamplingType");
         pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
         pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
         recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
@@ -769,6 +779,10 @@ void PtRender::drawFrame(Image* result)
             Image* accOut = currView->mAccumulationPathTracerImage;
             accDesc.output = accOut;
 
+            recordImageBarrier(cmd, accDesc.history, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+
             recordImageBarrier(cmd, accOut, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT,
                                VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
@@ -778,21 +792,24 @@ void PtRender::drawFrame(Image* result)
 
         ++currView->mPtIteration;
     }
+    finalImage = finalPathTracerImage;
 
     {
         // Tonemap
+        if (enableTonemap)
         {
             recordImageBarrier(cmd, currView->textureTonemapImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_WRITE_BIT,
                                VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                                VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-            recordImageBarrier(cmd, finalPathTracerImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                               VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+            recordImageBarrier(cmd, finalImage, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT,
+                               VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                               VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
             TonemapDesc toneDesc{};
             Tonemapparam& toneParams = toneDesc.constants;
             toneParams.dimension.x = renderWidth;
             toneParams.dimension.y = renderHeight;
-            toneDesc.input = finalPathTracerImage;
+            toneParams.tonemapperType = getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/tonemapperType");
+            toneDesc.input = finalImage;
             toneDesc.output = currView->textureTonemapImage;
             mTonemap->execute(cmd, toneDesc, renderWidth, renderHeight, frameNumber);
             finalImage = currView->textureTonemapImage;

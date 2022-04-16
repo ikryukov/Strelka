@@ -763,8 +763,15 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
     static uint32_t lightId = -1;
     static bool isLight = false;
     static bool openInspector = false;
-    const char* items[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer" };
-    static const char* current_item = items[0];
+
+    const char* debugItems[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer" };
+    static int currentDebugItemId = 0;
+
+    const char* tonemapItems[] = { "None", "Reinhard", "ACES", "Filmic" };
+    static int currentTonemapItemId = 1;
+
+    const char* stratifiedSamplingItems[] = { "None", "Random", "Stratified", "Optimized" };
+    static int currentSamplingItemId = 0;
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -772,14 +779,14 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
 
     ImGui::Begin("Menu:"); // begin window
 
-    if (ImGui::BeginCombo("Debug view", current_item))
+    if (ImGui::BeginCombo("Debug view", debugItems[currentDebugItemId]))
     {
-        for (int n = 0; n < IM_ARRAYSIZE(items); n++)
+        for (int n = 0; n < IM_ARRAYSIZE(debugItems); n++)
         {
-            bool is_selected = (current_item == items[n]);
-            if (ImGui::Selectable(items[n], is_selected))
+            bool is_selected = (currentDebugItemId == n);
+            if (ImGui::Selectable(debugItems[n], is_selected))
             {
-                current_item = items[n];
+                currentDebugItemId = n;
                 // scene.mDebugViewSettings = (Scene::DebugView)n;
             }
             if (is_selected)
@@ -792,15 +799,52 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
     if (ImGui::TreeNode("Path Tracer"))
     {
         uint32_t maxDepth = settingsManager->getAs<uint32_t>("render/pt/depth");
-        ImGui::SliderInt("Max Depth", (int*) &maxDepth, 1, 16);
+        ImGui::SliderInt("Max Depth", (int*)&maxDepth, 1, 16);
         settingsManager->setAs<uint32_t>("render/pt/depth", maxDepth);
 
-        bool enablePathTracerAcc = settingsManager->getAs<bool>("render/pt/enableAcc");
-        ImGui::Checkbox("Enable Path Tracer Acc", &enablePathTracerAcc);
-        settingsManager->setAs<bool>("render/pt/enableAcc", enablePathTracerAcc);
+        bool enableAccumulation = settingsManager->getAs<bool>("render/pt/enableAcc");
+        ImGui::Checkbox("Enable Path Tracer Acc", &enableAccumulation);
+        settingsManager->setAs<bool>("render/pt/enableAcc", enableAccumulation);
 
+        if (ImGui::BeginCombo("Stratified Sampling", stratifiedSamplingItems[currentSamplingItemId]))
+        {
+            for (int n = 0; n < IM_ARRAYSIZE(stratifiedSamplingItems); n++)
+            {
+                bool is_selected = (currentSamplingItemId == n);
+                if (ImGui::Selectable(stratifiedSamplingItems[n], is_selected))
+                {
+                    currentSamplingItemId = n;
+                }
+                if (is_selected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        settingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", currentSamplingItemId);
         ImGui::TreePop();
     }
+
+    if (ImGui::BeginCombo("Tonemap", tonemapItems[currentTonemapItemId]))
+    {
+        for (int n = 0; n < IM_ARRAYSIZE(tonemapItems); n++)
+        {
+            bool is_selected = (currentTonemapItemId == n);
+            if (ImGui::Selectable(tonemapItems[n], is_selected))
+            {
+                currentTonemapItemId = n;
+            }
+            if (is_selected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    settingsManager->setAs<bool>("render/pt/enableTonemap", currentTonemapItemId != 0 ? true : false);
+    settingsManager->setAs<uint32_t>("render/pt/tonemapperType", currentTonemapItemId - 1);
+
     bool enableUpscale = settingsManager->getAs<bool>("render/pt/enableUpscale");
     ImGui::Checkbox("Enable Upscale", &enableUpscale);
     settingsManager->setAs<bool>("render/pt/enableUpscale", enableUpscale);

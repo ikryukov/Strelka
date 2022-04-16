@@ -17,8 +17,8 @@
 struct Tonemapparam
 {
     int2 dimension;
-    float pad0;
-    float pad1;
+    uint tonemapperType; // 0 - reinhard, 1 - aces, 2 - filmic
+    uint pad0;
 };
 
 #ifdef __cplusplus
