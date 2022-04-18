@@ -396,6 +396,17 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
     }
     else if (desc.type == 2)
     {
+        const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, desc.width, desc.height));
+        const glm::float4x4 localTransform = desc.useXform ? scaleMatrix * desc.xform : getTransform(desc);
+
+        mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
+        mLights[lightId].points[1] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
+        //
+        mLights[lightId].points[2] = localTransform * glm::float4(1.f, 0.f, 0.f, 0.f); // OXws
+        mLights[lightId].points[3] = localTransform * glm::float4(0.f, 1.f, 0.f, 0.f); // OYws
+        //
+
+        mLights[lightId].type = 2;
     }
 
     mLights[lightId].color = glm::float4(desc.color, 1.0f) * desc.intensity;

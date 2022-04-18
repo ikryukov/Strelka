@@ -7,16 +7,6 @@
 
 #include "helper.h"
 
-struct Light
-{
-    float3 v0;
-    float pad0;
-    float3 v1;
-    float pad1;
-    float3 v2;
-    float pad2;
-};
-
 struct UniformLight
 {
     float4 points[4];
@@ -175,10 +165,12 @@ float3 UniformSampleLight(in UniformLight l, float2 u)
     }
     else if (l.type == 2)
     {
-        float3 e1 = l.points[1].xyz - l.points[0].xyz;
-        float3 e2 = l.points[3].xyz - l.points[0].xyz;
+        float2 pd = concentricSampleDisk(u);
 
-        uniformSample = l.points[0].xyz + e1 * u.x + e2 * u.y;
+        float x = l.points[0].x * pd.x;
+        float y = l.points[0].x * pd.y;
+
+        uniformSample = l.points[1].xyz + x * l.points[2].xyz + y * l.points[3].xyz;
     }
 
     return uniformSample;
@@ -231,9 +223,9 @@ float calcLightArea(in UniformLight l)
 float3 estimateDirectLighting(inout uint rngState, in Accel accel, in UniformLight light, in Shading_state_material state, out float3 toLight, out float lightPdf)
 {
     SphQuad quad = init(light, state.position);
-    const float3 pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
+    //const float3 pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
 
-    //const float3 pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
+    const float3 pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
 
     float3 L = normalize(pointOnLight - state.position);
     toLight = L;
