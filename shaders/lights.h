@@ -179,7 +179,7 @@ float3 UniformSampleLight(in UniformLight l, float2 u)
     return uniformSample;
 }
 
-float3 calcLightNormal(in UniformLight l)
+float3 calcLightNormal(in UniformLight l, float3 hitPoint)
 {
     float3 norm = float3(0.0);
 
@@ -196,7 +196,7 @@ float3 calcLightNormal(in UniformLight l)
     }
     else if (l.type == 2)
     {
-        norm = l.normal.xyz;
+        norm = normalize(l.points[1].xyz - hitPoint);
     }
 
     return norm;
@@ -232,7 +232,7 @@ float3 estimateDirectLighting(inout uint rngState, in Accel accel, in UniformLig
 
     float3 L = normalize(pointOnLight - state.position);
     toLight = L;
-    float3 lightNormal = calcLightNormal(light);
+    float3 lightNormal = calcLightNormal(light, state.position);
     float3 Li = light.color.rgb;
 
     if (dot(state.normal, L) > 0 && -dot(L, lightNormal) > 0.0 && all(Li))

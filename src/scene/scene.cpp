@@ -455,9 +455,6 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
         mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
         mLights[lightId].points[1] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
 
-        glm::float4 normal = localTransform * glm::float4(0, 0, 1.f, 0.0f);
-        mLights[lightId].normal = normal;
-
         mLights[lightId].type = 2;
     }
 
