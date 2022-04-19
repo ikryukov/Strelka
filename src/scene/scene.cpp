@@ -230,11 +230,10 @@ uint32_t Scene::createSphereLightMesh()
 
 uint32_t Scene::createHardCodedSphere()
 {
-
     const float N = 0.f;
     float phi = (1.0f + sqrt(5.0f)) * 0.5f; // golden ratio
-    const float X = 1.0f;
-    const float Z = 1.0f / phi;
+    const float X=.525731112119133606f;
+    const float Z=.850650808352039932f;
 
     std::vector<Scene::Vertex> vertices;
     Scene::Vertex v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12;
