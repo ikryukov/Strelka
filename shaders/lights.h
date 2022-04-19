@@ -143,6 +143,14 @@ float2 concentricSampleDisk(float2 u) {
     return r * float2(cos(theta), sin(theta));
 }
 
+float3 UniformSampleSphere(float2 u)
+{
+    float z = 1 - 2 * u[0];
+    float r = sqrt(max((float)0, (float)1. - z * z));
+    float phi = 2 * PI * u[1];
+    return float3(r * cos(phi), r * sin(phi), z);
+}
+
 float3 UniformSampleLight(in UniformLight l, float2 u)
 {
     float3 uniformSample = float3(0.0);
@@ -165,12 +173,7 @@ float3 UniformSampleLight(in UniformLight l, float2 u)
     }
     else if (l.type == 2)
     {
-        float2 pd = concentricSampleDisk(u);
-
-        float x = l.points[0].x * pd.x;
-        float y = l.points[0].x * pd.y;
-
-        uniformSample = l.points[1].xyz + x * l.points[2].xyz + y * l.points[3].xyz;
+        uniformSample = l.points[1].xyz + l.points[0].x * UniformSampleSphere(u);
     }
 
     return uniformSample;
@@ -215,7 +218,7 @@ float calcLightArea(in UniformLight l)
     }
     else if (l.type == 2) // sphere area
     {
-        area = 4 * PI * l.points[0].z * l.points[0].z; // 4 * pi * radius^2
+        area = 4 * PI * l.points[0].x * l.points[0].x; // 4 * pi * radius^2
     }
     return area;
 }

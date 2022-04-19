@@ -10,6 +10,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/compatibility.hpp>
 
+#include <iostream>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 //  Lookup table from:

@@ -152,7 +152,7 @@ glm::float3 computeFaceNormal(Scene::Vertex v1, Scene::Vertex v2, Scene::Vertex 
 
     // normalize only if the length is > 0
     float length = sqrtf(nx * nx + ny * ny + nz * nz);
-    if(length > EPSILON)
+    if (length > EPSILON)
     {
         // normalize
         float lengthInv = 1.0f / length;
@@ -217,7 +217,7 @@ uint32_t Scene::createSphereLightMesh()
     // the last bottom vertex (0, 0, -r)
     normal = glm::float3(0.f, 0.f, -1.f);
     v1.normal = packNormals(normal);
-    v1.pos = {0, 0, -radius};
+    v1.pos = { 0, 0, -radius };
     i1 = 11;
     vertices[i1] = v1;
     indices.push_back(i1);
@@ -228,6 +228,58 @@ uint32_t Scene::createSphereLightMesh()
     return meshId;
 }
 
+uint32_t Scene::createHardCodedSphere()
+{
+
+    const float N = 0.f;
+    float phi = (1.0f + sqrt(5.0f)) * 0.5f; // golden ratio
+    const float X = 1.0f;
+    const float Z = 1.0f / phi;
+
+    std::vector<Scene::Vertex> vertices;
+    Scene::Vertex v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12;
+    v1.pos = { -X, N, Z };
+    v2.pos = { X, N, Z };
+    v3.pos = { -X, N, -Z };
+    v4.pos = { X, N, -Z };
+    v5.pos = { N, Z, X };
+    v6.pos = { N, Z, -X };
+    v7.pos = { N, -Z, X };
+    v8.pos = { N, -Z, -X };
+    v9.pos = { Z, X, N };
+    v10.pos = { -Z, X, N };
+    v11.pos = { Z, -X, N };
+    v12.pos = { -Z, -X, N };
+    std::vector<uint32_t> indices = { 0,  4, 1, 0, 9, 4, 9, 5,  4, 4, 5,  8,  4,  8, 1, 8,  10, 1,  8, 3,
+                                      10, 5, 3, 8, 5, 2, 3, 2,  7, 3, 7,  10, 3,  7, 6, 10, 7,  11, 6, 11,
+                                      0,  6, 0, 1, 6, 6, 1, 10, 9, 0, 11, 9,  11, 2, 9, 2,  5,  7,  2, 11 };
+
+    v1.normal = v5.normal = v2.normal = packNormals(computeFaceNormal(v1, v5, v2));
+    v10.normal = packNormals(computeFaceNormal(v1, v10, v5));
+    v6.normal = packNormals(computeFaceNormal(v10, v6, v5));
+    v9.normal = packNormals(computeFaceNormal(v5, v6, v9));
+    v2.normal = packNormals(computeFaceNormal(v5, v9, v2));
+    v11.normal = packNormals(computeFaceNormal(v9, v11, v2));
+    v4.normal = packNormals(computeFaceNormal(v9, v4, v11));
+    v3.normal = packNormals(computeFaceNormal(v6, v3, v4));
+    v7.normal = packNormals(computeFaceNormal(v1, v2, v7));
+    v8.normal = packNormals(computeFaceNormal(v8, v11, v4));
+
+    //    static const TriangleList triangles=
+    //        {
+    //            {0,4,1},{0,9,4},{9,5,4},{4,5,8},{4,8,1},
+    //            {8,10,1},{8,3,10},{5,3,8},{5,2,3},{2,7,3},
+    //            {7,10,3},{7,6,10},{7,11,6},{11,0,6},{0,1,6},
+    //            {6,1,10},{9,0,11},{9,11,2},{9,2,5},{7,2,11}
+    //        };
+
+    vertices = { v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12 };
+
+    uint32_t meshId = createMesh(vertices, indices);
+    assert(meshId != -1);
+
+    return meshId;
+}
 uint32_t Scene::createDiscLightMesh()
 {
     std::vector<Scene::Vertex> vertices;
@@ -350,8 +402,8 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
     }
     else if (mSphereLightMeshId == -1 && desc.type == 2)
     {
-        mSphereLightMeshId = createSphereLightMesh();
-        currentLightId = mDiskLightMeshId;
+        mSphereLightMeshId = createHardCodedSphere();
+        currentLightId = mSphereLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
     }
 
@@ -396,15 +448,15 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
     }
     else if (desc.type == 2)
     {
-        const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, desc.width, desc.height));
+        const glm::float4x4 scaleMatrix =
+            glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
         const glm::float4x4 localTransform = desc.useXform ? scaleMatrix * desc.xform : getTransform(desc);
 
         mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
         mLights[lightId].points[1] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
-        //
-        mLights[lightId].points[2] = localTransform * glm::float4(1.f, 0.f, 0.f, 0.f); // OXws
-        mLights[lightId].points[3] = localTransform * glm::float4(0.f, 1.f, 0.f, 0.f); // OYws
-        //
+
+        glm::float4 normal = localTransform * glm::float4(0, 0, 1.f, 0.0f);
+        mLights[lightId].normal = normal;
 
         mLights[lightId].type = 2;
     }

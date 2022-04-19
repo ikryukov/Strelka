@@ -407,6 +407,7 @@ private:
 
     uint32_t createDiscLightMesh();
     uint32_t createSphereLightMesh();
+    uint32_t createHardCodedSphere();
 
     bool FrMod{};
 
