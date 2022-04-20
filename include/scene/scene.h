@@ -275,8 +275,6 @@ public:
         }
     }
 
-    uint32_t createLightMesh();
-
     glm::float4x4 getTransform(const Scene::UniformLightDesc& desc)
     {
         const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
@@ -405,9 +403,9 @@ private:
 
     std::vector<MaterialDescription> mMaterialsDescs;
 
+    uint32_t createRectLightMesh();
     uint32_t createDiscLightMesh();
     uint32_t createSphereLightMesh();
-    uint32_t createHardCodedSphere();
 
     bool FrMod{};
 

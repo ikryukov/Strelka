@@ -107,8 +107,13 @@ uint32_t packNormals(const glm::float3& normal)
     return packed;
 }
 
-uint32_t Scene::createLightMesh()
+uint32_t Scene::createRectLightMesh()
 {
+    if (mRectLightMeshId != -1)
+    {
+        return mRectLightMeshId;
+    }
+
     std::vector<Scene::Vertex> vb;
     Scene::Vertex v1, v2, v3, v4;
     v1.pos = glm::float4(0.5f, 0.5f, 0.0f, 1.0f); // top right 0
@@ -131,6 +136,11 @@ uint32_t Scene::createLightMesh()
 
 uint32_t Scene::createSphereLightMesh()
 {
+    if (mSphereLightMeshId != -1)
+    {
+        return mSphereLightMeshId;
+    }
+
     std::vector<Scene::Vertex> vertices(12); // 12 vertices
     std::vector<uint32_t> indices;
 
@@ -201,6 +211,11 @@ uint32_t Scene::createSphereLightMesh()
 
 uint32_t Scene::createDiscLightMesh()
 {
+    if (mDiskLightMeshId != -1)
+    {
+        return mDiskLightMeshId;
+    }
+
     std::vector<Scene::Vertex> vertices;
     std::vector<uint32_t> indices;
 
@@ -307,19 +322,19 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
     // Lazy init light mesh
     glm::float4x4 scaleMatrix = glm::float4x4(0.f);
     uint32_t currentLightId = 0;
-    if (mRectLightMeshId == -1 && desc.type == 0)
+    if (desc.type == 0)
     {
-        mRectLightMeshId = createLightMesh();
+        mRectLightMeshId = createRectLightMesh();
         currentLightId = mRectLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.width, desc.height, 1.0f));
     }
-    else if (mDiskLightMeshId == -1 && desc.type == 1)
+    else if (desc.type == 1)
     {
         mDiskLightMeshId = createDiscLightMesh();
         currentLightId = mDiskLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
     }
-    else if (mSphereLightMeshId == -1 && desc.type == 2)
+    else if (desc.type == 2)
     {
         mSphereLightMeshId = createSphereLightMesh();
         currentLightId = mSphereLightMeshId;
