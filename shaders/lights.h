@@ -148,6 +148,7 @@ float3 UniformSampleSphere(float2 u)
     float z = 1 - 2 * u[0];
     float r = sqrt(max((float)0, (float)1. - z * z));
     float phi = 2 * PI * u[1];
+
     return float3(r * cos(phi), r * sin(phi), z);
 }
 
@@ -196,7 +197,7 @@ float3 calcLightNormal(in UniformLight l, float3 hitPoint)
     }
     else if (l.type == 2)
     {
-        norm = normalize(l.points[1].xyz - hitPoint);
+        norm = normalize(hitPoint - l.points[1].xyz);
     }
 
     return norm;
