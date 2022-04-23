@@ -119,7 +119,10 @@ public:
         glm::float4 points[4];
         glm::float4 color = glm::float4(1.0f);
         glm::float4 normal;
-        int32_t type;
+        int type;
+        float pad0;
+        float pad2;
+        float pad3;
     };
 
     // CPU side structure
