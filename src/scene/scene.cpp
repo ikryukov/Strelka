@@ -321,28 +321,28 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
     // TODO: only for rect light
     // Lazy init light mesh
     glm::float4x4 scaleMatrix = glm::float4x4(0.f);
-    uint32_t currentLightId = 0;
+    uint32_t currentLightMeshId = 0;
     if (desc.type == 0)
     {
         mRectLightMeshId = createRectLightMesh();
-        currentLightId = mRectLightMeshId;
+        currentLightMeshId = mRectLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.width, desc.height, 1.0f));
     }
     else if (desc.type == 1)
     {
         mDiskLightMeshId = createDiscLightMesh();
-        currentLightId = mDiskLightMeshId;
+        currentLightMeshId = mDiskLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
     }
     else if (desc.type == 2)
     {
         mSphereLightMeshId = createSphereLightMesh();
-        currentLightId = mSphereLightMeshId;
+        currentLightMeshId = mSphereLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
     }
 
     const glm::float4x4 transform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc);
-    uint32_t instId = createInstance(currentLightId, (uint32_t)-1, transform, desc.position, lightId);
+    uint32_t instId = createInstance(currentLightMeshId, (uint32_t)-1, transform, desc.position, lightId);
     assert(instId != -1);
 
     mLightIdToInstanceId[lightId] = instId;
