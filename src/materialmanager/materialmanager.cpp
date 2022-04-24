@@ -198,12 +198,12 @@ public:
         return true;
     }
 
-    Module* createMtlxModule(const char* file)
+    Module* createMtlxModule(const char* mtlSrc)
     {
         assert(mMtlxCodeGen);
         std::unique_ptr<Module> module = std::make_unique<Module>();
 
-        bool res = mMtlxCodeGen->translate(file, mMdlSrc, module->identifier);
+        bool res = mMtlxCodeGen->translate(mtlSrc, mMdlSrc, module->identifier);
         if (res)
         {
             std::string mdlFile = "./misc/test_data/mtlx/" + module->identifier + ".mdl";

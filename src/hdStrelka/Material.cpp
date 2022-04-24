@@ -38,7 +38,7 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
     }
 
     const SdfPath& id = GetId();
-    std::string name = id.GetString();
+    const std::string& name = id.GetString();
     const VtValue& resource = sceneDelegate->GetMaterialResource(id);
 
     if (!resource.IsHolding<HdMaterialNetworkMap>())
