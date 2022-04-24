@@ -48,7 +48,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.buildDirectory}/bin/unit_tests",
-            "args": ["-tc=*mdl*"],
+            "args": ["-tc=*mtlx*"],
             "stopAtEntry": false,
             //"cwd": "${workspaceFolder}",
             "cwd": "${command:cmake.buildDirectory}/bin",

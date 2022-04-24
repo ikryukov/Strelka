@@ -10,6 +10,82 @@
 using namespace oka;
 namespace fs = std::filesystem;
 
+TEST_CASE("mtlx to hlsl code gen test")
+{
+    static const char* DEFAULT_MTLX_DOC_1 =
+        "<?xml version=\"1.0\"?>"
+        "<materialx version=\"1.38\" colorspace=\"lin_rec709\">"
+        "  <UsdPreviewSurface name=\"SR_Invalid\" type=\"surfaceshader\">"
+        "    <input name=\"diffuseColor\" type=\"color3\" value=\"1.0, 0.0, 1.0\" />"
+        "    <input name=\"roughness\" type=\"float\" value=\"1.0\" />"
+        "  </UsdPreviewSurface>"
+        "  <surfacematerial name=\"invalid\" type=\"material\">"
+        "    <input name=\"surfaceshader\" type=\"surfaceshader\" nodename=\"SR_Invalid\" />"
+        "  </surfacematerial>"
+        "</materialx>";
+    static const char* DEFAULT_MTLX_DOC_2 =
+        "<?xml version=\"1.0\"?>"
+        "<materialx version=\"1.38\" colorspace=\"lin_rec709\">"
+        "  <UsdPreviewSurface name=\"SR_Invalid\" type=\"surfaceshader\">"
+        "    <input name=\"diffuseColor\" type=\"color3\" value=\"0.0, 0.0, 1.0\" />"
+        "    <input name=\"roughness\" type=\"float\" value=\"1.0\" />"
+        "  </UsdPreviewSurface>"
+        "  <surfacematerial name=\"invalid\" type=\"material\">"
+        "    <input name=\"surfaceshader\" type=\"surfaceshader\" nodename=\"SR_Invalid\" />"
+        "  </surfacematerial>"
+        "</materialx>";
+
+    using namespace std;
+    const fs::path cwd = fs::current_path();
+    cout << cwd.c_str() << endl;
+
+    std::string mdlFile = "material.mdl";
+    std::ofstream mdlMaterial(mdlFile.c_str());
+
+    MaterialManager* matMngr = new MaterialManager();
+    CHECK(matMngr);
+    
+    const char* envUSDPath = std::getenv("USD_PATH");
+    if (!envUSDPath)
+    {
+        printf("Please, set USD_PATH variable\n");
+        assert(0);
+    }
+    const std::string usdMdlLibPath = std::string(envUSDPath) + "/mdl";
+
+    const char* paths[4] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
+                             usdMdlLibPath.c_str() };
+    bool res = matMngr->addMdlSearchPath(paths, 4);
+    CHECK(res);
+
+    MaterialManager::Module* mdlModule = matMngr->createMtlxModule(DEFAULT_MTLX_DOC_1);
+    assert(mdlModule);
+    MaterialManager::MaterialInstance* materialInst = matMngr->createMaterialInstance(mdlModule, "");
+    assert(materialInst);
+    MaterialManager::CompiledMaterial* materialComp = matMngr->compileMaterial(materialInst);
+    assert(materialComp);
+
+    MaterialManager::Module* mdlModule2 = matMngr->createMtlxModule(DEFAULT_MTLX_DOC_2);
+    assert(mdlModule2);
+    MaterialManager::MaterialInstance* materialInst2 = matMngr->createMaterialInstance(mdlModule2, "");
+    assert(materialInst2);
+    MaterialManager::CompiledMaterial* materialComp2 = matMngr->compileMaterial(materialInst2);
+    assert(materialComp2);
+
+    std::vector<MaterialManager::CompiledMaterial*> materials;
+    materials.push_back(materialComp);
+    materials.push_back(materialComp2);
+
+    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials);
+    CHECK(code);
+    const char* hlsl = matMngr->getShaderCode(code);
+
+    std::string shaderFile = "test_material_output.hlsl";
+    std::ofstream out (shaderFile.c_str());
+    out << hlsl << std::endl;
+    out.close();
+}
+
 TEST_CASE("mdl to hlsl code gen test")
 {
     using namespace std;
