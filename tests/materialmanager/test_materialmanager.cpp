@@ -7,7 +7,7 @@
 #include <fstream>
 #include <iostream>
 
-using namespace nevk;
+using namespace oka;
 namespace fs = std::filesystem;
 
 TEST_CASE("mdl to hlsl code gen test")
@@ -34,24 +34,17 @@ TEST_CASE("mdl to hlsl code gen test")
     bool res = matMngr->addMdlSearchPath(path, 2);
     CHECK(res);
 
-    std::unique_ptr<MaterialManager::Module> currModule = matMngr->createModule("carbon_composite.mdl");
+    MaterialManager::Module* currModule = matMngr->createModule("OmniGlass.mdl");
     CHECK(currModule);
-    std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = matMngr->createMaterialInstance(currModule.get(), "carbon_composite");
+    MaterialManager::MaterialInstance* materialInst1 = matMngr->createMaterialInstance(currModule, "OmniGlass");
     CHECK(materialInst1);
-    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = matMngr->compileMaterial(materialInst1.get());
+    MaterialManager::CompiledMaterial* materialComp1 = matMngr->compileMaterial(materialInst1);
     CHECK(materialComp1);
 
-    std::unique_ptr<MaterialManager::Module> currModule2 = matMngr->createModule("brushed_antique_copper.mdl");
-    CHECK(currModule2);
-    std::unique_ptr<MaterialManager::MaterialInstance> materialInst2 = matMngr->createMaterialInstance(currModule2.get(), "brushed_antique_copper");
-    CHECK(materialInst2);
-    std::unique_ptr<MaterialManager::CompiledMaterial> materialComp2 = matMngr->compileMaterial(materialInst2.get());
-    CHECK(materialComp2);
 
-    std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
-    materials.push_back(std::move(materialComp1));
-    materials.push_back(std::move(materialComp2));
-    CHECK(materials.size() == 2);
+    std::vector<MaterialManager::CompiledMaterial*> materials;
+    materials.push_back(materialComp1);
+    CHECK(materials.size() == 1);
 
     const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials);
     CHECK(code);
@@ -65,18 +58,18 @@ TEST_CASE("mdl to hlsl code gen test")
     size = matMngr->getResourceInfoSize(code);
     CHECK(size != 0);
 
-    // nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
-    uint32_t texSize = matMngr->getTextureCount(code);
-    CHECK(texSize == 8);
-    for (uint32_t i = 1; i < texSize; ++i)
-    {
-        const float* data = matMngr->getTextureData(code, i);
-        uint32_t width = matMngr->getTextureWidth(code, i);
-        uint32_t height = matMngr->getTextureHeight(code, i);
-        const char* type = matMngr->getTextureType(code, i);
-        std::string name = matMngr->getTextureName(code, i);
-        // mTexManager->loadTextureMdl(data, width, height, type, name);
-    }
+    // // nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
+    // uint32_t texSize = matMngr->getTextureCount(code);
+    // CHECK(texSize == 8);
+    // for (uint32_t i = 1; i < texSize; ++i)
+    // {
+    //     const float* data = matMngr->getTextureData(code, i);
+    //     uint32_t width = matMngr->getTextureWidth(code, i);
+    //     uint32_t height = matMngr->getTextureHeight(code, i);
+    //     const char* type = matMngr->getTextureType(code, i);
+    //     std::string name = matMngr->getTextureName(code, i);
+    //     // mTexManager->loadTextureMdl(data, width, height, type, name);
+    // }
 
     // CHECK(mTexManager->textures.size() == 7);
     // CHECK(mTexManager->textures[0].texWidth == 512);
