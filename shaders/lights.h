@@ -18,6 +18,120 @@ struct UniformLight
     float pad3;
 };
 
+// https://backend.orbit.dtu.dk/ws/portalfiles/portal/126824972/onb_frisvad_jgt2012_v2.pdf
+void frisvad(const float3 n, in out float3 b1, in out float3 b2) {
+    if (n.z < -0.9999999f) // Handle the singularity
+    {
+        b1 = float3( 0.0f, -1.0f, 0.0f);
+        b2 = float3(-1.0f, 0.0f, 0.0f);
+        return;
+    }
+    const float a = 1.0f/(1.0f + n.z);
+    const float b = -n.x * n.y * a;
+    b1 = float3(1.0f - n.x * n.x * a, b, -n.x);
+    b2 = float3(b, 1.0f - n.y * n.y * a, -n.y);
+}
+
+float3 sphericalToCartesian(float theta, float phi)
+{
+    float3 coord;
+    coord.x = 5.0f * sin(phi) * sin(theta);
+    coord.z = -5.0f * sin(phi) * cos(theta);
+    coord.y = 5.0f * cos(phi);
+
+    return coord;
+}
+
+float3 ProjectOntoV(float3 u, float3 v)
+{
+    float d = dot(u, v);
+    float v2 = dot(v, v);
+
+    return (d / v2) * v;
+}
+
+void RaySphereNearest(float3 o, float3 d, float3 center, float r, in out float3 p)
+{
+    float3 x = o - center;
+    float dotDX = dot(d, x);
+
+    float a = 1;
+    float b = 2.0f * dotDX;
+    float c = dot(x, x) - r * r;
+
+    float t;
+
+    float root = b * b - 4.0f * a * c;
+    if (root < 0.0f) {
+        t = length(ProjectOntoV(x, d));
+    }
+    else if(root == 0.0f) {
+        t = -0.5f * b / a;
+    }
+    else {
+        float q = (b > 0) ? -0.5f * (b + sqrt(root)) : -0.5f * (b - sqrt(root));
+        float t0 = q / a;
+        float t1 = c / q;
+
+        t = min(t0, t1);
+    }
+
+    p = o + t * d;
+}
+
+// https://schuttejoe.github.io/post/arealightsampling/
+float3 IntegrateSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, uint lightSampleCount, float2 u)
+{
+    float3 L = l.color.xyz;
+    float3 c = l.points[1].xyz;
+    float  r = l.points[0].x;
+
+    float3 o = hitPoint;
+
+    float3 w = c - o;
+    float distanceToCenter = length(w);
+    w = w * (1.0f / distanceToCenter);
+
+    float q = sqrt(1.0f - (r / distanceToCenter) * (r / distanceToCenter));
+
+    float3 n = surfaceNormal;
+    float3 v, u;
+    frisvad(w, v, u); // MakeOrthonormalCoordinateSystem
+
+    float3x3 toWorld = float3x3(u, w, v);
+
+    float3 Lo = float3(0.0f);
+
+    for(uint scan = 0; scan < lightSampleCount; ++scan) {
+        float r0 = u.x;
+        float r1 = u.y;
+
+        float theta = acos(1 - r0 + r0 * q);
+        float phi   = 2 * PI * r1;
+
+        float3 local = sphericalToCartesian(theta, phi);
+
+        float3 nwp = mul(local, toWorld);
+        float3 wp = -nwp;
+
+        float3 xp;
+        RaySphereNearest(o, nwp, c, r, xp);
+
+        float distSquared = length(xp - o) * length(xp - o);
+        float dist = sqrt(distSquared);
+
+        float dotNL = saturate(dot(nwp, surfaceNormal));
+        if(dotNL > 0.0 /* && OcclusionRay(rtcScene, surface, nwp, dist) */) {
+            // -- the dist^2 and Dot(w', n') terms from the pdf and
+            // -- the area form of the rendering equation cancel out
+            float pdf_xp = 1.0f / (2 * PI * (1.0f - q));
+            Lo += dotNL * (1.0f / pdf_xp) * L;
+        }
+    }
+
+    return Lo * (1.0f / lightSampleCount);
+}
+
 struct SphQuad
 {
     float3 o, x, y, z;
@@ -229,7 +343,9 @@ float3 estimateDirectLighting(inout uint rngState, in Accel accel, in UniformLig
     SphQuad quad = init(light, state.position);
     //const float3 pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
 
-    const float3 pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
+    //const float3 pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
+
+    const float3 pointOnLight = IntegrateSphereLight(light, state.position, state.normal, 1, float2(rand(rngState), rand(rngState)));
 
     float3 L = normalize(pointOnLight - state.position);
     toLight = L;
