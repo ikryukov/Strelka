@@ -156,7 +156,7 @@ uint32_t Scene::createSphereLightMesh()
     // the first top vertex (0, 0, r)
     float radius = 1.0f;
     Scene::Vertex v0, v1, v2;
-    v0.pos = glm::float4(0, 0, radius, 1.f);
+    v0.pos = {0, 0, radius};
 
     vertices[i0] = v0;
 
@@ -199,8 +199,27 @@ uint32_t Scene::createSphereLightMesh()
         hAngle2 += H_ANGLE;
     }
 
+    // 1st row
+    indices.push_back(i0);
+    indices.push_back(i1);
+    indices.push_back(1);
+
+    // 2nd row
+    indices.push_back(i1);
+    indices.push_back(i2);
+    indices.push_back(1);
+
+    indices.push_back(i2);
+    indices.push_back(2);
+    indices.push_back(1);
+
+    // 3d row
+    indices.push_back(i2);
+    indices.push_back(i3);
+    indices.push_back(3);
+
     // the last bottom vertex (0, 0, -r)
-    v1.pos = { 0, 0, -radius };
+    v1.pos = { 0, 0, -radius};
     vertices[i3] = v1;
 
     uint32_t meshId = createMesh(vertices, indices);
