@@ -8,11 +8,15 @@
 #include <array>
 #include <filesystem>
 #include <utility>
+#include <map>
 
 namespace fs = std::filesystem;
 
 namespace oka
 {
+using Lookup = std::map<std::pair<uint32_t, uint32_t>, uint32_t>;
+using IndexedMesh = std::pair<std::vector<Scene::Vertex>, std::vector<uint32_t>>;
+
 uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint32_t>& ib)
 {
     std::scoped_lock lock(mMeshMutex);
@@ -135,9 +139,7 @@ uint32_t Scene::createRectLightMesh()
     return meshId;
 }
 
-using Lookup = std::map<std::pair<uint32_t, uint32_t>, uint32_t>;
-
-uint32_t vertex_for_edge(Lookup& lookup, std::vector<Scene::Vertex>& vertices, uint32_t first, uint32_t second)
+uint32_t vertexForEdge(Lookup& lookup, std::vector<Scene::Vertex>& vertices, uint32_t first, uint32_t second)
 {
     Lookup::key_type key(first, second);
     if (key.first > key.second)
@@ -169,7 +171,7 @@ std::vector<uint32_t> subdivide(std::vector<Scene::Vertex>& vertices, std::vecto
         std::array<uint32_t, 3> mid;
         for (int edge = 0; edge < 3; ++edge)
         {
-            mid[edge] = vertex_for_edge(lookup, vertices, indices[i + edge], indices[(i + (edge + 1) % 3)]);
+            mid[edge] = vertexForEdge(lookup, vertices, indices[i + edge], indices[(i + (edge + 1) % 3)]);
         }
 
         result.push_back(indices[i]);
@@ -191,8 +193,6 @@ std::vector<uint32_t> subdivide(std::vector<Scene::Vertex>& vertices, std::vecto
 
     return result;
 }
-
-using IndexedMesh = std::pair<std::vector<Scene::Vertex>, std::vector<uint32_t>>;
 
 IndexedMesh subdivideIcosphere(int subdivisions, std::vector<Scene::Vertex>& _vertices, std::vector<uint32_t>& _indices)
 {

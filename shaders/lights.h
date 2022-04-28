@@ -1,8 +1,8 @@
 #pragma once
 
 #ifdef __cplusplus
-#define float4 glm::float4
-#define float3 glm::float3
+#    define float4 glm::float4
+#    define float3 glm::float3
 #endif
 
 #include "helper.h"
@@ -19,14 +19,15 @@ struct UniformLight
 };
 
 // https://backend.orbit.dtu.dk/ws/portalfiles/portal/126824972/onb_frisvad_jgt2012_v2.pdf
-void frisvad(const float3 n, in out float3 b1, in out float3 b2) {
+void frisvad(const float3 n, in out float3 b1, in out float3 b2)
+{
     if (n.z < -0.9999999f) // Handle the singularity
     {
-        b1 = float3( 0.0f, -1.0f, 0.0f);
+        b1 = float3(0.0f, -1.0f, 0.0f);
         b2 = float3(-1.0f, 0.0f, 0.0f);
         return;
     }
-    const float a = 1.0f/(1.0f + n.z);
+    const float a = 1.0f / (1.0f + n.z);
     const float b = -n.x * n.y * a;
     b1 = float3(1.0f - n.x * n.x * a, b, -n.x);
     b2 = float3(b, 1.0f - n.y * n.y * a, -n.y);
@@ -62,13 +63,16 @@ void RaySphereNearest(float3 o, float3 d, float3 center, float r, in out float3 
     float t;
 
     float root = b * b - 4.0f * a * c;
-    if (root < 0.0f) {
+    if (root < 0.0f)
+    {
         t = length(ProjectOntoV(x, d));
     }
-    else if(root == 0.0f) {
+    else if (root == 0.0f)
+    {
         t = -0.5f * b / a;
     }
-    else {
+    else
+    {
         float q = (b > 0) ? -0.5f * (b + sqrt(root)) : -0.5f * (b - sqrt(root));
         float t0 = q / a;
         float t1 = c / q;
@@ -80,11 +84,11 @@ void RaySphereNearest(float3 o, float3 d, float3 center, float r, in out float3 
 }
 
 // https://schuttejoe.github.io/post/arealightsampling/
-float3 IntegrateSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, uint lightSampleCount, float2 u)
+float3 IntegrateSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, uint lightSampleCount = 1, float2 u)
 {
     float3 L = l.color.xyz;
     float3 c = l.points[1].xyz;
-    float  r = l.points[0].x;
+    float r = l.points[0].x;
 
     float3 o = hitPoint;
 
@@ -102,12 +106,13 @@ float3 IntegrateSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitP
 
     float3 Lo = float3(0.0f);
 
-    for(uint scan = 0; scan < lightSampleCount; ++scan) {
+    for (uint scan = 0; scan < lightSampleCount; ++scan)
+    {
         float r0 = u.x;
         float r1 = u.y;
 
         float theta = acos(1 - r0 + r0 * q);
-        float phi   = 2 * PI * r1;
+        float phi = 2 * PI * r1;
 
         float3 local = sphericalToCartesian(theta, phi);
 
@@ -121,7 +126,8 @@ float3 IntegrateSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitP
         float dist = sqrt(distSquared);
 
         float dotNL = saturate(dot(nwp, surfaceNormal));
-        if(dotNL > 0.0 /* && OcclusionRay(rtcScene, surface, nwp, dist) */) {
+        if (dotNL > 0.0)
+        {
             // -- the dist^2 and Dot(w', n') terms from the pdf and
             // -- the area form of the rendering equation cancel out
             float pdf_xp = 1.0f / (2 * PI * (1.0f - q));
@@ -180,10 +186,10 @@ SphQuad init(UniformLight l, float3 o)
     squad.y1sq = squad.y1 * squad.y1;
 
     // create vectors to four vertices
-    float3 v00 = {squad.x0, squad.y0, squad.z0};
-    float3 v01 = {squad.x0, squad.y1, squad.z0};
-    float3 v10 = {squad.x1, squad.y0, squad.z0};
-    float3 v11 = {squad.x1, squad.y1, squad.z0};
+    float3 v00 = { squad.x0, squad.y0, squad.z0 };
+    float3 v01 = { squad.x0, squad.y1, squad.z0 };
+    float3 v10 = { squad.x1, squad.y0, squad.z0 };
+    float3 v11 = { squad.x1, squad.y1, squad.z0 };
 
     // compute normals to edges
     float3 n0 = normalize(cross(v00, v10));
@@ -192,10 +198,10 @@ SphQuad init(UniformLight l, float3 o)
     float3 n3 = normalize(cross(v01, v00));
 
     // compute internal angles (gamma_i)
-    float g0 = acos(-dot(n0,n1));
-    float g1 = acos(-dot(n1,n2));
-    float g2 = acos(-dot(n2,n3));
-    float g3 = acos(-dot(n3,n0));
+    float g0 = acos(-dot(n0, n1));
+    float g1 = acos(-dot(n1, n2));
+    float g2 = acos(-dot(n2, n3));
+    float g3 = acos(-dot(n3, n0));
 
     // compute predefined constants
     squad.b0 = n0.z;
@@ -209,34 +215,36 @@ SphQuad init(UniformLight l, float3 o)
     return squad;
 }
 
-float3 SphQuadSample(SphQuad squad, float2 uv) {
+float3 SphQuadSample(SphQuad squad, float2 uv)
+{
     float u = uv.x;
     float v = uv.y;
 
     // 1. compute cu
     float au = u * squad.S + squad.k;
     float fu = (cos(au) * squad.b0 - squad.b1) / sin(au);
-    float cu = 1 / sqrt(fu*fu + squad.b0sq) * (fu > 0 ? 1 : -1);
+    float cu = 1 / sqrt(fu * fu + squad.b0sq) * (fu > 0 ? 1 : -1);
     cu = clamp(cu, -1, 1); // avoid NaNs
 
     // 2. compute xu
-    float xu = -(cu * squad.z0) / sqrt(1 - cu*cu);
+    float xu = -(cu * squad.z0) / sqrt(1 - cu * cu);
     xu = clamp(xu, squad.x0, squad.x1); // avoid Infs
 
     // 3. compute yv
-    float d = sqrt(xu*xu + squad.z0sq);
-    float h0 = squad.y0 / sqrt(d*d + squad.y0sq);
-    float h1 = squad.y1 / sqrt(d*d + squad.y1sq);
+    float d = sqrt(xu * xu + squad.z0sq);
+    float h0 = squad.y0 / sqrt(d * d + squad.y0sq);
+    float h1 = squad.y1 / sqrt(d * d + squad.y1sq);
     float hv = h0 + v * (h1 - h0);
-    float hv2 = hv*hv;
+    float hv2 = hv * hv;
     float eps = 1e-5;
-    float yv = (hv < 1 - eps) ? (hv * d)/sqrt(1 - hv2) : squad.y1;
+    float yv = (hv < 1 - eps) ? (hv * d) / sqrt(1 - hv2) : squad.y1;
 
     // 4. transform (xu, yv, z0) to world coords
-    return (squad.o + xu * squad.x + yv*squad.y  + squad.z0*squad.z);
+    return (squad.o + xu * squad.x + yv * squad.y + squad.z0 * squad.z);
 }
 
-float2 concentricSampleDisk(float2 u) {
+float2 concentricSampleDisk(float2 u)
+{
     // map uniform random numbers to [-1,1]^2
     float2 uOffset = 2.f * u - float2(1, 1);
 
@@ -246,10 +254,13 @@ float2 concentricSampleDisk(float2 u) {
 
     // apply concentric mapping to point
     float theta, r;
-    if (abs(uOffset.x) > abs(uOffset.y)) {
+    if (abs(uOffset.x) > abs(uOffset.y))
+    {
         r = uOffset.x;
         theta = PiOver4 * (uOffset.y / uOffset.x);
-    } else {
+    }
+    else
+    {
         r = uOffset.y;
         theta = PiOver2 - PiOver4 * (uOffset.x / uOffset.y);
     }
@@ -338,14 +349,29 @@ float calcLightArea(in UniformLight l)
     return area;
 }
 
-float3 estimateDirectLighting(inout uint rngState, in Accel accel, in UniformLight light, in Shading_state_material state, out float3 toLight, out float lightPdf)
+float3 estimateDirectLighting(inout uint rngState,
+                              in Accel accel,
+                              in UniformLight light,
+                              in Shading_state_material state,
+                              out float3 toLight,
+                              out float lightPdf)
 {
-    SphQuad quad = init(light, state.position);
-    //const float3 pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
+    float3 pointOnLight = float3(0.0f);
+    if (light.type == 0)
+    {
+        SphQuad quad = init(light, state.position);
+        pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
+    }
+    else if (light.type == 1)
+    {
+        pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
+    }
+    else
+    {
+        pointOnLight =
+            IntegrateSphereLight(light, state.position, state.normal, 1, float2(rand(rngState), rand(rngState)));
+    }
 
-    //const float3 pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
-
-    const float3 pointOnLight = IntegrateSphereLight(light, state.position, state.normal, 1, float2(rand(rngState), rand(rngState)));
 
     float3 L = normalize(pointOnLight - state.position);
     toLight = L;
@@ -374,9 +400,10 @@ float3 estimateDirectLighting(inout uint rngState, in Accel accel, in UniformLig
     return float3(0.0);
 }
 
-float3 sampleLights(inout uint rngState, in Accel accel, in Shading_state_material state, out float3 toLight, out float lightPdf)
+float3 sampleLights(
+    inout uint rngState, in Accel accel, in Shading_state_material state, out float3 toLight, out float lightPdf)
 {
-    uint lightId = (uint) (ubo.numLights * rand(rngState));
+    uint lightId = (uint)(ubo.numLights * rand(rngState));
     float lightSelectionPdf = 1.0f / (ubo.numLights + 1e-6);
     UniformLight currLight = lights[lightId];
     float3 r = estimateDirectLighting(rngState, accel, currLight, state, toLight, lightPdf);
