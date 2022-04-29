@@ -72,11 +72,13 @@ TEST_CASE("mtlx to hlsl code gen test")
     MaterialManager::CompiledMaterial* materialComp2 = matMngr->compileMaterial(materialInst2);
     assert(materialComp2);
 
-    std::vector<MaterialManager::CompiledMaterial*> materials;
-    materials.push_back(materialComp);
-    materials.push_back(materialComp2);
+    MaterialManager::CompiledMaterial* materials[2] = {materialComp, materialComp2};
 
-    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials);
+    // std::vector<MaterialManager::CompiledMaterial*> materials;
+    // materials.push_back(materialComp);
+    // materials.push_back(materialComp2);
+
+    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials, 2);
     CHECK(code);
     const char* hlsl = matMngr->getShaderCode(code);
 
@@ -118,11 +120,9 @@ TEST_CASE("mdl to hlsl code gen test")
     CHECK(materialComp1);
 
 
-    std::vector<MaterialManager::CompiledMaterial*> materials;
-    materials.push_back(materialComp1);
-    CHECK(materials.size() == 1);
+    MaterialManager::CompiledMaterial* materials[1] = {materialComp1};
 
-    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials);
+    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials, 1);
     CHECK(code);
     const char* hlsl = matMngr->getShaderCode(code);
     // std::cout << hlsl << std::endl;

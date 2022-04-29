@@ -148,7 +148,7 @@ void PtRender::init()
     ptcode << pt.rdbuf();
 
     assert(materials.size() != 0);
-    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials);
+    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials.data(), materials.size());
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
     mCurrentSceneRenderData = new SceneRenderData(getResManager());
@@ -241,7 +241,7 @@ void oka::PtRender::reloadPt()
     ptcode << pt.rdbuf();
 
     assert(materials.size() != 0);
-    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials);
+    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials.data(), materials.size());
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
     mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;

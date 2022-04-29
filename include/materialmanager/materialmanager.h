@@ -2,9 +2,6 @@
 
 #include <memory>
 #include <stdint.h>
-#include <vector>
-#include <string>
-#include <mi/mdl_sdk.h>
 
 namespace oka
 {
@@ -15,20 +12,9 @@ class MaterialManager
     std::unique_ptr<Context> mContext;
 
 public:
-    struct Module
-    {
-        std::string moduleName;
-        std::string identifier;
-    };
-    struct MaterialInstance
-    {
-        mi::base::Handle<mi::neuraylib::IMaterial_instance> instance;
-    };
-
-    struct CompiledMaterial
-    {
-        mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
-    };
+    struct Module;
+    struct MaterialInstance;
+    struct CompiledMaterial;
 
     struct TargetCode;
     struct TextureDescription;
@@ -57,7 +43,7 @@ public:
     CompiledMaterial* compileMaterial(MaterialInstance* matInstance);
     void destroyCompiledMaterial(CompiledMaterial* compMaterial);
 
-    const TargetCode* generateTargetCode(std::vector<CompiledMaterial*>& material);
+    const TargetCode* generateTargetCode(CompiledMaterial** materials, const uint32_t numMaterials);
     const char* getShaderCode(const TargetCode* targetCode);
 
     uint32_t getReadOnlyBlockSize(const TargetCode* targetCode);

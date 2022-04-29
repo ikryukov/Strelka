@@ -2,6 +2,9 @@
 
 #include "ShaderManager.h"
 #include "materials.h"
+
+#include <mi/mdl_sdk.h>
+
 #include "mdlHlslCodeGen.h"
 #include "mdlLogger.h"
 #include "mdlMaterialCompiler.h"
@@ -30,10 +33,21 @@
 #include <unordered_map>
 
 namespace fs = std::filesystem;
-
-
 namespace oka
 {
+struct MaterialManager::Module
+{
+    std::string moduleName;
+    std::string identifier;
+};
+struct MaterialManager::MaterialInstance
+{
+    mi::base::Handle<mi::neuraylib::IMaterial_instance> instance;
+};
+struct MaterialManager::CompiledMaterial
+{
+    mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
+};
 struct MaterialManager::TargetCode
 {
     mi::base::Handle<const mi::neuraylib::ITarget_code> targetCode;
@@ -373,13 +387,13 @@ public:
         delete materials;
     }
 
-    const TargetCode* generateTargetCode(std::vector<CompiledMaterial*>& materials)
+    const TargetCode* generateTargetCode(CompiledMaterial** materials, const uint32_t numMaterials)
     {
         TargetCode* targetCode = new TargetCode;
 
-        targetCode->mdlMaterials.resize(materials.size());
+        targetCode->mdlMaterials.resize(numMaterials);
 
-        for (uint32_t i = 0; i < materials.size(); ++i)
+        for (uint32_t i = 0; i < numMaterials; ++i)
         {
             targetCode->compiledMaterials.push_back(materials[i]->compiledMaterial.get());
             targetCode->mdlMaterials[i].functionId = i; // TODO: ???
@@ -608,7 +622,7 @@ private:
     std::unique_ptr<oka::MtlxMdlCodeGen> mMtlxCodeGen = nullptr;
 
     mi::base::Handle<mi::neuraylib::ITransaction> mTransaction;
-    mi::base::Handle<MdlLogger> mLogger;
+    mi::base::Handle<oka::MdlLogger> mLogger;
     mi::base::Handle<mi::neuraylib::INeuray> mNeuray;
 
     std::vector<uint8_t> loadArgBlocks(TargetCode* targetCode);
@@ -680,9 +694,9 @@ void MaterialManager::destroyCompiledMaterial(MaterialManager::CompiledMaterial*
     return mContext->destroyCompiledMaterial(material);
 }
 
-const MaterialManager::TargetCode* MaterialManager::generateTargetCode(std::vector<CompiledMaterial*>& materials)
+const MaterialManager::TargetCode* MaterialManager::generateTargetCode(CompiledMaterial** materials, uint32_t numMaterials)
 {
-    return mContext->generateTargetCode(materials);
+    return mContext->generateTargetCode(materials, numMaterials);
 }
 
 const char* MaterialManager::getShaderCode(const TargetCode* targetCode) // get shader code
