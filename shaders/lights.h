@@ -43,46 +43,6 @@ float3 sphericalToCartesian(float theta, float phi)
     return coord;
 }
 
-float3 ProjectOntoV(float3 u, float3 v)
-{
-    float d = dot(u, v);
-    float v2 = dot(v, v);
-
-    return (d / v2) * v;
-}
-
-void RaySphereNearest(float3 o, float3 d, float3 center, float r, in out float3 p)
-{
-    float3 x = o - center;
-    float dotDX = dot(d, x);
-
-    float a = 1;
-    float b = 2.0f * dotDX;
-    float c = dot(x, x) - r * r;
-
-    float t;
-
-    float root = b * b - 4.0f * a * c;
-    if (root < 0.0f)
-    {
-        t = length(ProjectOntoV(x, d));
-    }
-    else if (root == 0.0f)
-    {
-        t = -0.5f * b / a;
-    }
-    else
-    {
-        float q = (b > 0) ? -0.5f * (b + sqrt(root)) : -0.5f * (b - sqrt(root));
-        float t0 = q / a;
-        float t1 = c / q;
-
-        t = min(t0, t1);
-    }
-
-    p = o + t * d;
-}
-
 // https://schuttejoe.github.io/post/arealightsampling/
 float3 SampleSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, float2 u)
 {
@@ -112,12 +72,8 @@ float3 SampleSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitPoin
     float3 local = sphericalToCartesian(theta, phi);
 
     float3 nwp = mul(local, toWorld);
-    float3 wp = -nwp;
 
-    float3 xp;
-    RaySphereNearest(o, nwp, c, r, xp);
-
-    return xp;
+    return nwp;
 }
 
 struct SphQuad
