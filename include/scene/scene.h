@@ -147,6 +147,10 @@ public:
 
         // disc/sphere light
         float radius;
+
+        // distant light
+        float area;
+        float angle;
     };
 
     std::vector<UniformLightDesc> mLightDesc;

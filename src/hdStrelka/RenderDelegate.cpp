@@ -125,10 +125,10 @@ void HdStrelkaRenderDelegate::DestroyRprim(HdRprim* rprim)
     delete rprim;
 }
 
-const TfTokenVector SUPPORTED_SPRIM_TYPES = {
-    HdPrimTypeTokens->camera,    HdPrimTypeTokens->material,  HdPrimTypeTokens->light,
-    HdPrimTypeTokens->rectLight, HdPrimTypeTokens->diskLight, HdPrimTypeTokens->sphereLight,
-};
+const TfTokenVector SUPPORTED_SPRIM_TYPES = { HdPrimTypeTokens->camera, HdPrimTypeTokens->material,
+                                              HdPrimTypeTokens->light, HdPrimTypeTokens->rectLight,
+                                              HdPrimTypeTokens->diskLight, HdPrimTypeTokens->distantLight,
+                                              HdPrimTypeTokens->sphereLight};
 
 const TfTokenVector& HdStrelkaRenderDelegate::GetSupportedSprimTypes() const
 {
@@ -155,6 +155,10 @@ HdSprim* HdStrelkaRenderDelegate::CreateSprim(const TfToken& typeId, const SdfPa
         return new HdStrelkaLight(sprimId, typeId);
     }
     else if (typeId == HdPrimTypeTokens->sphereLight)
+    {
+        return new HdStrelkaLight(sprimId, typeId);
+    }
+    else if (typeId == HdPrimTypeTokens->distantLight)
     {
         return new HdStrelkaLight(sprimId, typeId);
     }

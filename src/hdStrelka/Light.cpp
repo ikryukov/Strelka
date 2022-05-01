@@ -1,14 +1,13 @@
 #include "Light.h"
 
-#include <pxr/imaging/hd/instancer.h>
-#include <pxr/imaging/hd/meshUtil.h>
-#include <pxr/imaging/hd/smoothNormals.h>
-#include <pxr/imaging/hd/vertexAdjacency.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/compatibility.hpp>
+#include <pxr/imaging/hd/instancer.h>
+#include <pxr/imaging/hd/meshUtil.h>
+#include <pxr/imaging/hd/smoothNormals.h>
+#include <pxr/imaging/hd/vertexAdjacency.h>
 
 #include <iostream>
 
@@ -54,7 +53,7 @@ static GfVec3f const _blackbodyRGB[] = {
     GfVec3f(0.638992f, 0.716359f, 1.000000f), //  9500 K
     GfVec3f(0.609681f, 0.695588f, 1.000000f), // 10000 K
     GfVec3f(0.609681f, 0.695588f, 1.000000f), // 10000 K
-    GfVec3f(0.609681f, 0.695588f, 1.000000f)  // 10000 K
+    GfVec3f(0.609681f, 0.695588f, 1.000000f) // 10000 K
 };
 
 // Catmull-Rom basis
@@ -195,6 +194,18 @@ void HdStrelkaLight::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* renderP
             radius = radiusVal.Get<float>();
         }
         mLightDesc.radius = radius * mLightDesc.xform[0][0]; // uniform scale
+    }
+    else if (mLightType == HdPrimTypeTokens->distantLight)
+    {
+        mLightDesc.type = 3;
+        VtValue angleDegVal = sceneDelegate->GetLightParamValue(id, HdLightTokens->angle);
+        if (angleDegVal.IsHolding<float>())
+        {
+            // Convert from cone apex angle to solid angle
+            float angleRadians = angleDegVal.Get<float>() / 180.0 * M_PI;
+            float solidAngleSteradians = 2.f * M_PI * (1.0 - cos(angleRadians / 2.0));
+            mLightDesc.area = solidAngleSteradians;
+        }
     }
 }
 

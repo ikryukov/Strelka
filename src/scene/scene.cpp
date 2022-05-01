@@ -497,6 +497,20 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
 
         mLights[lightId].type = 2;
     }
+    else if (desc.type == 3)
+    {
+        const glm::float4x4 scaleMatrix =
+            glm::scale(glm::float4x4(1.0f), glm::float3(desc.area, desc.area, desc.area));
+        const glm::float4x4 localTransform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc);
+
+        mLights[lightId].points[0] = glm::float4(desc.area, 0.f, 0.f, 0.f); // save area
+        mLights[lightId].points[1] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
+        mLights[lightId].points[2] = localTransform * glm::float4(desc.angle, 0.f, 0.f, 1.f); // save angle
+
+        glm::float4 normal = localTransform * glm::float4(0, 0, 1.f, 0.0f);
+        mLights[lightId].normal = normal;
+        mLights[lightId].type = 3;
+    }
 
     mLights[lightId].color = glm::float4(desc.color, 1.0f) * desc.intensity;
 }
