@@ -4,6 +4,11 @@
 #include <pxr/usdImaging/usdImaging/tokens.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
+// clang-format off
+TF_DEFINE_PRIVATE_TOKENS(_tokens,
+    (diffuse_color_constant)
+);
+// clang-format on
 
 HdStrelkaMaterial::HdStrelkaMaterial(const SdfPath& id, const MaterialNetworkTranslator& translator)
     : HdMaterial(id), m_translator(translator)
@@ -51,12 +56,26 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
 
     bool isUsdPreviewSurface = false;
     HdMaterialNode* previewSurfaceNode = nullptr;
+    // store material parameters
+    std::unordered_map<std::string, VtValue> surfaceParams;
     for (auto& node : surfaceNetwork.nodes)
     {
         if (node.identifier == UsdImagingTokens->UsdPreviewSurface)
         {
             previewSurfaceNode = &node;
             isUsdPreviewSurface = true;
+        }
+        GfVec3f diffuseColor;
+        for (std::pair<TfToken, VtValue> params : node.parameters)
+        {
+            surfaceParams[params.first] = params.second;
+            if (params.first == _tokens->diffuse_color_constant)
+            {
+                if (params.second.IsHolding<GfVec3f>())
+                {
+                    diffuseColor = params.second.Get<GfVec3f>();
+                }
+            }
         }
     }
 
