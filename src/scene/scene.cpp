@@ -456,6 +456,11 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
     return lightId;
 }
 
+float eulerToDegree(float euler)
+{
+    return ((euler) / (2 * 3.14)) * 360;
+}
+
 void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
 {
     // transform to GPU light
@@ -499,16 +504,16 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
     }
     else if (desc.type == 3)
     {
-        const glm::float4x4 scaleMatrix =
-            glm::scale(glm::float4x4(1.0f), glm::float3(desc.area, desc.area, desc.area));
+        const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, 1.0f, 1.0f));
         const glm::float4x4 localTransform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc);
-
+        glm::float3 rotation = { eulerToDegree(atan2(localTransform[2][1], localTransform[1][1])),
+                                 eulerToDegree(atan2(localTransform[3][2], localTransform[3][3])),
+                                 eulerToDegree(atan2(-localTransform[3][1], sqrt(localTransform[3][2] * localTransform[3][2] +
+                                                                       localTransform[3][3] * localTransform[3][3])))};
         mLights[lightId].points[0] = glm::float4(desc.area, 0.f, 0.f, 0.f); // save area
-        mLights[lightId].points[1] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
-        mLights[lightId].points[2] = localTransform * glm::float4(desc.angle, 0.f, 0.f, 1.f); // save angle
+        mLights[lightId].points[1] = glm::float4(rotation, 0.f); // save rotation in degrees
+        mLights[lightId].points[2] = glm::float4(desc.angle, 0.f, 0.f, 1.f); // save angle
 
-        glm::float4 normal = localTransform * glm::float4(0, 0, 1.f, 0.0f);
-        mLights[lightId].normal = normal;
         mLights[lightId].type = 3;
     }
 

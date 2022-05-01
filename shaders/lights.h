@@ -298,6 +298,21 @@ LightSampleData SampleRectLight(in UniformLight l, float2 u, float3 hitPoint)
     return lightSampleData;
 }
 
+LightSampleData SampleDistantLight(in UniformLight l, float2 u, float3 hitPoint)
+{
+    LightSampleData lightSampleData;
+
+    lightSampleData.pointOnLight = SphQuadSample(quad, u);
+
+    //fillLightData(l, hitPoint, lightSampleData);
+    lightSampleData.L = normalize(float3(cos(l.points[1][0]), cos(l.points[1][1]), cos(l.points[1][2])));
+    lightSampleData.normal = normalize(state.position - L);
+    lightSampleData.distToLight = 100000000000.f;
+    lightSampleData.pdf = 1.0f;
+
+    return lightSampleData;
+}
+
 LightSampleData SampleDiscLight(in UniformLight l, float2 u, float3 hitPoint)
 {
     LightSampleData lightSampleData;
@@ -355,6 +370,9 @@ float3 estimateDirectLighting(inout uint rngState,
         break;
     case 2:
         lightSampleData = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
+        break;
+    case 3:
+        lightSampleData = SampleDistantLight(light, float2(rand(rngState), rand(rngState)), state.position);
         break;
     }
 
