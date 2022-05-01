@@ -84,9 +84,8 @@ void RaySphereNearest(float3 o, float3 d, float3 center, float r, in out float3 
 }
 
 // https://schuttejoe.github.io/post/arealightsampling/
-float3 IntegrateSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, uint lightSampleCount = 1, float2 u)
+float3 SampleSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, float2 u)
 {
-    float3 L = l.color.xyz;
     float3 c = l.points[1].xyz;
     float r = l.points[0].x;
 
@@ -104,38 +103,21 @@ float3 IntegrateSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitP
 
     float3x3 toWorld = float3x3(u, w, v);
 
-    float3 Lo = float3(0.0f);
+    float r0 = u.x;
+    float r1 = u.y;
 
-    for (uint scan = 0; scan < lightSampleCount; ++scan)
-    {
-        float r0 = u.x;
-        float r1 = u.y;
+    float theta = acos(1 - r0 + r0 * q);
+    float phi = 2 * PI * r1;
 
-        float theta = acos(1 - r0 + r0 * q);
-        float phi = 2 * PI * r1;
+    float3 local = sphericalToCartesian(theta, phi);
 
-        float3 local = sphericalToCartesian(theta, phi);
+    float3 nwp = mul(local, toWorld);
+    float3 wp = -nwp;
 
-        float3 nwp = mul(local, toWorld);
-        float3 wp = -nwp;
+    float3 xp;
+    RaySphereNearest(o, nwp, c, r, xp);
 
-        float3 xp;
-        RaySphereNearest(o, nwp, c, r, xp);
-
-        float distSquared = length(xp - o) * length(xp - o);
-        float dist = sqrt(distSquared);
-
-        float dotNL = saturate(dot(nwp, surfaceNormal));
-        if (dotNL > 0.0)
-        {
-            // -- the dist^2 and Dot(w', n') terms from the pdf and
-            // -- the area form of the rendering equation cancel out
-            float pdf_xp = 1.0f / (2 * PI * (1.0f - q));
-            Lo += dotNL * (1.0f / pdf_xp) * L;
-        }
-    }
-
-    return Lo * (1.0f / lightSampleCount);
+    return xp;
 }
 
 struct SphQuad
@@ -357,21 +339,19 @@ float3 estimateDirectLighting(inout uint rngState,
                               out float lightPdf)
 {
     float3 pointOnLight = float3(0.0f);
-    if (light.type == 0)
+    switch (light.type)
     {
+    case 0:
         SphQuad quad = init(light, state.position);
         pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
-    }
-    else if (light.type == 1)
-    {
+        break;
+    case 1:
         pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
+        break;
+    case 2:
+        pointOnLight = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
+        break;
     }
-    else
-    {
-        pointOnLight =
-            IntegrateSphereLight(light, state.position, state.normal, 1, float2(rand(rngState), rand(rngState)));
-    }
-
 
     float3 L = normalize(pointOnLight - state.position);
     toLight = L;
