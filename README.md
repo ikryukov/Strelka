@@ -51,3 +51,7 @@ Use vscode with preset env variable
         cmake -DCMAKE_INSTALL_PREFIX=/Users/ilya/work/usd_build/plugin/usd/ ..
     Install plugin:
         cmake --install . --component HdStrelka
+
+## License
+* USD plugin design and material translation code based on Pablo Gatling code:
+https://github.com/pablode/gatling
