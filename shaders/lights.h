@@ -18,6 +18,18 @@ struct UniformLight
     float pad3;
 };
 
+struct LightSampleData
+{
+    float3 pointOnLight;
+    float pdf;
+
+    float3 normal;
+    float area;
+
+    float3 L;
+    float distToLight;
+};
+
 // https://backend.orbit.dtu.dk/ws/portalfiles/portal/126824972/onb_frisvad_jgt2012_v2.pdf
 void frisvad(const float3 n, in out float3 b1, in out float3 b2)
 {
@@ -215,37 +227,6 @@ float3 UniformSampleSphere(float2 u)
     return float3(r * cos(phi), r * sin(phi), z);
 }
 
-float3 SampleRectLight(in UniformLight l, float2 u, float3 hitPoint)
-{
-    // uniform sampling
-//    float3 e1 = l.points[1].xyz - l.points[0].xyz;
-//    float3 e2 = l.points[3].xyz - l.points[0].xyz;
-//
-//    return l.points[0].xyz + e1 * u.x + e2 * u.y;
-
-    SphQuad quad = init(l, hitPoint);
-    return SphQuadSample(quad, u);
-}
-
-float3 SampleDiscLight(in UniformLight l, float2 u)
-{
-    // uniform sampling
-    float2 pd = concentricSampleDisk(u);
-
-    float x = l.points[0].x * pd.x;
-    float y = l.points[0].x * pd.y;
-
-    return l.points[1].xyz + x * l.points[2].xyz + y * l.points[3].xyz;
-}
-
-float3 SampleSphereLight(in UniformLight l,float3 surfaceNormal, float3 hitPoint, float2 u)
-{
-    // uniform sampling
-    // return l.points[1].xyz + l.points[0].x * UniformSampleSphere(u);
-
-    return sampleSphereSolidAngle(l, surfaceNormal, hitPoint, u);
-}
-
 float3 calcLightNormal(in UniformLight l, float3 hitPoint)
 {
     float3 norm = float3(0.0);
@@ -290,6 +271,72 @@ float calcLightArea(in UniformLight l)
     return area;
 }
 
+void fillLightData(in UniformLight l, float3 hitPoint, in out LightSampleData lightSampleData)
+{
+    lightSampleData.area = calcLightArea(l);
+    lightSampleData.normal = calcLightNormal(l, hitPoint);
+    lightSampleData.L = normalize(lightSampleData.pointOnLight - hitPoint);
+    lightSampleData.distToLight = distance(lightSampleData.pointOnLight, hitPoint);
+}
+
+LightSampleData SampleRectLight(in UniformLight l, float2 u, float3 hitPoint)
+{
+    LightSampleData lightSampleData;
+    // uniform sampling
+//    float3 e1 = l.points[1].xyz - l.points[0].xyz;
+//    float3 e2 = l.points[3].xyz - l.points[0].xyz;
+//
+//    lightSampleData.pointOnLight = l.points[0].xyz + e1 * u.x + e2 * u.y;
+
+    SphQuad quad = init(l, hitPoint);
+    lightSampleData.pointOnLight = SphQuadSample(quad, u);
+
+    fillLightData(l, hitPoint, lightSampleData);
+
+    lightSampleData.pdf =  lightSampleData.distToLight * lightSampleData.distToLight / (-dot(lightSampleData.L,  lightSampleData.normal) *  lightSampleData.area);
+
+    return lightSampleData;
+}
+
+LightSampleData SampleDiscLight(in UniformLight l, float2 u, float3 hitPoint)
+{
+    LightSampleData lightSampleData;
+    // uniform sampling
+    float2 pd = concentricSampleDisk(u);
+
+    float x = l.points[0].x * pd.x;
+    float y = l.points[0].x * pd.y;
+
+    lightSampleData.pointOnLight = l.points[1].xyz + x * l.points[2].xyz + y * l.points[3].xyz;
+
+    fillLightData(l, hitPoint, lightSampleData);
+
+    lightSampleData.pdf = lightSampleData.distToLight * lightSampleData.distToLight / (-dot(lightSampleData.L,  lightSampleData.normal) *  lightSampleData.area);
+
+    return lightSampleData;
+}
+
+LightSampleData SampleSphereLight(in UniformLight l,float3 surfaceNormal, float3 hitPoint, float2 u)
+{
+    LightSampleData lightSampleData;
+    // uniform sampling
+    // lightSampleData.pointOnLight = l.points[1].xyz + l.points[0].x * UniformSampleSphere(u);
+
+    lightSampleData.pointOnLight = sampleSphereSolidAngle(l, surfaceNormal, hitPoint, u);
+
+    fillLightData(l, hitPoint, lightSampleData);
+
+    float3 c = l.points[1].xyz;
+    float distanceToCenter = length(c - hitPoint);
+
+    float sinThetaMax2 = l.points[0].x * l.points[0].x / (distanceToCenter * distanceToCenter);
+    float cosThetaMax = sqrt(max((float)0, 1 - sinThetaMax2));
+
+    lightSampleData.pdf = 1 / (2 * PI * (1 - cosThetaMax));
+
+    return lightSampleData;
+}
+
 float3 estimateDirectLighting(inout uint rngState,
                               in Accel accel,
                               in UniformLight light,
@@ -297,53 +344,37 @@ float3 estimateDirectLighting(inout uint rngState,
                               out float3 toLight,
                               out float lightPdf)
 {
-    float3 pointOnLight = float3(0.0f);
+    LightSampleData lightSampleData;
     switch (light.type)
     {
     case 0:
-        pointOnLight = SampleRectLight(light, float2(rand(rngState), rand(rngState)), state.position);
+        lightSampleData = SampleRectLight(light, float2(rand(rngState), rand(rngState)), state.position);
         break;
     case 1:
-        pointOnLight = SampleDiscLight(light, float2(rand(rngState), rand(rngState)));
+        lightSampleData = SampleDiscLight(light, float2(rand(rngState), rand(rngState)), state.position);
         break;
     case 2:
-        pointOnLight = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
+        lightSampleData = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
         break;
     }
 
-    float3 L = normalize(pointOnLight - state.position);
-    toLight = L;
-    float3 lightNormal = calcLightNormal(light, state.position);
+    toLight = lightSampleData.L;
     float3 Li = light.color.rgb;
 
-    if (dot(state.normal, L) > 0 && -dot(L, lightNormal) > 0.0 && all(Li))
+    if (dot(state.normal, lightSampleData.L) > 0 && -dot(lightSampleData.L, lightSampleData.normal) > 0.0 && all(Li))
     {
-        float distToLight = distance(pointOnLight, state.position);
-        float lightArea = calcLightArea(light);
-        float lightPDF = distToLight * distToLight / (-dot(L, lightNormal) * lightArea);
-        if (light.type == 2)
-        {
-            float3 c = light.points[1].xyz;
-            float3 w = c - state.position;
-            float distanceToCenter = length(w);
-
-            float sinThetaMax2 = light.points[0].x * light.points[0].x / (distanceToCenter * distanceToCenter);
-            float cosThetaMax = sqrt(max((float)0, 1 - sinThetaMax2));
-
-            lightPDF = 1 / (2 * PI * (1 - cosThetaMax));
-        }
-
         Ray shadowRay;
-        shadowRay.d = float4(L, 0.0);
+        shadowRay.d = float4(lightSampleData.L, 0.0);
         const float3 offset = state.normal * 1e-6f; // need to add small offset to fix self-collision
-        shadowRay.o = float4(state.position + offset, distToLight - 1e-5);
+        shadowRay.o = float4(state.position + offset, lightSampleData.distToLight - 1e-5);
 
         Hit shadowHit;
         shadowHit.t = 0.0;
         float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
+        float lightPDF = lightSampleData.pdf;
         lightPdf = lightPDF;
-        return visibility * Li * saturate(dot(state.normal, L)) / (lightPDF + 1e-5);
+        return visibility * Li * saturate(dot(state.normal, lightSampleData.L)) / (lightPDF + 1e-5);
     }
 
     return float3(0.0);
