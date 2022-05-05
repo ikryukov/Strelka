@@ -52,11 +52,13 @@ struct MaterialManager::TargetCode
     std::string targetHlsl;
     std::vector<Mdl_resource_info> resourceInfo;
     std::vector<oka::MdlHlslCodeGen::InternalMaterialInfo> internalsInfo;
+    std::vector<const mi::neuraylib::ICompiled_material*> compiledMaterials;
+    bool isInitialized = false;
+
+    // MDL data for GPU buffers
     std::vector<MdlMaterial> mdlMaterials;
     std::vector<uint8_t> argBlockData;
     std::vector<uint8_t> roData;
-    std::vector<const mi::neuraylib::ICompiled_material*> compiledMaterials;
-    bool isInitialized = false;
 };
 
 struct MaterialManager::TextureDescription
@@ -65,16 +67,13 @@ struct MaterialManager::TextureDescription
     mi::base::Handle<const mi::neuraylib::IType_texture> textureType;
 };
 
-class Resource_callback
-    : public mi::base::Interface_implement<mi::neuraylib::ITarget_resource_callback>
+class Resource_callback : public mi::base::Interface_implement<mi::neuraylib::ITarget_resource_callback>
 {
 public:
     /// Constructor.
-    Resource_callback(
-        mi::base::Handle<mi::neuraylib::ITransaction>& transaction,
-        const mi::base::Handle<const mi::neuraylib::ITarget_code>& target_code)
-        : m_transaction(transaction),
-          m_target_code(target_code)
+    Resource_callback(mi::base::Handle<mi::neuraylib::ITransaction>& transaction,
+                      const mi::base::Handle<const mi::neuraylib::ITarget_code>& target_code)
+        : m_transaction(transaction), m_target_code(target_code)
     {
     }
 
@@ -126,23 +125,22 @@ public:
             if (!val_texture)
                 return 0u; // unknown resource
 
-            mi::base::Handle<const mi::neuraylib::IType_texture> texture_type(
-                val_texture->get_type());
+            mi::base::Handle<const mi::neuraylib::IType_texture> texture_type(val_texture->get_type());
 
             mi::neuraylib::ITarget_code::Texture_shape shape =
                 mi::neuraylib::ITarget_code::Texture_shape(texture_type->get_shape());
 
-            //m_compile_result.textures.emplace_back(resource->get_value(), shape);
-            //res_idx = m_compile_result.textures.size() - 1;
+            // m_compile_result.textures.emplace_back(resource->get_value(), shape);
+            // res_idx = m_compile_result.textures.size() - 1;
             break;
         }
         case mi::neuraylib::IValue::VK_LIGHT_PROFILE:
-            //m_compile_result.light_profiles.emplace_back(resource->get_value());
-            //res_idx = m_compile_result.light_profiles.size() - 1;
+            // m_compile_result.light_profiles.emplace_back(resource->get_value());
+            // res_idx = m_compile_result.light_profiles.size() - 1;
             break;
         case mi::neuraylib::IValue::VK_BSDF_MEASUREMENT:
-            //m_compile_result.bsdf_measurements.emplace_back(resource->get_value());
-            //res_idx = m_compile_result.bsdf_measurements.size() - 1;
+            // m_compile_result.bsdf_measurements.emplace_back(resource->get_value());
+            // res_idx = m_compile_result.bsdf_measurements.size() - 1;
             break;
         default:
             return 0u; // invalid kind
@@ -234,7 +232,7 @@ public:
         {
             printf("Error: failed to translate MaterialX -> MDL\n");
             return nullptr;
-        }        
+        }
     };
 
     Module* createModule(const char* file)
@@ -336,8 +334,10 @@ public:
         if (!texAccess.is_valid_interface())
         {
             // Load it
-            mi::base::Handle<mi::neuraylib::ITexture> tex(mMatCompiler->getTransaction()->create<mi::neuraylib::ITexture>("Texture"));
-            mi::base::Handle<mi::neuraylib::IImage> image(mMatCompiler->getTransaction()->create<mi::neuraylib::IImage>("Image"));
+            mi::base::Handle<mi::neuraylib::ITexture> tex(
+                mMatCompiler->getTransaction()->create<mi::neuraylib::ITexture>("Texture"));
+            mi::base::Handle<mi::neuraylib::IImage> image(
+                mMatCompiler->getTransaction()->create<mi::neuraylib::IImage>("Image"));
             if (image->reset_file(name) != 0)
             {
                 // TODO: report error could not find texture!
@@ -351,9 +351,11 @@ public:
             mMatCompiler->getTransaction()->store(tex.get(), textureDbName.c_str());
         }
 
-        mi::base::Handle<mi::neuraylib::IType_factory> typeFactory(mMatCompiler->getFactory()->create_type_factory(mMatCompiler->getTransaction().get()));
+        mi::base::Handle<mi::neuraylib::IType_factory> typeFactory(
+            mMatCompiler->getFactory()->create_type_factory(mMatCompiler->getTransaction().get()));
         // TODO: texture could be 1D, 3D
-        mi::base::Handle<const mi::neuraylib::IType_texture> textureType(typeFactory->create_texture(mi::neuraylib::IType_texture::TS_2D));
+        mi::base::Handle<const mi::neuraylib::IType_texture> textureType(
+            typeFactory->create_texture(mi::neuraylib::IType_texture::TS_2D));
 
         TextureDescription* texDesc = new TextureDescription;
         texDesc->dbName = textureDbName;
@@ -417,7 +419,7 @@ public:
         }
 
         uint32_t numMaterialsToCompile = materialsToCompile.size();
-    
+
         std::vector<oka::MdlHlslCodeGen::InternalMaterialInfo> internalsInfo;
         targetCode->targetCode = mCodeGen->translate(materialsToCompile, targetCode->targetHlsl, internalsInfo);
 
@@ -519,8 +521,10 @@ public:
         {
 
             mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
-            mi::base::Handle<const mi::neuraylib::ITexture> texture(mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
-            mi::base::Handle<const mi::neuraylib::IImage> image(mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
+            mi::base::Handle<const mi::neuraylib::ITexture> texture(
+                mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
+            mi::base::Handle<const mi::neuraylib::IImage> image(
+                mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
             mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
             char const* image_type = image->get_type();
 
@@ -692,7 +696,8 @@ void MaterialManager::destroyModule(MaterialManager::Module* module)
     return mContext->destroyModule(module);
 }
 
-MaterialManager::MaterialInstance* MaterialManager::createMaterialInstance(MaterialManager::Module* module, const char* materialName)
+MaterialManager::MaterialInstance* MaterialManager::createMaterialInstance(MaterialManager::Module* module,
+                                                                           const char* materialName)
 {
     return mContext->createMaterialInstance(module, materialName);
 }
@@ -712,7 +717,7 @@ const char* MaterialManager::getTextureDbName(TextureDescription* texDesc)
     return mContext->getTextureDbName(texDesc);
 }
 
-bool MaterialManager::setParam(TargetCode* targetCode, CompiledMaterial* material,  Param& param)
+bool MaterialManager::setParam(TargetCode* targetCode, CompiledMaterial* material, Param& param)
 {
     return mContext->setParam(targetCode, material, param);
 }
@@ -850,9 +855,8 @@ std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(TargetCode* targetC
                 //             // get the layout
                 //             mi::base::Handle<const mi::neuraylib::ITarget_value_layout> arg_layout(
                 //                 targetCode->targetCode->get_argument_block_layout(argLayoutIndex));
-                //             mi::neuraylib::Target_value_layout_state valLayoutState = arg_layout->get_nested_state(pi);
-                //             mi::neuraylib::IValue::Kind kind;
-                //             mi::Size arg_size;
+                //             mi::neuraylib::Target_value_layout_state valLayoutState =
+                //             arg_layout->get_nested_state(pi); mi::neuraylib::IValue::Kind kind; mi::Size arg_size;
                 //             mi::Size offset = arg_layout->get_layout(kind, arg_size, valLayoutState);
 
                 //             char* data = targetCode->internalMaterials[i].arg_block->get_data() + offset;
