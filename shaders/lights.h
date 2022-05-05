@@ -44,7 +44,7 @@ float3 sphericalToCartesian(float theta, float phi)
 }
 
 // https://schuttejoe.github.io/post/arealightsampling/
-float3 SampleSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, float2 u)
+float3 sampleSphereSolidAngle(in UniformLight l, float3 surfaceNormal, float3 hitPoint, float2 u)
 {
     float3 c = l.points[1].xyz;
     float r = l.points[0].x;
@@ -215,32 +215,35 @@ float3 UniformSampleSphere(float2 u)
     return float3(r * cos(phi), r * sin(phi), z);
 }
 
-float3 UniformSampleLight(in UniformLight l, float2 u)
+float3 SampleRectLight(in UniformLight l, float2 u, float3 hitPoint)
 {
-    float3 uniformSample = float3(0.0);
+    // uniform sampling
+//    float3 e1 = l.points[1].xyz - l.points[0].xyz;
+//    float3 e2 = l.points[3].xyz - l.points[0].xyz;
+//
+//    return l.points[0].xyz + e1 * u.x + e2 * u.y;
 
-    if (l.type == 0)
-    {
-        float3 e1 = l.points[1].xyz - l.points[0].xyz;
-        float3 e2 = l.points[3].xyz - l.points[0].xyz;
+    SphQuad quad = init(l, hitPoint);
+    return SphQuadSample(quad, u);
+}
 
-        uniformSample = l.points[0].xyz + e1 * u.x + e2 * u.y;
-    }
-    else if (l.type == 1)
-    {
-        float2 pd = concentricSampleDisk(u);
+float3 SampleDiscLight(in UniformLight l, float2 u)
+{
+    // uniform sampling
+    float2 pd = concentricSampleDisk(u);
 
-        float x = l.points[0].x * pd.x;
-        float y = l.points[0].x * pd.y;
+    float x = l.points[0].x * pd.x;
+    float y = l.points[0].x * pd.y;
 
-        uniformSample = l.points[1].xyz + x * l.points[2].xyz + y * l.points[3].xyz;
-    }
-    else if (l.type == 2)
-    {
-        uniformSample = l.points[1].xyz + l.points[0].x * UniformSampleSphere(u);
-    }
+    return l.points[1].xyz + x * l.points[2].xyz + y * l.points[3].xyz;
+}
 
-    return uniformSample;
+float3 SampleSphereLight(in UniformLight l,float3 surfaceNormal, float3 hitPoint, float2 u)
+{
+    // uniform sampling
+    // return l.points[1].xyz + l.points[0].x * UniformSampleSphere(u);
+
+    return sampleSphereSolidAngle(l, surfaceNormal, hitPoint, u);
 }
 
 float3 calcLightNormal(in UniformLight l, float3 hitPoint)
@@ -298,14 +301,10 @@ float3 estimateDirectLighting(inout uint rngState,
     switch (light.type)
     {
     case 0:
-        SphQuad quad = init(light, state.position);
-        pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
+        pointOnLight = SampleRectLight(light, float2(rand(rngState), rand(rngState)), state.position);
         break;
     case 1:
-        float2 pd = concentricSampleDisk(float2(rand(rngState), rand(rngState)));
-        float x = light.points[0].x * pd.x;
-        float y = light.points[0].x * pd.y;
-        pointOnLight = light.points[1].xyz + x * light.points[2].xyz + y * light.points[3].xyz;
+        pointOnLight = SampleDiscLight(light, float2(rand(rngState), rand(rngState)));
         break;
     case 2:
         pointOnLight = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));

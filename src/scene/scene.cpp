@@ -489,7 +489,7 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
     else if (desc.type == 2)
     {
         const glm::float4x4 scaleMatrix =
-            glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
+            glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, 1.0f, 1.0f));
         const glm::float4x4 localTransform = desc.useXform ? scaleMatrix * desc.xform : getTransform(desc);
 
         mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
