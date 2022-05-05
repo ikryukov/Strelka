@@ -45,6 +45,8 @@ private:
     // MDL related
     std::string mMdlFileUri;
     std::string mMdlSubIdentifier;
+
+    std::unordered_map<std::string, VtValue> mMaterialParams;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

@@ -90,6 +90,7 @@
         "concepts": "cpp",
         "condition_variable": "cpp",
         "strstream": "cpp",
-        "typeindex": "cpp"
+        "typeindex": "cpp",
+        "codecvt": "cpp"
     }
 }

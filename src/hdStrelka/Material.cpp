@@ -57,7 +57,6 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
     bool isUsdPreviewSurface = false;
     HdMaterialNode* previewSurfaceNode = nullptr;
     // store material parameters
-    std::unordered_map<std::string, VtValue> surfaceParams;
     for (auto& node : surfaceNetwork.nodes)
     {
         if (node.identifier == UsdImagingTokens->UsdPreviewSurface)
@@ -68,7 +67,7 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
         GfVec3f diffuseColor;
         for (std::pair<TfToken, VtValue> params : node.parameters)
         {
-            surfaceParams[params.first] = params.second;
+            mMaterialParams[params.first] = params.second;
             if (params.first == _tokens->diffuse_color_constant)
             {
                 if (params.second.IsHolding<GfVec3f>())

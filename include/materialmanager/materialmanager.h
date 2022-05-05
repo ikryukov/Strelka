@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <stdint.h>
+#include <string>
+#include <vector>
 
 namespace oka
 {
@@ -28,14 +30,20 @@ public:
     MaterialInstance* createMaterialInstance(Module* module, const char* materialName);
     void destroyMaterialInstance(MaterialInstance* material);
 
-    enum class ParamType: uint32_t
+    struct Param
     {
-        eFloat = 0,
-        eColor,
-        eTexture
+        enum class Type : uint32_t
+        {
+            eFloat = 0,
+            eColor,
+            eTexture
+        };
+        Type type;
+        std::string name;
+        std::vector<uint8_t> value;
     };
 
-    bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, const void* paramData);
+    bool setParam(TargetCode* targetCode, CompiledMaterial* material,  Param& param);
 
     TextureDescription* createTextureDescription(const char* name, const char* gamma);
     const char* getTextureDbName(TextureDescription* texDesc);
@@ -43,7 +51,7 @@ public:
     CompiledMaterial* compileMaterial(MaterialInstance* matInstance);
     void destroyCompiledMaterial(CompiledMaterial* compMaterial);
 
-    const TargetCode* generateTargetCode(CompiledMaterial** materials, const uint32_t numMaterials);
+    TargetCode* generateTargetCode(CompiledMaterial** materials, const uint32_t numMaterials);
     const char* getShaderCode(const TargetCode* targetCode);
 
     uint32_t getReadOnlyBlockSize(const TargetCode* targetCode);
@@ -70,4 +78,3 @@ public:
     ~MaterialManager();
 };
 } // namespace nevk
-

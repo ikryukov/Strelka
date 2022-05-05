@@ -122,8 +122,8 @@ void PtRender::init()
             assert(materialInst);
             if (currMatDesc.hasColor)
             {
-                bool res = mMaterialManager->changeParam(
-                    materialInst, oka::MaterialManager::ParamType::eColor, "tint", (void*)&currMatDesc.color);
+                // bool res = mMaterialManager->changeParam(
+                //     materialInst, oka::MaterialManager::ParamType::eColor, "tint", (void*)&currMatDesc.color);
                 assert(res);
             }
             MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
@@ -191,9 +191,11 @@ void PtRender::cleanup()
 void oka::PtRender::reloadPt()
 {
     std::unordered_map<std::string, MaterialManager::Module*> mNameToModule;
+    std::unordered_map<std::string, MaterialManager::MaterialInstance*> mNameToInstance;
+    std::unordered_map<std::string, MaterialManager::CompiledMaterial*> mNameToCompiled;
 
-    std::vector<MaterialManager::CompiledMaterial*> materials;
-    std::vector<Scene::MaterialDescription> matDescs = mScene->getMaterials();
+    std::vector<MaterialManager::CompiledMaterial*> compiledMaterials;
+    std::vector<Scene::MaterialDescription>& matDescs = mScene->getMaterials();
     for (uint32_t i = 0; i < matDescs.size(); ++i)
     {
         oka::Scene::MaterialDescription& currMatDesc = matDescs[i];
@@ -210,18 +212,35 @@ void oka::PtRender::reloadPt()
                 mNameToModule[currMatDesc.file] = mdlModule;
             }
             assert(mdlModule);
-            MaterialManager::MaterialInstance* materialInst =
-                mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
-            assert(materialInst);
-            if (currMatDesc.hasColor)
+            MaterialManager::MaterialInstance* materialInst = nullptr;
+            if (mNameToInstance.find(currMatDesc.name) != mNameToInstance.end())
             {
-                bool res = mMaterialManager->changeParam(
-                    materialInst, oka::MaterialManager::ParamType::eColor, "tint", (void*)&currMatDesc.color);
-                assert(res);
+                materialInst = mNameToInstance[currMatDesc.name];
             }
-            MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
+            else
+            {
+                materialInst = mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
+                mNameToInstance[currMatDesc.name] = materialInst;
+            }
+            assert(materialInst);
+            // if (currMatDesc.hasColor)
+            // {
+            //     bool res = mMaterialManager->changeParam(
+            //         materialInst, oka::MaterialManager::ParamType::eColor, "tint", (void*)&currMatDesc.color);
+            //     assert(res);
+            // }
+            MaterialManager::CompiledMaterial* materialComp = nullptr;
+            // if (mNameToCompiled.find(currMatDesc.name) != mNameToCompiled.end())
+            // {
+            //     materialComp = mNameToCompiled[currMatDesc.name];
+            // }
+            // else
+            {
+                materialComp = mMaterialManager->compileMaterial(materialInst);
+                // mNameToCompiled[currMatDesc.name] = materialComp;
+            }
             assert(materialComp);
-            materials.push_back(materialComp);
+            compiledMaterials.push_back(materialComp);
         }
         else
         {
@@ -231,7 +250,7 @@ void oka::PtRender::reloadPt()
             assert(materialInst);
             MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
             assert(materialComp);
-            materials.push_back(materialComp);
+            compiledMaterials.push_back(materialComp);
         }
     }
 
@@ -240,8 +259,20 @@ void oka::PtRender::reloadPt()
     std::stringstream ptcode;
     ptcode << pt.rdbuf();
 
-    assert(materials.size() != 0);
-    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials.data(), materials.size());
+    assert(compiledMaterials.size() != 0);
+    MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(compiledMaterials.data(), compiledMaterials.size());
+
+    MaterialManager::Param param;
+    param.name = "diffuse_color_constant";
+    param.type = MaterialManager::Param::Type::eColor;
+    param.value.resize(3 * sizeof(float));
+    float* fltPtr = (float*) param.value.data();
+    fltPtr[0] = 0.0f;
+    fltPtr[1] = 1.0f;
+    fltPtr[2] = 0.0f;
+
+    mMaterialManager->setParam(mdlTargetCode, compiledMaterials[1], param);
+
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
     mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
