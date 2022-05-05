@@ -302,7 +302,10 @@ float3 estimateDirectLighting(inout uint rngState,
         pointOnLight = SphQuadSample(quad, float2(rand(rngState), rand(rngState)));
         break;
     case 1:
-        pointOnLight = UniformSampleLight(light, float2(rand(rngState), rand(rngState)));
+        float2 pd = concentricSampleDisk(float2(rand(rngState), rand(rngState)));
+        float x = light.points[0].x * pd.x;
+        float y = light.points[0].x * pd.y;
+        pointOnLight = light.points[1].xyz + x * light.points[2].xyz + y * light.points[3].xyz;
         break;
     case 2:
         pointOnLight = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
@@ -319,6 +322,17 @@ float3 estimateDirectLighting(inout uint rngState,
         float distToLight = distance(pointOnLight, state.position);
         float lightArea = calcLightArea(light);
         float lightPDF = distToLight * distToLight / (-dot(L, lightNormal) * lightArea);
+        if (light.type == 2)
+        {
+            float3 c = light.points[1].xyz;
+            float3 w = c - state.position;
+            float distanceToCenter = length(w);
+
+            float sinThetaMax2 = light.points[0].x * light.points[0].x / (distanceToCenter * distanceToCenter);
+            float cosThetaMax = sqrt(max((float)0, 1 - sinThetaMax2));
+
+            lightPDF = 1 / (2 * PI * (1 - cosThetaMax));
+        }
 
         Ray shadowRay;
         shadowRay.d = float4(L, 0.0);
