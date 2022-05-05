@@ -48,6 +48,7 @@ struct MaterialManager::TargetCode
     };
     std::vector<InternalMaterial> internalMaterials;
     std::unordered_map<uint32_t, uint32_t> uidToInternalIndex;
+    std::unordered_map<CompiledMaterial*, uint32_t> ptrToInternalIndex;
     mi::base::Handle<const mi::neuraylib::ITarget_code> targetCode;
     std::string targetHlsl;
     std::vector<Mdl_resource_info> resourceInfo;
@@ -290,8 +291,7 @@ public:
         {
             if (!strcmp(material->compiledMaterial->get_parameter_name(pi), param.name.c_str()))
             {
-                const uint32_t internalIndex =
-                    targetCode->uidToInternalIndex[uuid_hash32(material->compiledMaterial->get_hash())];
+                const uint32_t internalIndex = targetCode->ptrToInternalIndex[material];
                 const mi::Size argLayoutIndex = targetCode->internalMaterials[internalIndex].argument_block_layout_index;
                 mi::base::Handle<const mi::neuraylib::ITarget_value_layout> arg_layout(
                     targetCode->targetCode->get_argument_block_layout(argLayoutIndex));
@@ -416,6 +416,7 @@ public:
             internalMaterials[i].isUnique = isUnique;
             internalMaterials[i].functionNum = functionNum;
             targetCode->uidToInternalIndex[internalMaterials[i].hash32] = i;
+            targetCode->ptrToInternalIndex[materials[i]] = i;
         }
 
         uint32_t numMaterialsToCompile = materialsToCompile.size();
