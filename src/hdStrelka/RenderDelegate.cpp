@@ -1,24 +1,22 @@
 #include "RenderDelegate.h"
-#include "RenderPass.h"
+
 #include "Camera.h"
-#include "Mesh.h"
 #include "Instancer.h"
-#include "RenderBuffer.h"
-#include "Material.h"
 #include "Light.h"
+#include "Material.h"
+#include "Mesh.h"
+#include "RenderBuffer.h"
+#include "RenderPass.h"
 #include "Tokens.h"
 
-#include <pxr/imaging/hd/resourceRegistry.h>
 #include <pxr/base/gf/vec4f.h>
+#include <pxr/imaging/hd/resourceRegistry.h>
 
 #include <memory>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-TF_DEFINE_PRIVATE_TOKENS(
-    _Tokens,
-    (HdStrelkaDriver)
- );
+TF_DEFINE_PRIVATE_TOKENS(_Tokens, (HdStrelkaDriver));
 
 HdStrelkaRenderDelegate::HdStrelkaRenderDelegate(const HdRenderSettingsMap& settingsMap,
                                                  const MaterialNetworkTranslator& translator)
@@ -127,9 +125,10 @@ void HdStrelkaRenderDelegate::DestroyRprim(HdRprim* rprim)
     delete rprim;
 }
 
-const TfTokenVector SUPPORTED_SPRIM_TYPES = { HdPrimTypeTokens->camera, HdPrimTypeTokens->material,
-                                              HdPrimTypeTokens->light, HdPrimTypeTokens->rectLight,
-                                              HdPrimTypeTokens->diskLight };
+const TfTokenVector SUPPORTED_SPRIM_TYPES = {
+    HdPrimTypeTokens->camera,    HdPrimTypeTokens->material,  HdPrimTypeTokens->light,
+    HdPrimTypeTokens->rectLight, HdPrimTypeTokens->diskLight, HdPrimTypeTokens->sphereLight,
+};
 
 const TfTokenVector& HdStrelkaRenderDelegate::GetSupportedSprimTypes() const
 {
@@ -149,10 +148,13 @@ HdSprim* HdStrelkaRenderDelegate::CreateSprim(const TfToken& typeId, const SdfPa
     }
     else if (typeId == HdPrimTypeTokens->rectLight)
     {
-        // unified light, but currently only rect light supported
         return new HdStrelkaLight(sprimId, typeId);
     }
     else if (typeId == HdPrimTypeTokens->diskLight)
+    {
+        return new HdStrelkaLight(sprimId, typeId);
+    }
+    else if (typeId == HdPrimTypeTokens->sphereLight)
     {
         return new HdStrelkaLight(sprimId, typeId);
     }

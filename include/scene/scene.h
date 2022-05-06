@@ -14,10 +14,8 @@
 #include <vector>
 #include <mutex>
 
-
 namespace oka
 {
-
 struct Mesh
 {
     uint32_t mIndex; // Index of 1st index in index buffer
@@ -119,7 +117,10 @@ public:
         glm::float4 points[4];
         glm::float4 color = glm::float4(1.0f);
         glm::float4 normal;
-        int32_t type;
+        int type;
+        float pad0;
+        float pad2;
+        float pad3;
     };
 
     // CPU side structure
@@ -144,7 +145,6 @@ public:
     };
 
     std::vector<UniformLightDesc> mLightDesc;
-    uint32_t createDiscLightMesh();
     enum class DebugView : uint32_t
     {
         eNone = 0,
@@ -276,8 +276,6 @@ public:
         }
     }
 
-    uint32_t createLightMesh();
-
     glm::float4x4 getTransform(const Scene::UniformLightDesc& desc)
     {
         const glm::float4x4 translationMatrix = glm::translate(glm::float4x4(1.0f), desc.position);
@@ -406,11 +404,16 @@ private:
 
     std::vector<MaterialDescription> mMaterialsDescs;
 
+    uint32_t createRectLightMesh();
+    uint32_t createDiscLightMesh();
+    uint32_t createSphereLightMesh();
+
     bool FrMod{};
 
     std::set<uint32_t> mDirtyInstances;
 
-    uint32_t mRectLigthMeshId = (uint32_t)-1;
-    uint32_t mDiskLigthMeshId = (uint32_t)-1;
+    uint32_t mRectLightMeshId = (uint32_t)-1;
+    uint32_t mDiskLightMeshId = (uint32_t)-1;
+    uint32_t mSphereLightMeshId = (uint32_t)-1;
 };
 } // namespace oka
