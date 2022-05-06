@@ -262,16 +262,13 @@ void oka::PtRender::reloadPt()
     assert(compiledMaterials.size() != 0);
     MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(compiledMaterials.data(), compiledMaterials.size());
 
-    MaterialManager::Param param;
-    param.name = "diffuse_color_constant";
-    param.type = MaterialManager::Param::Type::eColor;
-    param.value.resize(3 * sizeof(float));
-    float* fltPtr = (float*) param.value.data();
-    fltPtr[0] = 0.0f;
-    fltPtr[1] = 1.0f;
-    fltPtr[2] = 0.0f;
-
-    mMaterialManager->setParam(mdlTargetCode, compiledMaterials[1], param);
+    for (uint32_t i = 0; i < matDescs.size(); ++i)
+    {
+        for (const auto& param : matDescs[i].params)
+        {
+            mMaterialManager->setParam(mdlTargetCode, compiledMaterials[i], param);
+        }
+    }
 
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 

@@ -14,6 +14,7 @@
 #include <vector>
 #include <mutex>
 
+#include <materialmanager/materialmanager.h>
 
 namespace oka
 {
@@ -48,6 +49,7 @@ public:
         std::string name;
         bool hasColor = false;
         glm::float3 color;
+        std::vector<MaterialManager::Param> params;
     };
 
     struct Vertex

@@ -64,17 +64,21 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
             previewSurfaceNode = &node;
             isUsdPreviewSurface = true;
         }
-        GfVec3f diffuseColor;
         for (std::pair<TfToken, VtValue> params : node.parameters)
         {
-            mMaterialParams[params.first] = params.second;
-            if (params.first == _tokens->diffuse_color_constant)
+            oka::MaterialManager::Param param;
+            param.name = params.first;
+
+            TfType type = params.second.GetType();
+            if (type.IsA<GfVec3f>())
             {
-                if (params.second.IsHolding<GfVec3f>())
-                {
-                    diffuseColor = params.second.Get<GfVec3f>();
-                }
+                param.type = oka::MaterialManager::Param::Type::eFloat3;
+                GfVec3f val = params.second.Get<GfVec3f>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
             }
+
+            mMaterialParams.push_back(param);
         }
     }
 

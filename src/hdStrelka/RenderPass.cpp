@@ -176,19 +176,20 @@ void HdStrelkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex, GfMatrix4d roo
                 {
                     const std::string& fileUri = material->getFileUri();
                     const std::string& name = material->getSubIdentifier();
-                    oka::Scene::MaterialDescription material;
-                    material.file = fileUri;
-                    material.name = name;
-                    material.type = oka::Scene::MaterialDescription::Type::eMdl;
-                    materialIndex = mScene->addMaterial(material);
+                    oka::Scene::MaterialDescription materialDesc;
+                    materialDesc.file = fileUri;
+                    materialDesc.name = name;
+                    materialDesc.type = oka::Scene::MaterialDescription::Type::eMdl;
+                    materialDesc.params = material->getParams();
+                    materialIndex = mScene->addMaterial(materialDesc);
                 }
                 else
                 {
                     const std::string& code = material->GetStrelkaMaterial();
-                    oka::Scene::MaterialDescription material;
-                    material.code = code;
-                    material.type = oka::Scene::MaterialDescription::Type::eMaterialX;
-                    materialIndex = mScene->addMaterial(material);
+                    oka::Scene::MaterialDescription materialDesc;
+                    materialDesc.code = code;
+                    materialDesc.type = oka::Scene::MaterialDescription::Type::eMaterialX;
+                    materialIndex = mScene->addMaterial(materialDesc);
                 }
                 materialMapping[materialId] = materialIndex;
             }

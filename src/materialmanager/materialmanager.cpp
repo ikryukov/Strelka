@@ -283,7 +283,7 @@ public:
         delete matInst;
     }
 
-    bool setParam(TargetCode* targetCode, CompiledMaterial* material, Param& param)
+    bool setParam(TargetCode* targetCode, CompiledMaterial* material, const Param& param)
     {
         assert(targetCode->isInitialized);
         bool isParamFound = false;
@@ -718,7 +718,7 @@ const char* MaterialManager::getTextureDbName(TextureDescription* texDesc)
     return mContext->getTextureDbName(texDesc);
 }
 
-bool MaterialManager::setParam(TargetCode* targetCode, CompiledMaterial* material, Param& param)
+bool MaterialManager::setParam(TargetCode* targetCode, CompiledMaterial* material, const Param& param)
 {
     return mContext->setParam(targetCode, material, param);
 }

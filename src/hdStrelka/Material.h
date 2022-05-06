@@ -38,6 +38,11 @@ public:
         return mMdlSubIdentifier;
     }
 
+    const std::vector<oka::MaterialManager::Param>& getParams() const
+    {
+        return mMaterialParams;
+    }
+    
 private:
     const MaterialNetworkTranslator& m_translator;
     bool mIsMdl = false;
@@ -46,7 +51,7 @@ private:
     std::string mMdlFileUri;
     std::string mMdlSubIdentifier;
 
-    std::unordered_map<std::string, VtValue> mMaterialParams;
+    std::vector<oka::MaterialManager::Param> mMaterialParams;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE

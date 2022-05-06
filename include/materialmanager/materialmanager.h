@@ -35,7 +35,7 @@ public:
         enum class Type : uint32_t
         {
             eFloat = 0,
-            eColor,
+            eFloat3,
             eTexture
         };
         Type type;
@@ -43,7 +43,7 @@ public:
         std::vector<uint8_t> value;
     };
 
-    bool setParam(TargetCode* targetCode, CompiledMaterial* material,  Param& param);
+    bool setParam(TargetCode* targetCode, CompiledMaterial* material, const Param& param);
 
     TextureDescription* createTextureDescription(const char* name, const char* gamma);
     const char* getTextureDbName(TextureDescription* texDesc);
