@@ -1,0 +1,248 @@
+#usda 1.0
+(
+    doc = "Blender v3.0.0"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "plate1"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.6292068494294654e-7, 1, 0), (0, -1, -1.6292068494294654e-7, 0), (0, 0, 0, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def Mesh "plate1"
+    {
+        uniform bool doubleSided = 1
+        int[] faceVertexCounts = [3, 3]
+        int[] faceVertexIndices = [0, 1, 2, 3, 4, 5]
+        rel material:binding = </_materials/Default_OBJ>
+        normal3f[] normals = [(0, 0.7824128, 0.6227602), (0, 0.7824128, 0.6227602), (0, 0.7824128, 0.6227602), (0, 0.7824131, 0.6227599), (0, 0.7824131, 0.6227599), (0, 0.7824131, 0.6227599)] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [(4, -2.70651, 0.25609), (4, -2.08375, -0.526323), (-4, -2.08375, -0.526323), (-4, -2.08375, -0.526323), (-4, -2.70651, 0.25609), (4, -2.70651, 0.25609)]
+        uniform token subdivisionScheme = "none"
+    }
+}
+
+def "_materials"
+{
+    def Material "Default_OBJ"
+    {
+        token outputs:surface.connect = </_materials/Default_OBJ/previewShader.outputs:surface>
+
+        def Shader "previewShader"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.8, 0.8, 0.8)
+            float inputs:metallic = 1
+            float inputs:roughness = 0.01
+            token outputs:surface
+        }
+    }
+
+    def Material "Default_OBJ_001"
+    {
+        token outputs:surface.connect = </_materials/Default_OBJ_001/previewShader.outputs:surface>
+
+        def Shader "previewShader"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.8, 0.8, 0.8)
+            float inputs:metallic = 1
+            float inputs:roughness = 0.025
+            token outputs:surface
+        }
+    }
+
+    def Material "Default_OBJ_003"
+    {
+        token outputs:surface.connect = </_materials/Default_OBJ_003/previewShader.outputs:surface>
+
+        def Shader "previewShader"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.8, 0.8, 0.8)
+            float inputs:metallic = 1
+            float inputs:roughness = 0.1
+            token outputs:surface
+        }
+    }
+
+    def Material "Default_OBJ_002"
+    {
+        token outputs:surface.connect = </_materials/Default_OBJ_002/previewShader.outputs:surface>
+
+        def Shader "previewShader"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.8, 0.8, 0.8)
+            float inputs:metallic = 1
+            float inputs:roughness = 0.075
+            token outputs:surface
+        }
+    }
+
+    def Material "Default_OBJ_004"
+    {
+        token outputs:surface.connect = </_materials/Default_OBJ_004/previewShader.outputs:surface>
+
+        def Shader "previewShader"
+        {
+            uniform token info:id = "UsdPreviewSurface"
+            color3f inputs:diffuseColor = (0.8, 0.8, 0.8)
+            float inputs:metallic = 1
+            float inputs:roughness = 1
+            token outputs:surface
+        }
+    }
+}
+
+def Xform "plate2"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.6292068494294654e-7, 1, 0), (0, -1, -1.6292068494294654e-7, 0), (0, 0, 0, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def Mesh "plate2"
+    {
+        uniform bool doubleSided = 1
+        int[] faceVertexCounts = [3, 3]
+        int[] faceVertexIndices = [0, 1, 2, 3, 4, 5]
+        rel material:binding = </_materials/Default_OBJ_001>
+        normal3f[] normals = [(0, 0.8931847, 0.44969025), (0, 0.8931847, 0.44969025), (0, 0.8931847, 0.44969025), (0, 0.8931847, 0.44969025), (0, 0.8931847, 0.44969025), (0, 0.8931847, 0.44969025)] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [(4, -3.28825, 1.36972), (4, -2.83856, 0.476536), (-4, -2.83856, 0.476536), (-4, -2.83856, 0.476536), (-4, -3.28825, 1.36972), (4, -3.28825, 1.36972)]
+        uniform token subdivisionScheme = "none"
+    }
+}
+
+def Xform "Area_002"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.6292068494294654e-7, -1, 0), (0, 1, -1.6292068494294654e-7, 0), (0.5368319749832153, -1.4419258832931519, 0.7340813875198364, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def SphereLight "Area_003"
+    {
+        color3f inputs:color = (1, 1, 1)
+        float inputs:intensity = 1
+        float inputs:radius = 0.7
+        float inputs:specular = 1
+    }
+}
+
+def Xform "Area_003"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.6292068494294654e-7, -1, 0), (0, 1, -1.6292068494294654e-7, 0), (2.8061916828155518, -1.4419258832931519, 0.7340813875198364, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def SphereLight "Area_004"
+    {
+        color3f inputs:color = (1, 1, 1)
+        float inputs:intensity = 1
+        float inputs:radius = 1
+        float inputs:specular = 1
+    }
+}
+
+def Xform "Area_001"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.6292068494294654e-7, -1, 0), (0, 1, -1.6292068494294654e-7, 0), (-1.4362515211105347, -1.4419258832931519, 0.7340813875198364, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def SphereLight "Area_002"
+    {
+        color3f inputs:color = (1, 1, 1)
+        float inputs:intensity = 1
+        float inputs:radius = 0.5
+        float inputs:specular = 1
+    }
+}
+
+def Xform "plate4"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.6292068494294654e-7, 1, 0), (0, -1, -1.6292068494294654e-7, 0), (0, 0, 0, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def Mesh "plate4"
+    {
+        uniform bool doubleSided = 1
+        int[] faceVertexCounts = [3, 3]
+        int[] faceVertexIndices = [0, 1, 2, 3, 4, 5]
+        rel material:binding = </_materials/Default_OBJ_003>
+        normal3f[] normals = [(0, 0.98448664, 0.17545976), (0, 0.98448664, 0.17545976), (0, 0.98448664, 0.17545976), (0, 0.98448676, 0.1754593), (0, 0.98448676, 0.1754593), (0, 0.98448676, 0.1754593)] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [(4, -3.99615, 4.0667), (4, -3.82069, 3.08221), (-4, -3.82069, 3.08221), (-4, -3.82069, 3.08221), (-4, -3.99615, 4.0667), (4, -3.99615, 4.0667)]
+        uniform token subdivisionScheme = "none"
+    }
+}
+
+def Xform "Area"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.6292068494294654e-7, -1, 0), (0, 1, -1.6292068494294654e-7, 0), (-2.9923408031463623, -1.4419258832931519, 0.7340813875198364, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def SphereLight "Area"
+    {
+        color3f inputs:color = (1, 1, 1)
+        float inputs:intensity = 1
+        float inputs:radius = 0.1
+        float inputs:specular = 1
+    }
+}
+
+def Xform "plate3"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.6292068494294654e-7, 1, 0), (0, -1, -1.6292068494294654e-7, 0), (0, 0, 0, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def Mesh "plate3"
+    {
+        uniform bool doubleSided = 1
+        int[] faceVertexCounts = [3, 3]
+        int[] faceVertexIndices = [0, 1, 2, 3, 4, 5]
+        rel material:binding = </_materials/Default_OBJ_002>
+        normal3f[] normals = [(0, 0.9548215, 0.2971802), (0, 0.9548215, 0.2971802), (0, 0.9548215, 0.2971802), (0, 0.9548213, 0.2971806), (0, 0.9548213, 0.2971806), (0, 0.9548213, 0.2971806)] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [(4, -3.73096, 2.70046), (4, -3.43378, 1.74564), (-4, -3.43378, 1.74564), (-4, -3.43378, 1.74564), (-4, -3.73096, 2.70046), (4, -3.73096, 2.70046)]
+        uniform token subdivisionScheme = "none"
+    }
+}
+
+def Xform "floor"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, -1.6292068494294654e-7, 1, 0), (0, -1, -1.6292068494294654e-7, 0), (0, 0, 0, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def Mesh "floor"
+    {
+        uniform bool doubleSided = 1
+        int[] faceVertexCounts = [3, 3, 3, 3]
+        int[] faceVertexIndices = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        rel material:binding = </_materials/Default_OBJ_004>
+        normal3f[] normals = [(0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 1, 0), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+            interpolation = "faceVarying"
+        )
+        point3f[] points = [(-10, -4.14615, -10), (-10, -4.14615, 10), (10, -4.14615, 10), (10, -4.14615, 10), (10, -4.14615, -10), (-10, -4.14615, -10), (-10, -10, -2), (10, -10, -2), (10, 10, -2), (10, 10, -2), (-10, 10, -2), (-10, -10, -2)]
+        uniform token subdivisionScheme = "none"
+    }
+}
+
+def Xform "Camera_002"
+{
+    matrix4d xformOp:transform = ( (1, 0, 0, 0), (0, 0.7137963771820068, 0.7003532648086548, 0), (0, -0.7003532648086548, 0.7137963771820068, 0), (0, -13.023387908935547, 8.22109603881836, 1) )
+    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+    def Camera "Camera_002"
+    {
+        float2 clippingRange = (0.1, 1000)
+        float focalLength = 63.91551
+        float horizontalAperture = 36
+        float horizontalApertureOffset = 0
+        token projection = "perspective"
+        float verticalAperture = 20.25
+        float verticalApertureOffset = 0
+    }
+}
+

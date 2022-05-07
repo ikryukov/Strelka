@@ -10,6 +10,8 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/compatibility.hpp>
 
+#include <iostream>
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 //  Lookup table from:
@@ -183,9 +185,9 @@ void HdStrelkaLight::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* renderP
         mLightDesc.height = height;
         mLightDesc.width = width;
     }
-    else if (mLightType == HdPrimTypeTokens->diskLight)
+    else if (mLightType == HdPrimTypeTokens->diskLight || mLightType == HdPrimTypeTokens->sphereLight)
     {
-        mLightDesc.type = 1;
+        mLightDesc.type = mLightType == HdPrimTypeTokens->diskLight ? 1 : 2;
         float radius = 0.0;
         VtValue radiusVal = sceneDelegate->GetLightParamValue(id, HdLightTokens->radius);
         if (radiusVal.IsHolding<float>())

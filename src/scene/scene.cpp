@@ -5,12 +5,17 @@
 #include <glm/gtx/norm.hpp>
 
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <utility>
+#include <map>
+
 namespace fs = std::filesystem;
 
 namespace oka
 {
+using Lookup = std::map<std::pair<uint32_t, uint32_t>, uint32_t>;
+using IndexedMesh = std::pair<std::vector<Scene::Vertex>, std::vector<uint32_t>>;
 
 uint32_t Scene::createMesh(const std::vector<Vertex>& vb, const std::vector<uint32_t>& ib)
 {
@@ -107,8 +112,13 @@ uint32_t packNormals(const glm::float3& normal)
     return packed;
 }
 
-uint32_t Scene::createLightMesh()
+uint32_t Scene::createRectLightMesh()
 {
+    if (mRectLightMeshId != -1)
+    {
+        return mRectLightMeshId;
+    }
+
     std::vector<Scene::Vertex> vb;
     Scene::Vertex v1, v2, v3, v4;
     v1.pos = glm::float4(0.5f, 0.5f, 0.0f, 1.0f); // top right 0
@@ -129,8 +139,189 @@ uint32_t Scene::createLightMesh()
     return meshId;
 }
 
+uint32_t vertexForEdge(Lookup& lookup, std::vector<Scene::Vertex>& vertices, uint32_t first, uint32_t second)
+{
+    Lookup::key_type key(first, second);
+    if (key.first > key.second)
+    {
+        std::swap(key.first, key.second);
+    }
+
+    auto inserted = lookup.insert({ key, vertices.size() });
+    if (inserted.second)
+    {
+        auto& edge0 = vertices[first].pos;
+        auto& edge1 = vertices[second].pos;
+        auto point = normalize(glm::float3{ (edge0.x + edge1.x) / 2, (edge0.y + edge1.y) / 2, (edge0.z + edge1.z) / 2 });
+        Scene::Vertex v;
+        v.pos = point;
+        vertices.push_back(v);
+    }
+
+    return inserted.first->second;
+}
+
+std::vector<uint32_t> subdivide(std::vector<Scene::Vertex>& vertices, std::vector<uint32_t>& indices)
+{
+    Lookup lookup;
+    std::vector<uint32_t> result;
+
+    for (uint32_t i = 0; i < indices.size(); i += 3)
+    {
+        std::array<uint32_t, 3> mid;
+        for (int edge = 0; edge < 3; ++edge)
+        {
+            mid[edge] = vertexForEdge(lookup, vertices, indices[i + edge], indices[(i + (edge + 1) % 3)]);
+        }
+
+        result.push_back(indices[i]);
+        result.push_back(mid[0]);
+        result.push_back(mid[2]);
+
+        result.push_back(indices[i + 1]);
+        result.push_back(mid[1]);
+        result.push_back(mid[0]);
+
+        result.push_back(indices[i + 2]);
+        result.push_back(mid[2]);
+        result.push_back(mid[1]);
+
+        result.push_back(mid[0]);
+        result.push_back(mid[1]);
+        result.push_back(mid[2]);
+    }
+
+    return result;
+}
+
+IndexedMesh subdivideIcosphere(int subdivisions, std::vector<Scene::Vertex>& _vertices, std::vector<uint32_t>& _indices)
+{
+    std::vector<Scene::Vertex> vertices = _vertices;
+    std::vector<uint32_t> triangles = _indices;
+
+    for (int i = 0; i < subdivisions; ++i)
+    {
+        triangles = subdivide(vertices, triangles);
+    }
+
+    return { vertices, triangles };
+}
+
+uint32_t Scene::createSphereLightMesh()
+{
+    if (mSphereLightMeshId != -1)
+    {
+        return mSphereLightMeshId;
+    }
+
+    std::vector<Scene::Vertex> vertices(12); // 12 vertices
+    std::vector<uint32_t> indices;
+
+    const float PI = acos(-1);
+    const float H_ANGLE = PI / 180 * 72; // 72 degree = 360 / 5
+    const float V_ANGLE = atanf(1.0f / 2); // elevation = 26.565 degree
+
+    int i0 = 0, i1, i2, i3 = 11; // indices
+    float z, xy; // coords
+    float hAngle1 = -PI / 2 - H_ANGLE / 2; // start from -126 deg at 2nd row
+    float hAngle2 = -PI / 2; // start from -90 deg at 3rd row
+
+    // the first top vertex (0, 0, r)
+    float radius = 1.0f;
+    Scene::Vertex v0, v1, v2;
+    v0.pos = { 0, 0, radius };
+
+    vertices[i0] = v0;
+
+    // 10 vertices at 2nd and 3rd rows
+    for (int i = 1; i <= 4; ++i)
+    {
+        i1 = i; // 2nd row
+        i2 = i + 5; // 3d row
+
+        z = radius * sinf(V_ANGLE); // elevaton
+        xy = radius * cosf(V_ANGLE);
+
+        v1.pos = { xy * cosf(hAngle1), xy * sinf(hAngle1), z };
+        v2.pos = { xy * cosf(hAngle2), xy * sinf(hAngle2), -z };
+
+        vertices[i1] = v1;
+        vertices[i2] = v2;
+
+        // 1st row
+        indices.push_back(i0);
+        indices.push_back(i1);
+        indices.push_back(i1 + 1);
+
+        // 2nd row
+        indices.push_back(i1);
+        indices.push_back(i2);
+        indices.push_back(i1 + 1);
+
+        indices.push_back(i2);
+        indices.push_back(i1 + 6);
+        indices.push_back(i1 + 1);
+
+        // 3d row
+        indices.push_back(i2);
+        indices.push_back(i3);
+        indices.push_back(i1 + 6);
+
+        // next horizontal angles
+        hAngle1 += H_ANGLE;
+        hAngle2 += H_ANGLE;
+    }
+
+    i1 = 5; // 2nd row
+    i2 = 10; // 3d row
+
+    z = radius * sinf(V_ANGLE); // elevaton
+    xy = radius * cosf(V_ANGLE);
+
+    v1.pos = { xy * cosf(hAngle1), xy * sinf(hAngle1), z };
+    v2.pos = { xy * cosf(hAngle2), xy * sinf(hAngle2), -z };
+
+    vertices[i1] = v1;
+    vertices[i2] = v2;
+
+    // 1st row
+    indices.push_back(i0);
+    indices.push_back(i1);
+    indices.push_back(1);
+
+    // 2nd row
+    indices.push_back(i1);
+    indices.push_back(i2);
+    indices.push_back(1);
+
+    indices.push_back(i2);
+    indices.push_back(2);
+    indices.push_back(1);
+
+    // 3d row
+    indices.push_back(i2);
+    indices.push_back(i3);
+    indices.push_back(3);
+
+    // the last bottom vertex (0, 0, -r)
+    v1.pos = { 0, 0, -radius };
+    vertices[i3] = v1;
+
+    IndexedMesh im = subdivideIcosphere(3, vertices, indices);
+
+    uint32_t meshId = createMesh(im.first, im.second);
+    assert(meshId != -1);
+
+    return meshId;
+}
+
 uint32_t Scene::createDiscLightMesh()
 {
+    if (mDiskLightMeshId != -1)
+    {
+        return mDiskLightMeshId;
+    }
+
     std::vector<Scene::Vertex> vertices;
     std::vector<uint32_t> indices;
 
@@ -236,22 +427,28 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
     // TODO: only for rect light
     // Lazy init light mesh
     glm::float4x4 scaleMatrix = glm::float4x4(0.f);
-    uint32_t currentLightId = 0;
-    if (mRectLigthMeshId == -1 && desc.type == 0)
+    uint32_t currentLightMeshId = 0;
+    if (desc.type == 0)
     {
-        mRectLigthMeshId = createLightMesh();
-        currentLightId = mRectLigthMeshId;
+        mRectLightMeshId = createRectLightMesh();
+        currentLightMeshId = mRectLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.width, desc.height, 1.0f));
     }
-    else if (mRectLigthMeshId == -1 && desc.type == 1)
+    else if (desc.type == 1)
     {
-        mDiskLigthMeshId = createDiscLightMesh();
-        currentLightId = mDiskLigthMeshId;
+        mDiskLightMeshId = createDiscLightMesh();
+        currentLightMeshId = mDiskLightMeshId;
+        scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
+    }
+    else if (desc.type == 2)
+    {
+        mSphereLightMeshId = createSphereLightMesh();
+        currentLightMeshId = mSphereLightMeshId;
         scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(desc.radius, desc.radius, desc.radius));
     }
 
     const glm::float4x4 transform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc);
-    uint32_t instId = createInstance(currentLightId, (uint32_t)-1, transform, desc.position, lightId);
+    uint32_t instId = createInstance(currentLightMeshId, (uint32_t)-1, transform, desc.position, lightId);
     assert(instId != -1);
 
     mLightIdToInstanceId[lightId] = instId;
@@ -288,6 +485,17 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
         glm::float4 normal = localTransform * glm::float4(0, 0, 1.f, 0.0f);
         mLights[lightId].normal = normal;
         mLights[lightId].type = 1;
+    }
+    else if (desc.type == 2)
+    {
+        const glm::float4x4 scaleMatrix =
+            glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, 1.0f, 1.0f));
+        const glm::float4x4 localTransform = desc.useXform ? scaleMatrix * desc.xform : getTransform(desc);
+
+        mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
+        mLights[lightId].points[1] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
+
+        mLights[lightId].type = 2;
     }
 
     mLights[lightId].color = glm::float4(desc.color, 1.0f) * desc.intensity;
