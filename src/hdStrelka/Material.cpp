@@ -66,19 +66,17 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
         }
         for (std::pair<TfToken, VtValue> params : node.parameters)
         {
-            oka::MaterialManager::Param param;
-            param.name = params.first;
-
             TfType type = params.second.GetType();
             if (type.IsA<GfVec3f>())
             {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
                 param.type = oka::MaterialManager::Param::Type::eFloat3;
                 GfVec3f val = params.second.Get<GfVec3f>();
                 param.value.resize(sizeof(val));
                 memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
             }
-
-            mMaterialParams.push_back(param);
         }
     }
 

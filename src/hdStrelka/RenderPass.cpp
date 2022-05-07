@@ -189,6 +189,7 @@ void HdStrelkaRenderPass::_BakeMeshes(HdRenderIndex* renderIndex, GfMatrix4d roo
                     oka::Scene::MaterialDescription materialDesc;
                     materialDesc.code = code;
                     materialDesc.type = oka::Scene::MaterialDescription::Type::eMaterialX;
+                    materialDesc.params = material->getParams();
                     materialIndex = mScene->addMaterial(materialDesc);
                 }
                 materialMapping[materialId] = materialIndex;
