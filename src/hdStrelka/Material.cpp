@@ -77,6 +77,26 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
                 memcpy(param.value.data(), &val, sizeof(val));
                 mMaterialParams.push_back(param);
             }
+            else if (type.IsA<GfVec4f>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eFloat4;
+                GfVec4f val = params.second.Get<GfVec4f>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
+            }
+            else if (type.IsA<float>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eFloat;
+                float val = params.second.Get<float>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
+            }
         }
     }
 

@@ -36,6 +36,7 @@ public:
         {
             eFloat = 0,
             eFloat3,
+            eFloat4,
             eTexture
         };
         Type type;
