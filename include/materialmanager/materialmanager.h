@@ -35,6 +35,7 @@ public:
         enum class Type : uint32_t
         {
             eFloat = 0,
+            eInt,
             eFloat3,
             eFloat4,
             eTexture

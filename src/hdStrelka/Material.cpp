@@ -97,6 +97,16 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
                 memcpy(param.value.data(), &val, sizeof(val));
                 mMaterialParams.push_back(param);
             }
+            else if (type.IsA<int>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eInt;
+                int val = params.second.Get<int>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
+            }
         }
     }
 
