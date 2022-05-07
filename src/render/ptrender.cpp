@@ -223,22 +223,7 @@ void oka::PtRender::reloadPt()
                 mNameToInstance[currMatDesc.name] = materialInst;
             }
             assert(materialInst);
-            // if (currMatDesc.hasColor)
-            // {
-            //     bool res = mMaterialManager->changeParam(
-            //         materialInst, oka::MaterialManager::ParamType::eColor, "tint", (void*)&currMatDesc.color);
-            //     assert(res);
-            // }
-            MaterialManager::CompiledMaterial* materialComp = nullptr;
-            // if (mNameToCompiled.find(currMatDesc.name) != mNameToCompiled.end())
-            // {
-            //     materialComp = mNameToCompiled[currMatDesc.name];
-            // }
-            // else
-            {
-                materialComp = mMaterialManager->compileMaterial(materialInst);
-                // mNameToCompiled[currMatDesc.name] = materialComp;
-            }
+            MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
             assert(materialComp);
             compiledMaterials.push_back(materialComp);
         }
