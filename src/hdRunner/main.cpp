@@ -298,10 +298,11 @@ public:
 
 void setDefaultCamera(UsdGeomCamera& cam)
 {
-    std::vector<float> r0 = {0.1269921064376831, -0.9918715357780457, -0.007994583807885647, 0};
-    std::vector<float> r1 = {0.6746357679367065, 0.08046140521764755, 0.7337523698806763, 0};
-    std::vector<float> r2 = {-0.7271447777748108, -0.0985741913318634, 0.6793699860572815, 0};
-    std::vector<float> r3 = {-2.080613613128662, -0.22476722300052643, 1.9320838451385498, 1};
+    // y - up, camera looks at (0, 0, 0)
+    std::vector<float> r0 = {0, -1, 0, 0};
+    std::vector<float> r1 = {0, 0, 1, 0};
+    std::vector<float> r2 = {-1, 0, 0, 0};
+    std::vector<float> r3 = {0, 0, 0, 1};
 
     GfMatrix4d xform(r0, r1, r2, r3);
     GfCamera mGfCam{};
@@ -372,7 +373,7 @@ int main(int argc, const char* argv[])
     // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
     // std::string usdPath = "./misc/glassCube.usda";
-    std::string usdPath = "./misc/glassLens.usda";
+    std::string usdPath = "./misc/glassLens (5).usda";
     // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
@@ -421,7 +422,7 @@ int main(int argc, const char* argv[])
         return EXIT_FAILURE;
     }
 
-    std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
+    //std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
     
     // Set up rendering context.
     uint32_t imageWidth = 800;
