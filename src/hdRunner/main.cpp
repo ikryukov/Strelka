@@ -63,6 +63,27 @@ HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, SdfPath&
     return camera;
 }
 
+std::vector<std::pair<HdCamera*, SdfPath>> FindAllCameras(UsdStageRefPtr& stage, HdRenderIndex* renderIndex)
+{
+    UsdPrimRange primRange = stage->TraverseAll();
+    HdCamera* camera{};
+    SdfPath cameraPath{};
+    std::vector<std::pair<HdCamera*, SdfPath>> cameras{};
+    for (auto prim = primRange.cbegin(); prim != primRange.cend(); prim++)
+    {
+        if (!prim->IsA<UsdGeomCamera>())
+        {
+            continue;
+        }
+        cameraPath = prim->GetPath();
+        camera = (HdCamera*)dynamic_cast<HdCamera*>(renderIndex->GetSprim(HdTokens->camera, cameraPath));
+
+        cameras.emplace_back(std::make_pair(camera, cameraPath));
+    }
+
+    return cameras;
+}
+
 class CameraController : public oka::InputHandler
 {
     GfCamera mGfCam;
@@ -275,6 +296,33 @@ public:
     }
 };
 
+void setDefaultCamera(UsdGeomCamera& cam)
+{
+    // y - up, camera looks at (0, 0, 0)
+    std::vector<float> r0 = {0, -1, 0, 0};
+    std::vector<float> r1 = {0, 0, 1, 0};
+    std::vector<float> r2 = {-1, 0, 0, 0};
+    std::vector<float> r3 = {0, 0, 0, 1};
+
+    GfMatrix4d xform(r0, r1, r2, r3);
+    GfCamera mGfCam{};
+
+    mGfCam.SetTransform(xform);
+
+    GfRange1f clippingRange = GfRange1f{0.1, 1000};
+    mGfCam.SetClippingRange(clippingRange);
+    mGfCam.SetVerticalAperture(20.25);
+    mGfCam.SetVerticalApertureOffset(0);
+    mGfCam.SetHorizontalAperture(36);
+    mGfCam.SetHorizontalApertureOffset(0);
+    mGfCam.SetFocalLength(50);
+
+    GfCamera::Projection projection = GfCamera::Projection::Perspective;
+    mGfCam.SetProjection(projection);
+
+    cam.SetFromCamera(mGfCam, 0.0);
+}
+
 int main(int argc, const char* argv[])
 {
     // Init plugin.
@@ -329,7 +377,7 @@ int main(int argc, const char* argv[])
     // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
     // std::string usdPath = "./misc/glassCube.usda";
-    std::string usdPath = "./misc/glassLens.usda";
+    std::string usdPath = "./misc/glassLens (5).usda";
     // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
@@ -351,6 +399,11 @@ int main(int argc, const char* argv[])
     // Print the stage's linear units, or "meters per unit"
     std::cout << "Meters per unit: " << UsdGeomGetStageMetersPerUnit(stage) << std::endl;
 
+    // Init default camera
+    SdfPath cameraPath = SdfPath("/defaultCamera");
+    UsdGeomCamera cam = UsdGeomCamera::Define(stage, cameraPath);
+    setDefaultCamera(cam);
+
     HdRenderIndex* renderIndex = HdRenderIndex::New(renderDelegate, HdDriverVector());
     TF_VERIFY(renderIndex);
 
@@ -361,14 +414,20 @@ int main(int argc, const char* argv[])
 
     double meterPerUnit = UsdGeomGetStageMetersPerUnit(stage);
 
-    SdfPath cameraPath = SdfPath::EmptyPath();
+    // Init camera from scene
+    cameraPath = SdfPath::EmptyPath();
     HdCamera* camera = FindCamera(stage, renderIndex, cameraPath);
+    cam = UsdGeomCamera::Get(stage, cameraPath);
+    CameraController cameraController(cam);
+
     if (!camera)
     {
         fprintf(stderr, "Camera not found!\n");
         return EXIT_FAILURE;
     }
 
+    //std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
+    
     // Set up rendering context.
     uint32_t imageWidth = 800;
     uint32_t imageHeight = 600;
@@ -410,9 +469,6 @@ int main(int argc, const char* argv[])
     timerRender.Start();
 
     HdEngine engine;
-    UsdGeomCamera cam = UsdGeomCamera::Get(stage, cameraPath);
-    CameraController cameraController(cam);
-
     render.setInputHandler(&cameraController);
 
     uint64_t frameCount = 0;
