@@ -32,6 +32,7 @@ struct MaterialManager::MaterialInstance
 struct MaterialManager::CompiledMaterial
 {
     mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
+    std::string name;
 };
 struct MaterialManager::TargetCode
 {
@@ -376,6 +377,7 @@ public:
         {
             return nullptr;
         }
+        material->name = matInstance->instance->get_material_definition();
 
         return material.release();
     };
@@ -384,6 +386,11 @@ public:
     {
         assert(materials);
         delete materials;
+    }
+    
+    const char* getName(CompiledMaterial* compMaterial)
+    {
+        return compMaterial->name.c_str();
     }
 
     TargetCode* generateTargetCode(CompiledMaterial** materials, const uint32_t numMaterials)
@@ -412,6 +419,8 @@ public:
                 uidToFunctionNum[internalMaterials[i].hash32] = functionNum;
                 isUnique = true;
                 materialsToCompile.push_back(internalMaterials[i].compiledMaterial->compiledMaterial.get());
+                // log output
+                printf("Material: %s\n", getName(internalMaterials[i].compiledMaterial));
             }
             internalMaterials[i].isUnique = isUnique;
             internalMaterials[i].functionNum = functionNum;
@@ -419,7 +428,8 @@ public:
             targetCode->ptrToInternalIndex[materials[i]] = i;
         }
 
-        uint32_t numMaterialsToCompile = materialsToCompile.size();
+        const uint32_t numMaterialsToCompile = materialsToCompile.size();
+        printf("Materials to compile: %d\n", numMaterialsToCompile);
 
         std::vector<oka::MdlHlslCodeGen::InternalMaterialInfo> internalsInfo;
         targetCode->targetCode = mCodeGen->translate(materialsToCompile, targetCode->targetHlsl, internalsInfo);
@@ -733,6 +743,11 @@ void MaterialManager::destroyCompiledMaterial(MaterialManager::CompiledMaterial*
     return mContext->destroyCompiledMaterial(material);
 }
 
+const char* MaterialManager::getName(CompiledMaterial* compMaterial)
+{
+    return mContext->getName(compMaterial);
+}
+
 MaterialManager::TargetCode* MaterialManager::generateTargetCode(CompiledMaterial** materials, uint32_t numMaterials)
 {
     return mContext->generateTargetCode(materials, numMaterials);
@@ -834,40 +849,15 @@ std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(TargetCode* targetC
         const mi::Size layoutCount = targetCode->targetCode->get_argument_layout_count();
         if (argLayoutIndex != static_cast<mi::Size>(-1) && argLayoutIndex < layoutCount)
         {
+            mi::neuraylib::ICompiled_material* compiledMaterial =
+                targetCode->internalMaterials[compiledIndex].compiledMaterial->compiledMaterial.get();
+            targetCode->internalMaterials[i].arg_block =
+                targetCode->targetCode->create_argument_block(argLayoutIndex, compiledMaterial, callback.get());
+            if (!targetCode->internalMaterials[i].arg_block)
             {
-                mi::neuraylib::ICompiled_material* compiledMaterial =
-                    targetCode->internalMaterials[compiledIndex].compiledMaterial->compiledMaterial.get();
-
-                targetCode->internalMaterials[i].arg_block =
-                    targetCode->targetCode->create_argument_block(argLayoutIndex, compiledMaterial, callback.get());
-
-                if (!targetCode->internalMaterials[i].arg_block)
-                {
-                    std::cerr << ("Failed to create material argument block: ") << std::endl;
-                    res.resize(4);
-                    return res;
-                }
-                // if (i == 2)
-                // {
-                //     for (int pi = 0; pi < compiledMaterial->get_parameter_count(); ++pi)
-                //     {
-                //         if (!strcmp(compiledMaterial->get_parameter_name(pi), "diffuse_color_constant"))
-                //         {
-                //             // get the layout
-                //             mi::base::Handle<const mi::neuraylib::ITarget_value_layout> arg_layout(
-                //                 targetCode->targetCode->get_argument_block_layout(argLayoutIndex));
-                //             mi::neuraylib::Target_value_layout_state valLayoutState =
-                //             arg_layout->get_nested_state(pi); mi::neuraylib::IValue::Kind kind; mi::Size arg_size;
-                //             mi::Size offset = arg_layout->get_layout(kind, arg_size, valLayoutState);
-
-                //             char* data = targetCode->internalMaterials[i].arg_block->get_data() + offset;
-
-                //             ((float*)data)[0] = 0.0f;
-                //             ((float*)data)[1] = 0.0f;
-                //             ((float*)data)[2] = 1.0f;
-                //         }
-                //     }
-                // }
+                std::cerr << ("Failed to create material argument block: ") << std::endl;
+                res.resize(4);
+                return res;
             }
             // create a buffer to provide those parameters to the shader
             // align to 4 bytes and pow of two
@@ -875,11 +865,9 @@ std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(TargetCode* targetC
             std::vector<uint8_t> argBlockData = std::vector<uint8_t>(buffer_size, 0);
             memcpy(argBlockData.data(), targetCode->internalMaterials[i].arg_block->get_data(),
                    targetCode->internalMaterials[i].arg_block->get_size());
-
             // set offset in common arg block buffer
             targetCode->internalMaterials[i].arg_block_offset = (uint32_t)res.size();
             targetCode->mdlMaterials[i].arg_block_offset = (int)res.size();
-
             res.insert(res.end(), argBlockData.begin(), argBlockData.end());
         }
     }

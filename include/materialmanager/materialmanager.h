@@ -52,6 +52,7 @@ public:
 
     CompiledMaterial* compileMaterial(MaterialInstance* matInstance);
     void destroyCompiledMaterial(CompiledMaterial* compMaterial);
+    const char* getName(CompiledMaterial* compMaterial);
 
     TargetCode* generateTargetCode(CompiledMaterial** materials, const uint32_t numMaterials);
     const char* getShaderCode(const TargetCode* targetCode);
