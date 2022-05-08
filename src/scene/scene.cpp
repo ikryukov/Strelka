@@ -511,7 +511,9 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
                                  eulerToDegree(atan2(-localTransform[3][1], sqrt(localTransform[3][2] * localTransform[3][2] +
                                                                        localTransform[3][3] * localTransform[3][3])))};
         mLights[lightId].points[0] = glm::float4(desc.area, 0.f, 0.f, 0.f); // save area
-        mLights[lightId].points[1] = glm::float4(rotation, 0.f); // save rotation in degrees
+        glm::float3 rotation1 = glm::float3x3(localTransform) * glm::float3(1, 1, 1);
+
+        mLights[lightId].points[1] = glm::float4{rotation1.x, rotation1.y, rotation1.z, 1.0f};//glm::float4(rotation, 0.f); // save rotation in degrees
         mLights[lightId].points[2] = glm::float4(desc.angle, 0.f, 0.f, 1.f); // save angle
 
         mLights[lightId].type = 3;

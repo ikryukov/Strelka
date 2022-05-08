@@ -302,12 +302,9 @@ LightSampleData SampleDistantLight(in UniformLight l, float2 u, float3 hitPoint)
 {
     LightSampleData lightSampleData;
 
-    lightSampleData.pointOnLight = SphQuadSample(quad, u);
-
-    //fillLightData(l, hitPoint, lightSampleData);
-    lightSampleData.L = normalize(float3(cos(l.points[1][0]), cos(l.points[1][1]), cos(l.points[1][2])));
-    lightSampleData.normal = normalize(state.position - L);
-    lightSampleData.distToLight = 100000000000.f;
+    lightSampleData.distToLight = 10000.0f;
+    lightSampleData.L = normalize(l.points[1].xyz);//normalize(float3(cos(45 / 180 * PI), cos(0 / 180 * PI), cos(0 / 180 * PI)));
+    lightSampleData.normal = normalize(lightSampleData.L - hitPoint);
     lightSampleData.pdf = 1.0f;
 
     return lightSampleData;
@@ -379,7 +376,7 @@ float3 estimateDirectLighting(inout uint rngState,
     toLight = lightSampleData.L;
     float3 Li = light.color.rgb;
 
-    if (dot(state.normal, lightSampleData.L) > 0 && -dot(lightSampleData.L, lightSampleData.normal) > 0.0 && all(Li))
+    if (dot(state.normal, lightSampleData.L) > 0.0 && -dot(lightSampleData.L, lightSampleData.normal) > 0.0 && all(Li))
     {
         Ray shadowRay;
         shadowRay.d = float4(lightSampleData.L, 0.0);
