@@ -376,8 +376,8 @@ int main(int argc, const char* argv[])
 
     // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
-    // std::string usdPath = "./misc/glassCube.usda";
-    std::string usdPath = "./misc/materials.usda";
+    std::string usdPath = "./misc/coffeemaker.usdc";
+    // std::string usdPath = "./misc/matwcam2.usda";
     // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
@@ -399,10 +399,10 @@ int main(int argc, const char* argv[])
     // Print the stage's linear units, or "meters per unit"
     std::cout << "Meters per unit: " << UsdGeomGetStageMetersPerUnit(stage) << std::endl;
 
+    // Init default camera
     SdfPath cameraPath = SdfPath("/defaultCamera");
-    {
-        UsdGeomCamera cam = UsdGeomCamera::Define(stage, cameraPath);
-    }
+    UsdGeomCamera cam = UsdGeomCamera::Define(stage, cameraPath);
+    setDefaultCamera(cam);
 
     HdRenderIndex* renderIndex = HdRenderIndex::New(renderDelegate, HdDriverVector());
     TF_VERIFY(renderIndex);
@@ -414,20 +414,11 @@ int main(int argc, const char* argv[])
 
     double meterPerUnit = UsdGeomGetStageMetersPerUnit(stage);
 
+    // Init camera from scene
     cameraPath = SdfPath::EmptyPath();
     HdCamera* camera = FindCamera(stage, renderIndex, cameraPath);
     cam = UsdGeomCamera::Get(stage, cameraPath);
     CameraController cameraController(cam);
-
-    if (!camera)
-    {
-        // return EXIT_FAILURE;
-        cameraPath = SdfPath("/defaultCamera");
-
-        camera = FindCamera(stage, renderIndex, cameraPath);
-
-        fprintf(stderr, "Camera not found!\n");
-    }
 
     //std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
     
@@ -472,9 +463,6 @@ int main(int argc, const char* argv[])
     timerRender.Start();
 
     HdEngine engine;
-    UsdGeomCamera cam = UsdGeomCamera::Get(stage, cameraPath);
-
-    CameraController cameraController(cam);
 
     render.setInputHandler(&cameraController);
 
