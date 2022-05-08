@@ -63,6 +63,27 @@ HdCamera* FindCamera(UsdStageRefPtr& stage, HdRenderIndex* renderIndex, SdfPath&
     return camera;
 }
 
+std::vector<std::pair<HdCamera*, SdfPath>> FindAllCameras(UsdStageRefPtr& stage, HdRenderIndex* renderIndex)
+{
+    UsdPrimRange primRange = stage->TraverseAll();
+    HdCamera* camera{};
+    SdfPath cameraPath{};
+    std::vector<std::pair<HdCamera*, SdfPath>> cameras{};
+    for (auto prim = primRange.cbegin(); prim != primRange.cend(); prim++)
+    {
+        if (!prim->IsA<UsdGeomCamera>())
+        {
+            continue;
+        }
+        cameraPath = prim->GetPath();
+        camera = (HdCamera*)dynamic_cast<HdCamera*>(renderIndex->GetSprim(HdTokens->camera, cameraPath));
+
+        cameras.emplace_back(std::make_pair(camera, cameraPath));
+    }
+
+    return cameras;
+}
+
 class CameraController : public oka::InputHandler
 {
     GfCamera mGfCam;
@@ -275,6 +296,33 @@ public:
     }
 };
 
+void setDefaultCamera(UsdGeomCamera& cam)
+{
+    // y - up, camera looks at (0, 0, 0)
+    std::vector<float> r0 = {0, -1, 0, 0};
+    std::vector<float> r1 = {0, 0, 1, 0};
+    std::vector<float> r2 = {-1, 0, 0, 0};
+    std::vector<float> r3 = {0, 0, 0, 1};
+
+    GfMatrix4d xform(r0, r1, r2, r3);
+    GfCamera mGfCam{};
+
+    mGfCam.SetTransform(xform);
+
+    GfRange1f clippingRange = GfRange1f{0.1, 1000};
+    mGfCam.SetClippingRange(clippingRange);
+    mGfCam.SetVerticalAperture(20.25);
+    mGfCam.SetVerticalApertureOffset(0);
+    mGfCam.SetHorizontalAperture(36);
+    mGfCam.SetHorizontalApertureOffset(0);
+    mGfCam.SetFocalLength(50);
+
+    GfCamera::Projection projection = GfCamera::Projection::Perspective;
+    mGfCam.SetProjection(projection);
+
+    cam.SetFromCamera(mGfCam, 0.0);
+}
+
 int main(int argc, const char* argv[])
 {
     // Init plugin.
@@ -305,6 +353,7 @@ int main(int argc, const char* argv[])
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/depth", 6);
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 0); // 0 - none, 1 - random, 2 - stratified sampling, 3 - optimized stratified sampling
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/tonemapperType", 0); // 0 - reinhard, 1 - aces, 2 - filmic
+    ctx->mSettingsManager->setAs<uint32_t>("render/pt/debug", 0); // 0 - none, 1 - normals
     ctx->mSettingsManager->setAs<float>("render/pt/upscaleFactor", 0.5f);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableUpscale", true);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableAcc", true);
@@ -367,6 +416,9 @@ int main(int argc, const char* argv[])
 
     cameraPath = SdfPath::EmptyPath();
     HdCamera* camera = FindCamera(stage, renderIndex, cameraPath);
+    cam = UsdGeomCamera::Get(stage, cameraPath);
+    CameraController cameraController(cam);
+
     if (!camera)
     {
         // return EXIT_FAILURE;
@@ -377,6 +429,8 @@ int main(int argc, const char* argv[])
         fprintf(stderr, "Camera not found!\n");
     }
 
+    //std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
+    
     // Set up rendering context.
     uint32_t imageWidth = 800;
     uint32_t imageHeight = 600;

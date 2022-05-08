@@ -764,7 +764,7 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
     static bool isLight = false;
     static bool openInspector = false;
 
-    const char* debugItems[] = { "None", "Normals", "Motion", "Custom Debug", "Path Tracer" };
+    const char* debugItems[] = { "None", "Normals" };
     static int currentDebugItemId = 0;
 
     const char* tonemapItems[] = { "None", "Reinhard", "ACES", "Filmic" };
@@ -787,7 +787,6 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
             if (ImGui::Selectable(debugItems[n], is_selected))
             {
                 currentDebugItemId = n;
-                // scene.mDebugViewSettings = (Scene::DebugView)n;
             }
             if (is_selected)
             {
@@ -796,6 +795,8 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
         }
         ImGui::EndCombo();
     }
+    settingsManager->setAs<uint32_t>("render/pt/debug", currentDebugItemId);
+
     if (ImGui::TreeNode("Path Tracer"))
     {
         uint32_t maxDepth = settingsManager->getAs<uint32_t>("render/pt/depth");

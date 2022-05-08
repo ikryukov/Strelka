@@ -29,11 +29,15 @@ void PtRender::initDefaultSettings()
     mSettings.enableUpscale = true;
     mSettings.enableAccumulation = true;
     mSettings.stratifiedSamplingType = 0;
+    mSettings.debugView = 0;
 }
 
 void PtRender::readSettings()
 {
     mSettings.enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
+    mSettings.enableAccumulation = getSettingsManager()->getAs<bool>("render/pt/enableAcc");
+    mSettings.stratifiedSamplingType = getSettingsManager()->getAs<uint32_t>("render/pt/stratifiedSamplingType");
+    mSettings.debugView = getSettingsManager()->getAs<uint32_t>("render/pt/debug");
 }
 
 void PtRender::init()
@@ -643,19 +647,18 @@ void PtRender::drawFrame(Image* result)
     const bool enableUpscale = getSettingsManager()->getAs<bool>("render/pt/enableUpscale");
     const bool enableTonemap = getSharedContext().mSettingsManager->getAs<bool>("render/pt/enableTonemap");
     const uint32_t stratifiedSamplingType = getSettingsManager()->getAs<uint32_t>("render/pt/stratifiedSamplingType");
+    const uint32_t debugView = getSettingsManager()->getAs<uint32_t>("render/pt/debug");
 
     if (mSettings.enableUpscale != enableUpscale)
     {
         needRecreateView = true;
     }
-    mSettings.enableUpscale = enableUpscale;
-
-    if (mSettings.enableAccumulation != enableAccumulation || stratifiedSamplingType != mSettings.stratifiedSamplingType)
+    if (mSettings.enableAccumulation != enableAccumulation ||
+        stratifiedSamplingType != mSettings.stratifiedSamplingType || mSettings.debugView != debugView)
     {
         needResetAccumulation = true;
     }
-    mSettings.enableAccumulation = enableAccumulation;
-    mSettings.stratifiedSamplingType = stratifiedSamplingType;
+    readSettings();
 
     if (needRecreateView)
     {
@@ -735,8 +738,8 @@ void PtRender::drawFrame(Image* result)
         pathTracerParam.spp = currView->spp;
         pathTracerParam.iteration = currView->mPtIteration;
         pathTracerParam.numLights = (uint32_t)mScene->getLights().size();
-        pathTracerParam.stratifiedSamplingType =
-            getSharedContext().mSettingsManager->getAs<uint32_t>("render/pt/stratifiedSamplingType");
+        pathTracerParam.stratifiedSamplingType = stratifiedSamplingType;
+        pathTracerParam.debug = debugView;
         pathTracerParam.invDimension.x = 1.0f / (float)renderWidth;
         pathTracerParam.invDimension.y = 1.0f / (float)renderHeight;
         recordBufferBarrier(cmd, currView->mSampleBuffer, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT,
