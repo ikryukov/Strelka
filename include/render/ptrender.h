@@ -98,6 +98,7 @@ private:
         bool enableUpscale = false;
         bool enableAccumulation = false;
         uint32_t stratifiedSamplingType = 0;
+        uint32_t debugView = 0;
     };
 
     RenderSettings mSettings;

@@ -305,6 +305,7 @@ int main(int argc, const char* argv[])
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/depth", 6);
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 0); // 0 - none, 1 - random, 2 - stratified sampling, 3 - optimized stratified sampling
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/tonemapperType", 0); // 0 - reinhard, 1 - aces, 2 - filmic
+    ctx->mSettingsManager->setAs<uint32_t>("render/pt/debug", 0); // 0 - none, 1 - normals
     ctx->mSettingsManager->setAs<float>("render/pt/upscaleFactor", 0.5f);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableUpscale", true);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableAcc", true);
