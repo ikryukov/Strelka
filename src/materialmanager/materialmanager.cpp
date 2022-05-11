@@ -95,9 +95,10 @@ public:
         if (it != m_resource_cache.end())
             return it->second;
 
+        const char* filePath = resource->get_file_path();
         // handle resources already known by the target code
         mi::Uint32 res_idx = m_target_code->get_known_resource_index(m_transaction.get(), resource);
-        if (res_idx != 0)
+        if (res_idx > 0)
         {
             // only accept body resources
             switch (resource->get_kind())
@@ -117,6 +118,13 @@ public:
             default:
                 return 0u; // invalid kind
             }
+        }
+
+        // invalid (or empty) resource
+        const char* name = resource->get_value();
+        if (!name)
+        {
+            return 0;
         }
 
         switch (resource->get_kind())
@@ -284,9 +292,83 @@ public:
         delete matInst;
     }
 
+    void dumpParams(const TargetCode* targetCode, CompiledMaterial* material)
+    {
+        assert(targetCode);
+        assert(targetCode->isInitialized);
+        assert(material);
+        const uint32_t internalIndex = targetCode->ptrToInternalIndex.at(material);
+        const mi::Size argLayoutIndex = targetCode->internalMaterials[internalIndex].argument_block_layout_index;
+        mi::base::Handle<const mi::neuraylib::ITarget_value_layout> arg_layout(
+            targetCode->targetCode->get_argument_block_layout(argLayoutIndex));
+
+        char* baseArgBlockData = targetCode->internalMaterials[internalIndex].arg_block->get_data();
+        const mi::Size argBlockOffset = targetCode->internalMaterials[internalIndex].arg_block_offset;
+
+        const mi::Size paramCount = material->compiledMaterial->get_parameter_count();
+        for (int pi = 0; pi < paramCount; ++pi)
+        {
+            const char* name = material->compiledMaterial->get_parameter_name(pi);
+            printf ("Param name: %s\n", name);
+            mi::neuraylib::Target_value_layout_state valLayoutState = arg_layout->get_nested_state(pi);
+            mi::neuraylib::IValue::Kind kind;
+            mi::Size arg_size;
+            const mi::Size offsetInArgBlock = arg_layout->get_layout(kind, arg_size, valLayoutState);
+            printf("\t offset = %llu\n", offsetInArgBlock);
+
+            char* data = baseArgBlockData + offsetInArgBlock;
+            // const uint8_t* data = targetCode->argBlockData.data() + argBlockOffset + offsetInArgBlock;
+            switch (kind)
+            {
+            case mi::neuraylib::IValue::Kind::VK_FLOAT:
+            {
+                float val = *((float*)data);
+                printf("\t type float\n");
+                printf("\t val = %f\n", val);
+                break;
+            }
+            case mi::neuraylib::IValue::Kind::VK_INT:
+            {
+                int val = *((int*)data);
+                printf("\t type int\n");
+                printf("\t val = %d\n", val);
+                break;
+            }
+            case mi::neuraylib::IValue::Kind::VK_BOOL:
+            {
+                bool val = *((bool*)data);
+                printf("\t type bool\n");
+                printf("\t val = %d\n", val);
+                break;
+            }
+            case mi::neuraylib::IValue::Kind::VK_COLOR:
+            {
+                float* val = (float*)data;
+                printf("\t type color\n");
+                printf("\t val = (%f, %f, %f)\n", val[0], val[1], val[2]);
+                break;       
+            }
+            case mi::neuraylib::IValue::Kind::VK_TEXTURE:
+            {
+                printf("\t type texture\n");
+                break;
+            }
+
+            default:
+                break;
+            }
+            
+            // uint8_t* dst = targetCode->argBlockData.data() + argBlockOffset + offsetInArgBlock;
+            // memcpy(dst, param.value.data(), param.value.size());
+            // isParamFound = true;
+        }
+    }
+
     bool setParam(TargetCode* targetCode, CompiledMaterial* material, const Param& param)
     {
+        assert(targetCode);
         assert(targetCode->isInitialized);
+        assert(material);
         bool isParamFound = false;
         for (int pi = 0; pi < material->compiledMaterial->get_parameter_count(); ++pi)
         {
@@ -420,7 +502,7 @@ public:
                 isUnique = true;
                 materialsToCompile.push_back(internalMaterials[i].compiledMaterial->compiledMaterial.get());
                 // log output
-                printf("Material: %s\n", getName(internalMaterials[i].compiledMaterial));
+                printf("Material to compile: %s\n", getName(internalMaterials[i].compiledMaterial));
             }
             internalMaterials[i].isUnique = isUnique;
             internalMaterials[i].functionNum = functionNum;
@@ -439,7 +521,7 @@ public:
 
         for (uint32_t i = 0; i < numMaterials; ++i)
         {
-            uint32_t compiledOrder = internalMaterials[i].functionNum;
+            const uint32_t compiledOrder = internalMaterials[i].functionNum;
             assert(compiledOrder < numMaterialsToCompile);
             internalMaterials[i].argument_block_layout_index = internalsInfo[compiledOrder].argument_block_index;
             targetCode->mdlMaterials[i].functionId = compiledOrder;
@@ -455,6 +537,15 @@ public:
             for (uint32_t i = 0; i < texCount; ++i)
             {
                 targetCode->resourceInfo[i].gpu_resource_array_start = i;
+                const char* texUrl = targetCode->targetCode->get_texture_url(i);
+                const int texBody = targetCode->targetCode->get_body_texture_count();
+                
+                const char* texName = getTextureName(targetCode, i);
+                // const float* data = getTextureData(targetCode, i);
+                // uint32_t width = getTextureWidth(targetCode, i);
+                // uint32_t height = getTextureHeight(targetCode, i);
+                // const char* type = getTextureType(targetCode, i);
+                // printf("Material texture name: %s\n", texName);
             }
         }
         else
@@ -517,13 +608,13 @@ public:
 
     const char* getTextureName(const TargetCode* targetCode, uint32_t index)
     {
-        assert(index); // index == 0 is invalid
+        // assert(index); // index == 0 is invalid
         return targetCode->targetCode->get_texture(index);
     }
 
     const float* getTextureData(const TargetCode* targetCode, uint32_t index)
     {
-        assert(index); // index == 0 is invalid
+        // assert(index); // index == 0 is invalid
         assert(mTransaction);
 
         auto cachedCanvas = m_indexToCanvas.find(index);
@@ -536,20 +627,20 @@ public:
                 mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
             mi::base::Handle<const mi::neuraylib::IImage> image(
                 mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
-            mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
-            char const* image_type = image->get_type();
+            mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas(0, 0, 0));
+            char const* image_type = image->get_type(0, 0);
 
-            if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1)
-            {
-                mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
-                return nullptr;
-            }
+            // if (canvas->get_tiles_size_x() != 1 || canvas->get_tiles_size_y() != 1)
+            // {
+            //     mLogger->message(mi::base::MESSAGE_SEVERITY_ERROR, "The example does not support tiled images!");
+            //     return nullptr;
+            // }
 
-            if (texture->get_effective_gamma() != 1.0f)
+            if (texture->get_effective_gamma(0, 0) != 1.0f)
             {
                 // Copy/convert to float4 canvas and adjust gamma from "effective gamma" to 1.
                 mi::base::Handle<mi::neuraylib::ICanvas> gamma_canvas(image_api->convert(canvas.get(), "Color"));
-                gamma_canvas->set_gamma(texture->get_effective_gamma());
+                gamma_canvas->set_gamma(texture->get_effective_gamma(0, 0));
                 image_api->adjust_gamma(gamma_canvas.get(), 1.0f);
                 canvas = gamma_canvas;
             }
@@ -575,24 +666,24 @@ public:
 
     const char* getTextureType(const TargetCode* targetCode, uint32_t index)
     {
-        assert(index); // index == 0 is invalid
+        // assert(index); // index == 0 is invalid
         mi::base::Handle<const mi::neuraylib::ITexture> texture(
             mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
         mi::base::Handle<const mi::neuraylib::IImage> image(
             mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
-        char const* imageType = image->get_type();
+        char const* imageType = image->get_type(0, 0);
 
         return imageType;
     }
 
     uint32_t getTextureWidth(const TargetCode* targetCode, uint32_t index)
     {
-        assert(index); // index == 0 is invalid
+        // assert(index); // index == 0 is invalid
         mi::base::Handle<const mi::neuraylib::ITexture> texture(
             mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
         mi::base::Handle<const mi::neuraylib::IImage> image(
             mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
-        mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
+        mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas(0, 0, 0));
         mi::Uint32 texWidth = canvas->get_resolution_x();
 
         return texWidth;
@@ -600,12 +691,12 @@ public:
 
     uint32_t getTextureHeight(const TargetCode* targetCode, uint32_t index)
     {
-        assert(index); // index == 0 is invalid
+        // assert(index); // index == 0 is invalid
         mi::base::Handle<const mi::neuraylib::ITexture> texture(
             mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
         mi::base::Handle<const mi::neuraylib::IImage> image(
             mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
-        mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas());
+        mi::base::Handle<const mi::neuraylib::ICanvas> canvas(image->get_canvas(0, 0, 0));
         mi::Uint32 texHeight = canvas->get_resolution_y();
 
         return texHeight;
@@ -613,14 +704,14 @@ public:
 
     uint32_t getTextureBytesPerTexel(const TargetCode* targetCode, uint32_t index)
     {
-        assert(index); // index == 0 is invalid
+        // assert(index); // index == 0 is invalid
         mi::base::Handle<mi::neuraylib::IImage_api> image_api(mNeuray->get_api_component<mi::neuraylib::IImage_api>());
 
         mi::base::Handle<const mi::neuraylib::ITexture> texture(
             mTransaction->access<mi::neuraylib::ITexture>(targetCode->targetCode->get_texture(index)));
         mi::base::Handle<const mi::neuraylib::IImage> image(
             mTransaction->access<mi::neuraylib::IImage>(texture->get_image()));
-        char const* imageType = image->get_type();
+        char const* imageType = image->get_type(0, 0);
 
         int cpp = image_api->get_components_per_pixel(imageType);
         int bpc = image_api->get_bytes_per_component(imageType);
@@ -726,6 +817,11 @@ MaterialManager::TextureDescription* MaterialManager::createTextureDescription(c
 const char* MaterialManager::getTextureDbName(TextureDescription* texDesc)
 {
     return mContext->getTextureDbName(texDesc);
+}
+
+void MaterialManager::dumpParams(const TargetCode* targetCode, CompiledMaterial* material)
+{
+    return mContext->dumpParams(targetCode, material);
 }
 
 bool MaterialManager::setParam(TargetCode* targetCode, CompiledMaterial* material, const Param& param)
@@ -844,15 +940,16 @@ std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(TargetCode* targetC
     mi::base::Handle<Resource_callback> callback(new Resource_callback(mTransaction, targetCode->targetCode));
     for (int i = 0; i < targetCode->internalMaterials.size(); ++i)
     {
-        const uint32_t compiledIndex = targetCode->internalMaterials[i].functionNum;
-        const mi::Size argLayoutIndex = targetCode->internalMaterials[compiledIndex].argument_block_layout_index;
+        // const uint32_t compiledIndex = targetCode->internalMaterials[i].functionNum;
+        const mi::Size argLayoutIndex = targetCode->internalMaterials[i].argument_block_layout_index;
         const mi::Size layoutCount = targetCode->targetCode->get_argument_layout_count();
         if (argLayoutIndex != static_cast<mi::Size>(-1) && argLayoutIndex < layoutCount)
         {
             mi::neuraylib::ICompiled_material* compiledMaterial =
-                targetCode->internalMaterials[compiledIndex].compiledMaterial->compiledMaterial.get();
+                targetCode->internalMaterials[i].compiledMaterial->compiledMaterial.get();
             targetCode->internalMaterials[i].arg_block =
                 targetCode->targetCode->create_argument_block(argLayoutIndex, compiledMaterial, callback.get());
+
             if (!targetCode->internalMaterials[i].arg_block)
             {
                 std::cerr << ("Failed to create material argument block: ") << std::endl;
@@ -861,7 +958,7 @@ std::vector<uint8_t> MaterialManager::Context::loadArgBlocks(TargetCode* targetC
             }
             // create a buffer to provide those parameters to the shader
             // align to 4 bytes and pow of two
-            size_t buffer_size = round_to_power_of_two(targetCode->internalMaterials[i].arg_block->get_size(), 4);
+            const size_t buffer_size = round_to_power_of_two(targetCode->internalMaterials[i].arg_block->get_size(), 4);
             std::vector<uint8_t> argBlockData = std::vector<uint8_t>(buffer_size, 0);
             memcpy(argBlockData.data(), targetCode->internalMaterials[i].arg_block->get_data(),
                    targetCode->internalMaterials[i].arg_block->get_size());

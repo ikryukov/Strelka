@@ -45,6 +45,7 @@ public:
         std::vector<uint8_t> value;
     };
 
+    void dumpParams(const TargetCode* targetCode, CompiledMaterial* material);
     bool setParam(TargetCode* targetCode, CompiledMaterial* material, const Param& param);
 
     TextureDescription* createTextureDescription(const char* name, const char* gamma);

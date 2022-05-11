@@ -112,6 +112,17 @@ TEST_CASE("mdl to hlsl code gen test")
     bool res = matMngr->addMdlSearchPath(path, 2);
     CHECK(res);
 
+    MaterialManager::Module* defaultModule = matMngr->createModule("default.mdl");
+    CHECK(defaultModule);
+    MaterialManager::MaterialInstance* materialInst0 = matMngr->createMaterialInstance(defaultModule, "default_material");
+    CHECK(materialInst0);
+    MaterialManager::CompiledMaterial* materialComp0 = matMngr->compileMaterial(materialInst0);
+    CHECK(materialComp0);
+    MaterialManager::CompiledMaterial* materialComp00 = matMngr->compileMaterial(materialInst0);
+    CHECK(materialComp00);
+    MaterialManager::CompiledMaterial* materialComp000 = matMngr->compileMaterial(materialInst0);
+    CHECK(materialComp000);
+
     MaterialManager::Module* currModule = matMngr->createModule("OmniGlass.mdl");
     CHECK(currModule);
     MaterialManager::MaterialInstance* materialInst1 = matMngr->createMaterialInstance(currModule, "OmniGlass");
@@ -119,10 +130,13 @@ TEST_CASE("mdl to hlsl code gen test")
     MaterialManager::CompiledMaterial* materialComp1 = matMngr->compileMaterial(materialInst1);
     CHECK(materialComp1);
 
+    MaterialManager::CompiledMaterial* materialsDefault[1] = {materialComp0};
+    // const MaterialManager::TargetCode* codeDefault = matMngr->generateTargetCode(materialsDefault, 1);
+    // CHECK(codeDefault);
 
-    MaterialManager::CompiledMaterial* materials[1] = {materialComp1};
+    MaterialManager::CompiledMaterial* materials[4] = {materialComp0, materialComp00, materialComp1, materialComp000};
 
-    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials, 1);
+    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials, 4);
     CHECK(code);
     const char* hlsl = matMngr->getShaderCode(code);
     // std::cout << hlsl << std::endl;
@@ -134,10 +148,12 @@ TEST_CASE("mdl to hlsl code gen test")
     size = matMngr->getResourceInfoSize(code);
     CHECK(size != 0);
 
-    // // nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
-    // uint32_t texSize = matMngr->getTextureCount(code);
+    matMngr->dumpParams(code, materialComp1);
+
+    // nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
+    uint32_t texSize = matMngr->getTextureCount(code);
     // CHECK(texSize == 8);
-    // for (uint32_t i = 1; i < texSize; ++i)
+    // for (uint32_t i = 0; i < texSize; ++i)
     // {
     //     const float* data = matMngr->getTextureData(code, i);
     //     uint32_t width = matMngr->getTextureWidth(code, i);

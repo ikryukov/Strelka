@@ -95,8 +95,8 @@ void PtRender::init()
     // default material
     {
         oka::Scene::MaterialDescription defaultMaterial{};
-        defaultMaterial.file = "tutorials.mdl";
-        defaultMaterial.name = "example_material";
+        defaultMaterial.file = "default.mdl";
+        defaultMaterial.name = "default_material";
         defaultMaterial.type = oka::Scene::MaterialDescription::Type::eMdl;
         mScene->addMaterial(defaultMaterial);
     }
@@ -160,6 +160,10 @@ void PtRender::init()
     mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
 
     std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+
+    std::ofstream fout("shader_output_init.hlsl");
+    fout << newPTCode.c_str();
+    fout.close();
 
     mPathTracer = new PathTracer(getSharedContext(), newPTCode);
     mPathTracer->initialize();
@@ -264,6 +268,10 @@ void oka::PtRender::reloadPt()
     mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
 
     std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+
+    std::ofstream fout("shader_output.hlsl");
+    fout << newPTCode.c_str();
+    fout.close();
 
     mPathTracer->updateShader(newPTCode.c_str());
 }

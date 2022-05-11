@@ -222,8 +222,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
 
                 if (ubo.debug == 1)
                 {
-                    // float3 debugN = (worldNormal + 1.0) * 0.5;
-                    float3 debugN = (worldNormal);
+                    float3 debugN = (worldNormal + 1.0) * 0.5;
+                    // float3 debugN = (worldNormal);
                     return debugN;
                 }
 
@@ -240,7 +240,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
                 mdlState.world_to_object = instConst.worldToObject;
                 mdlState.object_to_world = instConst.objectToWorld;
-                mdlState.object_id = 0;
+                mdlState.object_id = hit.instId;
                 mdlState.meters_per_scene_unit = 1.0f;
                 mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
                 mdlState.text_coords[0] = float3(uvCoord, 0);
