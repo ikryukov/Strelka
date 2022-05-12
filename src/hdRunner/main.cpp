@@ -24,6 +24,8 @@
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usdImaging/usdImaging/delegate.h>
 
+#include <cxxopts.hpp>
+
 #include <algorithm>
 #include <iostream>
 
@@ -325,6 +327,29 @@ void setDefaultCamera(UsdGeomCamera& cam)
 
 int main(int argc, const char* argv[])
 {
+        // config. options
+    cxxopts::Options options("Strelka -s <USD Scene path>", "commands");
+
+    options.add_options()("s, scene", "scene path", cxxopts::value<std::string>()->default_value(""))
+        ("h, help", "Print usage");
+
+    options.parse_positional({"s"});
+    auto result = options.parse(argc, argv);
+
+    if (result.count("help"))
+    {
+        std::cout << options.help() << std::endl;
+        exit(0);
+    }
+
+    // check params
+    std::string usdFile(result["s"].as<std::string>());
+    if (!std::filesystem::exists(usdFile) && !usdFile.empty())
+    {
+        std::cerr << "usd file doesn't exist";
+        exit(0);
+    }
+
     // Init plugin.
     HdRendererPluginHandle pluginHandle = GetHdStrelkaPlugin();
 
@@ -376,8 +401,8 @@ int main(int argc, const char* argv[])
 
     // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
-    // std::string usdPath = "./misc/glassCube.usda";
-    std::string usdPath = "./misc/glassLens (5).usda";
+    std::string usdPath = usdFile;
+    // std::string usdPath = "./misc/matwcam2.usda";
     // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
@@ -399,11 +424,6 @@ int main(int argc, const char* argv[])
     // Print the stage's linear units, or "meters per unit"
     std::cout << "Meters per unit: " << UsdGeomGetStageMetersPerUnit(stage) << std::endl;
 
-    // Init default camera
-    SdfPath cameraPath = SdfPath("/defaultCamera");
-    UsdGeomCamera cam = UsdGeomCamera::Define(stage, cameraPath);
-    setDefaultCamera(cam);
-
     HdRenderIndex* renderIndex = HdRenderIndex::New(renderDelegate, HdDriverVector());
     TF_VERIFY(renderIndex);
 
@@ -414,17 +434,16 @@ int main(int argc, const char* argv[])
 
     double meterPerUnit = UsdGeomGetStageMetersPerUnit(stage);
 
+    // Init default camera
+    SdfPath cameraPath = SdfPath("/defaultCamera");
+    UsdGeomCamera cam = UsdGeomCamera::Define(stage, cameraPath);
+    setDefaultCamera(cam);
+
     // Init camera from scene
     cameraPath = SdfPath::EmptyPath();
     HdCamera* camera = FindCamera(stage, renderIndex, cameraPath);
     cam = UsdGeomCamera::Get(stage, cameraPath);
     CameraController cameraController(cam);
-
-    if (!camera)
-    {
-        fprintf(stderr, "Camera not found!\n");
-        return EXIT_FAILURE;
-    }
 
     //std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
     
@@ -469,6 +488,7 @@ int main(int argc, const char* argv[])
     timerRender.Start();
 
     HdEngine engine;
+
     render.setInputHandler(&cameraController);
 
     uint64_t frameCount = 0;

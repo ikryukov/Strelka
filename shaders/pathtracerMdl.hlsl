@@ -46,7 +46,7 @@ float2 stratifiedSamplingOptimized(int s, int N = 16, int p = 16, float a = 1.0f
     return r;
 }
 
-float2 stratifiedSampling1(uint s, in out uint rngState, uint N = 16)
+float2 stratifiedSampling1(uint s, inout uint rngState, uint N = 16)
 {
     int m = int(sqrt(N));
     int n = (N + m - 1) / m;
@@ -99,7 +99,7 @@ float2 stratifiedSampling(uint s, in out uint rngState, uint N = 16)
 }
 
 // Matrices version
-Ray generateCameraRay(uint2 pixelIndex, in out uint rngState, uint s)
+Ray generateCameraRay(uint2 pixelIndex, inout uint rngState, uint s)
 {
     float2 pixelPos = float2(0.0f, 0.0f);
 
@@ -222,8 +222,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
 
                 if (ubo.debug == 1)
                 {
-                    // float3 debugN = (worldNormal + 1.0) * 0.5;
-                    float3 debugN = (worldNormal);
+                    float3 debugN = (worldNormal + 1.0) * 0.5;
+                    // float3 debugN = (worldNormal);
                     return debugN;
                 }
 
@@ -240,7 +240,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 mdlState.ro_data_segment_offset = currMdlMaterial.ro_data_segment_offset;
                 mdlState.world_to_object = instConst.worldToObject;
                 mdlState.object_to_world = instConst.objectToWorld;
-                mdlState.object_id = 0;
+                mdlState.object_id = hit.instId;
                 mdlState.meters_per_scene_unit = 1.0f;
                 mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
                 mdlState.text_coords[0] = float3(uvCoord, 0);
@@ -346,7 +346,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
             //float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
             //finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
 
-            finalColor += throughput * float3(0.f);
+            finalColor += throughput * float3(1.f);
 
             break;
         }

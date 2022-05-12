@@ -2,9 +2,8 @@
 
 #include <memory>
 #include <stdint.h>
-#include <vector>
 #include <string>
-#include <mi/mdl_sdk.h>
+#include <vector>
 
 namespace oka
 {
@@ -15,20 +14,9 @@ class MaterialManager
     std::unique_ptr<Context> mContext;
 
 public:
-    struct Module
-    {
-        std::string moduleName;
-        std::string identifier;
-    };
-    struct MaterialInstance
-    {
-        mi::base::Handle<mi::neuraylib::IMaterial_instance> instance;
-    };
-
-    struct CompiledMaterial
-    {
-        mi::base::Handle<mi::neuraylib::ICompiled_material> compiledMaterial;
-    };
+    struct Module;
+    struct MaterialInstance;
+    struct CompiledMaterial;
 
     struct TargetCode;
     struct TextureDescription;
@@ -42,22 +30,32 @@ public:
     MaterialInstance* createMaterialInstance(Module* module, const char* materialName);
     void destroyMaterialInstance(MaterialInstance* material);
 
-    enum class ParamType: uint32_t
+    struct Param
     {
-        eFloat = 0,
-        eColor,
-        eTexture
+        enum class Type : uint32_t
+        {
+            eFloat = 0,
+            eInt,
+            eFloat3,
+            eFloat4,
+            eTexture
+        };
+        Type type;
+        std::string name;
+        std::vector<uint8_t> value;
     };
 
-    bool changeParam(MaterialInstance* matInst, ParamType type, const char* paramName, const void* paramData);
+    void dumpParams(const TargetCode* targetCode, CompiledMaterial* material);
+    bool setParam(TargetCode* targetCode, CompiledMaterial* material, const Param& param);
 
     TextureDescription* createTextureDescription(const char* name, const char* gamma);
     const char* getTextureDbName(TextureDescription* texDesc);
 
     CompiledMaterial* compileMaterial(MaterialInstance* matInstance);
     void destroyCompiledMaterial(CompiledMaterial* compMaterial);
+    const char* getName(CompiledMaterial* compMaterial);
 
-    const TargetCode* generateTargetCode(std::vector<CompiledMaterial*>& material);
+    TargetCode* generateTargetCode(CompiledMaterial** materials, const uint32_t numMaterials);
     const char* getShaderCode(const TargetCode* targetCode);
 
     uint32_t getReadOnlyBlockSize(const TargetCode* targetCode);
@@ -84,4 +82,3 @@ public:
     ~MaterialManager();
 };
 } // namespace nevk
-

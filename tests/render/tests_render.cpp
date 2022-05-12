@@ -9,7 +9,7 @@
 #include <doctest.h>
 
 namespace fs = std::filesystem;
-using namespace nevk;
+using namespace oka;
 
 
 //TEST_CASE("render test")

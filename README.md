@@ -42,6 +42,8 @@ Use vscode with preset env variable
     ./Strelka misc/Cube/Cube.gltf
 
 ## USD
+    Vulkan:
+        export VULKAN_SDK=/Users/ilya/VulkanSDK/1.3.211.0/macOS
     USD env:
         export USD_PATH=/Users/ilya/work/usd_build/
         export PATH=/Users/ilya/work/usd_build/bin:$PATH

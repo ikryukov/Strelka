@@ -7,81 +7,166 @@
 #include <fstream>
 #include <iostream>
 
-using namespace nevk;
+using namespace oka;
 namespace fs = std::filesystem;
 
-// TEST_CASE("mdl to hlsl code gen test")
-// {
-//     using namespace std;
-//     const fs::path cwd = fs::current_path();
-//     cout << cwd.c_str() << endl;
+TEST_CASE("mtlx to hlsl code gen test")
+{
+    static const char* DEFAULT_MTLX_DOC_1 =
+        "<?xml version=\"1.0\"?>"
+        "<materialx version=\"1.38\" colorspace=\"lin_rec709\">"
+        "  <UsdPreviewSurface name=\"SR_Invalid\" type=\"surfaceshader\">"
+        "    <input name=\"diffuseColor\" type=\"color3\" value=\"1.0, 0.0, 1.0\" />"
+        "    <input name=\"roughness\" type=\"float\" value=\"1.0\" />"
+        "  </UsdPreviewSurface>"
+        "  <surfacematerial name=\"invalid\" type=\"material\">"
+        "    <input name=\"surfaceshader\" type=\"surfaceshader\" nodename=\"SR_Invalid\" />"
+        "  </surfacematerial>"
+        "</materialx>";
+    static const char* DEFAULT_MTLX_DOC_2 =
+        "<?xml version=\"1.0\"?>"
+        "<materialx version=\"1.38\" colorspace=\"lin_rec709\">"
+        "  <UsdPreviewSurface name=\"SR_Invalid\" type=\"surfaceshader\">"
+        "    <input name=\"diffuseColor\" type=\"color3\" value=\"0.0, 0.0, 1.0\" />"
+        "    <input name=\"roughness\" type=\"float\" value=\"1.0\" />"
+        "  </UsdPreviewSurface>"
+        "  <surfacematerial name=\"invalid\" type=\"material\">"
+        "    <input name=\"surfaceshader\" type=\"surfaceshader\" nodename=\"SR_Invalid\" />"
+        "  </surfacematerial>"
+        "</materialx>";
 
-//     std::string mdlFile = "material.mdl";
-//     std::ofstream mdlMaterial(mdlFile.c_str());
+    using namespace std;
+    const fs::path cwd = fs::current_path();
+    cout << cwd.c_str() << endl;
 
-//     std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
-//     std::ofstream outHLSLShaderFile(ptFile.c_str());
+    std::string mdlFile = "material.mdl";
+    std::ofstream mdlMaterial(mdlFile.c_str());
 
-//     Render r;
-//     r.HEIGHT = 600;
-//     r.WIDTH = 800;
-//     r.initWindow();
-//     r.initVulkan();
+    MaterialManager* matMngr = new MaterialManager();
+    CHECK(matMngr);
+    
+    const char* envUSDPath = std::getenv("USD_PATH");
+    if (!envUSDPath)
+    {
+        printf("Please, set USD_PATH variable\n");
+        assert(0);
+    }
+    const std::string usdMdlLibPath = std::string(envUSDPath) + "/mdl";
 
-//     MaterialManager* matMngr = new MaterialManager();
-//     CHECK(matMngr);
-//     const char* path[2] = { "misc/test_data/mdl", "misc/test_data/mdl/resources" };
-//     bool res = matMngr->addMdlSearchPath(path, 2);
-//     CHECK(res);
+    const char* paths[4] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
+                             usdMdlLibPath.c_str() };
+    bool res = matMngr->addMdlSearchPath(paths, 4);
+    CHECK(res);
 
-//     std::unique_ptr<MaterialManager::Module> currModule = matMngr->createModule("carbon_composite.mdl");
-//     CHECK(currModule);
-//     std::unique_ptr<MaterialManager::MaterialInstance> materialInst1 = matMngr->createMaterialInstance(currModule.get(), "carbon_composite");
-//     CHECK(materialInst1);
-//     std::unique_ptr<MaterialManager::CompiledMaterial> materialComp1 = matMngr->compileMaterial(materialInst1.get());
-//     CHECK(materialComp1);
+    MaterialManager::Module* mdlModule = matMngr->createMtlxModule(DEFAULT_MTLX_DOC_1);
+    assert(mdlModule);
+    MaterialManager::MaterialInstance* materialInst = matMngr->createMaterialInstance(mdlModule, "");
+    assert(materialInst);
+    MaterialManager::CompiledMaterial* materialComp = matMngr->compileMaterial(materialInst);
+    assert(materialComp);
 
-//     std::unique_ptr<MaterialManager::Module> currModule2 = matMngr->createModule("brushed_antique_copper.mdl");
-//     CHECK(currModule2);
-//     std::unique_ptr<MaterialManager::MaterialInstance> materialInst2 = matMngr->createMaterialInstance(currModule2.get(), "brushed_antique_copper");
-//     CHECK(materialInst2);
-//     std::unique_ptr<MaterialManager::CompiledMaterial> materialComp2 = matMngr->compileMaterial(materialInst2.get());
-//     CHECK(materialComp2);
+    MaterialManager::Module* mdlModule2 = matMngr->createMtlxModule(DEFAULT_MTLX_DOC_2);
+    assert(mdlModule2);
+    MaterialManager::MaterialInstance* materialInst2 = matMngr->createMaterialInstance(mdlModule2, "");
+    assert(materialInst2);
+    MaterialManager::CompiledMaterial* materialComp2 = matMngr->compileMaterial(materialInst2);
+    assert(materialComp2);
 
-//     std::vector<std::unique_ptr<MaterialManager::CompiledMaterial>> materials;
-//     materials.push_back(std::move(materialComp1));
-//     materials.push_back(std::move(materialComp2));
-//     CHECK(materials.size() == 2);
+    MaterialManager::CompiledMaterial* materials[2] = {materialComp, materialComp2};
 
-//     const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials);
-//     CHECK(code);
-//     const char* hlsl = matMngr->getShaderCode(code);
-//     // std::cout << hlsl << std::endl;
+    // std::vector<MaterialManager::CompiledMaterial*> materials;
+    // materials.push_back(materialComp);
+    // materials.push_back(materialComp2);
 
-//     uint32_t size = matMngr->getArgBufferSize(code);
-//     CHECK(size != 0);
-//     size = matMngr->getArgBufferSize(code);
-//     CHECK(size != 0);
-//     size = matMngr->getResourceInfoSize(code);
-//     CHECK(size != 0);
+    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials, 2);
+    CHECK(code);
+    const char* hlsl = matMngr->getShaderCode(code);
 
-//     nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
-//     uint32_t texSize = matMngr->getTextureCount(code);
-//     CHECK(texSize == 8);
-//     for (uint32_t i = 1; i < texSize; ++i)
-//     {
-//         const float* data = matMngr->getTextureData(code, i);
-//         uint32_t width = matMngr->getTextureWidth(code, i);
-//         uint32_t height = matMngr->getTextureHeight(code, i);
-//         const char* type = matMngr->getTextureType(code, i);
-//         std::string name = matMngr->getTextureName(code, i);
-//         mTexManager->loadTextureMdl(data, width, height, type, name);
-//     }
+    std::string shaderFile = "test_material_output.hlsl";
+    std::ofstream out (shaderFile.c_str());
+    out << hlsl << std::endl;
+    out.close();
+}
 
-//     CHECK(mTexManager->textures.size() == 7);
-//     CHECK(mTexManager->textures[0].texWidth == 512);
-//     CHECK(mTexManager->textures[0].texHeight == 512);
-// }
+TEST_CASE("mdl to hlsl code gen test")
+{
+    using namespace std;
+    const fs::path cwd = fs::current_path();
+    cout << cwd.c_str() << endl;
+
+    std::string mdlFile = "material.mdl";
+    std::ofstream mdlMaterial(mdlFile.c_str());
+
+    std::string ptFile = cwd.string() + "/shaders/newPT.hlsl";
+    std::ofstream outHLSLShaderFile(ptFile.c_str());
+
+    // Render r;
+    // r.HEIGHT = 600;
+    // r.WIDTH = 800;
+    // r.initWindow();
+    // r.initVulkan();
+
+    MaterialManager* matMngr = new MaterialManager();
+    CHECK(matMngr);
+    const char* path[2] = { "misc/test_data/mdl", "misc/test_data/mdl/resources" };
+    bool res = matMngr->addMdlSearchPath(path, 2);
+    CHECK(res);
+
+    MaterialManager::Module* defaultModule = matMngr->createModule("default.mdl");
+    CHECK(defaultModule);
+    MaterialManager::MaterialInstance* materialInst0 = matMngr->createMaterialInstance(defaultModule, "default_material");
+    CHECK(materialInst0);
+    MaterialManager::CompiledMaterial* materialComp0 = matMngr->compileMaterial(materialInst0);
+    CHECK(materialComp0);
+    MaterialManager::CompiledMaterial* materialComp00 = matMngr->compileMaterial(materialInst0);
+    CHECK(materialComp00);
+    MaterialManager::CompiledMaterial* materialComp000 = matMngr->compileMaterial(materialInst0);
+    CHECK(materialComp000);
+
+    MaterialManager::Module* currModule = matMngr->createModule("OmniGlass.mdl");
+    CHECK(currModule);
+    MaterialManager::MaterialInstance* materialInst1 = matMngr->createMaterialInstance(currModule, "OmniGlass");
+    CHECK(materialInst1);
+    MaterialManager::CompiledMaterial* materialComp1 = matMngr->compileMaterial(materialInst1);
+    CHECK(materialComp1);
+
+    MaterialManager::CompiledMaterial* materialsDefault[1] = {materialComp0};
+    // const MaterialManager::TargetCode* codeDefault = matMngr->generateTargetCode(materialsDefault, 1);
+    // CHECK(codeDefault);
+
+    MaterialManager::CompiledMaterial* materials[4] = {materialComp0, materialComp00, materialComp1, materialComp000};
+
+    const MaterialManager::TargetCode* code = matMngr->generateTargetCode(materials, 4);
+    CHECK(code);
+    const char* hlsl = matMngr->getShaderCode(code);
+    // std::cout << hlsl << std::endl;
+
+    uint32_t size = matMngr->getArgBufferSize(code);
+    CHECK(size != 0);
+    size = matMngr->getArgBufferSize(code);
+    CHECK(size != 0);
+    size = matMngr->getResourceInfoSize(code);
+    CHECK(size != 0);
+
+    matMngr->dumpParams(code, materialComp1);
+
+    // nevk::TextureManager* mTexManager = new nevk::TextureManager(r.getDevice(), r.getPhysicalDevice(), r.getResManager());
+    uint32_t texSize = matMngr->getTextureCount(code);
+    // CHECK(texSize == 8);
+    // for (uint32_t i = 0; i < texSize; ++i)
+    // {
+    //     const float* data = matMngr->getTextureData(code, i);
+    //     uint32_t width = matMngr->getTextureWidth(code, i);
+    //     uint32_t height = matMngr->getTextureHeight(code, i);
+    //     const char* type = matMngr->getTextureType(code, i);
+    //     std::string name = matMngr->getTextureName(code, i);
+    //     // mTexManager->loadTextureMdl(data, width, height, type, name);
+    // }
+
+    // CHECK(mTexManager->textures.size() == 7);
+    // CHECK(mTexManager->textures[0].texWidth == 512);
+    // CHECK(mTexManager->textures[0].texHeight == 512);
+}
 
 // TEST_CASE("mtlx to mdl code gen test")
 // {

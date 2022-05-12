@@ -29,20 +29,19 @@ void HdStrelkaMesh::Sync(HdSceneDelegate* sceneDelegate,
     if ((*dirtyBits & HdChangeTracker::DirtyInstancer) | (*dirtyBits & HdChangeTracker::DirtyInstanceIndex))
     {
         HdDirtyBits dirtyBitsCopy = *dirtyBits;
-
         _UpdateInstancer(sceneDelegate, &dirtyBitsCopy);
-
         const SdfPath& instancerId = GetInstancerId();
-
         HdInstancer::_SyncInstancerAndParents(renderIndex, instancerId);
     }
 
     const SdfPath& id = GetId();
+    const char* meshName = id.GetText();
+    mName = meshName;
+    printf("Mesh: %s\n", meshName);
 
     if (*dirtyBits & HdChangeTracker::DirtyMaterialId)
     {
         const SdfPath& materialId = sceneDelegate->GetMaterialId(id);
-
         SetMaterialId(materialId);
     }
 
@@ -302,11 +301,16 @@ bool HdStrelkaMesh::HasColor() const
     return m_hasColor;
 }
 
+const char* HdStrelkaMesh::getName() const
+{
+    return mName.c_str();
+}
+
 HdDirtyBits HdStrelkaMesh::GetInitialDirtyBitsMask() const
 {
     return HdChangeTracker::DirtyPoints | HdChangeTracker::DirtyNormals | HdChangeTracker::DirtyTopology |
            HdChangeTracker::DirtyInstancer | HdChangeTracker::DirtyInstanceIndex | HdChangeTracker::DirtyTransform |
-           HdChangeTracker::DirtyMaterialId;
+           HdChangeTracker::DirtyMaterialId | HdChangeTracker::DirtyPrimvar;
 }
 
 HdDirtyBits HdStrelkaMesh::_PropagateDirtyBits(HdDirtyBits bits) const

@@ -4,7 +4,7 @@
 
 TEST_CASE("test checkBeginFrameStatus")
 {
-    auto* scene = new nevk::Scene();
+    auto* scene = new oka::Scene();
     scene->beginFrame();
     bool rez = scene->getFrMod();
     CHECK(rez == true);
@@ -12,15 +12,15 @@ TEST_CASE("test checkBeginFrameStatus")
 
 TEST_CASE("test checkBeginFrameDirty")
 {
-    auto* scene = new nevk::Scene();
+    auto* scene = new oka::Scene();
     scene->beginFrame();
     CHECK(scene->getDirtyInstances().empty() == true);
 }
 
 TEST_CASE("test createMesh")
 {
-    nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    oka::Scene scene;
+    std::vector<oka::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
     CHECK(meshId != -1);
@@ -28,8 +28,8 @@ TEST_CASE("test createMesh")
 
 TEST_CASE("test createMesh complex")
 {
-    nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    oka::Scene scene;
+    std::vector<oka::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshIdFst = scene.createMesh(vb, ib);
     uint32_t meshIdSnd = scene.createMesh(vb, ib);
@@ -41,17 +41,17 @@ TEST_CASE("test createMesh complex")
 
 TEST_CASE("test createInstance")
 {
-    nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    oka::Scene scene;
+    std::vector<oka::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
 
-    nevk::Scene::MaterialDescription currMaterial{};
+    oka::Scene::MaterialDescription currMaterial{};
     scene.addMaterial(currMaterial);
     uint32_t matId = 0;
 
     glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
-    for (const nevk::Scene::Vertex& vertPos : vb)
+    for (const oka::Scene::Vertex& vertPos : vb)
     {
         sum += vertPos.pos;
     }
@@ -65,17 +65,17 @@ TEST_CASE("test createInstance")
 
 TEST_CASE("test createInstance complex")
 {
-    nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    oka::Scene scene;
+    std::vector<oka::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
 
-    nevk::Scene::MaterialDescription currMaterial{};
+    oka::Scene::MaterialDescription currMaterial{};
     scene.addMaterial(currMaterial);
     uint32_t matId = 0;
 
     glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
-    for (const nevk::Scene::Vertex& vertPos : vb)
+    for (const oka::Scene::Vertex& vertPos : vb)
     {
         sum += vertPos.pos;
     }
@@ -93,8 +93,8 @@ TEST_CASE("test createInstance complex")
 
 TEST_CASE("test checkMesh")
 {
-    nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    oka::Scene scene;
+    std::vector<oka::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
     CHECK(meshId == 0);
@@ -103,17 +103,17 @@ TEST_CASE("test checkMesh")
 
 TEST_CASE("test checkInstance")
 {
-    nevk::Scene scene;
-    std::vector<nevk::Scene::Vertex> vb;
+    oka::Scene scene;
+    std::vector<oka::Scene::Vertex> vb;
     std::vector<uint32_t> ib;
     uint32_t meshId = scene.createMesh(vb, ib);
 
-    nevk::Scene::MaterialDescription currMaterial{};
+    oka::Scene::MaterialDescription currMaterial{};
     scene.addMaterial(currMaterial);
     uint32_t matId = 0;
 
     glm::float3 sum = glm::float3(0.0f, 0.0f, 0.0f);
-    for (const nevk::Scene::Vertex& vertPos : vb)
+    for (const oka::Scene::Vertex& vertPos : vb)
     {
         sum += vertPos.pos;
     }

@@ -5,11 +5,50 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(lldb) Launch",
+            "name": "Strelka Launch",
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
-            "args": [],
+            "args": ["-s", "./misc/matwcam2.usda"],
+            "stopAtEntry": false,
+            //"cwd": "${workspaceFolder}",
+            "cwd": "${command:cmake.buildDirectory}/bin",
+            "environment": [
+                {
+                    "name": "VK_ICD_FILENAMES",
+                    "value": "${env:VULKAN_SDK}/share/vulkan/icd.d/MoltenVK_icd.json"
+                },
+                {
+                    "name": "VK_LAYER_PATH",
+                    "value": "${env:VULKAN_SDK}/share/vulkan/explicit_layer.d"
+                },
+                {
+                    "name": "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS",
+                    "value": ""
+                },
+                {
+                    "name": "MVK_CONFIG_API_VERSION_TO_ADVERTISE",
+                    "value": "VK_API_VERSION_1_2"
+                },
+                {
+                    "name": "DYLD_LIBRARY_PATH",
+                    "value": "/Users/ilya/work/NeVK/external/slang/:$DYLD_LIBRARY_PATH"
+                },
+                {
+                    "name": "USD_PATH",
+                    "value": "/Users/ilya/work/usd_build/"
+                }
+
+            ],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        },
+        {
+            "name": "Tests",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${command:cmake.buildDirectory}/bin/unit_tests",
+            "args": ["-tc=*mtlx*"],
             "stopAtEntry": false,
             //"cwd": "${workspaceFolder}",
             "cwd": "${command:cmake.buildDirectory}/bin",
