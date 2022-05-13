@@ -703,6 +703,10 @@ void PtRender::drawFrame(Image* result)
         // need to reset pt iteration and accumulation
         currView->mPtIteration = 0;
     }
+    else if (mPrevView)
+    {
+        currView->mPtIteration = mPrevView->mPtIteration;
+    }
 
     // at this point we reseive opened cmd buffer
     VkCommandBuffer& cmd = getSharedContext().getFrameData(frameIndex).cmdBuffer;
