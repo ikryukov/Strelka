@@ -367,7 +367,7 @@ void computeMain(uint2 dispatchIndex : SV_DispatchThreadID)
     uint2 pixelIndex = uint2(dispatchIndex.x / ubo.spp % ubo.dimension.x, dispatchIndex.x / ubo.spp / ubo.dimension.x);
     uint sampleNum = dispatchIndex.x % ubo.spp;
 
-    uint rngState = initRNG(pixelIndex, ubo.dimension, (ubo.frameNumber + 1) * (sampleNum + 1) * (ubo.iteration + 1));
+    uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber * ubo.spp + sampleNum);
     float3 color = pathTraceCameraRays(pixelIndex, rngState, sampleNum);
 
     sampleBuffer[dispatchIndex.x * 3 + 0] = color.r;
