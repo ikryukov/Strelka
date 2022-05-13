@@ -314,7 +314,7 @@ public:
             mi::neuraylib::IValue::Kind kind;
             mi::Size arg_size;
             const mi::Size offsetInArgBlock = arg_layout->get_layout(kind, arg_size, valLayoutState);
-            printf("\t offset = %llu\n", offsetInArgBlock);
+            printf("\t offset = %llu\t size = %llu\n", offsetInArgBlock, arg_size);
 
             char* data = baseArgBlockData + offsetInArgBlock;
             // const uint8_t* data = targetCode->argBlockData.data() + argBlockOffset + offsetInArgBlock;
@@ -351,6 +351,8 @@ public:
             case mi::neuraylib::IValue::Kind::VK_TEXTURE:
             {
                 printf("\t type texture\n");
+                int val = *((int*)data);
+                printf("\t val = %d\n", val);
                 break;
             }
 
