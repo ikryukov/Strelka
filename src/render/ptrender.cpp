@@ -261,6 +261,7 @@ void oka::PtRender::reloadPt()
         {
             mMaterialManager->setParam(mdlTargetCode, compiledMaterials[i], param);
         }
+        mMaterialManager->dumpParams(mdlTargetCode, compiledMaterials[i]);
     }
 
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
