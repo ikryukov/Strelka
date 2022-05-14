@@ -374,7 +374,7 @@ float3 estimateDirectLighting(inout uint rngState,
 
         float lightPDF = lightSampleData.pdf;
         lightPdf = lightPDF;
-        return visibility * Li * saturate(dot(state.normal, lightSampleData.L)) / (lightPDF + 1e-5);
+        return visibility * Li * saturate(dot(state.normal, lightSampleData.L));
     }
 
     return float3(0.0);
@@ -384,9 +384,9 @@ float3 sampleLights(
     inout uint rngState, in Accel accel, in Shading_state_material state, out float3 toLight, out float lightPdf)
 {
     uint lightId = (uint)(ubo.numLights * rand(rngState));
-    float lightSelectionPdf = 1.0f / (ubo.numLights + 1e-6);
+    float lightSelectionPdf = 1.0f / ubo.numLights;
     UniformLight currLight = lights[lightId];
     float3 r = estimateDirectLighting(rngState, accel, currLight, state, toLight, lightPdf);
     lightPdf *= lightSelectionPdf;
-    return r / (lightPdf + 1e-5);
+    return r;
 }
