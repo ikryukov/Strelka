@@ -123,8 +123,18 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
             }
             else if (type.IsA<SdfAssetPath>())
             {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eTexture;
                 SdfAssetPath val = params.second.Get<SdfAssetPath>();
                 printf("path: %s\n", val.GetAssetPath().c_str());
+                std::string texPath = val.GetAssetPath();
+                if (!texPath.empty())
+                {
+                    param.value.resize(texPath.size());
+                    memcpy(param.value.data(), texPath.data(), texPath.size());
+                    mMaterialParams.push_back(param);
+                }
             }
         }
     }
