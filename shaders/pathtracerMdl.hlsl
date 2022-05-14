@@ -265,9 +265,9 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 float3 toLight; //return value for sampleLights()
                 float lightPdf = 0.0f; //return value for sampleLights()
 
-                float3 radianceOverPdf = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
+                float3 radiance = sampleLights(rngState, accel, mdlState, toLight, lightPdf);
 
-                if (any(isnan(radianceOverPdf)) || isnan(lightPdf))
+                if (any(isnan(radiance)) || isnan(lightPdf))
                 {
                     break;
                 }
@@ -276,6 +276,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 //const bool nextEventValid = true;
                 if (nextEventValid)
                 {
+                    float3 radianceOverPdf = radiance / lightPdf;
                     Bsdf_evaluate_data evalData = (Bsdf_evaluate_data) 0;
 
                     evalData.ior1 = ior1;       // IOR current medium
