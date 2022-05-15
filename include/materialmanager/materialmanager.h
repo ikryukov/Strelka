@@ -67,6 +67,7 @@ public:
 
     uint32_t getResourceInfoSize(const TargetCode* targetCode);
     const uint8_t* getResourceInfoData(const TargetCode* targetCode);
+    int registerResource(TargetCode* targetCode, int index);
 
     uint32_t getMdlMaterialSize(const TargetCode* targetCode);
     const uint8_t* getMdlMaterialData(const TargetCode* targetCode);
