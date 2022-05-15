@@ -695,7 +695,7 @@ void PtRender::drawFrame(Image* result)
     currView->mCamMatrices = cam.matrices;
 
     // check if camera is dirty?
-    if (needResetAccumulation ||
+    if (needRecreateView || needResetAccumulation ||
         (mPrevView && (glm::any(glm::notEqual(currView->mCamMatrices.perspective, mPrevView->mCamMatrices.perspective)) ||
                        glm::any(glm::notEqual(currView->mCamMatrices.view, mPrevView->mCamMatrices.view)))))
     {
