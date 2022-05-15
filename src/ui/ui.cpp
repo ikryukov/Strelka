@@ -771,7 +771,7 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
     static int currentTonemapItemId = 1;
 
     const char* stratifiedSamplingItems[] = { "None", "Random", "Stratified", "Optimized" };
-    static int currentSamplingItemId = 0;
+    static int currentSamplingItemId = 1;
 
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
