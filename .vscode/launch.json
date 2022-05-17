@@ -24,7 +24,7 @@
                 },
                 {
                     "name": "MVK_CONFIG_USE_METAL_ARGUMENT_BUFFERS",
-                    "value": ""
+                    "value": "true"
                 },
                 {
                     "name": "MVK_CONFIG_API_VERSION_TO_ADVERTISE",
@@ -33,12 +33,7 @@
                 {
                     "name": "DYLD_LIBRARY_PATH",
                     "value": "/Users/ilya/work/Strelka/external/slang/:$DYLD_LIBRARY_PATH"
-                },
-                {
-                    "name": "USD_PATH",
-                    "value": "/Users/ilya/work/usd_build/"
                 }
-
             ],
             "externalConsole": false,
             "MIMode": "lldb"
