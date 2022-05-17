@@ -39,6 +39,7 @@ endif()
 # Vulkan
 if (NOT DEFINED VULKAN_SDK)
     find_package(Vulkan REQUIRED)
+    message(STATUS "VULKAN SDK package: ${Vulkan_LIBRARY}")
 else ()
     # Workaround for CI
     if (APPLE)
@@ -53,9 +54,10 @@ endif ()
 
 # Embree
 find_package(embree 3 REQUIRED)
-message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
+message(STATUS "Embree LIBRARY: ${EMBREE_INCLUDE_PATH}")
 
-find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
+find_package(USD REQUIRED HINTS ${USD_PATH} NAMES pxr)
+message(STATUS "USD LIBRARY: ${USD_PATH}")
 
 # Shader Manager
 set(SHADERMANAGER_SOURCES
