@@ -21,11 +21,12 @@ uint jenkinsHash(uint x)
     return x;
 }
 
-uint initRNG(int2 pixel, int2 resolution, uint frame)
+// Implementetion from Ray Tracing gems
+// https://github.com/boksajak/referencePT/blob/master/shaders/PathTracer.hlsl
+uint initRNG(uint2 pixelCoords, uint2 resolution, uint frameNumber)
 {
-    uint t = dot(float2(pixel), float2(1, resolution.x));
-    uint rngState = t ^ jenkinsHash(frame);
-    return jenkinsHash(rngState); 
+    uint seed = dot(pixelCoords, uint2(1, resolution.x)) ^ jenkinsHash(frameNumber);
+    return jenkinsHash(seed); 
 }
 
 float uintToFloat(uint x) 
