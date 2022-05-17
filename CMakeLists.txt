@@ -536,7 +536,7 @@ endif ()
 # CXXOPTS
 target_include_directories(${PROJECT_NAME} PRIVATE external/cxxopts/include)
 
-option(STRELKA_TESTS "enable tests" OFF)
+option(STRELKA_TESTS "enable tests" ON)
 
 if (NOT STRELKA_TESTS)
     message(STATUS "tests are disabled")

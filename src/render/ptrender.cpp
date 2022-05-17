@@ -95,12 +95,13 @@ void PtRender::init()
     // default material
     {
         oka::Scene::MaterialDescription defaultMaterial{};
-        defaultMaterial.file = "tutorials.mdl";
-        defaultMaterial.name = "example_material";
+        defaultMaterial.file = "default.mdl";
+        defaultMaterial.name = "default_material";
         defaultMaterial.type = oka::Scene::MaterialDescription::Type::eMdl;
         mScene->addMaterial(defaultMaterial);
     }
 
+    std::unordered_map<std::string, MaterialManager::Module*> mNameToModule;
     std::vector<MaterialManager::CompiledMaterial*> materials;
 
     std::vector<Scene::MaterialDescription> matDescs = mScene->getMaterials();
@@ -109,11 +110,26 @@ void PtRender::init()
         oka::Scene::MaterialDescription& currMatDesc = matDescs[i];
         if (currMatDesc.type == oka::Scene::MaterialDescription::Type::eMdl)
         {
-            MaterialManager::Module* mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
+            MaterialManager::Module* mdlModule = nullptr;
+            if (mNameToModule.find(currMatDesc.file) != mNameToModule.end())
+            {
+                mdlModule = mNameToModule[currMatDesc.file];
+            }
+            else
+            {
+                mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
+                mNameToModule[currMatDesc.file] = mdlModule;
+            }
             assert(mdlModule);
             MaterialManager::MaterialInstance* materialInst =
                 mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
             assert(materialInst);
+            if (currMatDesc.hasColor)
+            {
+                // bool res = mMaterialManager->changeParam(
+                //     materialInst, oka::MaterialManager::ParamType::eColor, "tint", (void*)&currMatDesc.color);
+                assert(res);
+            }
             MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
             assert(materialComp);
             materials.push_back(materialComp);
@@ -136,7 +152,7 @@ void PtRender::init()
     ptcode << pt.rdbuf();
 
     assert(materials.size() != 0);
-    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials);
+    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials.data(), materials.size());
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
     mCurrentSceneRenderData = new SceneRenderData(getResManager());
@@ -144,6 +160,10 @@ void PtRender::init()
     mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
 
     std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+
+    std::ofstream fout("shader_output_init.hlsl");
+    fout << newPTCode.c_str();
+    fout.close();
 
     mPathTracer = new PathTracer(getSharedContext(), newPTCode);
     mPathTracer->initialize();
@@ -178,21 +198,42 @@ void PtRender::cleanup()
 
 void oka::PtRender::reloadPt()
 {
-    std::vector<MaterialManager::CompiledMaterial*> materials;
-    std::vector<Scene::MaterialDescription> matDescs = mScene->getMaterials();
+    std::unordered_map<std::string, MaterialManager::Module*> mNameToModule;
+    std::unordered_map<std::string, MaterialManager::MaterialInstance*> mNameToInstance;
+    std::unordered_map<std::string, MaterialManager::CompiledMaterial*> mNameToCompiled;
+
+    std::vector<MaterialManager::CompiledMaterial*> compiledMaterials;
+    std::vector<Scene::MaterialDescription>& matDescs = mScene->getMaterials();
     for (uint32_t i = 0; i < matDescs.size(); ++i)
     {
         oka::Scene::MaterialDescription& currMatDesc = matDescs[i];
         if (currMatDesc.type == oka::Scene::MaterialDescription::Type::eMdl)
         {
-            MaterialManager::Module* mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
+            MaterialManager::Module* mdlModule = nullptr;
+            if (mNameToModule.find(currMatDesc.file) != mNameToModule.end())
+            {
+                mdlModule = mNameToModule[currMatDesc.file];
+            }
+            else
+            {
+                mdlModule = mMaterialManager->createModule(currMatDesc.file.c_str());
+                mNameToModule[currMatDesc.file] = mdlModule;
+            }
             assert(mdlModule);
-            MaterialManager::MaterialInstance* materialInst =
-                mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
+            MaterialManager::MaterialInstance* materialInst = nullptr;
+            if (mNameToInstance.find(currMatDesc.name) != mNameToInstance.end())
+            {
+                materialInst = mNameToInstance[currMatDesc.name];
+            }
+            else
+            {
+                materialInst = mMaterialManager->createMaterialInstance(mdlModule, currMatDesc.name.c_str());
+                mNameToInstance[currMatDesc.name] = materialInst;
+            }
             assert(materialInst);
             MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
             assert(materialComp);
-            materials.push_back(materialComp);
+            compiledMaterials.push_back(materialComp);
         }
         else
         {
@@ -202,7 +243,7 @@ void oka::PtRender::reloadPt()
             assert(materialInst);
             MaterialManager::CompiledMaterial* materialComp = mMaterialManager->compileMaterial(materialInst);
             assert(materialComp);
-            materials.push_back(materialComp);
+            compiledMaterials.push_back(materialComp);
         }
     }
 
@@ -211,13 +252,26 @@ void oka::PtRender::reloadPt()
     std::stringstream ptcode;
     ptcode << pt.rdbuf();
 
-    assert(materials.size() != 0);
-    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials);
+    assert(compiledMaterials.size() != 0);
+    MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(compiledMaterials.data(), compiledMaterials.size());
+
+    for (uint32_t i = 0; i < matDescs.size(); ++i)
+    {
+        for (const auto& param : matDescs[i].params)
+        {
+            mMaterialManager->setParam(mdlTargetCode, compiledMaterials[i], param);
+        }
+    }
+
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
     mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
 
     std::string newPTCode = std::string(hlsl) + "\n" + ptcode.str();
+
+    std::ofstream fout("shader_output.hlsl");
+    fout << newPTCode.c_str();
+    fout.close();
 
     mPathTracer->updateShader(newPTCode.c_str());
 }
@@ -641,12 +695,16 @@ void PtRender::drawFrame(Image* result)
     currView->mCamMatrices = cam.matrices;
 
     // check if camera is dirty?
-    if (needResetAccumulation ||
+    if (needRecreateView || needResetAccumulation ||
         (mPrevView && (glm::any(glm::notEqual(currView->mCamMatrices.perspective, mPrevView->mCamMatrices.perspective)) ||
                        glm::any(glm::notEqual(currView->mCamMatrices.view, mPrevView->mCamMatrices.view)))))
     {
         // need to reset pt iteration and accumulation
         currView->mPtIteration = 0;
+    }
+    else if (mPrevView)
+    {
+        currView->mPtIteration = mPrevView->mPtIteration;
     }
 
     // at this point we reseive opened cmd buffer

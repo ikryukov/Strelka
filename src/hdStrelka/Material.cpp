@@ -4,6 +4,11 @@
 #include <pxr/usdImaging/usdImaging/tokens.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
+// clang-format off
+TF_DEFINE_PRIVATE_TOKENS(_tokens,
+    (diffuse_color_constant)
+);
+// clang-format on
 
 HdStrelkaMaterial::HdStrelkaMaterial(const SdfPath& id, const MaterialNetworkTranslator& translator)
     : HdMaterial(id), m_translator(translator)
@@ -38,7 +43,7 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
     }
 
     const SdfPath& id = GetId();
-    std::string name = id.GetString();
+    const std::string& name = id.GetString();
     const VtValue& resource = sceneDelegate->GetMaterialResource(id);
 
     if (!resource.IsHolding<HdMaterialNetworkMap>())
@@ -51,12 +56,57 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
 
     bool isUsdPreviewSurface = false;
     HdMaterialNode* previewSurfaceNode = nullptr;
+    // store material parameters
     for (auto& node : surfaceNetwork.nodes)
     {
         if (node.identifier == UsdImagingTokens->UsdPreviewSurface)
         {
             previewSurfaceNode = &node;
             isUsdPreviewSurface = true;
+        }
+        for (std::pair<TfToken, VtValue> params : node.parameters)
+        {
+            TfType type = params.second.GetType();
+            if (type.IsA<GfVec3f>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eFloat3;
+                GfVec3f val = params.second.Get<GfVec3f>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
+            }
+            else if (type.IsA<GfVec4f>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eFloat4;
+                GfVec4f val = params.second.Get<GfVec4f>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
+            }
+            else if (type.IsA<float>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eFloat;
+                float val = params.second.Get<float>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
+            }
+            else if (type.IsA<int>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eInt;
+                int val = params.second.Get<int>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
+            }
         }
     }
 

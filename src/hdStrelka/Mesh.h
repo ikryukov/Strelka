@@ -38,6 +38,8 @@ public:
 
     bool HasColor() const;
 
+    const char* getName() const;
+
 protected:
     HdDirtyBits _PropagateDirtyBits(HdDirtyBits bits) const override;
 
@@ -65,6 +67,7 @@ private:
     GfVec3f m_color;
     bool m_hasColor;
     oka::Scene* mScene;
+    std::string mName;
 };
 
 PXR_NAMESPACE_CLOSE_SCOPE
