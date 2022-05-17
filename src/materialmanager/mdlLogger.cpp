@@ -71,7 +71,7 @@ void MdlLogger::message(mi::base::Message_severity level,
 #ifdef NDEBUG
     const mi::base::Message_severity minLogLevel = mi::base::MESSAGE_SEVERITY_WARNING;
 #else
-    const mi::base::Message_severity minLogLevel = mi::base::MESSAGE_SEVERITY_DEBUG;
+    const mi::base::Message_severity minLogLevel = mi::base::MESSAGE_SEVERITY_VERBOSE;
 #endif
     if (level <= minLogLevel)
     {
