@@ -43,9 +43,10 @@ Use vscode with preset env variable
 
 ## USD
     Vulkan:
-        export VULKAN_SDK=/Users/ilya/VulkanSDK/1.3.211.0/macOS
+        cd <VULKAN_SDK>
+        source ./setup-env.sh
     USD env:
-        export USD_PATH=/Users/ilya/work/usd_build/
+        export USD_DIR=/Users/ilya/work/usd_build/
         export PATH=/Users/ilya/work/usd_build/bin:$PATH
         export PYTHONPATH=/Users/ilya/work/usd_build/lib/python:$PYTHONPATH
 

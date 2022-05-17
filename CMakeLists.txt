@@ -54,10 +54,10 @@ endif ()
 
 # Embree
 find_package(embree 3 REQUIRED)
-message(STATUS "Embree LIBRARY: ${EMBREE_INCLUDE_PATH}")
+message(STATUS "Embree LIBRARY: ${EMBREE_LIBRARY}")
 
-find_package(USD REQUIRED HINTS ${USD_PATH} NAMES pxr)
-message(STATUS "USD LIBRARY: ${USD_PATH}")
+find_package(USD REQUIRED HINTS ${USD_DIR} NAMES pxr)
+message(STATUS "USD LIBRARY: ${USD_DIR}")
 
 # Shader Manager
 set(SHADERMANAGER_SOURCES
