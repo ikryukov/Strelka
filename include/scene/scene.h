@@ -150,7 +150,7 @@ public:
 
         // distant light
         float area;
-        float angle;
+        glm::float4 pos;
     };
 
     std::vector<UniformLightDesc> mLightDesc;

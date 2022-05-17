@@ -147,9 +147,9 @@ void HdStrelkaLight::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* renderP
     float exposure = sceneDelegate->GetLightParamValue(id, HdLightTokens->exposure).Get<float>();
     intensity *= powf(2.0f, GfClamp(exposure, -50.0f, 50.0f));
 
+    GfMatrix4d transform = sceneDelegate->GetTransform(id);
     // Transform
     {
-        GfMatrix4d transform = sceneDelegate->GetTransform(id);
         glm::float4x4 xform;
         for (int i = 0; i < 4; ++i)
         {
@@ -205,6 +205,9 @@ void HdStrelkaLight::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* renderP
             float angleRadians = angleDegVal.Get<float>() / 180.0 * M_PI;
             float solidAngleSteradians = 2.f * M_PI * (1.0 - cos(angleRadians / 2.0));
             mLightDesc.area = solidAngleSteradians;
+
+            GfVec4d zDir = transform.GetRow(2);
+            mLightDesc.pos = glm::float4(zDir[0], zDir[1], zDir[2], 0.0f);
         }
     }
 }

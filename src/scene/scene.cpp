@@ -497,7 +497,7 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
             glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, 1.0f, 1.0f));
         const glm::float4x4 localTransform = desc.useXform ? scaleMatrix * desc.xform : getTransform(desc);
 
-        mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
+        mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f);
         mLights[lightId].points[1] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
 
         mLights[lightId].type = 2;
@@ -506,15 +506,9 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
     {
         const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, 1.0f, 1.0f));
         const glm::float4x4 localTransform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc);
-        glm::float3 rotation = { eulerToDegree(atan2(localTransform[2][1], localTransform[1][1])),
-                                 eulerToDegree(atan2(localTransform[3][2], localTransform[3][3])),
-                                 eulerToDegree(atan2(-localTransform[3][1], sqrt(localTransform[3][2] * localTransform[3][2] +
-                                                                       localTransform[3][3] * localTransform[3][3])))};
-        mLights[lightId].points[0] = glm::float4(desc.area, 0.f, 0.f, 0.f); // save area
-        glm::float3 rotation1 = glm::float3x3(localTransform) * glm::float3(1, 1, 1);
 
-        mLights[lightId].points[1] = glm::float4{rotation1.x, rotation1.y, rotation1.z, 1.0f};//glm::float4(rotation, 0.f); // save rotation in degrees
-        mLights[lightId].points[2] = glm::float4(desc.angle, 0.f, 0.f, 1.f); // save angle
+        mLights[lightId].points[0] = glm::float4(desc.area, 0.f, 0.f, 0.f);
+        mLights[lightId].points[1] = desc.pos;
 
         mLights[lightId].type = 3;
     }
