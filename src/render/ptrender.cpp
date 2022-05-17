@@ -4,9 +4,7 @@
 #include "instanceconstants.h"
 
 #include <glm/ext/matrix_relational.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 
 #include <chrono>
 #include <filesystem>
