@@ -1,5 +1,4 @@
 #pragma once
-#include "bindless.h"
 
 #include <resourcemanager/resourcemanager.h>
 #include <shadermanager/ShaderManager.h>
