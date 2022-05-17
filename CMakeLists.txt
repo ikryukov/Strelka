@@ -74,8 +74,8 @@ elseif (APPLE)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib")
 endif ()
 
-set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
-set(USD_ROOT /Users/jswark/school/USD_Build)
+# set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
+# set(USD_ROOT /Users/jswark/school/USD_Build)
 find_package(MaterialX REQUIRED)
 
 # Material Manager
