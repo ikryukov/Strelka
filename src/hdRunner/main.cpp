@@ -401,7 +401,7 @@ int main(int argc, const char* argv[])
 
     // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
     // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
-    std::string usdPath = usdFile;
+    std::string usdPath = "./misc/glassLens (5).usda";
     // std::string usdPath = "./misc/matwcam2.usda";
     // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
