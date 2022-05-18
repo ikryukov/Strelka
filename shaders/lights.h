@@ -298,6 +298,19 @@ LightSampleData SampleRectLight(in UniformLight l, float2 u, float3 hitPoint)
     return lightSampleData;
 }
 
+LightSampleData SampleDistantLight(in UniformLight l, float2 u, float3 hitPoint)
+{
+    LightSampleData lightSampleData;
+
+    lightSampleData.pointOnLight = l.points[1].xyz;
+    lightSampleData.L = normalize(lightSampleData.pointOnLight - hitPoint);
+    lightSampleData.normal = normalize(hitPoint - l.points[1].xyz);
+    lightSampleData.distToLight = distance(lightSampleData.pointOnLight, hitPoint);
+    lightSampleData.pdf = 1.0f;
+
+    return lightSampleData;
+}
+
 LightSampleData SampleDiscLight(in UniformLight l, float2 u, float3 hitPoint)
 {
     LightSampleData lightSampleData;
@@ -348,28 +361,31 @@ float3 estimateDirectLighting(inout uint rngState,
     switch (light.type)
     {
     case 0:
-        lightSampleData = SampleRectLight(light, float2(rand(rngState), rand(rngState)), state.position);
+        //lightSampleData = SampleRectLight(light, float2(rand(rngState), rand(rngState)), state.position);
         break;
     case 1:
-        lightSampleData = SampleDiscLight(light, float2(rand(rngState), rand(rngState)), state.position);
+        //lightSampleData = SampleDiscLight(light, float2(rand(rngState), rand(rngState)), state.position);
         break;
     case 2:
-        lightSampleData = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
+        //lightSampleData = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
+        break;
+    case 3:
+        lightSampleData = SampleDistantLight(light, float2(rand(rngState), rand(rngState)), state.position);
         break;
     }
 
     toLight = lightSampleData.L;
     float3 Li = light.color.rgb;
 
-    if (dot(state.normal, lightSampleData.L) > 0 && -dot(lightSampleData.L, lightSampleData.normal) > 0.0 && all(Li))
+    if (dot(state.normal, lightSampleData.L) > 0.0f && -dot(lightSampleData.L, lightSampleData.normal) > 0.0f && all(Li))
     {
         Ray shadowRay;
-        shadowRay.d = float4(lightSampleData.L, 0.0);
+        shadowRay.d = float4(lightSampleData.L, 0.0f);
         const float3 offset = state.normal * 1e-6f; // need to add small offset to fix self-collision
         shadowRay.o = float4(state.position + offset, lightSampleData.distToLight - 1e-5);
 
         Hit shadowHit;
-        shadowHit.t = 0.0;
+        shadowHit.t = 0.0f;
         float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
         float lightPDF = lightSampleData.pdf;
@@ -377,7 +393,7 @@ float3 estimateDirectLighting(inout uint rngState,
         return visibility * Li * saturate(dot(state.normal, lightSampleData.L));
     }
 
-    return float3(0.0);
+    return float3(0.0f);
 }
 
 float3 sampleLights(

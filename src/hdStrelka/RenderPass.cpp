@@ -319,7 +319,6 @@ void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassS
                     mScene->createLight(light->getLightDesc());
                 }
             }
-
             if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->diskLight))
             {
                 SdfPathVector sprimPaths =
@@ -338,6 +337,17 @@ void HdStrelkaRenderPass::_Execute(const HdRenderPassStateSharedPtr& renderPassS
                 for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
                 {
                     HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->sphereLight, sprimPaths[lightIdx]);
+                    HdStrelkaLight* light = dynamic_cast<HdStrelkaLight*>(sprim);
+                    mScene->createLight(light->getLightDesc());
+                }
+            }
+            if (renderIndex->IsSprimTypeSupported(HdPrimTypeTokens->distantLight))
+            {
+                SdfPathVector sprimPaths =
+                    renderIndex->GetSprimSubtree(HdPrimTypeTokens->distantLight, SdfPath::AbsoluteRootPath());
+                for (int lightIdx = 0; lightIdx < sprimPaths.size(); ++lightIdx)
+                {
+                    HdSprim* sprim = renderIndex->GetSprim(HdPrimTypeTokens->distantLight, sprimPaths[lightIdx]);
                     HdStrelkaLight* light = dynamic_cast<HdStrelkaLight*>(sprim);
                     mScene->createLight(light->getLightDesc());
                 }

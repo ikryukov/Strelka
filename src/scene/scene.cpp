@@ -456,6 +456,11 @@ uint32_t Scene::createLight(const UniformLightDesc& desc)
     return lightId;
 }
 
+float eulerToDegree(float euler)
+{
+    return ((euler) / (2 * 3.14)) * 360;
+}
+
 void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
 {
     // transform to GPU light
@@ -492,10 +497,20 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
             glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, 1.0f, 1.0f));
         const glm::float4x4 localTransform = desc.useXform ? scaleMatrix * desc.xform : getTransform(desc);
 
-        mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f); // save radius
+        mLights[lightId].points[0] = glm::float4(desc.radius, 0.f, 0.f, 0.f);
         mLights[lightId].points[1] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
 
         mLights[lightId].type = 2;
+    }
+    else if (desc.type == 3)
+    {
+        const glm::float4x4 scaleMatrix = glm::scale(glm::float4x4(1.0f), glm::float3(1.0f, 1.0f, 1.0f));
+        const glm::float4x4 localTransform = desc.useXform ? desc.xform * scaleMatrix : getTransform(desc);
+
+        mLights[lightId].points[0] = glm::float4(desc.area, 0.f, 0.f, 0.f);
+        mLights[lightId].points[1] = desc.pos;
+
+        mLights[lightId].type = 3;
     }
 
     mLights[lightId].color = glm::float4(desc.color, 1.0f) * desc.intensity;
