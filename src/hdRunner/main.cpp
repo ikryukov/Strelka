@@ -400,10 +400,7 @@ int main(int argc, const char* argv[])
     timerLoad.Start();
 
     // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
-    // std::string usdPath = "/Users/ilya/work/Kitchen_set/Kitchen_set.usd";
     std::string usdPath = usdFile;
-    // std::string usdPath = "./misc/matwcam2.usda";
-    // std::string usdPath = "C:/work/Kitchen_set/Kitchen_set_cam.usd";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
 
