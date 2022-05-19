@@ -28,6 +28,58 @@ StructuredBuffer<UniformLight> lights;
 RWStructuredBuffer<float> sampleBuffer;
 // RWTexture2D<float4> output;
 
+float3 estimateDirectLighting(inout uint rngState,
+                              in Accel accel,
+                              in UniformLight light,
+                              in Shading_state_material state,
+                              out float3 toLight,
+                              out float lightPdf)
+{
+    LightSampleData lightSampleData;
+    switch (light.type)
+    {
+    case 0:
+        lightSampleData = SampleRectLight(light, float2(rand(rngState), rand(rngState)), state.position);
+        break;
+    case 1:
+        lightSampleData = SampleDiscLight(light, float2(rand(rngState), rand(rngState)), state.position);
+        break;
+    case 2:
+        lightSampleData = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
+        break;
+    }
+
+    toLight = lightSampleData.L;
+    float3 Li = light.color.rgb;
+
+    if (dot(state.normal, lightSampleData.L) > 0.0f && -dot(lightSampleData.L, lightSampleData.normal) > 0.0 && all(Li))
+    {
+        Ray shadowRay;
+        shadowRay.d = float4(lightSampleData.L, 0.0f);
+        shadowRay.o = float4(offset_ray(state.position, state.geom_normal), lightSampleData.distToLight - 1e-4f); // need to set offset to fix self-collision
+
+        Hit shadowHit;
+        shadowHit.t = 0.0;
+        float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
+
+        lightPdf = lightSampleData.pdf;
+        return visibility * Li * saturate(dot(state.normal, lightSampleData.L));
+    }
+
+    return float3(0.0f);
+}
+
+float3 sampleLights(
+    inout uint rngState, in Accel accel, in Shading_state_material state, out float3 toLight, out float lightPdf)
+{
+    uint lightId = (uint)(ubo.numLights * rand(rngState));
+    float lightSelectionPdf = 1.0f / ubo.numLights;
+    UniformLight currLight = lights[lightId];
+    float3 r = estimateDirectLighting(rngState, accel, currLight, state, toLight, lightPdf);
+    lightPdf *= lightSelectionPdf;
+    return r;
+}
+
 // https://graphics.pixar.com/library/MultiJitteredSampling/paper.pdf
 float2 stratifiedSamplingOptimized(int s, int N = 16, int p = 16, float a = 1.0f){
     int m = int(sqrt(N * a));
@@ -136,23 +188,6 @@ Ray generateCameraRay(uint2 pixelIndex, inout uint rngState, uint s)
     ray.d.xyz = normalize(wdir.xyz);
 
     return ray;
-}
-
-float3 offset_ray(const float3 p, const float3 n)
-{
-    const float origin = 1.0f / 32.0f;
-    const float float_scale = 1.0f / 65536.0f;
-    const float int_scale = 256.0f;
-
-    const int3 of_i = int3(int_scale * n.x, int_scale * n.y, int_scale * n.z);
-
-    float3 p_i = float3(asfloat(asint(p.x) + ((p.x < 0.0f) ? -of_i.x : of_i.x)),
-                        asfloat(asint(p.y) + ((p.y < 0.0f) ? -of_i.y : of_i.y)),
-                        asfloat(asint(p.z) + ((p.z < 0.0f) ? -of_i.z : of_i.z)));
-
-    return float3(abs(p.x) < origin ? p.x + float_scale * n.x : p_i.x,
-                  abs(p.y) < origin ? p.y + float_scale * n.y : p_i.y,
-                  abs(p.z) < origin ? p.z + float_scale * n.z : p_i.z);
 }
 
 float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
