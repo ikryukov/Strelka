@@ -23,10 +23,10 @@ HdStrelkaRendererPlugin::HdStrelkaRendererPlugin()
     std::string mtlxlibPath = resourcePath + "/mtlxlib";
 
     // m_translator = std::make_unique<MaterialNetworkTranslator>(mtlxlibPath);
-    const char* envUSDPath = std::getenv("USD_PATH");
+    const char* envUSDPath = std::getenv("USD_DIR");
     if (!envUSDPath)
     {
-        printf("Please, set USD_PATH variable\n");
+        printf("Please, set USD_DIR variable\n");
         assert(0);
         m_isSupported = false;
     }

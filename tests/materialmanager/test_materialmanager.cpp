@@ -45,10 +45,10 @@ TEST_CASE("mtlx to hlsl code gen test")
     MaterialManager* matMngr = new MaterialManager();
     CHECK(matMngr);
     
-    const char* envUSDPath = std::getenv("USD_PATH");
+    const char* envUSDPath = std::getenv("USD_DIR");
     if (!envUSDPath)
     {
-        printf("Please, set USD_PATH variable\n");
+        printf("Please, set USD_DIR variable\n");
         assert(0);
     }
     const std::string usdMdlLibPath = std::string(envUSDPath) + "/mdl";
