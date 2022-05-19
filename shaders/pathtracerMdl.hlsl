@@ -56,15 +56,13 @@ float3 estimateDirectLighting(inout uint rngState,
     {
         Ray shadowRay;
         shadowRay.d = float4(lightSampleData.L, 0.0f);
-        const float3 offset = state.normal * 1e-6f; // need to add small offset to fix self-collision
-        shadowRay.o = float4(offset_ray(state.position, state.geom_normal), lightSampleData.distToLight - 1e-4f);
+        shadowRay.o = float4(offset_ray(state.position, state.geom_normal), lightSampleData.distToLight - 1e-4f); // need to set offset to fix self-collision
 
         Hit shadowHit;
         shadowHit.t = 0.0;
         float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
-        float lightPDF = lightSampleData.pdf;
-        lightPdf = lightPDF;
+        lightPdf = lightSampleData.pdf;
         return visibility * Li * saturate(dot(state.normal, lightSampleData.L));
     }
 
