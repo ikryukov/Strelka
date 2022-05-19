@@ -39,6 +39,7 @@ endif()
 # Vulkan
 if (NOT DEFINED VULKAN_SDK)
     find_package(Vulkan REQUIRED)
+    message(STATUS "VULKAN SDK package: ${Vulkan_LIBRARY}")
 else ()
     # Workaround for CI
     if (APPLE)
@@ -53,9 +54,10 @@ endif ()
 
 # Embree
 find_package(embree 3 REQUIRED)
-message(STATUS "VULKAN LIBRARY: ${Vulkan_LIBRARY}")
+message(STATUS "Embree LIBRARY: ${EMBREE_LIBRARY}")
 
-find_package(USD REQUIRED HINTS ${USD_ROOT} NAMES pxr)
+find_package(USD REQUIRED HINTS ${USD_DIR} NAMES pxr)
+message(STATUS "USD LIBRARY: ${USD_DIR}")
 
 # Shader Manager
 set(SHADERMANAGER_SOURCES
@@ -74,8 +76,6 @@ elseif (APPLE)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib")
 endif ()
 
-set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
-set(USD_ROOT /Users/jswark/school/USD_Build)
 find_package(MaterialX REQUIRED)
 
 # Material Manager
@@ -108,6 +108,9 @@ target_link_libraries(${MATERIALLIB_NAME} PRIVATE #hdMtlx )
 # MDL ( $MDL_SDK_ROOT refer to the installation root of the MDL SDK.)
 target_include_directories(${MATERIALLIB_NAME} PUBLIC external/mdl-sdk/include) # $ENV{MDL_SDK_ROOT}
 
+target_include_directories(${MATERIALLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
+
 # Scene
 set(SCENE_SOURCES
         include/scene/scene.h
@@ -117,10 +120,10 @@ set(SCENE_SOURCES
         )
 set(SCENELIB_NAME scene)
 add_library(${SCENELIB_NAME} OBJECT ${SCENE_SOURCES})
+target_include_directories(${SCENELIB_NAME} PUBLIC external/glm)
 target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 target_include_directories(${SCENELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/scene)
 target_include_directories(${SCENELIB_NAME} PUBLIC shaders/)
-target_include_directories(${SCENELIB_NAME} PUBLIC external/glm)
 
 # Settings
 set(SETTINGSLIB_SOURCES
@@ -236,12 +239,6 @@ target_include_directories(${TEXTURELIB_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/inclu
 target_include_directories(${TEXTURELIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 target_link_libraries(${TEXTURELIB_NAME} PUBLIC ${SCENELIB_NAME})
 
-## Vulkan
-target_include_directories(${RENDERLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_link_libraries(${RENDERLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
-target_include_directories(${MATERIALLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_link_libraries(${MATERIALLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
-
 ## GLFW
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glfw/include)
 if (MSVC)
@@ -256,6 +253,10 @@ endif ()
 
 ## GLM (Mathematics)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/glm)
+
+## Vulkan
+target_include_directories(${RENDERLIB_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+target_link_libraries(${RENDERLIB_NAME} PUBLIC ${Vulkan_LIBRARY})
 
 # TOL (TinyObjLoader)
 target_include_directories(${RENDERLIB_NAME} PUBLIC external/tol)
@@ -299,8 +300,8 @@ set_target_properties(
     CXX_EXTENSIONS OFF
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
-target_include_directories(${PROJECT_NAME} PUBLIC external/glfw/include)
+# target_include_directories(${PROJECT_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
+# target_include_directories(${PROJECT_NAME} PUBLIC external/glfw/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include/)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC 
@@ -504,6 +505,16 @@ elseif(APPLE)
     add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
             "${CMAKE_SOURCE_DIR}/external/mdl-sdk/macosx-x86-64/lib/nv_freeimage.so"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib"
             "${OUTPUT_DIRECTORY}"
             )
 endif ()

@@ -744,10 +744,10 @@ private:
         using namespace std;
         const fs::path cwd = fs::current_path();
         mtlxLibPath = "";
-        const char* envUSDPath = std::getenv("USD_PATH");
+        const char* envUSDPath = std::getenv("USD_DIR");
         if (!envUSDPath)
         {
-            printf("Please, set USD_PATH variable\n");
+            printf("Please, set USD_DIR variable\n");
             assert(0);
         }
         else

@@ -4,9 +4,7 @@
 #include "instanceconstants.h"
 
 #include <glm/ext/matrix_relational.hpp>
-#include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm/gtx/matrix_decompose.hpp>
 
 #include <chrono>
 #include <filesystem>
@@ -75,10 +73,10 @@ void PtRender::init()
 
     mMaterialManager = new MaterialManager();
 
-    const char* envUSDPath = std::getenv("USD_PATH");
+    const char* envUSDPath = std::getenv("USD_DIR");
     if (!envUSDPath)
     {
-        printf("Please, set USD_PATH variable\n");
+        printf("Please, set USD_DIR variable\n");
         assert(0);
     }
     const std::string usdMdlLibPath = std::string(envUSDPath) + "/mdl";
@@ -713,7 +711,7 @@ void PtRender::drawFrame(Image* result)
     currView->mCamMatrices = cam.matrices;
 
     // check if camera is dirty?
-    if (needResetAccumulation ||
+    if (needRecreateView || needResetAccumulation ||
         (mPrevView && (glm::any(glm::notEqual(currView->mCamMatrices.perspective, mPrevView->mCamMatrices.perspective)) ||
                        glm::any(glm::notEqual(currView->mCamMatrices.view, mPrevView->mCamMatrices.view)))))
     {
