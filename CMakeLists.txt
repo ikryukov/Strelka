@@ -76,8 +76,6 @@ elseif (APPLE)
     target_link_libraries(${SHADERLIB_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib")
 endif ()
 
-# set(MaterialX_DIR /Users/jswark/school/USD_Build/cmake)
-# set(USD_ROOT /Users/jswark/school/USD_Build)
 find_package(MaterialX REQUIRED)
 
 # Material Manager
@@ -507,6 +505,16 @@ elseif(APPLE)
     add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy
             "${CMAKE_SOURCE_DIR}/external/mdl-sdk/macosx-x86-64/lib/nv_freeimage.so"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/slang/libslang.dylib"
+            "${OUTPUT_DIRECTORY}"
+            )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            "${CMAKE_SOURCE_DIR}/external/slang/libslang-glslang.dylib"
             "${OUTPUT_DIRECTORY}"
             )
 endif ()
