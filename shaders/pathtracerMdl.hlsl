@@ -52,14 +52,14 @@ float3 estimateDirectLighting(inout uint rngState,
     toLight = lightSampleData.L;
     float3 Li = light.color.rgb;
 
-    if (dot(state.normal, lightSampleData.L) > 0.0f && -dot(lightSampleData.L, lightSampleData.normal) > 0.0 && all(Li))
+    if (dot(state.normal, lightSampleData.L) > 0.0f && -dot(lightSampleData.L, lightSampleData.normal) > 0.0f && all(Li))
     {
         Ray shadowRay;
         shadowRay.d = float4(lightSampleData.L, 0.0f);
         shadowRay.o = float4(offset_ray(state.position, state.geom_normal), lightSampleData.distToLight - 1e-4f); // need to set offset to fix self-collision
 
         Hit shadowHit;
-        shadowHit.t = 0.0;
+        shadowHit.t = 0.0f;
         float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
 
         lightPdf = lightSampleData.pdf;
@@ -245,8 +245,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 float3 worldPosition = interpolateAttrib(p0, p1, p2, bcoords);
                 float3 worldNormal = normalize(interpolateAttrib(n0, n1, n2, bcoords));
                 float3 worldTangent = normalize(interpolateAttrib(t0, t1, t2, bcoords));
-                geomNormal *= (inside ? -1.0 : 1.0);
-                worldNormal *= (inside ? -1.0 : 1.0);
+                geomNormal *= (inside ? -1.0f : 1.0f);
+                worldNormal *= (inside ? -1.0f : 1.0f);
                 float3 worldBinormal = cross(worldNormal, worldTangent);
 
                 float2 uv0 = unpackUV(accel.vb[NonUniformResourceIndex(i0)].uv);
@@ -257,7 +257,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
 
                 if (ubo.debug == 1)
                 {
-                    float3 debugN = (worldNormal + 1.0) * 0.5;
+                    float3 debugN = (worldNormal + 1.0f) * 0.5f;
                     // float3 debugN = (worldNormal);
                     return debugN;
                 }
@@ -278,7 +278,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 mdlState.object_id = hit.instId;
                 mdlState.meters_per_scene_unit = 1.0f;
                 mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
-                mdlState.text_coords[0] = float3(uvCoord, 0);
+                mdlState.text_coords[0] = float3(uvCoord, 0.0f);
 
                 float3 shadingNormal = mdlState.geom_normal;
 
@@ -356,7 +356,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 // setup next path segment
                 inside = ((sampleData.event_type & BSDF_EVENT_TRANSMISSION) != 0);
                 float3 rayDirectionNext = sampleData.k2;
-                float3 rayOriginNext = offset_ray(mdlState.position, mdlState.geom_normal * (inside ? -1.0 : 1.0));
+                float3 rayOriginNext = offset_ray(mdlState.position, mdlState.geom_normal * (inside ? -1.0f : 1.0f));
 
                 throughput *= sampleData.bsdf_over_pdf;
 
@@ -367,7 +367,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                     {
                         break;
                     }
-                    throughput *= 1.0 / (p + 1e-5);
+                    throughput *= 1.0f / (p + 1e-5f);
                 }
 
                 // add check and flip offset for transmission event
@@ -382,7 +382,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
             //float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
             //finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
 
-            finalColor += throughput * float3(1.f);
+            finalColor += throughput * float3(1.0f);
 
             break;
         }

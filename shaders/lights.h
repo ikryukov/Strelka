@@ -31,7 +31,7 @@ struct LightSampleData
 };
 
 // https://backend.orbit.dtu.dk/ws/portalfiles/portal/126824972/onb_frisvad_jgt2012_v2.pdf
-void frisvad(const float3 n, in out float3 b1, in out float3 b2)
+void frisvad(const float3 n, inout float3 b1, inout float3 b2)
 {
     if (n.z < -0.9999999f) // Handle the singularity
     {
@@ -271,7 +271,7 @@ float calcLightArea(in UniformLight l)
     return area;
 }
 
-void fillLightData(in UniformLight l, float3 hitPoint, in out LightSampleData lightSampleData)
+void fillLightData(in UniformLight l, float3 hitPoint, inout LightSampleData lightSampleData)
 {
     lightSampleData.area = calcLightArea(l);
     lightSampleData.normal = calcLightNormal(l, hitPoint);
