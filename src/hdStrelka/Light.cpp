@@ -195,6 +195,21 @@ void HdStrelkaLight::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* renderP
         }
         mLightDesc.radius = radius * mLightDesc.xform[0][0]; // uniform scale
     }
+    else if (mLightType == HdPrimTypeTokens->domeLight)
+    {
+        mLightDesc.type = 4;
+//        // Dome light texture
+//        {
+//            const VtValue v = sceneDelegate->GetLightParamValue(id, HdLightTokens->textureFile);
+//            if (!v.IsEmpty()) {
+//                if (v.IsHolding<SdfAssetPath>()) {
+//                    l.SetDomeLightTextureFile(v.UncheckedGet<SdfAssetPath>());
+//                } else {
+//                    TF_CODING_ERROR("Dome light texture file not an asset path.");
+//                }
+//            }
+//        }
+    }
 }
 
 HdDirtyBits HdStrelkaLight::GetInitialDirtyBitsMask() const

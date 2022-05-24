@@ -47,6 +47,9 @@ float3 estimateDirectLighting(inout uint rngState,
     case 2:
         lightSampleData = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
         break;
+    case 4:
+        lightSampleData = SampleDomeLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
+        break;
     }
 
     toLight = lightSampleData.L;
@@ -66,7 +69,7 @@ float3 estimateDirectLighting(inout uint rngState,
         {
             // check if it was light hit?
             InstanceConstants instConst = accel.instanceConstants[NonUniformResourceIndex(shadowHit.instId)];
-            if (instConst.lightId != -1) 
+            if (instConst.lightId != -1)
             {
                 // light hit => visible
                 visibility = 1.0f;

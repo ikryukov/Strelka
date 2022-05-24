@@ -61,6 +61,21 @@ float3 SampleHemisphere(uint2 pixelIndex, float3 normal)
     return mul(GetTangentSpace(normal), tangentSpaceDir);
 }
 
+float3 SampleRayInHemisphere(const float3 hitPoint, const float2 u)
+{
+    float signZ = (hitPoint.z >= 0.0f) ? 1.0f : -1.0f;
+    float a = -1.0f / (signZ + hitPoint.z);
+    float b = hitPoint.x * hitPoint.y * a;
+    float3 b1 = float3(1.0f + signZ * hitPoint.x * hitPoint.x * a, signZ * b, -signZ * hitPoint.x);
+    float3 b2 = float3(b, signZ + hitPoint.y * hitPoint.y * a, -hitPoint.y);
+
+    float phi = 2.0f * PI * u.x;
+    float cosTheta = sqrt(u.y);
+    float sinTheta = sqrt(1.0f - u.y);
+    return normalize((b1 * cos(phi) + b2 * sin(phi)) * cosTheta + hitPoint * sinTheta);
+}
+
+
 float3 SampleHemisphere(float u1, float u2, float alpha)
 {
     float cosTheta = pow(u1, 1.0f / (alpha + 1.0f));

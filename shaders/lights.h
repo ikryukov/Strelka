@@ -281,6 +281,19 @@ void fillLightData(in UniformLight l, float3 hitPoint, in out LightSampleData li
     lightSampleData.distToLight = lenToLight;
 }
 
+LightSampleData SampleDomeLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, float2 u)
+{
+    LightSampleData lightSampleData;
+
+    lightSampleData.pointOnLight = l.points[0].xyz;
+    lightSampleData.L = SampleRayInHemisphere(hitPoint, u);
+    lightSampleData.normal = normalize(-surfaceNormal);
+    lightSampleData.distToLight = 1000000.f;
+    lightSampleData.pdf = 1.0f;
+
+    return lightSampleData;
+}
+
 LightSampleData SampleRectLight(in UniformLight l, float2 u, float3 hitPoint)
 {
     LightSampleData lightSampleData;
@@ -318,7 +331,7 @@ LightSampleData SampleDiscLight(in UniformLight l, float2 u, float3 hitPoint)
     return lightSampleData;
 }
 
-LightSampleData SampleSphereLight(in UniformLight l,float3 surfaceNormal, float3 hitPoint, float2 u)
+LightSampleData SampleSphereLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, float2 u)
 {
     LightSampleData lightSampleData;
     // uniform sampling

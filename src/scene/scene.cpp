@@ -506,6 +506,14 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
 
         intensityPerPoint /= (4 * M_PI * desc.radius * desc.radius);
     }
+    else if (desc.type == 4)
+    {
+        const glm::float4x4 localTransform = desc.useXform ?  desc.xform : getTransform(desc);
+
+        mLights[lightId].points[0] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
+
+        mLights[lightId].type = 4;
+    }
 
     mLights[lightId].color = glm::float4(desc.color, 1.0f) * intensityPerPoint;
 }
