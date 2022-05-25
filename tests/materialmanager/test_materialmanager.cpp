@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <cassert>
 
 using namespace oka;
 namespace fs = std::filesystem;
