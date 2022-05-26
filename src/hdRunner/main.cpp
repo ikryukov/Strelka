@@ -1,45 +1,40 @@
-#include <pxr/pxr.h>
+#include "SimpleRenderTask.h"
+
 #include <pxr/base/gf/gamma.h>
 #include <pxr/base/gf/rotation.h>
 #include <pxr/base/tf/stopwatch.h>
 #include <pxr/imaging/hd/camera.h>
 #include <pxr/imaging/hd/engine.h>
-#include <pxr/imaging/hd/rendererPluginRegistry.h>
 #include <pxr/imaging/hd/pluginRenderDelegateUniqueHandle.h>
+#include <pxr/imaging/hd/renderBuffer.h>
 #include <pxr/imaging/hd/renderDelegate.h>
-#include <pxr/imaging/hd/rendererPlugin.h>
+#include <pxr/imaging/hd/renderIndex.h>
 #include <pxr/imaging/hd/renderPass.h>
 #include <pxr/imaging/hd/renderPassState.h>
-#include <pxr/imaging/hd/renderBuffer.h>
-#include <pxr/imaging/hd/renderIndex.h>
+#include <pxr/imaging/hd/rendererPlugin.h>
+#include <pxr/imaging/hd/rendererPluginRegistry.h>
 #include <pxr/imaging/hf/pluginDesc.h>
 #include <pxr/imaging/hgi/hgi.h>
 #include <pxr/imaging/hgi/tokens.h>
 #include <pxr/imaging/hio/image.h>
 #include <pxr/imaging/hio/imageRegistry.h>
 #include <pxr/imaging/hio/types.h>
+#include <pxr/pxr.h>
 #include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usdImaging/usdImaging/delegate.h>
-
-#include <cxxopts.hpp>
-
-#include <algorithm>
-#include <iostream>
-
-#include "SimpleRenderTask.h"
-
 #include <render/common.h>
 #include <render/glfwrender.h>
 
+#include <algorithm>
+#include <cxxopts.hpp>
+#include <iostream>
+
 PXR_NAMESPACE_USING_DIRECTIVE
 
-TF_DEFINE_PRIVATE_TOKENS(
-    _AppTokens,
-    (HdStrelkaDriver)
-    (HdStrelkaRendererPlugin));
+TF_DEFINE_PRIVATE_TOKENS(_AppTokens, (HdStrelkaDriver)(HdStrelkaRendererPlugin));
 
 HdRendererPluginHandle GetHdStrelkaPlugin()
 {
@@ -291,27 +286,25 @@ class RenderSurfaceController : public oka::ResizeHandler
     uint32_t imageHeight = 600;
 
 public:
-
     void framebufferResize(int newWidth, int newHeight)
     {
-    
     }
 };
 
 void setDefaultCamera(UsdGeomCamera& cam)
 {
     // y - up, camera looks at (0, 0, 0)
-    std::vector<float> r0 = {0, -1, 0, 0};
-    std::vector<float> r1 = {0, 0, 1, 0};
-    std::vector<float> r2 = {-1, 0, 0, 0};
-    std::vector<float> r3 = {0, 0, 0, 1};
+    std::vector<float> r0 = { 0, -1, 0, 0 };
+    std::vector<float> r1 = { 0, 0, 1, 0 };
+    std::vector<float> r2 = { -1, 0, 0, 0 };
+    std::vector<float> r3 = { 0, 0, 0, 1 };
 
     GfMatrix4d xform(r0, r1, r2, r3);
     GfCamera mGfCam{};
 
     mGfCam.SetTransform(xform);
 
-    GfRange1f clippingRange = GfRange1f{0.1, 1000};
+    GfRange1f clippingRange = GfRange1f{ 0.1, 1000 };
     mGfCam.SetClippingRange(clippingRange);
     mGfCam.SetVerticalAperture(20.25);
     mGfCam.SetVerticalApertureOffset(0);
@@ -327,13 +320,13 @@ void setDefaultCamera(UsdGeomCamera& cam)
 
 int main(int argc, const char* argv[])
 {
-        // config. options
+    // config. options
     cxxopts::Options options("Strelka -s <USD Scene path>", "commands");
 
-    options.add_options()("s, scene", "scene path", cxxopts::value<std::string>()->default_value(""))
-        ("h, help", "Print usage");
+    options.add_options()("s, scene", "scene path", cxxopts::value<std::string>()->default_value(""))(
+        "h, help", "Print usage");
 
-    options.parse_positional({"s"});
+    options.parse_positional({ "s" });
     auto result = options.parse(argc, argv);
 
     if (result.count("help"))
@@ -376,7 +369,9 @@ int main(int argc, const char* argv[])
     ctx->mSettingsManager = new oka::SettingsManager();
 
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/depth", 6);
-    ctx->mSettingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 0); // 0 - none, 1 - random, 2 - stratified sampling, 3 - optimized stratified sampling
+    ctx->mSettingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 0); // 0 - none, 1 - random, 2 -
+                                                                                   // stratified sampling, 3 - optimized
+                                                                                   // stratified sampling
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/tonemapperType", 0); // 0 - reinhard, 1 - aces, 2 - filmic
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/debug", 0); // 0 - none, 1 - normals
     ctx->mSettingsManager->setAs<float>("render/pt/upscaleFactor", 0.5f);
@@ -400,7 +395,7 @@ int main(int argc, const char* argv[])
     timerLoad.Start();
 
     // ArGetResolver().ConfigureResolverForAsset(settings.sceneFilePath);
-    std::string usdPath = usdFile;
+    std::string usdPath = "./misc/coffeemaker2.usdc";
 
     UsdStageRefPtr stage = UsdStage::Open(usdPath.c_str());
 
@@ -442,8 +437,8 @@ int main(int argc, const char* argv[])
     cam = UsdGeomCamera::Get(stage, cameraPath);
     CameraController cameraController(cam);
 
-    //std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
-    
+    // std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
+
     // Set up rendering context.
     uint32_t imageWidth = 800;
     uint32_t imageHeight = 600;
@@ -489,6 +484,9 @@ int main(int argc, const char* argv[])
     render.setInputHandler(&cameraController);
 
     uint64_t frameCount = 0;
+    auto startRendering = std::chrono::high_resolution_clock::now();
+    uint32_t screenSamples = 1000;
+    bool screenshotSaved = false;
     while (!render.windowShouldClose())
     {
         auto start = std::chrono::high_resolution_clock::now();
@@ -515,7 +513,19 @@ int main(int argc, const char* argv[])
 
         auto finish = std::chrono::high_resolution_clock::now();
         double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
-        render.setWindowTitle((std::string("Strelka") + " [" + std::to_string(frameTime) + " ms]").c_str());
+
+        double renderingTime = (std::chrono::duration<double, std::milli>(finish - startRendering).count()) / 60000; // min
+        float samples = (1.0 / (frameTime / 1000.0)) * 60.0 * renderingTime;
+
+        if (samples >= screenSamples && !screenshotSaved)
+        {
+            render.saveScreenshot();
+            screenshotSaved = true;
+        }
+
+        render.setWindowTitle((std::string("Strelka") + " [" + std::to_string(frameTime) + " ms]" + " [" +
+                               std::to_string(samples) + " samples]")
+                                  .c_str());
         ++frameCount;
     }
 

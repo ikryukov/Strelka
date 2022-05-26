@@ -210,6 +210,150 @@ void oka::GLFWRender::onEndFrame()
     ++mSharedCtx.mFrameNumber;
 }
 
+void oka::GLFWRender::saveScreenshot()
+{
+    const uint32_t frameIndex = mSharedCtx.mFrameIndex;
+    //VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
+
+    // Source for the copy is the last rendered swapchain image
+    VkImage srcImage = mSwapChainImages[frameIndex];
+
+    // Create the linear tiled destination
+    // image to copy to and to read the memory from
+    VkMemoryPropertyFlags properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    mSharedCtx.mResManager->createImage(mWindowWidth, mWindowHeight, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    // Create the image
+    Image* dstImage = mSharedCtx.mResManager->createImage(mWindowWidth, mWindowHeight, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    // Create memory to back up the image
+//    VkMemoryRequirements memRequirements;
+//    VkMemoryAllocateInfo memAllocInfo{};
+//    VkDeviceMemory dstImageMemory;
+//    vkGetImageMemoryRequirements(mDevice, mSharedCtx.mResManager->getVkImage(dstImage), &memRequirements);
+//    memAllocInfo.allocationSize = memRequirements.size;
+//    // Memory must be host visible to copy from
+//    VkPhysicalDeviceMemoryProperties prop;
+//    vkGetPhysicalDeviceMemoryProperties(mPhysicalDevice, &prop);
+//    for (uint32_t i = 0; i < prop.memoryTypeCount; i++)
+//        if ((prop.memoryTypes[i].propertyFlags & properties) == properties && memRequirements.memoryTypeBits & (1 << i))
+//            memAllocInfo.memoryTypeIndex = i;
+//
+//    vkAllocateMemory(mDevice, &memAllocInfo, nullptr, &dstImageMemory);
+//    vkBindImageMemory(mDevice, mSharedCtx.mResManager->getVkImage(dstImage), dstImageMemory, 0);
+
+    // Do the actual blit from the swapchain image to our host visible destination image
+    VkCommandBuffer copyCmd;
+    for (FrameData& fd : mSharedCtx.mFramesData)
+    {
+        VkCommandBufferAllocateInfo cmdBufAllocateInfo{};
+        cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cmdBufAllocateInfo.commandPool = fd.cmdPool;
+        cmdBufAllocateInfo.commandBufferCount = 1;
+
+        if (vkAllocateCommandBuffers(mDevice, &cmdBufAllocateInfo, &copyCmd) != VK_SUCCESS)
+        {
+            throw std::runtime_error("failed to allocate command buffers!");
+        }
+    }
+
+    // If requested, also start recording for the new command buffer
+    VkCommandBufferBeginInfo cmdBufInfo = VkCommandBufferBeginInfo();
+    vkBeginCommandBuffer(copyCmd, &cmdBufInfo);
+
+    // Transition destination image to transfer destination layout
+    recordImageBarrier(copyCmd, dstImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT,
+                       VK_IMAGE_LAYOUT_UNDEFINED, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    recordBarrier(copyCmd, srcImage, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                  VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,  VK_ACCESS_MEMORY_READ_BIT,
+                  VK_ACCESS_TRANSFER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+    // Define the region to blit (we will blit the whole swapchain image)
+    VkOffset3D blitSize;
+    blitSize.x = mWindowWidth;
+    blitSize.y = mWindowHeight;
+    blitSize.z = 1;
+    VkImageBlit imageBlitRegion{};
+    imageBlitRegion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.srcSubresource.layerCount = 1;
+    imageBlitRegion.srcOffsets[1] = blitSize;
+    imageBlitRegion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageBlitRegion.dstSubresource.layerCount = 1;
+    imageBlitRegion.dstOffsets[1] = blitSize;
+
+    vkCmdBlitImage(copyCmd, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, mSharedCtx.mResManager->getVkImage(dstImage),
+                   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imageBlitRegion, VK_FILTER_NEAREST);
+
+    recordImageBarrier(copyCmd, dstImage,  VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_TRANSFER_WRITE_BIT,
+                       VK_ACCESS_MEMORY_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+    recordBarrier(copyCmd, srcImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                  VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT,
+                  VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT);
+
+
+    // flushCommandBuffer
+    if (copyCmd == VK_NULL_HANDLE)
+    {
+        return;
+    }
+
+    vkEndCommandBuffer(copyCmd);
+
+    VkSubmitInfo submitInfo{};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &copyCmd;
+    // Create fence to ensure that the command buffer has finished executing
+    VkFenceCreateInfo fenceInfo = VkFenceCreateInfo();
+    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    VkFence fence;
+    vkCreateFence(mDevice, &fenceInfo, nullptr, &fence);
+    // Submit to the queue
+    vkQueueSubmit(mGraphicsQueue, 1, &submitInfo, fence);
+    // Wait for the fence to signal that command buffer has finished executing
+    vkWaitForFences(mDevice, 1, &fence, VK_TRUE, 100000000000);
+    vkDestroyFence(mDevice, fence, nullptr);
+
+    for (FrameData& fd : mSharedCtx.mFramesData)
+    {
+        vkFreeCommandBuffers(mDevice, fd.cmdPool, 1, &copyCmd);
+    }
+
+    // Get layout of the image (including row pitch)
+    VkImageSubresource subResource{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
+    VkSubresourceLayout subResourceLayout;
+    vkGetImageSubresourceLayout(mDevice, mSharedCtx.mResManager->getVkImage(dstImage), &subResource, &subResourceLayout);
+
+    // Map image memory so we can start copying from it
+    const char* data;
+    vkMapMemory(mDevice, dstImageMemory, 0, VK_WHOLE_SIZE, 0, (void**)&data);
+    data += subResourceLayout.offset;
+
+    std::ofstream file("out.ppm", std::ios::out | std::ios::binary);
+
+    // ppm header
+    file << "P6\n" << mWindowWidth << "\n" << mWindowHeight << "\n" << 255 << "\n";
+
+    // ppm binary pixel data
+    for (uint32_t y = 0; y < mWindowHeight; y++)
+    {
+        unsigned int* row = (unsigned int*)data;
+        for (uint32_t x = 0; x < mWindowWidth; x++)
+        {
+            file.write((char*)row, 3);
+
+            row++;
+        }
+        data += subResourceLayout.rowPitch;
+    }
+    file.close();
+
+    std::cout << "Screenshot saved to disk" << std::endl;
+
+    // Clean up resources
+    vkUnmapMemory(mDevice, dstImageMemory);
+    vkFreeMemory(mDevice, dstImageMemory, nullptr);
+    mSharedCtx.mResManager->destroyImage(dstImage);
+}
+
 void oka::GLFWRender::drawFrame(Image* result)
 {
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;

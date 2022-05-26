@@ -60,6 +60,7 @@ public:
     void onEndFrame();
 
     void drawFrame(Image* result);
+    void saveScreenshot();
     void drawUI();
 
     bool framebufferResized = false;
