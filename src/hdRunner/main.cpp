@@ -519,7 +519,54 @@ int main(int argc, const char* argv[])
 
         if (samples >= screenSamples && !screenshotSaved)
         {
-            render.saveScreenshot();
+            oka::Buffer* buffer = render.takeScreenshot();
+
+            //
+            void* bufferMemory = ctx->mResManager->getMappedMemory(buffer);
+            float* mappedMem = (float*)bufferMemory;
+            TF_VERIFY(mappedMem != nullptr);
+
+            int pixelCount = imageWidth * imageHeight;
+
+            for (int i = 0; i < pixelCount; i++)
+            {
+                mappedMem[i * 4 + 0] = GfConvertLinearToDisplay(mappedMem[i * 4 + 0]);
+                mappedMem[i * 4 + 1] = GfConvertLinearToDisplay(mappedMem[i * 4 + 1]);
+                mappedMem[i * 4 + 2] = GfConvertLinearToDisplay(mappedMem[i * 4 + 2]);
+            }
+
+            // Write image to file.
+            TfStopwatch timerWrite;
+            timerWrite.Start();
+
+            std::string outputFilePath = "res.png";
+
+            HioImageSharedPtr image = HioImage::OpenForWriting(outputFilePath);
+
+            if (!image)
+            {
+                fprintf(stderr, "Unable to open output file for writing!\n");
+                return EXIT_FAILURE;
+            }
+
+            HioImage::StorageSpec storage;
+            storage.width = (int)imageWidth;
+            storage.height = (int)imageHeight;
+            storage.depth = (int)1;
+            storage.format = HioFormat::HioFormatFloat32Vec4;
+            storage.flipped = false;
+            storage.data = mappedMem;
+
+            VtDictionary metadata;
+            image->Write(storage, metadata);
+
+            //renderBuffer->Unmap();
+            timerWrite.Stop();
+
+            printf("Wrote image (%.3fs)\n", timerWrite.GetSeconds());
+            fflush(stdout);
+            //
+
             screenshotSaved = true;
         }
 
