@@ -367,9 +367,8 @@ int main(int argc, const char* argv[])
     // config. options
     cxxopts::Options options("Strelka -s <USD Scene path>", "commands");
 
-    options.add_options()("s, scene", "scene path", cxxopts::value<std::string>()->default_value(""))
-        ("i, iteration", "Iteration to capture", cxxopts::value<int32_t>()->default_value("-1"))
-        ("h, help", "Print usage");
+    options.add_options()("s, scene", "scene path", cxxopts::value<std::string>()->default_value(""))(
+        "i, iteration", "Iteration to capture", cxxopts::value<int32_t>()->default_value("-1"))("h, help", "Print usage");
 
     options.parse_positional({ "s" });
     auto result = options.parse(argc, argv);
@@ -387,7 +386,7 @@ int main(int argc, const char* argv[])
         std::cerr << "usd file doesn't exist";
         exit(0);
     }
-    int32_t iterationsToCapture(result["i"].as<int32_t>());
+    int32_t iterationToCapture(result["i"].as<int32_t>());
     // Init plugin.
     HdRendererPluginHandle pluginHandle = GetHdStrelkaPlugin();
 
@@ -531,7 +530,6 @@ int main(int argc, const char* argv[])
     render.setInputHandler(&cameraController);
 
     uint64_t frameCount = 0;
-    auto startRendering = std::chrono::high_resolution_clock::now();
 
     bool needCopyBuffer = false;
     int32_t counter = -1;
@@ -559,7 +557,7 @@ int main(int argc, const char* argv[])
         cam.SetFromCamera(cameraController.getCamera(), 0.0);
 
         uint32_t iteration = ctx->mSettingsManager->getAs<uint32_t>("render/pt/iteration");
-        if (iteration == iterationsToCapture)
+        if (iteration == iterationToCapture)
         {
             ctx->mSettingsManager->setAs<bool>("render/pt/needScreenshot", true);
         }
