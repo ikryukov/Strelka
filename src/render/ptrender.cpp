@@ -704,6 +704,7 @@ void PtRender::drawFrame(Image* result)
     {
         currView->mPtIteration = mPrevView->mPtIteration;
     }
+    getSettingsManager()->setAs<uint32_t>("render/pt/iteration", currView->mPtIteration);
 
     // at this point we reseive opened cmd buffer
     VkCommandBuffer& cmd = getSharedContext().getFrameData(frameIndex).cmdBuffer;

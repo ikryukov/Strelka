@@ -59,8 +59,7 @@ public:
     void onBeginFrame();
     void onEndFrame();
 
-    void drawFrame(Image* result);
-    Buffer* takeScreenshot();
+    void drawFrame(Image* result, bool& needCopyBuffer, Buffer* buffer);
     void drawUI();
 
     bool framebufferResized = false;
