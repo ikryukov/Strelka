@@ -104,7 +104,7 @@ void HdStrelkaRenderPass::_BakeMeshInstance(const HdStrelkaMesh* mesh, GfMatrix4
         if (!meshUVs.empty())
         {
             const GfVec2f& uv = meshUVs[j];
-            const glm::float2 glmUV = glm::float2(uv[0], uv[1]);
+            const glm::float2 glmUV = glm::float2(uv[0], 1.0f - uv[1]); // Flip v coordinate
             vertex.uv = packUV(glmUV);
         }
     }

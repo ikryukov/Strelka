@@ -136,6 +136,10 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
                     mMaterialParams.push_back(param);
                 }
             }
+            else
+            {
+                printf("Unknown parameter type!\n");
+            }
         }
     }
 
