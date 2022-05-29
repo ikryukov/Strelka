@@ -37,6 +37,7 @@ public:
             eFloat = 0,
             eInt,
             eBool,
+            eFloat2,
             eFloat3,
             eFloat4,
             eTexture
