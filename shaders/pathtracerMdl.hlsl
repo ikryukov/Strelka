@@ -216,7 +216,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
     const int maxDepth = ubo.maxDepth;
 
     Ray ray = generateCameraRay(pixelIndex, rngState, s);
-
+    bool specularBounce = false;
     bool inside = 0; // 1 - inside
 
     while (depth < maxDepth)
@@ -226,7 +226,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
         {
             InstanceConstants instConst = accel.instanceConstants[NonUniformResourceIndex(hit.instId)];
 
-            if (instConst.lightId != -1)
+            if (instConst.lightId != -1 && (depth == 0 || specularBounce))
             {
                 UniformLight currLight = lights[instConst.lightId];
                 finalColor += throughput * currLight.color.rgb;
@@ -360,6 +360,8 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                     // stop on absorb
                     break;
                 }
+
+                specularBounce = sampleData.event_type & BSDF_EVENT_SPECULAR;
 
                 // flip inside/outside on transmission
                 // setup next path segment
