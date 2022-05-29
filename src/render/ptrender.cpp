@@ -263,7 +263,7 @@ void oka::PtRender::reloadPt()
                 std::string texPath(param.value.size(), 0);
                 memcpy(texPath.data(), param.value.data(), param.value.size());
                 int texId = getTexManager()->loadTextureMdl(texPath);
-                int resId = mMaterialManager->registerResource(mdlTargetCode, texId) + 1;
+                int resId = mMaterialManager->registerResource(mdlTargetCode, texId);
                 assert(resId > 0);
                 MaterialManager::Param newParam;
                 newParam.name = param.name;

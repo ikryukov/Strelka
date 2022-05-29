@@ -55,6 +55,14 @@ uint32_t packNormal(const glm::float3& normal)
     return packed;
 }
 
+//  valid range of coordinates [-10; 10]
+uint32_t packUV(const glm::float2& uv)
+{
+    int32_t packed = (uint32_t)((uv.x + 10.0f) / 20.0f * 16383.99999f);
+    packed += (uint32_t)((uv.y + 10.0f) / 20.0f * 16383.99999f) << 16;
+    return packed;
+}
+
 void HdStrelkaRenderPass::_BakeMeshInstance(const HdStrelkaMesh* mesh, GfMatrix4d transform, uint32_t materialIndex)
 {
     GfMatrix4d normalMatrix = transform.GetInverse().GetTranspose();
@@ -62,6 +70,8 @@ void HdStrelkaRenderPass::_BakeMeshInstance(const HdStrelkaMesh* mesh, GfMatrix4
     const std::vector<GfVec3f>& meshPoints = mesh->GetPoints();
     const std::vector<GfVec3f>& meshNormals = mesh->GetNormals();
     const std::vector<GfVec3i>& meshFaces = mesh->GetFaces();
+    const std::vector<GfVec2f>& meshUVs = mesh->GetUVs();
+
     TF_VERIFY(meshPoints.size() == meshNormals.size());
     const size_t vertexCount = meshPoints.size();
 
@@ -89,6 +99,14 @@ void HdStrelkaRenderPass::_BakeMeshInstance(const HdStrelkaMesh* mesh, GfMatrix4
         glm::float3 glmNormal = glm::float3(normal[0], normal[1], normal[2]);
         vertex.normal = packNormal(glmNormal);
         sum += vertex.pos;
+
+        // Texture coord
+        if (!meshUVs.empty())
+        {
+            const GfVec2f& uv = meshUVs[j];
+            const glm::float2 glmUV = glm::float2(uv[0], uv[1]);
+            vertex.uv = packUV(glmUV);
+        }
     }
     const glm::float3 massCenter = sum / (float)vertexCount;
 
