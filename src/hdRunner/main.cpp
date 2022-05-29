@@ -340,7 +340,7 @@ bool saveScreenshot(std::string& outputFilePath, float* mappedMem, uint32_t imag
     if (!image)
     {
         fprintf(stderr, "Unable to open output file for writing!\n");
-        return EXIT_FAILURE;
+        return false;
     }
 
     HioImage::StorageSpec storage;
@@ -532,10 +532,10 @@ int main(int argc, const char* argv[])
     uint64_t frameCount = 0;
 
     bool needCopyBuffer = false;
-    int32_t counter = -1;
+    int32_t waitFramesForScreenshot = -1;
 
-    VkDeviceSize imageSize = imageWidth * imageHeight * 16;
-    oka::Buffer* buffer =
+    VkDeviceSize imageSize = imageWidth * imageHeight * 16; // 16 bytes per pixel for VK_FORMAT_R32G32B32A32_SFLOAT
+    oka::Buffer* screenshotTransferBuffer =
         ctx->mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
@@ -565,16 +565,16 @@ int main(int argc, const char* argv[])
 
         if (needScreenshot)
         {
-            if (counter == -1)
+            if (waitFramesForScreenshot == -1)
             {
-                counter = oka::MAX_FRAMES_IN_FLIGHT;
+                waitFramesForScreenshot = oka::MAX_FRAMES_IN_FLIGHT;
                 needCopyBuffer = true;
             }
-            else if (counter > 0)
+            else if (waitFramesForScreenshot > 0)
             {
-                --counter;
+                --waitFramesForScreenshot;
             }
-            else if (counter == 0)
+            else if (waitFramesForScreenshot == 0)
             {
 #ifdef WINDOWS
                 std::size_t foundSlash = usdPath.find_last_of("/\\");
@@ -587,11 +587,11 @@ int main(int argc, const char* argv[])
 
                 std::string outputFilePath =
                     fileName + "_" + std::to_string(iteration - oka::MAX_FRAMES_IN_FLIGHT - 1) + ".png";
-                float* mappedMem = (float*)ctx->mResManager->getMappedMemory(buffer);
+                float* mappedMem = (float*)ctx->mResManager->getMappedMemory(screenshotTransferBuffer);
 
                 if (saveScreenshot(outputFilePath, mappedMem, imageWidth, imageHeight))
                 {
-                    counter = -1;
+                    waitFramesForScreenshot = -1;
                     ctx->mSettingsManager->setAs<bool>("render/pt/needScreenshot", false);
                 }
             }
@@ -601,7 +601,7 @@ int main(int argc, const char* argv[])
         engine.Execute(renderIndex, &tasks); // main path tracing rendering in fixed render resolution
         oka::Image* outputImage =
             renderBuffers[frameCount % oka::MAX_FRAMES_IN_FLIGHT]->GetResource(false).UncheckedGet<oka::Image*>();
-        render.drawFrame(outputImage, needCopyBuffer, buffer); // blit rendered image to swapchain
+        render.drawFrame(outputImage, needCopyBuffer, screenshotTransferBuffer); // blit rendered image to swapchain
         render.drawUI(); // render ui to swapchain image in window resolution
         render.onEndFrame(); // submit command buffer and present
 

@@ -210,7 +210,7 @@ void oka::GLFWRender::onEndFrame()
     ++mSharedCtx.mFrameNumber;
 }
 
-void oka::GLFWRender::drawFrame(Image* result, bool& needCopyBuffer, Buffer* buffer)
+void oka::GLFWRender::drawFrame(Image* result, bool& needCopyBuffer, Buffer* screenshotTransferBuffer)
 {
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
     VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
@@ -239,7 +239,7 @@ void oka::GLFWRender::drawFrame(Image* result, bool& needCopyBuffer, Buffer* buf
             region.imageExtent = { static_cast<uint32_t>(mWindowWidth), static_cast<uint32_t>(mWindowHeight), 1 };
 
             vkCmdCopyImageToBuffer(cmd, mSharedCtx.mResManager->getVkImage(result), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                                   mSharedCtx.mResManager->getVkBuffer(buffer), 1, &region);
+                                   mSharedCtx.mResManager->getVkBuffer(screenshotTransferBuffer), 1, &region);
 
             needCopyBuffer = false;
         }

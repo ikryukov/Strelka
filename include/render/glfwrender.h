@@ -59,7 +59,7 @@ public:
     void onBeginFrame();
     void onEndFrame();
 
-    void drawFrame(Image* result, bool& needCopyBuffer, Buffer* buffer);
+    void drawFrame(Image* result, bool& needCopyBuffer, Buffer* screenshotTransferBuffer);
     void drawUI();
 
     bool framebufferResized = false;
