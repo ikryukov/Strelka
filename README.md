@@ -30,16 +30,15 @@ Use vscode with preset env variable
     
 ## Synopsis 
 
-      Strelka [MODEL PATH] [OPTION...] positional parameters
-      
-        -m, --mesh arg     mesh path (default: misc/Cube/Cube.gltf)
-            --width arg    window width (default: 800)
-            --height arg   window height (default: 600)
-        -h, --help         Print usage
+    Strelka -s <USD Scene path> [OPTION...] positional parameters
+
+    -s, --scene arg       scene path (default: "")
+    -i, --iteration arg  Iteration to capture (default: -1)
+    -h, --help            Print usage
 
 ## Example
 
-    ./Strelka misc/Cube/Cube.gltf
+    ./Strelka -s misc/coffeemaker.usdc -i 100
 
 ## USD
     Vulkan:

@@ -1,45 +1,40 @@
-#include <pxr/pxr.h>
+#include "SimpleRenderTask.h"
+
 #include <pxr/base/gf/gamma.h>
 #include <pxr/base/gf/rotation.h>
 #include <pxr/base/tf/stopwatch.h>
 #include <pxr/imaging/hd/camera.h>
 #include <pxr/imaging/hd/engine.h>
-#include <pxr/imaging/hd/rendererPluginRegistry.h>
 #include <pxr/imaging/hd/pluginRenderDelegateUniqueHandle.h>
+#include <pxr/imaging/hd/renderBuffer.h>
 #include <pxr/imaging/hd/renderDelegate.h>
-#include <pxr/imaging/hd/rendererPlugin.h>
+#include <pxr/imaging/hd/renderIndex.h>
 #include <pxr/imaging/hd/renderPass.h>
 #include <pxr/imaging/hd/renderPassState.h>
-#include <pxr/imaging/hd/renderBuffer.h>
-#include <pxr/imaging/hd/renderIndex.h>
+#include <pxr/imaging/hd/rendererPlugin.h>
+#include <pxr/imaging/hd/rendererPluginRegistry.h>
 #include <pxr/imaging/hf/pluginDesc.h>
 #include <pxr/imaging/hgi/hgi.h>
 #include <pxr/imaging/hgi/tokens.h>
 #include <pxr/imaging/hio/image.h>
 #include <pxr/imaging/hio/imageRegistry.h>
 #include <pxr/imaging/hio/types.h>
+#include <pxr/pxr.h>
 #include <pxr/usd/ar/resolver.h>
 #include <pxr/usd/usd/stage.h>
 #include <pxr/usd/usdGeom/camera.h>
 #include <pxr/usd/usdGeom/metrics.h>
 #include <pxr/usdImaging/usdImaging/delegate.h>
-
-#include <cxxopts.hpp>
-
-#include <algorithm>
-#include <iostream>
-
-#include "SimpleRenderTask.h"
-
 #include <render/common.h>
 #include <render/glfwrender.h>
 
+#include <algorithm>
+#include <cxxopts.hpp>
+#include <iostream>
+
 PXR_NAMESPACE_USING_DIRECTIVE
 
-TF_DEFINE_PRIVATE_TOKENS(
-    _AppTokens,
-    (HdStrelkaDriver)
-    (HdStrelkaRendererPlugin));
+TF_DEFINE_PRIVATE_TOKENS(_AppTokens, (HdStrelkaDriver)(HdStrelkaRendererPlugin));
 
 HdRendererPluginHandle GetHdStrelkaPlugin()
 {
@@ -291,27 +286,25 @@ class RenderSurfaceController : public oka::ResizeHandler
     uint32_t imageHeight = 600;
 
 public:
-
     void framebufferResize(int newWidth, int newHeight)
     {
-    
     }
 };
 
 void setDefaultCamera(UsdGeomCamera& cam)
 {
     // y - up, camera looks at (0, 0, 0)
-    std::vector<float> r0 = {0, -1, 0, 0};
-    std::vector<float> r1 = {0, 0, 1, 0};
-    std::vector<float> r2 = {-1, 0, 0, 0};
-    std::vector<float> r3 = {0, 0, 0, 1};
+    std::vector<float> r0 = { 0, -1, 0, 0 };
+    std::vector<float> r1 = { 0, 0, 1, 0 };
+    std::vector<float> r2 = { -1, 0, 0, 0 };
+    std::vector<float> r3 = { 0, 0, 0, 1 };
 
     GfMatrix4d xform(r0, r1, r2, r3);
     GfCamera mGfCam{};
 
     mGfCam.SetTransform(xform);
 
-    GfRange1f clippingRange = GfRange1f{0.1, 1000};
+    GfRange1f clippingRange = GfRange1f{ 0.1, 1000 };
     mGfCam.SetClippingRange(clippingRange);
     mGfCam.SetVerticalAperture(20.25);
     mGfCam.SetVerticalApertureOffset(0);
@@ -325,15 +318,59 @@ void setDefaultCamera(UsdGeomCamera& cam)
     cam.SetFromCamera(mGfCam, 0.0);
 }
 
+bool saveScreenshot(std::string& outputFilePath, float* mappedMem, uint32_t imageWidth, uint32_t imageHeight)
+{
+    TF_VERIFY(mappedMem != nullptr);
+
+    int pixelCount = imageWidth * imageHeight;
+
+    for (int i = 0; i < pixelCount; i++)
+    {
+        mappedMem[i * 4 + 0] = GfConvertLinearToDisplay(mappedMem[i * 4 + 0]);
+        mappedMem[i * 4 + 1] = GfConvertLinearToDisplay(mappedMem[i * 4 + 1]);
+        mappedMem[i * 4 + 2] = GfConvertLinearToDisplay(mappedMem[i * 4 + 2]);
+    }
+
+    // Write image to file.
+    TfStopwatch timerWrite;
+    timerWrite.Start();
+
+    HioImageSharedPtr image = HioImage::OpenForWriting(outputFilePath);
+
+    if (!image)
+    {
+        fprintf(stderr, "Unable to open output file for writing!\n");
+        return false;
+    }
+
+    HioImage::StorageSpec storage;
+    storage.width = (int)imageWidth;
+    storage.height = (int)imageHeight;
+    storage.depth = (int)1;
+    storage.format = HioFormat::HioFormatFloat32Vec4;
+    storage.flipped = false;
+    storage.data = mappedMem;
+
+    VtDictionary metadata;
+    image->Write(storage, metadata);
+
+    timerWrite.Stop();
+
+    printf("Wrote image (%.3fs)\n", timerWrite.GetSeconds());
+    fflush(stdout);
+
+    return true;
+}
+
 int main(int argc, const char* argv[])
 {
-        // config. options
+    // config. options
     cxxopts::Options options("Strelka -s <USD Scene path>", "commands");
 
-    options.add_options()("s, scene", "scene path", cxxopts::value<std::string>()->default_value(""))
-        ("h, help", "Print usage");
+    options.add_options()("s, scene", "scene path", cxxopts::value<std::string>()->default_value(""))(
+        "i, iteration", "Iteration to capture", cxxopts::value<int32_t>()->default_value("-1"))("h, help", "Print usage");
 
-    options.parse_positional({"s"});
+    options.parse_positional({ "s" });
     auto result = options.parse(argc, argv);
 
     if (result.count("help"))
@@ -349,7 +386,7 @@ int main(int argc, const char* argv[])
         std::cerr << "usd file doesn't exist";
         exit(0);
     }
-
+    int32_t iterationToCapture(result["i"].as<int32_t>());
     // Init plugin.
     HdRendererPluginHandle pluginHandle = GetHdStrelkaPlugin();
 
@@ -376,13 +413,18 @@ int main(int argc, const char* argv[])
     ctx->mSettingsManager = new oka::SettingsManager();
 
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/depth", 6);
-    ctx->mSettingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 0); // 0 - none, 1 - random, 2 - stratified sampling, 3 - optimized stratified sampling
+    ctx->mSettingsManager->setAs<uint32_t>("render/pt/spp", 1);
+    ctx->mSettingsManager->setAs<uint32_t>("render/pt/iteration", 0);
+    ctx->mSettingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 0); // 0 - none, 1 - random, 2 -
+                                                                                   // stratified sampling, 3 - optimized
+                                                                                   // stratified sampling
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/tonemapperType", 0); // 0 - reinhard, 1 - aces, 2 - filmic
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/debug", 0); // 0 - none, 1 - normals
     ctx->mSettingsManager->setAs<float>("render/pt/upscaleFactor", 0.5f);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableUpscale", true);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableAcc", true);
     ctx->mSettingsManager->setAs<bool>("render/pt/enableTonemap", true);
+    ctx->mSettingsManager->setAs<bool>("render/pt/needScreenshot", false);
 
     HdDriver driver;
     driver.name = _AppTokens->HdStrelkaDriver;
@@ -442,8 +484,8 @@ int main(int argc, const char* argv[])
     cam = UsdGeomCamera::Get(stage, cameraPath);
     CameraController cameraController(cam);
 
-    //std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
-    
+    // std::vector<std::pair<HdCamera*, SdfPath>> cameras = FindAllCameras(stage, renderIndex);
+
     // Set up rendering context.
     uint32_t imageWidth = 800;
     uint32_t imageHeight = 600;
@@ -489,11 +531,20 @@ int main(int argc, const char* argv[])
     render.setInputHandler(&cameraController);
 
     uint64_t frameCount = 0;
+
+    bool needCopyBuffer = false;
+    int32_t waitFramesForScreenshot = -1;
+
+    VkDeviceSize imageSize = imageWidth * imageHeight * 16; // 16 bytes per pixel for VK_FORMAT_R32G32B32A32_SFLOAT
+    oka::Buffer* screenshotTransferBuffer =
+        ctx->mResManager->createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
     while (!render.windowShouldClose())
     {
         auto start = std::chrono::high_resolution_clock::now();
         HdTaskSharedPtrVector tasks;
-        tasks.push_back(renderTasks[frameCount % 3]);
+        tasks.push_back(renderTasks[frameCount % oka::MAX_FRAMES_IN_FLIGHT]);
         sceneDelegate.SetTime(1.0f);
 
         render.pollEvents();
@@ -506,16 +557,63 @@ int main(int argc, const char* argv[])
 
         cam.SetFromCamera(cameraController.getCamera(), 0.0);
 
+        uint32_t iteration = ctx->mSettingsManager->getAs<uint32_t>("render/pt/iteration");
+        if (iteration == iterationToCapture)
+        {
+            ctx->mSettingsManager->setAs<bool>("render/pt/needScreenshot", true);
+        }
+        bool needScreenshot = ctx->mSettingsManager->getAs<bool>("render/pt/needScreenshot");
+
+        if (needScreenshot)
+        {
+            if (waitFramesForScreenshot == -1)
+            {
+                waitFramesForScreenshot = oka::MAX_FRAMES_IN_FLIGHT;
+                needCopyBuffer = true;
+            }
+            else if (waitFramesForScreenshot > 0)
+            {
+                --waitFramesForScreenshot;
+            }
+            else if (waitFramesForScreenshot == 0)
+            {
+#ifdef WINDOWS
+                std::size_t foundSlash = usdPath.find_last_of("/\\");
+#else
+                std::size_t foundSlash = usdPath.find_last_of("/");
+#endif
+                std::size_t foundDot = usdPath.find_last_of(".");
+                std::string fileName = usdPath.substr(0, foundDot);
+                fileName = fileName.substr(foundSlash + 1);
+
+                std::string outputFilePath =
+                    fileName + "_" + std::to_string(iteration - oka::MAX_FRAMES_IN_FLIGHT - 1) + "i_" +
+                    std::to_string(ctx->mSettingsManager->getAs<uint32_t>("render/pt/depth")) + "d_" +
+                    std::to_string(ctx->mSettingsManager->getAs<uint32_t>("render/pt/spp")) + "spp" + ".png";
+                float* mappedMem = (float*)ctx->mResManager->getMappedMemory(screenshotTransferBuffer);
+
+                if (saveScreenshot(outputFilePath, mappedMem, imageWidth, imageHeight))
+                {
+                    waitFramesForScreenshot = -1;
+                    ctx->mSettingsManager->setAs<bool>("render/pt/needScreenshot", false);
+                }
+            }
+        }
+
         render.onBeginFrame();
         engine.Execute(renderIndex, &tasks); // main path tracing rendering in fixed render resolution
-        oka::Image* outputImage = renderBuffers[frameCount % 3]->GetResource(false).UncheckedGet<oka::Image*>();
-        render.drawFrame(outputImage); // blit rendered image to swapchain
+        oka::Image* outputImage =
+            renderBuffers[frameCount % oka::MAX_FRAMES_IN_FLIGHT]->GetResource(false).UncheckedGet<oka::Image*>();
+        render.drawFrame(outputImage, needCopyBuffer, screenshotTransferBuffer); // blit rendered image to swapchain
         render.drawUI(); // render ui to swapchain image in window resolution
         render.onEndFrame(); // submit command buffer and present
 
         auto finish = std::chrono::high_resolution_clock::now();
         double frameTime = std::chrono::duration<double, std::milli>(finish - start).count();
-        render.setWindowTitle((std::string("Strelka") + " [" + std::to_string(frameTime) + " ms]").c_str());
+
+        render.setWindowTitle((std::string("Strelka") + " [" + std::to_string(frameTime) + " ms]" + " [" +
+                               std::to_string(iteration) + " iteration]")
+                                  .c_str());
         ++frameCount;
     }
 
@@ -528,50 +626,6 @@ int main(int argc, const char* argv[])
 
     printf("Rendering finished (%.3fs)\n", timerRender.GetSeconds());
     fflush(stdout);
-
-    // Gamma correction.
-    // float* mappedMem = (float*)renderBuffer->Map();
-    // TF_VERIFY(mappedMem != nullptr);
-
-    // int pixelCount = renderBuffer->GetWidth() * renderBuffer->GetHeight();
-
-    // for (int i = 0; i < pixelCount; i++)
-    //{
-    //    mappedMem[i * 4 + 0] = GfConvertLinearToDisplay(mappedMem[i * 4 + 0]);
-    //    mappedMem[i * 4 + 1] = GfConvertLinearToDisplay(mappedMem[i * 4 + 1]);
-    //    mappedMem[i * 4 + 2] = GfConvertLinearToDisplay(mappedMem[i * 4 + 2]);
-    //}
-
-    //// Write image to file.
-    // TfStopwatch timerWrite;
-    // timerWrite.Start();
-
-    // std::string outputFilePath = "res.png";
-
-    // HioImageSharedPtr image = HioImage::OpenForWriting(outputFilePath);
-
-    // if (!image)
-    //{
-    //    fprintf(stderr, "Unable to open output file for writing!\n");
-    //    return EXIT_FAILURE;
-    //}
-
-    // HioImage::StorageSpec storage;
-    // storage.width = (int)renderBuffer->GetWidth();
-    // storage.height = (int)renderBuffer->GetHeight();
-    // storage.depth = (int)renderBuffer->GetDepth();
-    // storage.format = HioFormat::HioFormatFloat32Vec4;
-    // storage.flipped = false;
-    // storage.data = mappedMem;
-
-    // VtDictionary metadata;
-    // image->Write(storage, metadata);
-
-    // renderBuffer->Unmap();
-    // timerWrite.Stop();
-
-    // printf("Wrote image (%.3fs)\n", timerWrite.GetSeconds());
-    // fflush(stdout);
 
     for (int i = 0; i < 3; ++i)
     {

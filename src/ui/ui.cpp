@@ -861,6 +861,11 @@ void Ui::updateUI(oka::SettingsManager* settingsManager)
     }
     settingsManager->setAs<float>("render/pt/upscaleFactor", upscaleFactor);
 
+    if (ImGui::Button("Capture Screen"))
+    {
+        settingsManager->setAs<bool>("render/pt/needScreenshot", true);
+    }
+
     // bool isRecreate = ImGui::Button("Recreate BVH");
     // renderConfig.recreateBVH = isRecreate ? true : false;
 
