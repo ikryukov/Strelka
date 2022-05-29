@@ -56,11 +56,22 @@ float3 estimateDirectLighting(inout uint rngState,
     {
         Ray shadowRay;
         shadowRay.d = float4(lightSampleData.L, 0.0f);
-        shadowRay.o = float4(offset_ray(state.position, state.geom_normal), lightSampleData.distToLight - 1e-4f); // need to set offset to fix self-collision
+        shadowRay.o = float4(offset_ray(state.position, state.geom_normal), lightSampleData.distToLight); // need to set offset to fix self-collision
 
         Hit shadowHit;
         shadowHit.t = 0.0;
         float visibility = anyHit(accel, shadowRay, shadowHit) ? 0.0f : 1.0f;
+
+        if (visibility == 0.0f)
+        {
+            // check if it was light hit?
+            InstanceConstants instConst = accel.instanceConstants[NonUniformResourceIndex(shadowHit.instId)];
+            if (instConst.lightId != -1) 
+            {
+                // light hit => visible
+                visibility = 1.0f;
+            }
+        }
 
         lightPdf = lightSampleData.pdf;
         return visibility * Li * saturate(dot(state.normal, lightSampleData.L));
@@ -280,8 +291,6 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 mdlState.arg_block_offset = currMdlMaterial.arg_block_offset;
                 mdlState.text_coords[0] = float3(uvCoord, 0);
 
-                float3 shadingNormal = mdlState.geom_normal;
-
                 const float ior1 = (inside) ? BSDF_USE_MATERIAL_IOR : 1.0f; // material -> air
                 const float ior2 = (inside) ? 1.0f : BSDF_USE_MATERIAL_IOR;
 
@@ -294,7 +303,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 float3 intensity = mdl_edf_emission_intensity(scatteringFunctionIndex, mdlState);
                 finalColor += throughput * intensity * edfEval.edf;
 
-                mdlState.geom_normal = shadingNormal; // reset normal (init calls can change the normal due to maps)
+                mdlState.geom_normal = geomNormal; // reset normal (init calls can change the normal due to maps)
                 mdl_bsdf_scattering_init(scatteringFunctionIndex, mdlState);
 
                 float3 toLight; //return value for sampleLights()
@@ -349,7 +358,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
                 if (sampleData.event_type == BSDF_EVENT_ABSORB)
                 {
                     // stop on absorb
-                     break;
+                    break;
                 }
 
                 // flip inside/outside on transmission
@@ -382,7 +391,7 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
             //float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
             //finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
 
-            finalColor += throughput * float3(1.f);
+            finalColor += throughput * float3(0.0f);
 
             break;
         }
@@ -404,7 +413,7 @@ void computeMain(uint2 dispatchIndex : SV_DispatchThreadID)
     uint sampleNum = dispatchIndex.x % ubo.spp;
 
     uint rngState = initRNG(pixelIndex, ubo.dimension, ubo.frameNumber * ubo.spp + sampleNum);
-    float3 color = pathTraceCameraRays(pixelIndex, rngState, sampleNum);
+    float3 color = pathTraceCameraRays(pixelIndex, rngState, ubo.frameNumber * ubo.spp + sampleNum);
 
     sampleBuffer[dispatchIndex.x * 3 + 0] = color.r;
     sampleBuffer[dispatchIndex.x * 3 + 1] = color.g;

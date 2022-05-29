@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
-            "args": ["-s", "./misc/matwcam2.usda"],
+            "args": ["-s", "./misc/mustang.usda"],
             "stopAtEntry": false,
             //"cwd": "${workspaceFolder}",
             "cwd": "${command:cmake.buildDirectory}/bin",

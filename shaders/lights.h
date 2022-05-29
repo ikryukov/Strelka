@@ -275,8 +275,10 @@ void fillLightData(in UniformLight l, float3 hitPoint, in out LightSampleData li
 {
     lightSampleData.area = calcLightArea(l);
     lightSampleData.normal = calcLightNormal(l, hitPoint);
-    lightSampleData.L = normalize(lightSampleData.pointOnLight - hitPoint);
-    lightSampleData.distToLight = distance(lightSampleData.pointOnLight, hitPoint);
+    const float3 toLight = lightSampleData.pointOnLight - hitPoint;
+    const float lenToLight = length(toLight);
+    lightSampleData.L = toLight / lenToLight;
+    lightSampleData.distToLight = lenToLight;
 }
 
 LightSampleData SampleRectLight(in UniformLight l, float2 u, float3 hitPoint)
