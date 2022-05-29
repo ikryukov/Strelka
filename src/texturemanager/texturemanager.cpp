@@ -5,6 +5,8 @@
 #include <stb_image_write.h>
 #include <texturemanager.h>
 
+#include "bindless.h"
+
 void oka::TextureManager::savePNG(int32_t width, int32_t height, uint8_t* colorData)
 {
     stbi_write_png("result.png", width, height, 3, colorData, 3 * width);
@@ -80,6 +82,11 @@ int oka::TextureManager::loadTextureMdl(const std::string& texture_path)
 
         createTextureImageView(tex);
         stbi_image_free(pixels);
+
+        if (textures.size() >= BINDLESS_TEXTURE_COUNT)
+        {
+            printf("WARNING: texture count is limited to %d, output image might be corrupted.", BINDLESS_TEXTURE_COUNT);
+        }
     }
     return mNameToID.find(texture_path)->second;
 }
