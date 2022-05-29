@@ -210,7 +210,7 @@ void oka::GLFWRender::onEndFrame()
     ++mSharedCtx.mFrameNumber;
 }
 
-void oka::GLFWRender::drawFrame(Image* result)
+void oka::GLFWRender::drawFrame(Image* result, bool& needCopyBuffer, Buffer* screenshotTransferBuffer)
 {
     const uint32_t frameIndex = mSharedCtx.mFrameIndex;
     VkCommandBuffer& cmd = getCurrentFrameData().cmdBuffer;
@@ -224,6 +224,25 @@ void oka::GLFWRender::drawFrame(Image* result)
         recordBarrier(cmd, mSwapChainImages[frameIndex], VK_IMAGE_LAYOUT_UNDEFINED,
                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                       VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+
+        if (needCopyBuffer)
+        {
+            VkBufferImageCopy region{};
+            region.bufferOffset = 0;
+            region.bufferRowLength = 0;
+            region.bufferImageHeight = 0;
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel = 0;
+            region.imageSubresource.baseArrayLayer = 0;
+            region.imageSubresource.layerCount = 1;
+            region.imageOffset = { 0, 0, 0 };
+            region.imageExtent = { static_cast<uint32_t>(mWindowWidth), static_cast<uint32_t>(mWindowHeight), 1 };
+
+            vkCmdCopyImageToBuffer(cmd, mSharedCtx.mResManager->getVkImage(result), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                   mSharedCtx.mResManager->getVkBuffer(screenshotTransferBuffer), 1, &region);
+
+            needCopyBuffer = false;
+        }
 
         VkOffset3D srcBlitSize{};
         srcBlitSize.x = mWindowWidth;
