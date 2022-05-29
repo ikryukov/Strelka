@@ -1,9 +1,11 @@
 #pragma once
 
-#include "pxr/pxr.h"
+#include <pxr/pxr.h>
 #include <pxr/imaging/hd/mesh.h>
 
 #include <scene/scene.h>
+
+#include <pxr/base/gf/vec2f.h>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -27,11 +29,9 @@ public:
     const TfTokenVector& GetBuiltinPrimvarNames() const override;
 
     const std::vector<GfVec3f>& GetPoints() const;
-
     const std::vector<GfVec3f>& GetNormals() const;
-
     const std::vector<GfVec3i>& GetFaces() const;
-
+    const std::vector<GfVec2f>& GetUVs() const;
     const GfMatrix4d& GetPrototypeTransform() const;
 
     const GfVec3f& GetColor() const;
@@ -55,7 +55,9 @@ private:
     void _PullPrimvars(HdSceneDelegate* sceneDelegate,
                        VtVec3fArray& points,
                        VtVec3fArray& normals,
+                       VtVec2fArray& uvs,
                        bool& indexedNormals,
+                       bool& indexedUVs,
                        GfVec3f& color,
                        bool& hasColor) const;
 
@@ -63,6 +65,7 @@ private:
     GfMatrix4d m_prototypeTransform;
     std::vector<GfVec3f> m_points;
     std::vector<GfVec3f> m_normals;
+    std::vector<GfVec2f> m_uvs;
     std::vector<GfVec3i> m_faces;
     GfVec3f m_color;
     bool m_hasColor;

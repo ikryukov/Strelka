@@ -7,6 +7,12 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
+// clang-format off
+TF_DEFINE_PRIVATE_TOKENS(_tokens,
+    (st)
+);
+// clang-format on
+
 HdStrelkaMesh::HdStrelkaMesh(const SdfPath& id, oka::Scene* scene)
     : HdMesh(id), m_prototypeTransform(1.0), m_color(0.0, 0.0, 0.0), m_hasColor(false), mScene(scene)
 {
@@ -65,8 +71,6 @@ void HdStrelkaMesh::Sync(HdSceneDelegate* sceneDelegate,
     m_normals.clear();
 
     _UpdateGeometry(sceneDelegate);
-
-    //_ConvertMesh();
 }
 
 //  valid range of coordinates [-1; 1]
@@ -143,9 +147,11 @@ void HdStrelkaMesh::_UpdateGeometry(HdSceneDelegate* sceneDelegate)
 
     VtVec3fArray points;
     VtVec3fArray normals;
+    VtVec2fArray uvs;
     bool indexedNormals;
-    _PullPrimvars(sceneDelegate, points, normals, indexedNormals, m_color, m_hasColor);
-
+    bool indexedUVs;
+    _PullPrimvars(sceneDelegate, points, normals, uvs, indexedNormals, indexedUVs, m_color, m_hasColor);
+    const bool hasUVs = !uvs.empty();
     for (int i = 0; i < indices.size(); i++)
     {
         GfVec3i newFaceIndices(i * 3 + 0, i * 3 + 1, i * 3 + 2);
@@ -158,6 +164,12 @@ void HdStrelkaMesh::_UpdateGeometry(HdSceneDelegate* sceneDelegate)
         m_normals.push_back(normals[indexedNormals ? faceIndices[0] : newFaceIndices[0]]);
         m_normals.push_back(normals[indexedNormals ? faceIndices[1] : newFaceIndices[1]]);
         m_normals.push_back(normals[indexedNormals ? faceIndices[2] : newFaceIndices[2]]);
+        if (hasUVs)
+        {
+            m_uvs.push_back(uvs[indexedUVs ? faceIndices[0] : newFaceIndices[0]]);
+            m_uvs.push_back(uvs[indexedUVs ? faceIndices[1] : newFaceIndices[1]]);
+            m_uvs.push_back(uvs[indexedUVs ? faceIndices[2] : newFaceIndices[2]]);
+        }
     }
 }
 
@@ -168,11 +180,9 @@ bool HdStrelkaMesh::_FindPrimvar(HdSceneDelegate* sceneDelegate, TfToken primvar
         HdInterpolation::HdInterpolationConstant, HdInterpolation::HdInterpolationUniform,
         HdInterpolation::HdInterpolationVarying,  HdInterpolation::HdInterpolationInstance
     };
-
     for (HdInterpolation i : interpolations)
     {
         const auto& primvarDescs = GetPrimvarDescriptors(sceneDelegate, i);
-
         for (const HdPrimvarDescriptor& primvar : primvarDescs)
         {
             if (primvar.name == primvarName)
@@ -183,19 +193,19 @@ bool HdStrelkaMesh::_FindPrimvar(HdSceneDelegate* sceneDelegate, TfToken primvar
             }
         }
     }
-
     return false;
 }
 
 void HdStrelkaMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
                                   VtVec3fArray& points,
                                   VtVec3fArray& normals,
+                                  VtVec2fArray& uvs,
                                   bool& indexedNormals,
+                                  bool& indexedUVs,
                                   GfVec3f& color,
                                   bool& hasColor) const
 {
     const SdfPath& id = GetId();
-
     // Handle points.
     HdInterpolation pointInterpolation;
     bool foundPoints = _FindPrimvar(sceneDelegate, HdTokens->points, pointInterpolation);
@@ -226,6 +236,8 @@ void HdStrelkaMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
         hasColor = true;
     }
 
+    HdMeshTopology topology = GetMeshTopology(sceneDelegate);
+
     // Handle normals.
     HdInterpolation normalInterpolation;
     bool foundNormals = _FindPrimvar(sceneDelegate, HdTokens->normals, normalInterpolation);
@@ -235,11 +247,7 @@ void HdStrelkaMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
         VtValue boxedNormals = sceneDelegate->Get(id, HdTokens->normals);
         normals = boxedNormals.Get<VtVec3fArray>();
         indexedNormals = true;
-        return;
     }
-
-    HdMeshTopology topology = GetMeshTopology(sceneDelegate);
-
     if (foundNormals && normalInterpolation == HdInterpolation::HdInterpolationFaceVarying)
     {
         VtValue boxedFvNormals = sceneDelegate->Get(id, HdTokens->normals);
@@ -255,13 +263,37 @@ void HdStrelkaMesh::_PullPrimvars(HdSceneDelegate* sceneDelegate,
 
         normals = boxedTriangulatedNormals.Get<VtVec3fArray>();
         indexedNormals = false;
-        return;
     }
+    else
+    {
+        Hd_VertexAdjacency adjacency;
+        adjacency.BuildAdjacencyTable(&topology);
+        normals = Hd_SmoothNormals::ComputeSmoothNormals(&adjacency, points.size(), points.cdata());
+        indexedNormals = true;
+    }
+    // Handle texture coords
+    HdInterpolation textureCoordInterpolation;
+    bool foundTextureCoord = _FindPrimvar(sceneDelegate, _tokens->st, textureCoordInterpolation);
+    if (foundTextureCoord && textureCoordInterpolation == HdInterpolationVertex)
+    {
+        uvs = sceneDelegate->Get(id, _tokens->st).Get<VtVec2fArray>();
+        indexedUVs = true;
+    }
+    if (foundTextureCoord && textureCoordInterpolation == HdInterpolation::HdInterpolationFaceVarying)
+    {
+        VtValue boxedUVs = sceneDelegate->Get(id, _tokens->st);
+        const VtVec2fArray& fvUVs = boxedUVs.Get<VtVec2fArray>();
 
-    Hd_VertexAdjacency adjacency;
-    adjacency.BuildAdjacencyTable(&topology);
-    normals = Hd_SmoothNormals::ComputeSmoothNormals(&adjacency, points.size(), points.cdata());
-    indexedNormals = true;
+        HdMeshUtil meshUtil(&topology, id);
+        VtValue boxedTriangulatedUVS;
+        if (!meshUtil.ComputeTriangulatedFaceVaryingPrimvar(
+                fvUVs.cdata(), fvUVs.size(), HdTypeFloatVec2, &boxedTriangulatedUVS))
+        {
+            TF_CODING_ERROR("Unable to triangulate face-varying UVs of %s", id.GetText());
+        }
+        uvs = boxedTriangulatedUVS.Get<VtVec2fArray>();
+        indexedUVs = false;
+    }
 }
 
 const TfTokenVector BUILTIN_PRIMVAR_NAMES = { HdTokens->points, HdTokens->normals };
@@ -284,6 +316,11 @@ const std::vector<GfVec3f>& HdStrelkaMesh::GetNormals() const
 const std::vector<GfVec3i>& HdStrelkaMesh::GetFaces() const
 {
     return m_faces;
+}
+
+const std::vector<GfVec2f>& HdStrelkaMesh::GetUVs() const
+{
+    return m_uvs;
 }
 
 const GfMatrix4d& HdStrelkaMesh::GetPrototypeTransform() const

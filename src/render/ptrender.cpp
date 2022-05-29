@@ -258,8 +258,26 @@ void oka::PtRender::reloadPt()
     {
         for (const auto& param : matDescs[i].params)
         {
-            mMaterialManager->setParam(mdlTargetCode, compiledMaterials[i], param);
+            if (param.type == MaterialManager::Param::Type::eTexture)
+            {
+                std::string texPath(param.value.size(), 0);
+                memcpy(texPath.data(), param.value.data(), param.value.size());
+                int texId = getTexManager()->loadTextureMdl(texPath);
+                int resId = mMaterialManager->registerResource(mdlTargetCode, texId);
+                assert(resId > 0);
+                MaterialManager::Param newParam;
+                newParam.name = param.name;
+                newParam.type = MaterialManager::Param::Type::eInt;
+                newParam.value.resize(sizeof(resId));
+                memcpy(newParam.value.data(), &resId, sizeof(resId));
+                mMaterialManager->setParam(mdlTargetCode, compiledMaterials[i], newParam);
+            }
+            else
+            {
+                mMaterialManager->setParam(mdlTargetCode, compiledMaterials[i], param);
+            }
         }
+        mMaterialManager->dumpParams(mdlTargetCode, compiledMaterials[i]);
     }
 
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
