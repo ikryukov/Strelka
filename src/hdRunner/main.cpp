@@ -413,6 +413,7 @@ int main(int argc, const char* argv[])
     ctx->mSettingsManager = new oka::SettingsManager();
 
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/depth", 6);
+    ctx->mSettingsManager->setAs<uint32_t>("render/pt/spp", 1);
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/iteration", 0);
     ctx->mSettingsManager->setAs<uint32_t>("render/pt/stratifiedSamplingType", 0); // 0 - none, 1 - random, 2 -
                                                                                    // stratified sampling, 3 - optimized
@@ -586,7 +587,9 @@ int main(int argc, const char* argv[])
                 fileName = fileName.substr(foundSlash + 1);
 
                 std::string outputFilePath =
-                    fileName + "_" + std::to_string(iteration - oka::MAX_FRAMES_IN_FLIGHT - 1) + ".png";
+                    fileName + "_" + std::to_string(iteration - oka::MAX_FRAMES_IN_FLIGHT - 1) + "i_" +
+                    std::to_string(ctx->mSettingsManager->getAs<uint32_t>("render/pt/depth")) + "d_" +
+                    std::to_string(ctx->mSettingsManager->getAs<uint32_t>("render/pt/spp")) + "spp" + ".png";
                 float* mappedMem = (float*)ctx->mResManager->getMappedMemory(screenshotTransferBuffer);
 
                 if (saveScreenshot(outputFilePath, mappedMem, imageWidth, imageHeight))

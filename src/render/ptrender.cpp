@@ -18,7 +18,6 @@ namespace fs = std::filesystem;
 const uint32_t MAX_LIGHT_COUNT = 100;
 const uint32_t HEIGHT = 600;
 const uint32_t WIDTH = 800;
-const uint32_t SPP = 1;
 
 using namespace oka;
 
@@ -44,7 +43,7 @@ void PtRender::init()
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        mView[i] = createView(WIDTH, HEIGHT, SPP);
+        mView[i] = createView(WIDTH, HEIGHT, getSettingsManager()->getAs<uint32_t>("render/pt/spp"));
     }
 
     {
@@ -150,7 +149,8 @@ void PtRender::init()
     ptcode << pt.rdbuf();
 
     assert(materials.size() != 0);
-    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials.data(), materials.size());
+    const MaterialManager::TargetCode* mdlTargetCode =
+        mMaterialManager->generateTargetCode(materials.data(), materials.size());
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
     mCurrentSceneRenderData = new SceneRenderData(getResManager());
@@ -251,7 +251,8 @@ void oka::PtRender::reloadPt()
     ptcode << pt.rdbuf();
 
     assert(compiledMaterials.size() != 0);
-    MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(compiledMaterials.data(), compiledMaterials.size());
+    MaterialManager::TargetCode* mdlTargetCode =
+        mMaterialManager->generateTargetCode(compiledMaterials.data(), compiledMaterials.size());
 
     for (uint32_t i = 0; i < matDescs.size(); ++i)
     {
@@ -675,7 +676,7 @@ void PtRender::drawFrame(Image* result)
     }
     if (mNeedRecreateView[frameIndex])
     {
-        mView[frameIndex] = createView(WIDTH, HEIGHT, SPP);
+        mView[frameIndex] = createView(WIDTH, HEIGHT, getSettingsManager()->getAs<uint32_t>("render/pt/spp"));
         mNeedRecreateView[frameIndex] = false;
     }
 
