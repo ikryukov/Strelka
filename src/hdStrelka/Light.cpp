@@ -9,6 +9,8 @@
 #include <pxr/imaging/hd/smoothNormals.h>
 #include <pxr/imaging/hd/vertexAdjacency.h>
 
+#include <pxr/usd/sdr/registry.h>
+
 #include <iostream>
 
 PXR_NAMESPACE_OPEN_SCOPE
@@ -198,17 +200,17 @@ void HdStrelkaLight::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* renderP
     else if (mLightType == HdPrimTypeTokens->domeLight)
     {
         mLightDesc.type = 4;
-//        // Dome light texture
-//        {
-//            const VtValue v = sceneDelegate->GetLightParamValue(id, HdLightTokens->textureFile);
-//            if (!v.IsEmpty()) {
-//                if (v.IsHolding<SdfAssetPath>()) {
-//                    l.SetDomeLightTextureFile(v.UncheckedGet<SdfAssetPath>());
-//                } else {
-//                    TF_CODING_ERROR("Dome light texture file not an asset path.");
-//                }
-//            }
-//        }
+       // Dome light texture
+        {
+            const VtValue v = sceneDelegate->GetLightParamValue(id, HdLightTokens->textureFile);
+            if (!v.IsEmpty()) {
+                if (v.IsHolding<SdfAssetPath>()) {
+                    mLightDesc.texPath = v.UncheckedGet<SdfAssetPath>().GetAssetPath();
+                } else {
+                    TF_CODING_ERROR("Dome light texture file not an asset path.");
+                }
+            }
+        }
     }
 }
 

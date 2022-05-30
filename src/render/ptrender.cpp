@@ -280,6 +280,19 @@ void oka::PtRender::reloadPt()
         mMaterialManager->dumpParams(mdlTargetCode, compiledMaterials[i]);
     }
 
+    std::vector<Scene::Light>& lightGPUDescs = mScene->getLights();
+    std::vector<Scene::UniformLightDesc>& lightCPUDescs = mScene->getLightsDesc();
+    for (uint32_t i = 0; i < lightCPUDescs.size(); ++i)
+    {
+            if (lightCPUDescs[i].type == 4) // dome light
+            {
+                int texId = getTexManager()->loadTextureMdl(lightCPUDescs[i].texPath);
+                int resId = mMaterialManager->registerResource(mdlTargetCode, texId);
+                assert(resId > 0);
+                lightGPUDescs[i].texId = texId;
+            }
+    }
+
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
     mCurrentSceneRenderData->mMaterialTargetCode = mdlTargetCode;
@@ -658,10 +671,11 @@ void PtRender::drawFrame(Image* result)
         createVertexBuffer(*mScene);
         createIndexBuffer(*mScene);
         createInstanceBuffer(*mScene);
-        createLightsBuffer(*mScene);
-        createBvhBuffer(*mScene); // need to update descriptors after it
 
         reloadPt();
+
+        createLightsBuffer(*mScene);
+        createBvhBuffer(*mScene); // need to update descriptors after it
         // createMaterialBuffer(*mScene);
         createMdlBuffers();
     }

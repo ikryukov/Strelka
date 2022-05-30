@@ -511,7 +511,6 @@ void Scene::updateLight(const uint32_t lightId, const UniformLightDesc& desc)
         const glm::float4x4 localTransform = desc.useXform ?  desc.xform : getTransform(desc);
 
         mLights[lightId].points[0] = localTransform * glm::float4(0.f, 0.f, 0.f, 1.f); // save O
-
         mLights[lightId].type = 4;
     }
 

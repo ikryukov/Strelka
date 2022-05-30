@@ -13,9 +13,9 @@ struct UniformLight
     float4 color;
     float4 normal;
     int type;
+    int texId;
     float pad0;
-    float pad2;
-    float pad3;
+    float pad1;
 };
 
 struct LightSampleData
@@ -281,12 +281,15 @@ void fillLightData(in UniformLight l, float3 hitPoint, in out LightSampleData li
     lightSampleData.distToLight = lenToLight;
 }
 
-LightSampleData SampleDomeLight(in UniformLight l, float3 surfaceNormal, float3 hitPoint, float2 u)
+LightSampleData SampleDomeLight(in out UniformLight l, float3 surfaceNormal, float3 hitPoint, float2 u)
 {
     LightSampleData lightSampleData;
 
     lightSampleData.pointOnLight = l.points[0].xyz;
     lightSampleData.L = SampleRayInHemisphere(hitPoint, u);
+
+    l.color.rgb *= mdl_textures_2d[l.texId].Sample(mdl_sampler_tex, DirectionToLatLongUV(lightSampleData.L)).rgb;
+
     lightSampleData.normal = normalize(-surfaceNormal);
     lightSampleData.distToLight = 1000000.f;
     lightSampleData.pdf = 1.0f;

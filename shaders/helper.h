@@ -1,10 +1,24 @@
 #pragma once
 
 #define PI 3.1415926535897
+#define TWO_PI (PI * 2.0f)
 #define INVERSE_PI (1.0 / PI)
 #define PiOver2 1.57079632679489661923
 #define PiOver4 0.78539816339744830961
 #define DIRAC -1.0f
+
+// Converts a direction in space to a UV coord for an
+// equirectorial (or latitude/longitude) map
+float2 DirectionToLatLongUV(float3 dir)
+{
+    // Calculate polar coords
+    dir = normalize(dir);
+    float theta = acos(dir.y);
+    float phi = atan2(dir.z, -dir.x);
+
+    // Normalize
+    return float2((PI + phi) / TWO_PI, theta / PI);
+}
 
 // Clever offset_ray function from Ray Tracing Gems chapter 6
 // Offsets the ray origin from current position p, along normal n (which must be geometric normal)
