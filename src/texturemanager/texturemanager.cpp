@@ -5,6 +5,8 @@
 #include <stb_image_write.h>
 #include <texturemanager.h>
 
+#include "bindless.h"
+
 void oka::TextureManager::savePNG(int32_t width, int32_t height, uint8_t* colorData)
 {
     stbi_write_png("result.png", width, height, 3, colorData, 3 * width);
@@ -60,6 +62,33 @@ int oka::TextureManager::loadTextureMdl(
     }
 
     return mNameToID.find(name)->second;
+}
+
+int oka::TextureManager::loadTextureMdl(const std::string& texture_path)
+{
+    if (mNameToID.find(texture_path) == mNameToID.end())
+    {
+        int texWidth, texHeight, texChannels;
+        stbi_uc* pixels = stbi_load(texture_path.c_str(), &texWidth, &texHeight, &texChannels, STBI_rgb_alpha);
+        VkDeviceSize imageSize = texWidth * texHeight * 4;
+        if (!pixels)
+        {
+            throw std::runtime_error("failed to load texture image!");
+        }
+        mNameToID[texture_path] = textures.size();
+        Texture tex = createTextureImage(pixels, 4 * sizeof(char), VK_FORMAT_R8G8B8A8_SRGB, texWidth, texHeight, texture_path.c_str());
+        textures.push_back(tex);
+        textureImages.push_back(tex.textureImage);
+
+        createTextureImageView(tex);
+        stbi_image_free(pixels);
+
+        if (textures.size() >= BINDLESS_TEXTURE_COUNT)
+        {
+            printf("WARNING: texture count is limited to %d, output image might be corrupted.", BINDLESS_TEXTURE_COUNT);
+        }
+    }
+    return mNameToID.find(texture_path)->second;
 }
 
 oka::TextureManager::Texture oka::TextureManager::createCubeMapTextureImage(std::string texture_path[6])

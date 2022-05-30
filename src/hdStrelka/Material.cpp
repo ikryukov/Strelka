@@ -1,5 +1,6 @@
 #include "Material.h"
 
+#include <pxr/base/gf/vec2f.h>
 #include <pxr/usd/sdr/registry.h>
 #include <pxr/usdImaging/usdImaging/tokens.h>
 
@@ -66,7 +67,11 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
         }
         for (std::pair<TfToken, VtValue> params : node.parameters)
         {
+            std::string name = params.first.GetString();
+
             TfType type = params.second.GetType();
+            printf("Param name: %s\t%s\n", name.c_str(), params.second.GetTypeName().c_str());
+
             if (type.IsA<GfVec3f>())
             {
                 oka::MaterialManager::Param param;
@@ -106,6 +111,45 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
                 param.value.resize(sizeof(val));
                 memcpy(param.value.data(), &val, sizeof(val));
                 mMaterialParams.push_back(param);
+            }
+            else if (type.IsA<bool>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eBool;
+                bool val = params.second.Get<bool>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
+            }
+            else if (type.IsA<SdfAssetPath>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eTexture;
+                SdfAssetPath val = params.second.Get<SdfAssetPath>();
+                printf("path: %s\n", val.GetAssetPath().c_str());
+                std::string texPath = val.GetAssetPath();
+                if (!texPath.empty())
+                {
+                    param.value.resize(texPath.size());
+                    memcpy(param.value.data(), texPath.data(), texPath.size());
+                    mMaterialParams.push_back(param);
+                }
+            }
+            else if (type.IsA<GfVec2f>())
+            {
+                oka::MaterialManager::Param param;
+                param.name = params.first;
+                param.type = oka::MaterialManager::Param::Type::eFloat2;
+                GfVec2f val = params.second.Get<GfVec2f>();
+                param.value.resize(sizeof(val));
+                memcpy(param.value.data(), &val, sizeof(val));
+                mMaterialParams.push_back(param);
+            }
+            else
+            {
+                printf("Unknown parameter type!\n");
             }
         }
     }

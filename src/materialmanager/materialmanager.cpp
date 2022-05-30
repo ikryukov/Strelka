@@ -314,10 +314,10 @@ public:
             mi::neuraylib::IValue::Kind kind;
             mi::Size arg_size;
             const mi::Size offsetInArgBlock = arg_layout->get_layout(kind, arg_size, valLayoutState);
-            printf("\t offset = %llu\n", offsetInArgBlock);
+            printf("\t offset = %llu\t size = %llu\n", offsetInArgBlock, arg_size);
 
-            char* data = baseArgBlockData + offsetInArgBlock;
-            // const uint8_t* data = targetCode->argBlockData.data() + argBlockOffset + offsetInArgBlock;
+            // char* data = baseArgBlockData + offsetInArgBlock;
+            const uint8_t* data = targetCode->argBlockData.data() + argBlockOffset + offsetInArgBlock;
             switch (kind)
             {
             case mi::neuraylib::IValue::Kind::VK_FLOAT:
@@ -351,6 +351,8 @@ public:
             case mi::neuraylib::IValue::Kind::VK_TEXTURE:
             {
                 printf("\t type texture\n");
+                int val = *((int*)data);
+                printf("\t val = %d\n", val);
                 break;
             }
 
@@ -545,7 +547,7 @@ public:
                 // uint32_t width = getTextureWidth(targetCode, i);
                 // uint32_t height = getTextureHeight(targetCode, i);
                 // const char* type = getTextureType(targetCode, i);
-                // printf("Material texture name: %s\n", texName);
+                printf("Material texture name: %s\n", texName);
             }
         }
         else
@@ -556,6 +558,14 @@ public:
         targetCode->isInitialized = true;
         return targetCode;
     };
+
+    int registerResource(TargetCode* targetCode, int index)
+    {
+        Mdl_resource_info ri{ 0 };
+        ri.gpu_resource_array_start = index;
+        targetCode->resourceInfo.push_back(ri);
+        return (int) targetCode->resourceInfo.size() - 1;
+    }
 
     const char* getShaderCode(const TargetCode* targetCode)
     {
@@ -882,6 +892,11 @@ uint32_t MaterialManager::getResourceInfoSize(const TargetCode* targetCode)
 const uint8_t* MaterialManager::getResourceInfoData(const TargetCode* targetCode)
 {
     return mContext->getResourceInfoData(targetCode);
+}
+
+int MaterialManager::registerResource(TargetCode* targetCode, int index)
+{
+    return mContext->registerResource(targetCode, index);
 }
 
 uint32_t MaterialManager::getMdlMaterialSize(const TargetCode* targetCode)

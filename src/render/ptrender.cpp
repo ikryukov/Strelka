@@ -18,7 +18,6 @@ namespace fs = std::filesystem;
 const uint32_t MAX_LIGHT_COUNT = 100;
 const uint32_t HEIGHT = 600;
 const uint32_t WIDTH = 800;
-const uint32_t SPP = 1;
 
 using namespace oka;
 
@@ -44,7 +43,7 @@ void PtRender::init()
 
     for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
     {
-        mView[i] = createView(WIDTH, HEIGHT, SPP);
+        mView[i] = createView(WIDTH, HEIGHT, getSettingsManager()->getAs<uint32_t>("render/pt/spp"));
     }
 
     {
@@ -150,7 +149,8 @@ void PtRender::init()
     ptcode << pt.rdbuf();
 
     assert(materials.size() != 0);
-    const MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(materials.data(), materials.size());
+    const MaterialManager::TargetCode* mdlTargetCode =
+        mMaterialManager->generateTargetCode(materials.data(), materials.size());
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
     mCurrentSceneRenderData = new SceneRenderData(getResManager());
@@ -251,14 +251,33 @@ void oka::PtRender::reloadPt()
     ptcode << pt.rdbuf();
 
     assert(compiledMaterials.size() != 0);
-    MaterialManager::TargetCode* mdlTargetCode = mMaterialManager->generateTargetCode(compiledMaterials.data(), compiledMaterials.size());
+    MaterialManager::TargetCode* mdlTargetCode =
+        mMaterialManager->generateTargetCode(compiledMaterials.data(), compiledMaterials.size());
 
     for (uint32_t i = 0; i < matDescs.size(); ++i)
     {
         for (const auto& param : matDescs[i].params)
         {
-            mMaterialManager->setParam(mdlTargetCode, compiledMaterials[i], param);
+            if (param.type == MaterialManager::Param::Type::eTexture)
+            {
+                std::string texPath(param.value.size(), 0);
+                memcpy(texPath.data(), param.value.data(), param.value.size());
+                int texId = getTexManager()->loadTextureMdl(texPath);
+                int resId = mMaterialManager->registerResource(mdlTargetCode, texId);
+                assert(resId > 0);
+                MaterialManager::Param newParam;
+                newParam.name = param.name;
+                newParam.type = MaterialManager::Param::Type::eInt;
+                newParam.value.resize(sizeof(resId));
+                memcpy(newParam.value.data(), &resId, sizeof(resId));
+                mMaterialManager->setParam(mdlTargetCode, compiledMaterials[i], newParam);
+            }
+            else
+            {
+                mMaterialManager->setParam(mdlTargetCode, compiledMaterials[i], param);
+            }
         }
+        mMaterialManager->dumpParams(mdlTargetCode, compiledMaterials[i]);
     }
 
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
@@ -675,7 +694,7 @@ void PtRender::drawFrame(Image* result)
     }
     if (mNeedRecreateView[frameIndex])
     {
-        mView[frameIndex] = createView(WIDTH, HEIGHT, SPP);
+        mView[frameIndex] = createView(WIDTH, HEIGHT, getSettingsManager()->getAs<uint32_t>("render/pt/spp"));
         mNeedRecreateView[frameIndex] = false;
     }
 
@@ -704,6 +723,7 @@ void PtRender::drawFrame(Image* result)
     {
         currView->mPtIteration = mPrevView->mPtIteration;
     }
+    getSettingsManager()->setAs<uint32_t>("render/pt/iteration", currView->mPtIteration);
 
     // at this point we reseive opened cmd buffer
     VkCommandBuffer& cmd = getSharedContext().getFrameData(frameIndex).cmdBuffer;

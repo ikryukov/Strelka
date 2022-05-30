@@ -36,6 +36,8 @@ public:
         {
             eFloat = 0,
             eInt,
+            eBool,
+            eFloat2,
             eFloat3,
             eFloat4,
             eTexture
@@ -66,6 +68,7 @@ public:
 
     uint32_t getResourceInfoSize(const TargetCode* targetCode);
     const uint8_t* getResourceInfoData(const TargetCode* targetCode);
+    int registerResource(TargetCode* targetCode, int index);
 
     uint32_t getMdlMaterialSize(const TargetCode* targetCode);
     const uint8_t* getMdlMaterialData(const TargetCode* targetCode);

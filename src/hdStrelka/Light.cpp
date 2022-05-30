@@ -1,14 +1,13 @@
 #include "Light.h"
 
-#include <pxr/imaging/hd/instancer.h>
-#include <pxr/imaging/hd/meshUtil.h>
-#include <pxr/imaging/hd/smoothNormals.h>
-#include <pxr/imaging/hd/vertexAdjacency.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/compatibility.hpp>
+#include <pxr/imaging/hd/instancer.h>
+#include <pxr/imaging/hd/meshUtil.h>
+#include <pxr/imaging/hd/smoothNormals.h>
+#include <pxr/imaging/hd/vertexAdjacency.h>
 
 #include <iostream>
 
@@ -54,7 +53,7 @@ static GfVec3f const _blackbodyRGB[] = {
     GfVec3f(0.638992f, 0.716359f, 1.000000f), //  9500 K
     GfVec3f(0.609681f, 0.695588f, 1.000000f), // 10000 K
     GfVec3f(0.609681f, 0.695588f, 1.000000f), // 10000 K
-    GfVec3f(0.609681f, 0.695588f, 1.000000f)  // 10000 K
+    GfVec3f(0.609681f, 0.695588f, 1.000000f) // 10000 K
 };
 
 // Catmull-Rom basis
