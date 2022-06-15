@@ -204,7 +204,13 @@ void VkRender::pickPhysicalDevice()
         if (isDeviceSuitable(device))
         {
             mPhysicalDevice = device;
-            break;
+            //break;
+            auto props = VkPhysicalDeviceProperties{};
+            vkGetPhysicalDeviceProperties(device, &props);
+            if (props.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+            {
+                break; // discrete gpu is preferred
+            }
         }
     }
 
