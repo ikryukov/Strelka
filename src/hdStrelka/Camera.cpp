@@ -65,12 +65,7 @@ HdDirtyBits HdStrelkaCamera::GetInitialDirtyBitsMask() const
 oka::Camera HdStrelkaCamera::_ConstructStrelkaCamera()
 {
     oka::Camera strelkaCamera;
-
-#ifdef __APPLE__
     GfMatrix4d perspMatrix = ComputeProjectionMatrix();
-#else
-    GfMatrix4d perspMatrix = GetProjectionMatrix();
-#endif // __APPLE__
     GfMatrix4d absInvViewMatrix = GetTransform();
     GfMatrix4d relViewMatrix = absInvViewMatrix; //*m_rootMatrix;
     glm::float4x4 xform;

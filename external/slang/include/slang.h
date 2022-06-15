@@ -521,11 +521,19 @@ extern "C"
     typedef int SlangSeverity;
     enum
     {
-        SLANG_SEVERITY_NOTE = 0,    /**< An informative message. */
-        SLANG_SEVERITY_WARNING,     /**< A warning, which indicates a possible proble. */
-        SLANG_SEVERITY_ERROR,       /**< An error, indicating that compilation failed. */
-        SLANG_SEVERITY_FATAL,       /**< An unrecoverable error, which forced compilation to abort. */
-        SLANG_SEVERITY_INTERNAL,    /**< An internal error, indicating a logic error in the compiler. */
+        SLANG_SEVERITY_DISABLED = 0, /**< A message that is disabled, filtered out. */
+        SLANG_SEVERITY_NOTE,         /**< An informative message. */
+        SLANG_SEVERITY_WARNING,      /**< A warning, which indicates a possible proble. */
+        SLANG_SEVERITY_ERROR,        /**< An error, indicating that compilation failed. */
+        SLANG_SEVERITY_FATAL,        /**< An unrecoverable error, which forced compilation to abort. */
+        SLANG_SEVERITY_INTERNAL,     /**< An internal error, indicating a logic error in the compiler. */
+    };
+
+    typedef int SlangDiagnosticFlags;
+    enum
+    {
+        SLANG_DIAGNOSTIC_FLAG_VERBOSE_PATHS = 0x01,
+        SLANG_DIAGNOSTIC_FLAG_TREAT_WARNINGS_AS_ERRORS = 0x02
     };
 
     typedef int SlangBindableResourceType;
@@ -562,6 +570,7 @@ extern "C"
         SLANG_PTX,                  ///< PTX
         SLANG_OBJECT_CODE,          ///< Object code that can be used for later linking
         SLANG_HOST_CPP_SOURCE,      ///< C++ code for host library or executable.
+        SLANG_HOST_HOST_CALLABLE,   ///< 
         SLANG_TARGET_COUNT_OF,
     };
 
@@ -994,10 +1003,8 @@ extern "C"
             @param name The name of the function 
             @return The function pointer related to the name or nullptr if not found 
             */
-        inline SlangFuncPtr SLANG_MCALL findFuncByName(char const* name)
-        {
-            return reinterpret_cast<SlangFuncPtr>(findSymbolAddressByName(name));
-        }
+        SLANG_FORCE_INLINE SlangFuncPtr findFuncByName(char const* name) { return (SlangFuncPtr)findSymbolAddressByName(name); }
+
             /** Get a symbol by name. If the library is unloaded will only return nullptr. 
             @param name The name of the symbol 
             @return The pointer related to the name or nullptr if not found 
@@ -1053,7 +1060,7 @@ extern "C"
         cache source contents internally. It is also used for #pragma once functionality.
 
         A *requirement* is for any implementation is that two paths can only return the same uniqueIdentity if the
-        contents of the two files are *identical*h. If an implementation breaks this constraint it can produce incorrect compilation.
+        contents of the two files are *identical*. If an implementation breaks this constraint it can produce incorrect compilation.
         If an implementation cannot *strictly* identify *the same* files, this will only have an effect on #pragma once behavior.
 
         The string for the uniqueIdentity is held zero terminated in the ISlangBlob of outUniqueIdentity.
@@ -1346,6 +1353,10 @@ extern "C"
     SLANG_API void spSetCompileFlags(
         SlangCompileRequest*    request,
         SlangCompileFlags       flags);
+
+    /*! @see slang::ICompileRequest::getCompileFlags */
+    SLANG_API SlangCompileFlags spGetCompileFlags(
+        SlangCompileRequest*    request);
 
     /*! @see slang::ICompileRequest::setDumpIntermediates */
     SLANG_API void spSetDumpIntermediates(
@@ -1709,7 +1720,19 @@ extern "C"
         size_t reproDataSize,
         ISlangFileSystem* replaceFileSystem,
         ISlangFileSystemExt** outFileSystem);
-    
+
+    /*! @see slang::ICompileRequest::overrideDiagnosticSeverity */
+    SLANG_API void spOverrideDiagnosticSeverity(
+        SlangCompileRequest* request,
+        SlangInt messageID,
+        SlangSeverity overrideSeverity);
+
+    /*! @see slang::ICompileRequest::getDiagnosticFlags */
+    SLANG_API SlangDiagnosticFlags spGetDiagnosticFlags(SlangCompileRequest* request);
+
+    /*! @see slang::ICompileRequest::setDiagnosticFlags */
+    SLANG_API void spSetDiagnosticFlags(SlangCompileRequest* request, SlangDiagnosticFlags flags);
+
     /*
     Forward declarations of types used in the reflection interface;
     */
@@ -2126,6 +2149,15 @@ extern "C"
 
     SLANG_API unsigned spReflectionParameter_GetBindingIndex(SlangReflectionParameter* parameter);
     SLANG_API unsigned spReflectionParameter_GetBindingSpace(SlangReflectionParameter* parameter);
+
+    SLANG_API SlangResult spIsParameterLocationUsed(
+        SlangCompileRequest* request,
+        SlangInt entryPointIndex,
+        SlangInt targetIndex,
+        SlangParameterCategory category, // is this a `t` register? `s` register?
+        SlangUInt spaceIndex,      // `space` for D3D12, `set` for Vulkan
+        SlangUInt registerIndex,   // `register` for D3D12, `binding` for Vulkan
+        bool& outUsed);
 
     // Entry Point Reflection
 
@@ -3351,6 +3383,11 @@ namespace slang
             SlangCompileFlags       flags) = 0;
 
             /*!
+            @brief Returns the compilation flags previously set with `setCompileFlags`
+            */
+        virtual SLANG_NO_THROW SlangCompileFlags SLANG_MCALL getCompileFlags() = 0;
+
+            /*!
             @brief Set whether to dump intermediate results (for debugging) or not.
             */
         virtual SLANG_NO_THROW void SLANG_MCALL setDumpIntermediates(
@@ -3872,6 +3909,14 @@ namespace slang
         virtual SLANG_NO_THROW SlangResult SLANG_MCALL getProgramWithEntryPoints(
             slang::IComponentType** outProgram) = 0;
 
+        virtual SLANG_NO_THROW SlangResult SLANG_MCALL isParameterLocationUsed(
+            SlangInt entryPointIndex,
+            SlangInt targetIndex,
+            SlangParameterCategory category,
+            SlangUInt spaceIndex,
+            SlangUInt registerIndex,
+            bool& outUsed) = 0;
+
             /** Set the line directive mode for a target.
             */
         virtual SLANG_NO_THROW void SLANG_MCALL setTargetLineDirectiveMode(
@@ -3883,6 +3928,24 @@ namespace slang
                 If false, the resulting code will std430 for storage buffers.
             */
         virtual SLANG_NO_THROW void SLANG_MCALL setTargetForceGLSLScalarBufferLayout(int targetIndex, bool forceScalarLayout) = 0;
+
+            /** Overrides the severity of a specific diagnostic message.
+
+            @param messageID            Numeric identifier of the message to override,
+                                        as defined in the 1st parameter of the DIAGNOSTIC macro.
+            @param overrideSeverity     New severity of the message. If the message is originally Error or Fatal,
+                                        the new severity cannot be lower than that.
+            */
+        virtual SLANG_NO_THROW void SLANG_MCALL overrideDiagnosticSeverity(
+            SlangInt messageID,
+            SlangSeverity overrideSeverity) = 0;
+
+            /** Returns the currently active flags of the request's diagnostic sink. */
+        virtual SLANG_NO_THROW SlangDiagnosticFlags SLANG_MCALL getDiagnosticFlags() = 0;
+
+            /** Sets the flags of the request's diagnostic sink.
+                The previously specified flags are discarded. */
+        virtual SLANG_NO_THROW void SLANG_MCALL setDiagnosticFlags(SlangDiagnosticFlags flags) = 0;
     };
 
     #define SLANG_UUID_ICompileRequest ICompileRequest::getTypeGuid()
@@ -3937,6 +4000,10 @@ namespace slang
         You have been warned.
         */
         kSessionFlag_FalcorCustomSharedKeywordSemantics = 1 << 0,
+
+        /** Indicates that this is a session created by language server.
+        */
+        kSessionFlag_LanguageServer = 1 << 1,
     };
 
     struct PreprocessorMacroDesc
@@ -3971,6 +4038,8 @@ namespace slang
 
         PreprocessorMacroDesc const*    preprocessorMacros = nullptr;
         SlangInt                        preprocessorMacroCount = 0;
+
+        ISlangFileSystem* fileSystem = nullptr;
     };
 
     enum class ContainerType
@@ -4021,6 +4090,7 @@ namespace slang
             */
         virtual SLANG_NO_THROW IModule* SLANG_MCALL loadModuleFromSource(
             const char* moduleName,
+            const char* path,
             slang::IBlob* source,
             slang::IBlob** outDiagnostics = nullptr) = 0;
 

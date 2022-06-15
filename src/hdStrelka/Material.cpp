@@ -154,9 +154,8 @@ void HdStrelkaMaterial::Sync(HdSceneDelegate* sceneDelegate, HdRenderParam* rend
         }
     }
 
-    HdMaterialNetwork2 network;
     bool isVolume = false;
-    HdMaterialNetwork2ConvertFromHdMaterialNetworkMap(networkMap, &network, &isVolume);
+    HdMaterialNetwork2 network = HdConvertToHdMaterialNetwork2(networkMap, &isVolume);
     if (isVolume)
     {
         TF_WARN("Volume %s unsupported", id.GetText());

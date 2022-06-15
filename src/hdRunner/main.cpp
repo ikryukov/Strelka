@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <cxxopts.hpp>
 #include <iostream>
+#include <filesystem>
 
 PXR_NAMESPACE_USING_DIRECTIVE
 
