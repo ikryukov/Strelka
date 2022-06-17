@@ -1,1 +1,1 @@
-#define SLANG_TAG_VERSION "v0.23.12-10-g750e512b"
+#define SLANG_TAG_VERSION "unknown"

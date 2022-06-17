@@ -204,7 +204,13 @@ void VkRender::pickPhysicalDevice()
         if (isDeviceSuitable(device))
         {
             mPhysicalDevice = device;
-            break;
+            //break;
+            auto props = VkPhysicalDeviceProperties{};
+            vkGetPhysicalDeviceProperties(device, &props);
+            if (props.deviceType == VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+            {
+                break; // discrete gpu is preferred
+            }
         }
     }
 
@@ -538,7 +544,9 @@ std::vector<const char*> VkRender::getRequiredExtensions()
         extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
     extensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+#ifdef __APPLE__
     extensions.push_back(VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME);
+#endif // __APPLE__
     return extensions;
 }
 

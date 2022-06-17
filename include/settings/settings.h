@@ -50,7 +50,7 @@ public:
     float getAs(const char* name)
     {
         isNameValid(name);
-        return atof(mMap[name].c_str());
+        return (float) atof(mMap[name].c_str());
     }
 
     template <>

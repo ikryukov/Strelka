@@ -491,7 +491,7 @@ public:
             internalMaterials[i].compiledMaterial = materials[i];
             internalMaterials[i].hash = materials[i]->compiledMaterial->get_hash();
             internalMaterials[i].hash32 = uuid_hash32(internalMaterials[i].hash);
-            uint functionNum = -1;
+            uint32_t functionNum = -1;
             bool isUnique = false;
             if (uidToFunctionNum.find(internalMaterials[i].hash32) != uidToFunctionNum.end())
             {

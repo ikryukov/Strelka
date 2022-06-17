@@ -145,7 +145,9 @@ bool _ConvertNodesToMaterialXNodes(const HdMaterialNetwork2& network,
     return true;
 }
 
-bool _GetMaterialNetworkSurfaceTerminal(const HdMaterialNetwork2& network2, HdMaterialNode2& surfaceTerminal)
+bool _GetMaterialNetworkSurfaceTerminal(const HdMaterialNetwork2& network2,
+                                        HdMaterialNode2& surfaceTerminal,
+                                        SdfPath& terminalPath)
 {
     const auto& connectionIt = network2.terminals.find(HdMaterialTerminalTokens->surface);
 
@@ -156,7 +158,7 @@ bool _GetMaterialNetworkSurfaceTerminal(const HdMaterialNetwork2& network2, HdMa
 
     const HdMaterialConnection2& connection = connectionIt->second;
 
-    const SdfPath& terminalPath = connection.upstreamNode;
+    terminalPath = connection.upstreamNode;
 
     const auto& nodeIt = network2.nodes.find(terminalPath);
 
@@ -236,7 +238,8 @@ mx::DocumentPtr MaterialNetworkTranslator::CreateMaterialXDocumentFromNetwork(co
                                                                               const HdMaterialNetwork2& network) const
 {
     HdMaterialNode2 surfaceTerminal;
-    if (!_GetMaterialNetworkSurfaceTerminal(network, surfaceTerminal))
+    SdfPath terminalPath;
+    if (!_GetMaterialNetworkSurfaceTerminal(network, surfaceTerminal, terminalPath))
     {
         TF_WARN("Unable to find surface terminal for material network");
         return nullptr;
@@ -247,7 +250,8 @@ mx::DocumentPtr MaterialNetworkTranslator::CreateMaterialXDocumentFromNetwork(co
 
     return HdMtlxCreateMtlxDocumentFromHdNetwork(
         network,
-        surfaceTerminal,
+        surfaceTerminal, 
+        terminalPath,
         id,
         m_nodeLib,
         &hdTextureNodes,

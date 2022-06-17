@@ -150,7 +150,7 @@ void PtRender::init()
 
     assert(materials.size() != 0);
     const MaterialManager::TargetCode* mdlTargetCode =
-        mMaterialManager->generateTargetCode(materials.data(), materials.size());
+        mMaterialManager->generateTargetCode(materials.data(), (uint32_t) materials.size());
     const char* hlsl = mMaterialManager->getShaderCode(mdlTargetCode);
 
     mCurrentSceneRenderData = new SceneRenderData(getResManager());
@@ -252,7 +252,7 @@ void oka::PtRender::reloadPt()
 
     assert(compiledMaterials.size() != 0);
     MaterialManager::TargetCode* mdlTargetCode =
-        mMaterialManager->generateTargetCode(compiledMaterials.data(), compiledMaterials.size());
+        mMaterialManager->generateTargetCode(compiledMaterials.data(), (uint32_t) compiledMaterials.size());
 
     for (uint32_t i = 0; i < matDescs.size(); ++i)
     {
