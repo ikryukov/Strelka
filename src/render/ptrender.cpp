@@ -194,7 +194,7 @@ void PtRender::cleanup()
     }
 }
 
-void oka::PtRender::reloadPt()
+void PtRender::reloadPt()
 {
     std::unordered_map<std::string, MaterialManager::Module*> mNameToModule;
     std::unordered_map<std::string, MaterialManager::MaterialInstance*> mNameToInstance;
