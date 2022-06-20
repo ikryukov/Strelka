@@ -550,10 +550,6 @@ public:
                 printf("Material texture name: %s\n", texName);
             }
         }
-        else
-        {
-            targetCode->resourceInfo.resize(1);
-        }
 
         targetCode->isInitialized = true;
         return targetCode;
@@ -564,7 +560,8 @@ public:
         Mdl_resource_info ri{ 0 };
         ri.gpu_resource_array_start = index;
         targetCode->resourceInfo.push_back(ri);
-        return (int) targetCode->resourceInfo.size() - 1;
+        return (int)targetCode->resourceInfo.size(); // resource id 0 is reserved for invalid, but we store resources
+                                                     // from 0 internally
     }
 
     const char* getShaderCode(const TargetCode* targetCode)
