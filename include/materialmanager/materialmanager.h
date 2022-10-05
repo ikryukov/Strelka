@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#define MI_NEURAYLIB_DEPRECATED_13_0
 namespace oka
 {
 

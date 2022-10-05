@@ -609,7 +609,7 @@ void oka::PtRender::createMdlBuffers()
 
     const uint32_t argSize = mMaterialManager->getArgBufferSize(code);
     const uint32_t roSize = mMaterialManager->getReadOnlyBlockSize(code);
-    const uint32_t infoSize = mMaterialManager->getResourceInfoSize(code);
+    const uint32_t infoSize = std::max(mMaterialManager->getResourceInfoSize(code), (uint32_t)4);
     const uint32_t mdlMaterialSize = mMaterialManager->getMdlMaterialSize(code);
 
     VkDeviceSize stagingSize = std::max(std::max(roSize, mdlMaterialSize), std::max(argSize, infoSize));
