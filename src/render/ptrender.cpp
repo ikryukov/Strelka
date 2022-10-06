@@ -78,7 +78,7 @@ void PtRender::init()
         printf("Please, set USD_DIR variable\n");
         assert(0);
     }
-    const std::string usdMdlLibPath = std::string(envUSDPath) + "/mdl";
+    const std::string usdMdlLibPath = std::string(envUSDPath) + "/libraries/mdl/materialx/"; // USD 22.08
 
     const char* paths[4] = { "./misc/test_data/mtlx", "./misc/test_data/mdl/", "./misc/test_data/mdl/resources/",
                              usdMdlLibPath.c_str() };
@@ -609,7 +609,7 @@ void oka::PtRender::createMdlBuffers()
 
     const uint32_t argSize = mMaterialManager->getArgBufferSize(code);
     const uint32_t roSize = mMaterialManager->getReadOnlyBlockSize(code);
-    const uint32_t infoSize = mMaterialManager->getResourceInfoSize(code);
+    const uint32_t infoSize = std::max(mMaterialManager->getResourceInfoSize(code), (uint32_t)4);
     const uint32_t mdlMaterialSize = mMaterialManager->getMdlMaterialSize(code);
 
     VkDeviceSize stagingSize = std::max(std::max(roSize, mdlMaterialSize), std::max(argSize, infoSize));

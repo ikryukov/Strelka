@@ -550,6 +550,10 @@ public:
                 printf("Material texture name: %s\n", texName);
             }
         }
+        //else
+        //{
+        //    targetCode->resourceInfo.resize(1);
+        //}
 
         targetCode->isInitialized = true;
         return targetCode;

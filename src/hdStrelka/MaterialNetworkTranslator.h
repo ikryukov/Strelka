@@ -18,12 +18,10 @@
 #include <pxr/usd/sdf/path.h>
 
 #include <string>
+#include <MaterialXCore/Document.h>
+
 #include <memory>
 
-namespace MaterialX
-{
-using DocumentPtr = std::shared_ptr<class Document>;
-}
 
 PXR_NAMESPACE_OPEN_SCOPE
 
