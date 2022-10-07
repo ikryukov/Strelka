@@ -352,7 +352,8 @@ set(HD_PLUGIN_SOURCES
     src/HdStrelka/MdlParserPlugin.cpp
     src/HdStrelka/MdlDiscoveryPlugin.h
     src/HdStrelka/MdlDiscoveryPlugin.cpp
-)
+        src/hdStrelka/BasisCurves.cpp
+        src/hdStrelka/BasisCurves.h)
 set(HD_PLUGIN_NAME HdStrelka)
 add_library(${HD_PLUGIN_NAME} SHARED ${HD_PLUGIN_SOURCES})
 set_target_properties(

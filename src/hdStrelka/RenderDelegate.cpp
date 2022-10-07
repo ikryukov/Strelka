@@ -5,6 +5,7 @@
 #include "Light.h"
 #include "Material.h"
 #include "Mesh.h"
+#include "BasisCurves.h"
 #include "RenderBuffer.h"
 #include "RenderPass.h"
 #include "Tokens.h"
@@ -103,7 +104,7 @@ HdAovDescriptor HdStrelkaRenderDelegate::GetDefaultAovDescriptor(const TfToken& 
     return aovDescriptor;
 }
 
-const TfTokenVector SUPPORTED_RPRIM_TYPES = { HdPrimTypeTokens->mesh };
+const TfTokenVector SUPPORTED_RPRIM_TYPES = { HdPrimTypeTokens->mesh,  HdPrimTypeTokens->basisCurves};
 
 const TfTokenVector& HdStrelkaRenderDelegate::GetSupportedRprimTypes() const
 {
@@ -115,6 +116,10 @@ HdRprim* HdStrelkaRenderDelegate::CreateRprim(const TfToken& typeId, const SdfPa
     if (typeId == HdPrimTypeTokens->mesh)
     {
         return new HdStrelkaMesh(rprimId, &mScene);
+    }
+    if (typeId == HdPrimTypeTokens->basisCurves)
+    {
+        return new HdStrelkaBasisCurves(rprimId, &mScene);
     }
     TF_CODING_ERROR("Unknown Rprim Type %s", typeId.GetText());
     return nullptr;
