@@ -123,9 +123,9 @@ public:
         glm::float4 color = glm::float4(1.0f);
         glm::float4 normal;
         int type;
+        int texId;
         float pad0;
-        float pad2;
-        float pad3;
+        float pad1;
     };
 
     // CPU side structure
@@ -147,6 +147,10 @@ public:
 
         // disc/sphere light
         float radius;
+
+        // dome light
+        std::string texPath;
+        int32_t texId = -1;
     };
 
     std::vector<UniformLightDesc> mLightDesc;

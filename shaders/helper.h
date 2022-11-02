@@ -1,10 +1,24 @@
 #pragma once
 
 #define PI 3.1415926535897
+#define TWO_PI (PI * 2.0f)
 #define INVERSE_PI (1.0 / PI)
 #define PiOver2 1.57079632679489661923
 #define PiOver4 0.78539816339744830961
 #define DIRAC -1.0f
+
+// Converts a direction in space to a UV coord for an
+// equirectorial (or latitude/longitude) map
+float2 DirectionToLatLongUV(float3 dir)
+{
+    // Calculate polar coords
+    dir = normalize(dir);
+    float theta = acos(dir.y);
+    float phi = atan2(dir.z, -dir.x);
+
+    // Normalize
+    return float2((PI + phi) / TWO_PI, theta / PI);
+}
 
 // Clever offset_ray function from Ray Tracing Gems chapter 6
 // Offsets the ray origin from current position p, along normal n (which must be geometric normal)
@@ -60,6 +74,21 @@ float3 SampleHemisphere(uint2 pixelIndex, float3 normal)
 
     return mul(GetTangentSpace(normal), tangentSpaceDir);
 }
+
+float3 SampleRayInHemisphere(const float3 hitPoint, const float2 u)
+{
+    float signZ = (hitPoint.z >= 0.0f) ? 1.0f : -1.0f;
+    float a = -1.0f / (signZ + hitPoint.z);
+    float b = hitPoint.x * hitPoint.y * a;
+    float3 b1 = float3(1.0f + signZ * hitPoint.x * hitPoint.x * a, signZ * b, -signZ * hitPoint.x);
+    float3 b2 = float3(b, signZ + hitPoint.y * hitPoint.y * a, -hitPoint.y);
+
+    float phi = 2.0f * PI * u.x;
+    float cosTheta = sqrt(u.y);
+    float sinTheta = sqrt(1.0f - u.y);
+    return normalize((b1 * cos(phi) + b2 * sin(phi)) * cosTheta + hitPoint * sinTheta);
+}
+
 
 float3 SampleHemisphere(float u1, float u2, float alpha)
 {

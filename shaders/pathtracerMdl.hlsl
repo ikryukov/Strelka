@@ -47,12 +47,15 @@ float3 estimateDirectLighting(inout uint rngState,
     case 2:
         lightSampleData = SampleSphereLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
         break;
+    case 4:
+        lightSampleData = SampleDomeLight(light, state.normal, state.position, float2(rand(rngState), rand(rngState)));
+        break;
     }
 
     toLight = lightSampleData.L;
     float3 Li = light.color.rgb;
 
-    if (dot(state.normal, lightSampleData.L) > 0.0f && -dot(lightSampleData.L, lightSampleData.normal) > 0.0 && all(Li))
+    if (dot(state.normal, lightSampleData.L) > 0.0f && -dot(lightSampleData.L, lightSampleData.normal) > 0.0)
     {
         Ray shadowRay;
         shadowRay.d = float4(lightSampleData.L, 0.0f);
@@ -66,7 +69,7 @@ float3 estimateDirectLighting(inout uint rngState,
         {
             // check if it was light hit?
             InstanceConstants instConst = accel.instanceConstants[NonUniformResourceIndex(shadowHit.instId)];
-            if (instConst.lightId != -1) 
+            if (instConst.lightId != -1)
             {
                 // light hit => visible
                 visibility = 1.0f;
@@ -393,7 +396,10 @@ float3 pathTraceCameraRays(uint2 pixelIndex, in out uint rngState, uint s)
             //float3 viewSpaceDir = mul((float3x3) ubo.worldToView, ray.d.xyz);
             //finalColor += throughput * cubeMap.Sample(cubeMapSampler, viewSpaceDir).rgb;
 
-            finalColor += throughput * float3(0.0f);
+            //finalColor += throughput * float3(0.0f);
+
+            // dome light
+            finalColor += throughput * mdl_textures_2d[lights[0].texId].Sample(mdl_sampler_tex, DirectionToLatLongUV(ray.d.xyz)).rgb;
 
             break;
         }
